@@ -2,12 +2,25 @@
 
 // Renderizador de markdown compartilhado do Tutor IA — usado no chat da aba
 // Estudar, no painel rápido dos PDFs e em qualquer nova superfície do tutor.
-// Garante saída estruturada e consistente: negrito em destaque, código Portugol
-// em bloco escuro, listas legíveis e tabelas com scroll.
+// Garante saída estruturada e consistente: negrito em destaque, blocos de código
+// ricos (CodeBlock: sintaxe C/Portugol/HTML + copiar + linhas), listas legíveis
+// e tabelas com scroll.
 
 import * as React from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { CodeBlock } from '@/components/hub/code-block';
+
+/** Concatena o texto bruto de nós React (o conteúdo do <code> é string puro). */
+function nodeText(node: React.ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(nodeText).join('');
+  if (React.isValidElement(node)) {
+    return nodeText((node.props as { children?: React.ReactNode }).children);
+  }
+  return '';
+}
 
 interface TutorMarkdownProps {
   content: string;
@@ -45,27 +58,23 @@ function TutorMarkdownImpl({
           <span className="sr-only"> (abre em nova aba)</span>
         </a>
       ),
-      code: ({ children, className: cls }) => {
-        const isBlock = /language-/.test(cls ?? '');
-        if (isBlock) {
-          return (
-            <code
-              className={cn(
-                'block overflow-x-auto rounded-lg border border-border bg-black/60 p-3 font-mono text-xs leading-relaxed text-emerald-300 [scrollbar-width:thin]',
-                cls,
-              )}
-            >
-              {children}
-            </code>
-          );
-        }
-        return (
-          <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-xs text-emerald-300">
-            {children}
-          </code>
-        );
+      code: ({ children }) => (
+        // blocos cercados (```) são capturados pelo `pre` abaixo e nunca chegam aqui
+        <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-xs text-emerald-300">
+          {children}
+        </code>
+      ),
+      pre: ({ children }) => {
+        // o filho do <pre> é o elemento <code> com a classe language-*
+        const el = React.Children.toArray(children).find(
+          React.isValidElement,
+        ) as React.ReactElement<{ className?: string; children?: React.ReactNode }> | undefined;
+        if (!el) return <div className="mb-2 last:mb-0">{children}</div>;
+        const cls: string = el.props.className ?? '';
+        const lang = /language-([\w#+-]+)/.exec(cls)?.[1];
+        const raw = nodeText(el.props.children).replace(/\n$/, '');
+        return <CodeBlock code={raw} language={lang} />;
       },
-      pre: ({ children }) => <div className="mb-2 last:mb-0">{children}</div>,
       blockquote: ({ children }) => (
         <blockquote className="mb-2 border-l-2 border-emerald-500/50 pl-3 text-muted-foreground last:mb-0">
           {children}
