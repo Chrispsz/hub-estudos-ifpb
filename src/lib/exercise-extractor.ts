@@ -584,6 +584,7 @@ export function listAllTopics(): string[] {
  * Usa seed simples baseado no dia para não repetir no mesmo dia.
  */
 export function pickRandomExercises(n: number, seed: number = Date.now()): Exercise[] {
+  if (n <= 0) return []; // entrada inválida → nada a sortear (evita slice negativo)
   // Shuffle deterministic com seed
   const arr = [...exercises];
   let s = seed;
@@ -595,20 +596,31 @@ export function pickRandomExercises(n: number, seed: number = Date.now()): Exerc
   return arr.slice(0, Math.min(n, arr.length));
 }
 
+/** Estatística agregada do acervo de exercícios. */
+export interface ExerciseStats {
+  total: number;
+  bySource: Record<Exercise['source'], number>;
+  byDifficulty: Record<Exercise['difficulty'], number>;
+}
+
 /**
- * Estatística básica dos exercícios.
+ * Estatística básica dos exercícios — contagem única (sem filtrar o array 7x).
  */
-export function getExerciseStats() {
-  const bySource = {
-    lista_algoritmos: exercises.filter((e) => e.source === 'lista_algoritmos').length,
-    prova_real: exercises.filter((e) => e.source === 'prova_real').length,
-    gerado_topico: exercises.filter((e) => e.source === 'gerado_topico').length,
-    ia_sugerido: exercises.filter((e) => e.source === 'ia_sugerido').length,
+export function getExerciseStats(): ExerciseStats {
+  const bySource: Record<Exercise['source'], number> = {
+    lista_algoritmos: 0,
+    prova_real: 0,
+    gerado_topico: 0,
+    ia_sugerido: 0,
   };
-  const byDifficulty = {
-    facil: exercises.filter((e) => e.difficulty === 'facil').length,
-    medio: exercises.filter((e) => e.difficulty === 'medio').length,
-    dificil: exercises.filter((e) => e.difficulty === 'dificil').length,
+  const byDifficulty: Record<Exercise['difficulty'], number> = {
+    facil: 0,
+    medio: 0,
+    dificil: 0,
   };
+  for (const e of exercises) {
+    bySource[e.source] += 1;
+    byDifficulty[e.difficulty] += 1;
+  }
   return { total: exercises.length, bySource, byDifficulty };
 }

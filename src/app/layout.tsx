@@ -8,11 +8,13 @@ import { PwaRegister } from '@/components/pwa';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+  display: 'swap', // next/font já auto-hospeda (sem FOUT de CDN); swap evita texto invisível
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -31,6 +33,14 @@ export const metadata: Metadata = {
     'IA',
   ],
   authors: [{ name: 'Hub de Estudos IFPB' }],
+  openGraph: {
+    locale: 'pt_BR',
+    type: 'website',
+    siteName: 'Hub de Estudos IFPB',
+    title: 'Hub de Estudos • IFPB ADS 2026.2',
+    description:
+      'Disciplinas, biblioteca, cronograma inteligente, Pomodoro e tutor IA para o 2º período de ADS (IFPB Campus Cajazeiras, 2026.2).',
+  },
   icons: {
     icon: '/logo-ifpb.svg',
     apple: '/icons/apple-touch-icon.png',
@@ -47,7 +57,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0c0c0c',
+  // Cor do tema na barra do navegador, por esquema de cor do sistema.
+  // (O tema do app é alternável via next-themes; a media query cobre o padrão do SO.)
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0c0c' },
+  ],
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',

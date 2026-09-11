@@ -360,7 +360,12 @@ export function useStudyProgress() {
     defaultProgress,
   );
 
-  // Migração silenciosa: garante campos novos (fixedDisciplines, pomodoroState, flashcards, ...)
+  // Migração silenciosa: garante campos novos (fixedDisciplines, pomodoroState,
+  // flashcards, ...) em dados antigos. Depende de [progress] para rodar DEPOIS que
+  // o useLocalStorage leu o localStorage (antes disso `progress` ainda é o default,
+  // que já satisfaz a condição e o merge seria no-op). Após o merge a condição
+  // vira falsa — converge sem loop. O useLocalStorage evita re-write se o conteúdo
+  // serializado não mudar.
   React.useEffect(() => {
     if (
       progress.studyPreferences?.fixedDisciplines === undefined ||
@@ -369,7 +374,7 @@ export function useStudyProgress() {
     ) {
       setProgress((prev) => mergeWithDefaults(prev));
     }
-  }, []);
+  }, [progress, setProgress]);
   // NOTA: a persistência é garantida pelo useLocalStorage (salva em toda mudança
   // de estado). Não usamos interval de auto-save aqui porque múltiplas instâncias
   // do hook coexistem entre as abas — um interval com estado stale acabaria
@@ -859,6 +864,7 @@ export function useStudyProgress() {
   // ----- Selectors -----
 
   const sessionsToday = React.useMemo(() => {
+    // FUSO: compara com a data UTC gravada em cada sessão (convenção do módulo).
     const today = new Date().toISOString().slice(0, 10);
     return progress.pomodoroSessions.filter((s) => s.date === today);
   }, [progress.pomodoroSessions]);
@@ -920,12 +926,14 @@ export function useStudyProgress() {
   /**
    * Streak: dias consecutivos com pelo menos 1 sessão de foco,
    * terminando hoje (ou ontem — streak "vivo" ainda não estudado hoje).
+   * FUSO: `date` das sessões é gravada em UTC (toISOString().slice(0, 10)) —
+   * o streak compara com a MESMA convenção (não com data local) para não
+   * quebrar no fuso -3 (sessões entre 21h-23h59 BRT gravam no dia UTC seguinte).
    */
   const studyStreak = React.useMemo(() => {
     const days = new Set(progress.pomodoroSessions.map((s) => s.date));
     if (days.size === 0) return 0;
-    const iso = (d: Date) =>
-      `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    const iso = (d: Date) => d.toISOString().slice(0, 10); // UTC — igual ao gravado
     const cursor = new Date();
     if (!days.has(iso(cursor))) {
       cursor.setDate(cursor.getDate() - 1); // ontem mantém o streak vivo

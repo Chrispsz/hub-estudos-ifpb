@@ -51,6 +51,17 @@ const typeLabel: Record<Material['type'], string> = {
   calendar: 'Calendário',
 };
 
+// Dados imutáveis — listas e contagens derivadas calculadas uma única vez.
+const PDF_MATERIALS = materials.filter((m) => m.pdfPath);
+const PDF_COUNT = PDF_MATERIALS.length;
+const SUMMARY_COUNT = materials.filter((m) => m.summaryFile).length;
+const PDF_COUNT_BY_DISCIPLINE = new Map(
+  disciplines.map((d) => [
+    d.code,
+    materials.filter((m) => m.disciplineCode === d.code && m.pdfPath).length,
+  ]),
+);
+
 interface DownloadsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -130,13 +141,17 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
             <DatabaseBackup className="size-4 text-teal-500" /> Backup do progresso
           </h3>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button variant="outline" className="justify-start" onClick={handleExport}>
+            <Button
+              variant="outline"
+              className="h-11 justify-start sm:h-9"
+              onClick={handleExport}
+            >
               <FileJson className="size-4 text-emerald-600 dark:text-emerald-400" />
               Exportar progresso (JSON)
             </Button>
             <Button
               variant="outline"
-              className="justify-start"
+              className="h-11 justify-start sm:h-9"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="size-4 text-amber-600 dark:text-amber-400" />
@@ -171,7 +186,7 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
               <p className="text-sm font-semibold">ZIP completo do período</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              {materials.filter((m) => m.pdfPath).length} PDFs em um único .zip
+              {PDF_COUNT} PDFs em um único .zip
             </p>
             <Button
               size="sm"
@@ -197,7 +212,7 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
               <p className="text-sm font-semibold">Resumos IA (JSON)</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              {materials.filter((m) => m.summaryFile).length} arquivos .summary.json
+              {SUMMARY_COUNT} arquivos .summary.json
             </p>
             <Button
               size="sm"
@@ -229,10 +244,8 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
           </h3>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {disciplines.map((d) => {
-              const mats = materials.filter(
-                (m) => m.disciplineCode === d.code && m.pdfPath,
-              );
-              if (mats.length === 0) return null;
+              const pdfCount = PDF_COUNT_BY_DISCIPLINE.get(d.code) ?? 0;
+              if (pdfCount === 0) return null;
               const color = getColorClasses(d.color);
               const key = `disc-${d.code}`;
               return (
@@ -252,13 +265,13 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-semibold">{d.shortName}</p>
-                      <p className="text-[10px] text-muted-foreground">{mats.length} PDFs</p>
+                      <p className="text-[10px] text-muted-foreground">{pdfCount} PDFs</p>
                     </div>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="mt-2 h-7 w-full text-xs"
+                    className="mt-2 h-11 w-full text-xs sm:h-7"
                     disabled={busy === key}
                     onClick={() =>
                       withProgress(key, () =>
@@ -290,40 +303,38 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
             <FileText className="size-4 text-rose-500" /> PDFs individuais
           </h3>
           <ul className="grid max-h-64 gap-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
-            {materials
-              .filter((m) => m.pdfPath)
-              .map((m) => {
-                const disc = getDisciplineByCode(m.disciplineCode);
-                const color = getColorClasses(disc?.color ?? 'slate');
-                return (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2 text-sm"
+            {PDF_MATERIALS.map((m) => {
+              const disc = getDisciplineByCode(m.disciplineCode);
+              const color = getColorClasses(disc?.color ?? 'slate');
+              return (
+                <li
+                  key={m.id}
+                  className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2 text-sm"
+                >
+                  <span className={cn('size-2 shrink-0 rounded-full', color.dot)} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{m.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {disc?.shortName ?? m.disciplineCode} • {typeLabel[m.type]}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-11 w-11 sm:h-6 sm:w-auto sm:px-1.5"
+                    aria-label={`Baixar ${m.title}`}
+                    onClick={() => {
+                      if (!m.pdfPath) return;
+                      const filename = m.pdfPath.split('/').pop() ?? `${m.id}.pdf`;
+                      downloadPdf(m.pdfPath, filename);
+                      toast.success('Download iniciado');
+                    }}
                   >
-                    <span className={cn('size-2 shrink-0 rounded-full', color.dot)} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium">{m.title}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {disc?.shortName ?? m.disciplineCode} • {typeLabel[m.type]}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-1.5"
-                      aria-label={`Baixar ${m.title}`}
-                      onClick={() => {
-                        if (!m.pdfPath) return;
-                        const filename = m.pdfPath.split('/').pop() ?? `${m.id}.pdf`;
-                        downloadPdf(m.pdfPath, filename);
-                        toast.success('Download iniciado');
-                      }}
-                    >
-                      <Download className="size-3.5" />
-                    </Button>
-                  </li>
-                );
-              })}
+                    <Download className="size-3.5" />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       </DialogContent>

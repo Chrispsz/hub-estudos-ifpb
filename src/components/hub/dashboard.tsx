@@ -54,6 +54,9 @@ interface Props {
   onOpenPractice?: () => void;
 }
 
+/** Percentual de tópicos concluídos para considerar a disciplina "em dia". */
+const ON_TRACK_PCT = 50;
+
 export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice }: Props) {
   const sp = useStudyProgress();
   const [selected, setSelected] = React.useState<Discipline | null>(null);
@@ -82,12 +85,15 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
     return () => clearInterval(id);
   }, []);
 
-  // Recentes
+  // Recentes (enriquecidos com accessedAt — evita find() dentro do render)
   const recentMaterials = React.useMemo(() => {
     return sp.progress.recentMaterials
       .slice(0, 3)
-      .map((r) => materials.find((m) => m.id === r.id))
-      .filter((m): m is Material => !!m);
+      .map((r) => {
+        const material = materials.find((m) => m.id === r.id);
+        return material ? { material, accessedAt: r.accessedAt } : null;
+      })
+      .filter((x): x is { material: Material; accessedAt: string } => x !== null);
   }, [sp.progress.recentMaterials]);
 
   // Dica do dia rotativa (baseada no dia do mês - determinística por dia)
@@ -107,6 +113,28 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
   // KPIs V3 adicionais
   const totalTopicsDone = countTotalTopicsDone(sp.progress.topicProgress);
   const disciplinesOnTrack = countDisciplinesOnTrack(sp.progress.topicProgress);
+
+  // Linhas derivadas das próximas avaliações (memoizado — evita criar Date/agregar no render)
+  const upcomingRows = React.useMemo(() => {
+    const now = new Date();
+    return upcoming.map((e) => {
+      const disc = getDisciplineByCode(e.disciplineCode);
+      const color = getColorClasses(disc?.color ?? 'slate');
+      const daysLeft = e.date ? daysUntilDate(e.date, now) : -1;
+      // Status: em dia (progresso PPC ≥ ON_TRACK_PCT%) ou atrasada
+      const discTopics = sp.progress.topicProgress[e.disciplineCode] ?? {};
+      const allTopics = disc?.conteudoProgramatico.flatMap((u) => u.topicos) ?? [];
+      const doneTopics = allTopics.filter((t) => discTopics[t]).length;
+      const pct = allTopics.length === 0 ? 0 : Math.round((doneTopics / allTopics.length) * 100);
+      const dateLabel = e.date
+        ? new Date(`${e.date}T12:00:00`).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+          })
+        : 'A definir';
+      return { e, disc, color, daysLeft, pct, onTrack: pct >= ON_TRACK_PCT, dateLabel };
+    });
+  }, [upcoming, sp.progress.topicProgress]);
 
   return (
     <div className="space-y-6">
@@ -239,24 +267,17 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
         </h3>
         <div className="grid gap-3 sm:grid-cols-3">
           {upcoming.length === 0 ? (
-            <Card className="rounded-xl bg-muted/30 p-4 text-sm text-muted-foreground sm:col-span-3">
-              Nenhuma data oficial à frente. As avaliações entram aqui assim que os professores divulgarem.
+            <Card className="flex items-center gap-2.5 rounded-xl bg-muted/30 p-4 text-sm text-muted-foreground sm:col-span-3">
+              <CalendarCheck className="size-4 shrink-0" aria-hidden="true" />
+              <span>
+                Nenhuma data oficial à frente. As avaliações entram aqui assim que os professores divulgarem.
+              </span>
             </Card>
           ) : (
-            upcoming.map((e, i) => {
-              const disc = getDisciplineByCode(e.disciplineCode);
-              const color = getColorClasses(disc?.color ?? 'slate');
-              const now = new Date();
-              const daysLeft = e.date ? daysUntilDate(e.date, now) : -1;
-              // Status: em dia (progresso PPC ≥ 50%) ou atrasada
-              const discTopics = sp.progress.topicProgress[e.disciplineCode] ?? {};
-              const allTopics = disc?.conteudoProgramatico.flatMap((u) => u.topicos) ?? [];
-              const doneTopics = allTopics.filter((t) => discTopics[t]).length;
-              const pct = allTopics.length === 0 ? 0 : Math.round((doneTopics / allTopics.length) * 100);
-              const onTrack = pct >= 50;
+            upcomingRows.map(({ e, disc, color, daysLeft, pct, onTrack, dateLabel }) => {
               return (
                 <Card
-                  key={i}
+                  key={`${e.disciplineCode}-${e.evaluationName}-${e.date ?? 'adefinir'}`}
                   className={cn(
                     'rounded-xl border-l-4 bg-card p-3 shadow-sm',
                     color.border,
@@ -280,13 +301,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     </Badge>
                   </div>
                   <p className={cn('mt-2 text-[11px] font-medium uppercase tracking-wide', color.text)}>
-                    {disc?.shortName} •{' '}
-                    {e.date
-                      ? new Date(`${e.date}T12:00:00`).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                        })
-                      : 'A definir'}
+                    {disc?.shortName} • {dateLabel}
                   </p>
                   <p className="text-sm font-semibold leading-tight">{e.evaluationName}</p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
@@ -378,12 +393,15 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
             <FileText className="size-4 text-teal-500" /> Recentes
           </h3>
           {recentMaterials.length === 0 ? (
-            <Card className="rounded-xl bg-muted/30 p-4 text-sm text-muted-foreground">
-              Nenhum material acessado ainda. Explore a aba &quot;Resumos IA&quot; ou &quot;Disciplinas&quot;.
+            <Card className="flex items-center gap-2.5 rounded-xl bg-muted/30 p-4 text-sm text-muted-foreground">
+              <FileText className="size-4 shrink-0" aria-hidden="true" />
+              <span>
+                Nenhum material acessado ainda. Explore a aba &quot;Resumos IA&quot; ou &quot;Disciplinas&quot;.
+              </span>
             </Card>
           ) : (
             <div className="space-y-2">
-              {recentMaterials.map((m) => {
+              {recentMaterials.map(({ material: m, accessedAt }) => {
                 const disc = getDisciplineByCode(m.disciplineCode);
                 const color = getColorClasses(disc?.color ?? 'slate');
                 return (
@@ -403,9 +421,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     >
                       <p className="truncate text-sm font-medium">{m.title}</p>
                       <p className={cn('mt-0.5 text-[11px]', color.text)}>
-                        {disc?.shortName} • {new Date(
-                          sp.progress.recentMaterials.find((r) => r.id === m.id)?.accessedAt ?? Date.now(),
-                        ).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                        {disc?.shortName} • {new Date(accessedAt).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                       </p>
                     </Card>
                   </button>
@@ -553,8 +569,9 @@ function AcademicAgenda() {
 
   if (events.length === 0) {
     return (
-      <Card className="rounded-xl bg-muted/30 p-4 text-sm text-muted-foreground">
-        Nenhum evento acadêmico próximo. Confira o calendário oficial do campus.
+      <Card className="flex items-center gap-2.5 rounded-xl bg-muted/30 p-4 text-sm text-muted-foreground">
+        <CalendarCheck className="size-4 shrink-0" aria-hidden="true" />
+        <span>Nenhum evento acadêmico próximo. Confira o calendário oficial do campus.</span>
       </Card>
     );
   }
@@ -600,6 +617,16 @@ function AcademicAgenda() {
   );
 }
 
+/** Paleta dos KPIs — constante de módulo (não recriada a cada render). */
+const KPI_COLORS = {
+  emerald: { bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  orange: { bg: 'bg-orange-50 dark:bg-orange-950', text: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' },
+  rose: { bg: 'bg-rose-50 dark:bg-rose-950', text: 'text-rose-700 dark:text-rose-300', dot: 'bg-rose-500' },
+  violet: { bg: 'bg-violet-50 dark:bg-violet-950', text: 'text-violet-700 dark:text-violet-300', dot: 'bg-violet-500' },
+  teal: { bg: 'bg-teal-50 dark:bg-teal-950', text: 'text-teal-700 dark:text-teal-300', dot: 'bg-teal-500' },
+  amber: { bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
+} as const;
+
 function KpiCard({
   label,
   value,
@@ -611,19 +638,11 @@ function KpiCard({
   label: string;
   value: number;
   icon: React.ReactNode;
-  color: 'emerald' | 'orange' | 'rose' | 'violet' | 'teal' | 'amber';
+  color: keyof typeof KPI_COLORS;
   hint?: string;
   pulse?: boolean;
 }) {
-  const colorMap = {
-    emerald: { bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
-    orange: { bg: 'bg-orange-50 dark:bg-orange-950', text: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' },
-    rose: { bg: 'bg-rose-50 dark:bg-rose-950', text: 'text-rose-700 dark:text-rose-300', dot: 'bg-rose-500' },
-    violet: { bg: 'bg-violet-50 dark:bg-violet-950', text: 'text-violet-700 dark:text-violet-300', dot: 'bg-violet-500' },
-    teal: { bg: 'bg-teal-50 dark:bg-teal-950', text: 'text-teal-700 dark:text-teal-300', dot: 'bg-teal-500' },
-    amber: { bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
-  };
-  const c = colorMap[color];
+  const c = KPI_COLORS[color];
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}

@@ -1,0 +1,51 @@
+{
+  "titulo": "Imagens — apostila da disciplina (web)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "origem": "Resumo autoral do Hub sobre a página da apostila digital do Prof. Diogo Moreira. Conteúdo completo no link externo.",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "Para inserir uma imagem em uma página web usamos a tag <img>, um elemento VAZIO (sem conteúdo de texto e sem tag de fechamento) que exige, no mínimo, o atributo src (source): um caminho apontando para a imagem, que pode ser uma URL relativa ou absoluta — exatamente como o href do elemento <a>. O atributo alt, embora opcional, é de extrema importância: é a descrição textual da imagem para quando ela não puder ser vista ou demorar a carregar.",
+  "conceitos_chave": [
+    {
+      "conceito": "<img> é elemento vazio",
+      "explicacao": "Não possui conteúdo de texto nem tag de fechamento — diferente de <p> ou <a>. Toda a informação vai em atributos."
+    },
+    {
+      "conceito": "Atributo src (obrigatório)",
+      "explicacao": "Contém o caminho (relativo ou absoluto) da imagem a incorporar — as mesmas regras de caminho dos hyperlinks valem aqui.",
+      "exemplo": "<img src=\"imagens/album.jpg\">"
+    },
+    {
+      "conceito": "Atributo alt",
+      "explicacao": "Descrição textual da imagem, usada quando a imagem não pode ser exibida (nome errado, conexão lenta) — essencial para acessibilidade.",
+      "exemplo": "<img src=\"imagens/album.jpg\" alt=\"A capa do primeiro álbum do Arctic Monkeys, fotografia em preto e branco com um homem fumando\">"
+    },
+    {
+      "conceito": "Como testar o alt",
+      "explicacao": "A maneira mais fácil é digitar incorretamente o nome do arquivo (ex.: albunn.jpg): o navegador não exibe a imagem e mostra o texto alternativo."
+    },
+    {
+      "conceito": "O que escrever no alt?",
+      "explicacao": "Depende do porquê da imagem estar ali — em outras palavras: o que você perde se a imagem não aparecer?"
+    }
+  ],
+  "pontos_importantes": [
+    "src aceita caminho relativo (imagens/album.jpg) ou absoluto (URL completa), igual ao href.",
+    "Em dúvida sobre caminhos, revisar a página de URLs da apostila.",
+    "Sem alt, quem usa leitor de tela (ou tem conexão lenta) perde completamente o significado da imagem."
+  ],
+  "erros_comuns": [
+    "Tentar fechar a tag <img> com conteúdo — ela é vazia (não existe </img>).",
+    "Escrever um alt genérico tipo \"foto\" que não descreve o que a imagem mostra."
+  ],
+  "exercicios_sugeridos": [
+    "Insira uma imagem de um subdiretório com src relativo e um alt descritivo completo.",
+    "Proponha um teste de acessibilidade: apague o src certo de propósito e veja o alt aparecer no navegador."
+  ],
+  "perguntas_autoavaliacao": [
+    "Por que <img> é chamado de elemento vazio?",
+    "Qual a diferença entre os atributos src e alt?",
+    "Como testar se o seu alt está realmente sendo exibido quando a imagem falha?",
+    "Que perguntas guiam a escrita de um bom texto alt?"
+  ]
+}

@@ -8,6 +8,7 @@ import {
   evaluationPeriods,
   getDisciplineByCode,
   type Discipline,
+  type EvaluationPeriod,
 } from '@/data/course-data';
 import type { StudyPreferences, TopicProgress } from './study-progress';
 // Fonte única do calendário — funções reexportadas p/ compatibilidade com os views.
@@ -51,10 +52,12 @@ const STALE_DAYS = 5; // disciplina sem estudo há ≥5 dias entra no próximo d
 
 // ---------- Pesos ----------
 
+/** CH total do curso — constante do módulo (evita reduce em cada chamada de chShare). */
+const TOTAL_CH = disciplines.reduce((acc, d) => acc + d.chTotal, 0);
+
 /** Fração da CH total — base da distribuição proporcional. */
 function chShare(d: Discipline): number {
-  const total = disciplines.reduce((acc, x) => acc + x.chTotal, 0) || 1;
-  return d.chTotal / total;
+  return d.chTotal / (TOTAL_CH || 1);
 }
 
 /** Multiplicador de prioridade — ajuste fino sobre a CH (não domina a rotação). */
@@ -102,11 +105,11 @@ function computeWeights(
   now: Date,
 ): Map<string, DiscWeight> {
   const result = new Map<string, DiscWeight>();
-  const week = currentWeekOfSemester(now);
   const raw = new Map<string, number>();
 
   for (const d of disciplines) {
-    if (pendingTopics(d.code, topicProgress) === 0) {
+    const pend = pendingTopics(d.code, topicProgress);
+    if (pend === 0) {
       result.set(d.code, { code: d.code, weight: 0 });
       continue;
     }
@@ -116,13 +119,13 @@ function computeWeights(
     } else {
       w = chShare(d) * priorityMultiplier(d);
       // Tópicos pendentes pesam um pouco (mais pendente → leve reforço)
-      const pend = pendingTopics(d.code, topicProgress);
       w *= 1 + Math.min(0.3, pend * 0.02);
     }
-    // Avaliação com DATA OFICIAL próxima → urgência (sem estimativas)
+    // Avaliação com DATA OFICIAL próxima → urgência.
+    // Política ANTI-ESTIMATIVA: sem `date` oficial não há boost de urgência.
     const upcoming = evaluationPeriods
-      .filter((e) => e.disciplineCode === d.code && e.date)
-      .map((e) => daysUntilDate(e.date as string, now))
+      .filter((e): e is EvaluationPeriod & { date: string } => e.disciplineCode === d.code && !!e.date)
+      .map((e) => daysUntilDate(e.date, now))
       .filter((days) => days >= 0)
       .sort((a, b) => a - b);
     if (upcoming.length > 0 && upcoming[0] <= 14) {
@@ -172,7 +175,6 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   const now = input.now ?? new Date();
   const mode = preferences.rotationMode ?? 'proportional';
   const weights = computeWeights(mode, topicProgress, disciplineProgress, now);
-  const week = currentWeekOfSemester(now);
 
   // Capacidade planejada da semana (para calcular metas proporcionais)
   const dayCapacity = new Map<number, { blocks: number; minutes: number; startHour: number }>();
@@ -219,6 +221,9 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
 
   for (const [day, cap] of dayCapacity) {
     const todayCodes = new Set<string>();
+    // Blocos por disciplina HOJE (exclui a revisão geral) — mantido incrementalmente
+    // pelo push; substitui o re-filtro de `blocks` a cada vaga do deficit scheduling.
+    const todayCount = new Map<string, number>();
     let cursorHour = cap.startHour;
     let cursorMinute = 0;
     let usedMinutes = 0;
@@ -246,6 +251,9 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
         ...opts,
       });
       todayCodes.add(code);
+      if (code !== 'revisao') {
+        todayCount.set(code, (todayCount.get(code) ?? 0) + 1);
+      }
       usedMinutes += BLOCK_MINUTES + BREAK_MINUTES;
       cursorMinute += BLOCK_MINUTES + BREAK_MINUTES;
       while (cursorMinute >= 60) {
@@ -253,9 +261,7 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
         cursorMinute -= 60;
       }
       usedBlocks += 1;
-      const disc = getDisciplineByCode(code);
       allocatedMin.set(code, (allocatedMin.get(code) ?? 0) + BLOCK_MINUTES);
-      void disc;
       return true;
     }
 
@@ -307,10 +313,6 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
       guard++;
       let best: string | null = null;
       let bestDeficit = -Infinity;
-      const todayCount = new Map<string, number>();
-      for (const b of blocks.filter((x) => x.day === day && x.disciplineCode !== 'revisao')) {
-        todayCount.set(b.disciplineCode, (todayCount.get(b.disciplineCode) ?? 0) + 1);
-      }
       for (const [code, dw] of weights) {
         if (dw.weight <= 0 || code === 'revisao') continue;
         const countToday = todayCount.get(code) ?? 0;
@@ -326,7 +328,7 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
       }
       if (!best) break;
       const d = getDisciplineByCode(best);
-      const remaining = blocks.filter((x) => x.day === day && x.disciplineCode === best).length;
+      const remaining = todayCount.get(best) ?? 0;
       const title =
         remaining === 0
           ? `${d?.shortName ?? best} — Estudo de novos tópicos`
@@ -344,7 +346,8 @@ export function findReschedulableBlocks(
   blocksDone: string[],
   previousBlocks: SmartBlock[],
 ): SmartBlock[] {
-  return previousBlocks.filter((b) => !blocksDone.includes(b.id));
+  const done = new Set(blocksDone); // Set evita includes() O(n) dentro do filtro
+  return previousBlocks.filter((b) => !done.has(b.id));
 }
 
 export function getDaySummary(
@@ -353,17 +356,16 @@ export function getDaySummary(
   blocksDone: string[],
 ): { total: number; done: number; minutes: number; minutesDone: number; pending: SmartBlock[] } {
   const dayBlocks = blocks.filter((b) => b.day === day);
-  const done = dayBlocks.filter((b) => blocksDone.includes(b.id)).length;
+  const doneSet = new Set(blocksDone); // Set evita includes() O(n) repetido
+  const doneBlocks = dayBlocks.filter((b) => doneSet.has(b.id));
   const minutes = dayBlocks.reduce((acc, b) => acc + b.durationMin, 0);
-  const minutesDone = dayBlocks
-    .filter((b) => blocksDone.includes(b.id))
-    .reduce((acc, b) => acc + b.durationMin, 0);
+  const minutesDone = doneBlocks.reduce((acc, b) => acc + b.durationMin, 0);
   return {
     total: dayBlocks.length,
-    done,
+    done: doneBlocks.length,
     minutes,
     minutesDone,
-    pending: dayBlocks.filter((b) => !blocksDone.includes(b.id)),
+    pending: dayBlocks.filter((b) => !doneSet.has(b.id)),
   };
 }
 

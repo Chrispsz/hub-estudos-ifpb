@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStudyProgress } from '@/lib/study-progress';
+import { cn } from '@/lib/utils';
 import type { Material } from '@/data/course-data';
 
 type Provider = 'youtube' | 'drive-file' | 'drive-folder' | 'vimeo' | 'generic' | 'unsupported';
@@ -96,6 +97,9 @@ interface VideoPlayerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
+const touchBtn = 'h-11 sm:h-8';
+
 /**
  * Player de videoaulas: embute YouTube / Drive (arquivo) / Vimeo no app.
  * Pastas do Drive ganham um card de fallback com link externo.
@@ -103,13 +107,20 @@ interface VideoPlayerDialogProps {
  */
 export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerDialogProps) {
   const sp = useStudyProgress();
-  // parseVideoUrl é puro e barato — o React Compiler memoiza automaticamente.
-  const parsed = material?.externalUrl ? parseVideoUrl(material.externalUrl) : null;
+  const markAccessed = sp.markAccessed;
+
+  // parseVideoUrl é puro; memoizado para não re-parsear a URL a cada render
+  // (o React Compiler não está habilitado neste projeto).
+  const externalUrl = material?.externalUrl;
+  const parsed = React.useMemo(
+    () => (externalUrl ? parseVideoUrl(externalUrl) : null),
+    [externalUrl],
+  );
 
   // Marca como acessado ao abrir
   React.useEffect(() => {
-    if (open && material?.id) sp.markAccessed(material.id);
-  }, [open, material?.id]);
+    if (open && material?.id) markAccessed(material.id);
+  }, [open, material?.id, markAccessed]);
 
   if (!material) return null;
   const isCompleted = sp.progress.completedMaterials.includes(material.id);
@@ -156,9 +167,9 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
                 ? 'Pastas de vídeo não podem ser exibidas aqui (limitação do Drive). Clique abaixo para assistir em uma nova aba — seu progresso continua salvo no Hub.'
                 : 'Esta página não pode ser exibida aqui. Clique abaixo para abrir em uma nova aba — seu progresso continua salvo no Hub.'}
             </p>
-            <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button asChild className="h-11 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-9">
               <a href={material.externalUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="size-4" />{' '}
+                <ExternalLink className="size-4" aria-hidden />{' '}
                 {parsed?.provider === 'drive-folder'
                   ? 'Abrir videoaulas em nova aba'
                   : 'Abrir conteúdo em nova aba'}
@@ -168,19 +179,21 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className={touchBtn}>
             <a href={material.externalUrl} target="_blank" rel="noreferrer">
-              <ExternalLink className="size-3.5" /> Nova aba
+              <ExternalLink className="size-3.5" aria-hidden /> Nova aba
             </a>
           </Button>
           <Button
             size="sm"
             variant={isCompleted ? 'outline' : 'default'}
-            className={
+            className={cn(
+              touchBtn,
               isCompleted
                 ? 'text-emerald-500'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700'
-            }
+                : 'bg-emerald-600 text-white hover:bg-emerald-700',
+            )}
+            aria-pressed={isCompleted}
             onClick={() => {
               if (!material.id) return;
               if (isCompleted && material.disciplineCode) {
@@ -194,19 +207,19 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
           >
             {isCompleted ? (
               <>
-                <CheckCircle2 className="size-3.5" /> Concluída ✓
+                <CheckCircle2 className="size-3.5" aria-hidden /> Concluída ✓
               </>
             ) : (
               <>
-                <CheckCircle2 className="size-3.5" /> Marcar como concluída
+                <CheckCircle2 className="size-3.5" aria-hidden /> Marcar como concluída
               </>
             )}
           </Button>
         </div>
 
         {!parsed && (
-          <p className="flex items-center gap-1.5 text-xs text-amber-500">
-            <AlertCircle className="size-3.5" /> Link de vídeo inválido ou ausente.
+          <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <AlertCircle className="size-3.5" aria-hidden /> Link de vídeo inválido ou ausente.
           </p>
         )}
       </DialogContent>

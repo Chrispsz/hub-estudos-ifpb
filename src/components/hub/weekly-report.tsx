@@ -84,12 +84,12 @@ function computeWeek(sessions: PomodoroSession[], fromDaysAgo: number, toDaysAgo
 
 type Trend = 'up' | 'down' | 'flat';
 
-function trendBadge(current: number, previous: number, suffix?: string) {
+function trendBadge(current: number, previous: number, suffix?: string): { trend: Trend; text: string } {
+  if (previous === 0 && current > 0) {
+    return { trend: 'up', text: 'novo' };
+  }
   let trend: Trend = 'flat';
   let pct = 0;
-  if (previous === 0 && current > 0) {
-    return { trend: 'up' as Trend, text: 'novo', pct: null };
-  }
   if (previous > 0) {
     pct = Math.round(((current - previous) / previous) * 100);
     if (pct > 2) trend = 'up';
@@ -100,7 +100,7 @@ function trendBadge(current: number, previous: number, suffix?: string) {
     trend === 'flat'
       ? 'estável'
       : `${pct > 0 ? '+' : ''}${pct}%${suffix ? ` ${suffix}` : ''}`;
-  return { trend, text, pct };
+  return { trend, text };
 }
 
 function TrendPill({ trend, text }: { trend: Trend; text: string }) {
@@ -166,47 +166,61 @@ export function WeeklyReport() {
     [sp.progress.pomodoroSessions],
   );
 
+  // Rótulos do período (mesma âncora temporal das janelas acima)
+  const rangeLabels = React.useMemo(
+    () => ({ current: formatRange(6, 0), previous: formatRange(13, 7) }),
+    [sp.progress.pomodoroSessions],
+  );
+
   const hasData = thisWeek.sessions > 0 || lastWeek.sessions > 0;
 
-  const minsTrend = trendBadge(thisWeek.minutes, lastWeek.minutes, 'min');
-  const sessionsTrend = trendBadge(thisWeek.sessions, lastWeek.sessions);
-  const daysTrend = trendBadge(thisWeek.activeDays, lastWeek.activeDays, 'dias');
-  const avgTrend = trendBadge(thisWeek.avgSessionMin, lastWeek.avgSessionMin, 'min');
+  const trends = React.useMemo(
+    () => ({
+      mins: trendBadge(thisWeek.minutes, lastWeek.minutes, 'min'),
+      sessions: trendBadge(thisWeek.sessions, lastWeek.sessions),
+      days: trendBadge(thisWeek.activeDays, lastWeek.activeDays, 'dias'),
+      avg: trendBadge(thisWeek.avgSessionMin, lastWeek.avgSessionMin, 'min'),
+    }),
+    [thisWeek, lastWeek],
+  );
 
-  const metrics: MetricDef[] = [
-    {
-      icon: Clock3,
-      iconClasses: 'bg-emerald-500/15 text-emerald-500',
-      label: 'Minutos de foco',
-      current: String(thisWeek.minutes),
-      trend: minsTrend.trend,
-      trendText: minsTrend.text,
-    },
-    {
-      icon: Activity,
-      iconClasses: 'bg-teal-500/15 text-teal-500',
-      label: 'Sessões concluídas',
-      current: String(thisWeek.sessions),
-      trend: sessionsTrend.trend,
-      trendText: sessionsTrend.text,
-    },
-    {
-      icon: CalendarCheck,
-      iconClasses: 'bg-violet-500/15 text-violet-500',
-      label: 'Dias ativos',
-      current: String(thisWeek.activeDays),
-      trend: daysTrend.trend,
-      trendText: daysTrend.text,
-    },
-    {
-      icon: Hourglass,
-      iconClasses: 'bg-amber-500/15 text-amber-500',
-      label: 'Média por sessão',
-      current: `${thisWeek.avgSessionMin} min`,
-      trend: avgTrend.trend,
-      trendText: avgTrend.text,
-    },
-  ];
+  const metrics = React.useMemo<MetricDef[]>(
+    () => [
+      {
+        icon: Clock3,
+        iconClasses: 'bg-emerald-500/15 text-emerald-500',
+        label: 'Minutos de foco',
+        current: String(thisWeek.minutes),
+        trend: trends.mins.trend,
+        trendText: trends.mins.text,
+      },
+      {
+        icon: Activity,
+        iconClasses: 'bg-teal-500/15 text-teal-500',
+        label: 'Sessões concluídas',
+        current: String(thisWeek.sessions),
+        trend: trends.sessions.trend,
+        trendText: trends.sessions.text,
+      },
+      {
+        icon: CalendarCheck,
+        iconClasses: 'bg-violet-500/15 text-violet-500',
+        label: 'Dias ativos',
+        current: String(thisWeek.activeDays),
+        trend: trends.days.trend,
+        trendText: trends.days.text,
+      },
+      {
+        icon: Hourglass,
+        iconClasses: 'bg-amber-500/15 text-amber-500',
+        label: 'Média por sessão',
+        current: `${thisWeek.avgSessionMin} min`,
+        trend: trends.avg.trend,
+        trendText: trends.avg.text,
+      },
+    ],
+    [thisWeek, trends],
+  );
 
   // Mensagem motivacional
   const message = !hasData
@@ -229,7 +243,7 @@ export function WeeklyReport() {
         </h2>
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-muted-foreground">
-            {formatRange(6, 0)} <span className="mx-0.5">vs</span> {formatRange(13, 7)}
+            {rangeLabels.current} <span className="mx-0.5">vs</span> {rangeLabels.previous}
           </span>
           <Button
             size="sm"

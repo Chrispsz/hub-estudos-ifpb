@@ -1,0 +1,50 @@
+{
+  "titulo": "Áudio — apostila da disciplina (web)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "origem": "Resumo autoral do Hub sobre a página da apostila digital do Prof. Diogo Moreira. Conteúdo completo no link externo.",
+  "tempo_estudo_minutos": 12,
+  "resumo_geral": "O HTML dá suporte a embutir arquivos de áudio por meio do elemento <audio>, tornando fácil incorporar mídia sonora em documentos. O atributo src aponta para o arquivo (URL da web ou caminho local), um elemento <p> interno serve como conteúdo de exceção exibido em navegadores antigos sem suporte, e atributos como controls, autoplay e loop controlam a reprodução.",
+  "conceitos_chave": [
+    {
+      "conceito": "Elemento <audio> básico",
+      "explicacao": "O src recebe a URL do arquivo de áudio ou o caminho no sistema local; o <p> interno aparece só se o navegador não der suporte (computadores/celulares mais antigos).",
+      "exemplo": "<audio src=\"musica.mp3\">\n  <p>Seu navegador não suporta o elemento audio.</p>\n</audio>"
+    },
+    {
+      "conceito": "controls",
+      "explicacao": "Mostra os controles padrão do áudio na página (play, pause, volume). Sem ele, o som fica invisível para o usuário."
+    },
+    {
+      "conceito": "autoplay",
+      "explicacao": "Faz o áudio reproduzir automaticamente ao carregar a página. Não funciona em alguns navegadores por questões de permissão."
+    },
+    {
+      "conceito": "loop",
+      "explicacao": "Faz o áudio repetir automaticamente ao terminar."
+    },
+    {
+      "conceito": "Formatos e compatibilidade",
+      "explicacao": "Além do .mp3, formatos como .ogg também são suportados. Teste em vários navegadores antes de publicar para garantir suporte à maioria."
+    }
+  ],
+  "pontos_importantes": [
+    "Controles + autoplay + loop juntos: <audio src=\"musica.mp3\" controls autoplay loop>.",
+    "O <p> de fallback é uma cortesia para navegadores antigos — não substitui o áudio, apenas avisa.",
+    "Sugestão do livro: Free Music Archive para buscar músicas sem restrições de direitos autorais."
+  ],
+  "erros_comuns": [
+    "Usar autoplay sem contar com o bloqueio de permissões dos navegadores modernos.",
+    "Esquecer o controls — sem ele o usuário não consegue interagir com o áudio."
+  ],
+  "exercicios_sugeridos": [
+    "Incorpore um áudio com todos os atributos (controls, autoplay, loop) e um fallback dentro da tag.",
+    "Teste o mesmo arquivo .mp3 em dois navegadores diferentes e compare o comportamento."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual elemento incorpora áudio em HTML e de onde vem o arquivo?",
+    "Para que serve o <p> dentro de <audio>?",
+    "Qual atributo exibe os controles e quais fazem reprodução automática e repetição?",
+    "Por que testar formatos de áudio em vários navegadores antes de publicar?"
+  ]
+}

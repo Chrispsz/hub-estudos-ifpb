@@ -33,9 +33,23 @@ function fmtDur(sec: number): string {
   return `${m}min`;
 }
 
+// Estado vazio estável (mesma referência) — evita re-render do memo quando não há runs.
+const NO_RUNS: SimuladoRun[] = [];
+
+// Mapa local de nomes curtos (mantido autossuficiente, sem importar course-data aqui).
+const DISC_SHORT: Record<string, string> = {
+  'TEC.1687': 'Algoritmos',
+  'TEC.1632': 'Ling. Marcação',
+  'TEC.1984': 'Matemática',
+  '53647': 'Fundamentos',
+  'TEC.0953': 'RHT',
+  'ING.001': 'Inglês',
+  'PORT.001': 'Português',
+};
+
 export function SimuladoHistory() {
   const sp = useStudyProgress();
-  const runs = sp.progress.simuladoRuns ?? [];
+  const runs = sp.progress.simuladoRuns ?? NO_RUNS;
 
   const stats = React.useMemo(() => {
     if (runs.length === 0) return null;
@@ -71,9 +85,12 @@ export function SimuladoHistory() {
       </div>
 
       {!stats ? (
-        <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-xs text-muted-foreground">
-          Nenhum simulado ainda. Rode o <strong className="text-emerald-500">Simulado Pro</strong> na aba
-          Praticar — cada tentativa aparece aqui para acompanhar sua evolução. 🎯
+        <p className="mt-4 flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+          <History className="size-5 text-muted-foreground/50" aria-hidden />
+          <span>
+            Nenhum simulado ainda. Rode o <strong className="text-emerald-500">Simulado Pro</strong> na aba
+            Praticar — cada tentativa aparece aqui para acompanhar sua evolução. 🎯
+          </span>
         </p>
       ) : (
         <>
@@ -165,16 +182,5 @@ export function SimuladoHistory() {
 }
 
 function getDiscShort(code: string): string {
-  // import direto geraria ciclo desnecessário aqui — usa o map simples do course-data via import normal
-  // (mantido local para o card ficar autossuficiente)
-  const map: Record<string, string> = {
-    'TEC.1687': 'Algoritmos',
-    'TEC.1632': 'Ling. Marcação',
-    'TEC.1984': 'Matemática',
-    '53647': 'Fundamentos',
-    'TEC.0953': 'RHT',
-    'ING.001': 'Inglês',
-    'PORT.001': 'Português',
-  };
-  return map[code] ?? code;
+  return DISC_SHORT[code] ?? code;
 }

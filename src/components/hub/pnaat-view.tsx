@@ -35,6 +35,17 @@ import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { toast } from 'sonner';
 import type { Material } from '@/data/course-data';
 
+// Material sintético estático para abrir o PDF do PNAAT (constante de módulo).
+const PNAAT_MATERIAL: Material = {
+  id: 'pnaat-cursos',
+  disciplineCode: 'PNAAT',
+  title: 'PNAAT - Meus Cursos (PDF)',
+  type: 'pdf',
+  pdfPath: pnaatInfo.pdfPath,
+  summaryFile: '',
+  source: 'pnaat',
+};
+
 export function PnaatView() {
   const sp = useStudyProgress();
   const [pdfOpen, setPdfOpen] = React.useState(false);
@@ -86,16 +97,6 @@ export function PnaatView() {
     return { hoursRemaining: hrs, nextModule: next };
   }, [sp.progress.pnaatProgress]);
 
-  const pnaatMaterial: Material = {
-    id: 'pnaat-cursos',
-    disciplineCode: 'PNAAT',
-    title: 'PNAAT - Meus Cursos (PDF)',
-    type: 'pdf',
-    pdfPath: pnaatInfo.pdfPath,
-    summaryFile: '',
-    source: 'pnaat',
-  };
-
   const allDone = stats.completed === stats.total && stats.total > 0;
 
   return (
@@ -109,7 +110,7 @@ export function PnaatView() {
         <Card className="overflow-hidden rounded-2xl border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-50 via-card to-amber-50 p-5 shadow-sm sm:p-6 dark:from-rose-950/40 dark:via-card dark:to-amber-950/30">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <Badge variant="outline" className="border-rose-200 bg-rose-100 text-rose-700">
+              <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400">
                 <Cpu className="size-3" /> {pnaatInfo.nome}
               </Badge>
               <h2 className="mt-2 text-lg font-semibold leading-tight sm:text-xl">
@@ -142,26 +143,26 @@ export function PnaatView() {
           icon={<CheckCircle2 className="size-4" />}
           label="Concluídos"
           value={`${stats.completed}/${stats.total}`}
-          color="bg-emerald-50 text-emerald-700"
+          color="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
         />
         <StatCard
           icon={<TrendingUp className="size-4" />}
           label="Em andamento"
           value={String(stats.inProgress)}
-          color="bg-amber-50 text-amber-700"
+          color="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
         />
         <StatCard
           icon={<Clock className="size-4" />}
           label="Horas totais"
           value={`${stats.totalHours}h`}
           hint={`${stats.hoursCompleted}h concluídas`}
-          color="bg-violet-50 text-violet-700"
+          color="bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400"
         />
         <StatCard
           icon={<Target className="size-4" />}
           label="Progresso médio"
           value={`${stats.avgProgress}%`}
-          color="bg-rose-50 text-rose-700"
+          color="bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
         />
       </div>
 
@@ -208,7 +209,7 @@ export function PnaatView() {
       {allDone && (
         <Card className="rounded-2xl border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50 via-card to-teal-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-card dark:to-teal-950/40">
           <div className="flex items-center gap-3">
-            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
               <Trophy className="size-6" />
             </div>
             <div>
@@ -237,7 +238,7 @@ export function PnaatView() {
           >
             <AccordionTrigger className="hover:no-underline">
               <div className="flex w-full items-center gap-3 pr-2 text-left">
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-700">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400">
                   <Cpu className="size-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -251,7 +252,7 @@ export function PnaatView() {
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              <ul className="grid gap-2 pb-2 pt-1">
+              <ul className="grid max-h-[420px] gap-2 overflow-y-auto pb-2 pt-1 pr-1 [scrollbar-width:thin]">
                 {trail.modules.map((m) => (
                   <ModuleCard key={m.id} module={m} />
                 ))}
@@ -262,7 +263,7 @@ export function PnaatView() {
       </Accordion>
 
       <PdfViewerDialog
-        material={pdfOpen ? pnaatMaterial : null}
+        material={pdfOpen ? PNAAT_MATERIAL : null}
         open={pdfOpen}
         onOpenChange={setPdfOpen}
       />
@@ -288,10 +289,10 @@ function TrailProgressBadge({
 
   const colorClass =
     avg >= 100
-      ? 'border-emerald-200 bg-emerald-100 text-emerald-700'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
       : avg > 0
-        ? 'border-amber-200 bg-amber-100 text-amber-700'
-        : 'border-slate-200 bg-slate-50 text-slate-700';
+        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400'
+        : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400';
 
   return (
     <Badge variant="outline" className={cn('shrink-0 border text-[10px]', colorClass)}>
@@ -313,17 +314,17 @@ function ModuleCard({ module }: { module: PnaatModule }) {
 
   const statusBadge = {
     concluido: (
-      <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700 text-[10px]">
+      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
         <CheckCircle2 className="size-2.5" /> Concluído
       </Badge>
     ),
     em_andamento: (
-      <Badge variant="outline" className="border-amber-200 bg-amber-100 text-amber-700 text-[10px]">
+      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px] dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400">
         Em andamento
       </Badge>
     ),
     nao_iniciado: (
-      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700 text-[10px]">
+      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700 text-[10px] dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400">
         Não iniciado
       </Badge>
     ),
@@ -358,11 +359,13 @@ function ModuleCard({ module }: { module: PnaatModule }) {
         </span>
         {progress > 0 && (
           <button
+            type="button"
             onClick={() => {
               sp.updatePnaatProgress(module.id, 0);
               toast.info('Progresso resetado');
             }}
-            className="text-[10px] text-muted-foreground hover:text-rose-600"
+            className="-m-1 rounded p-1 text-[10px] text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600"
+            aria-label={`Zerar progresso de ${module.title}`}
           >
             reset
           </button>

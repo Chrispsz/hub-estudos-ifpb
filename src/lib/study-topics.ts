@@ -41,7 +41,8 @@ export function getDisciplineTopics(
       done: !!done[t],
     }));
     const doneCount = topicsWithStatus.filter((t) => t.done).length;
-    const allDone = doneCount === topicsWithStatus.length && topicsWithStatus.length > 0;
+    // Unidade concluída = tem tópicos E todos marcados (unidade vazia nunca conta como feita).
+    const allDone = topicsWithStatus.length > 0 && doneCount === topicsWithStatus.length;
     return {
       name: u.unidade,
       topics: topicsWithStatus,

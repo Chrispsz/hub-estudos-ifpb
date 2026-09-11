@@ -76,6 +76,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Scrollbar (webkit + Firefox) */
+  --scrollbar-thumb: oklch(0 0 0 / 26%);
+  --scrollbar-thumb-hover: oklch(0 0 0 / 40%);
 }
 
 .dark {
@@ -111,6 +114,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* Scrollbar — claro sobre o AMOLED, coerente com --border em alpha branco */
+  --scrollbar-thumb: oklch(1 0 0 / 22%);
+  --scrollbar-thumb-hover: oklch(1 0 0 / 34%);
 }
 
 @layer base {
@@ -121,6 +127,15 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
   }
+  /* Rolagem suave; troca de aba usa scrollTo({ behavior: 'auto' }) explícito, então não é afetada */
+  html {
+    scroll-behavior: smooth;
+  }
+  /* Scrollbar Firefox (scrollbar-color é herdado; webkit abaixo com os mesmos tokens) */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -129,13 +144,37 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.35 0 0);
+    background: var(--scrollbar-thumb);
     border-radius: 8px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.45 0 0);
+    background: var(--scrollbar-thumb-hover);
     background-clip: content-box;
+  }
+  /* Seleção de texto com a cor da marca (verde-esmeralda da paleta do app) */
+  ::selection {
+    background-color: oklch(0.627 0.17 149 / 0.32);
+  }
+  /* Foco visível consistente: outline com o token --ring.
+     Componentes shadcn com ring próprio usam outline-none na camada de
+     utilities, que vence esta regra da base — sem indicador duplicado. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Respeita usuários com movimento reduzido: desliga animações/transições
+     decorativas de CSS. Animações JS (framer-motion) são tratadas via
+     MotionConfig reducedMotion="user" no ThemeProvider. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

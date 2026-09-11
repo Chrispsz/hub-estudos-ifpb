@@ -44,9 +44,9 @@ import {
 import { SimuladoView } from '@/components/hub/simulado-view';
 
 const difficultyColor: Record<Exercise['difficulty'], string> = {
-  facil: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  medio: 'bg-amber-50 text-amber-700 border-amber-200',
-  dificil: 'bg-rose-50 text-rose-700 border-rose-200',
+  facil: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
+  medio: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400',
+  dificil: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400',
 };
 
 const difficultyLabel: Record<Exercise['difficulty'], string> = {
@@ -63,6 +63,9 @@ const sourceLabel: Record<Exercise['source'], string> = {
 };
 
 type PracticeMode = 'exercicios' | 'flashcards';
+
+// Estático (depende só do acervo fixo) — computado UMA vez por módulo, não por render.
+const EXERCISE_STATS = getExerciseStats();
 
 export function PracticeView() {
   const sp = useStudyProgress();
@@ -135,10 +138,13 @@ function ExercisesPanel() {
     return Array.from(new Set(getExercisesByDiscipline(filterDiscipline).map((e) => e.topic))).sort();
   }, [filterDiscipline]);
 
-  const stats = getExerciseStats();
+  const stats = EXERCISE_STATS;
   const totalTried = sp.totalExercisesTried;
   const totalSolved = sp.totalExercisesSolved;
-  const totalNeededHelp = Object.values(sp.progress.exerciseProgress).filter((e) => e.neededHelp).length;
+  const totalNeededHelp = React.useMemo(
+    () => Object.values(sp.progress.exerciseProgress).filter((e) => e.neededHelp).length,
+    [sp.progress.exerciseProgress],
+  );
 
   return (
     <div className="space-y-4">
@@ -233,7 +239,8 @@ function ExercisesPanel() {
       {/* Lista de exercícios */}
       <div className="space-y-2">
         {filteredExercises.length === 0 ? (
-          <Card className="rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+          <Card className="flex flex-col items-center gap-2 rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+            <RotateCcw className="size-6 text-muted-foreground/50" aria-hidden />
             Nenhum exercício com esses filtros. Ajuste a seleção acima.
           </Card>
         ) : (
@@ -284,7 +291,7 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             {sourceLabel[exercise.source]}
           </Badge>
           {progress?.solved && (
-            <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700 text-[10px]">
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
               <CheckCircle2 className="size-2.5" /> Resolvido
             </Badge>
           )}
@@ -330,7 +337,7 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             <Button
               size="sm"
               variant="ghost"
-              className="ml-auto h-7 text-xs text-muted-foreground"
+              className="ml-auto h-11 text-xs text-muted-foreground sm:h-7"
               onClick={() => {
                 sp.resetExerciseProgress(exercise.id);
                 toast.info('Progresso resetado');

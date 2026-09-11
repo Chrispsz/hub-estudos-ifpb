@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowRight,
   CalendarCheck,
   Clock4,
   Play,
@@ -25,9 +24,20 @@ import {
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 
+/** Blocos especiais do cronograma que não pertencem a uma disciplina. */
+const SPECIAL_BLOCK_CODES = new Set(['revisao', 'descanso']);
+
 interface Props {
   onStartStudy?: (disciplineCode?: string, materialId?: string) => void;
   onOpenSettings?: () => void;
+}
+
+function formatHours(min: number): string {
+  if (min <= 0) return '0h';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (m === 0) return `${h}h`;
+  return `${h}h${m.toString().padStart(2, '0')}`;
 }
 
 export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
@@ -64,16 +74,12 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
   const firstDisc = firstPendingBlock
     ? getDisciplineByCode(firstPendingBlock.disciplineCode)
     : null;
-  const firstColor = getColorClasses(firstDisc?.color ?? 'slate');
 
-  // Tempo total formatado
-  function formatHours(min: number): string {
-    if (min <= 0) return '0h';
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    if (m === 0) return `${h}h`;
-    return `${h}h${m.toString().padStart(2, '0')}`;
-  }
+  // Blocos de hoje (evita refiltrar o cronograma a cada render)
+  const todayBlocks = React.useMemo(
+    () => autoBlocks.filter((b) => b.day === today),
+    [autoBlocks, today],
+  );
 
   return (
     <motion.div
@@ -157,38 +163,35 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
 
             {/* Lista de blocos do dia (compacta) */}
             <ul className="grid gap-2 sm:grid-cols-2">
-              {autoBlocks
-                .filter((b) => b.day === today)
-                .slice(0, 4)
-                .map((b, i) => {
-                  const isRevisao = b.disciplineCode === 'revisao' || b.disciplineCode === 'descanso';
-                  const disc = isRevisao ? null : getDisciplineByCode(b.disciplineCode);
-                  const color = getColorClasses(disc?.color ?? 'slate');
-                  const done = sp.progress.scheduleBlocksDone.includes(b.id);
-                  return (
-                    <li
-                      key={i}
-                      className={cn(
-                        'rounded-md border-l-4 p-2',
-                        color.border,
-                        color.bgSoft,
-                        done && 'opacity-60',
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="inline-flex items-center gap-1 font-mono font-medium">
-                          <Clock4 className="size-3" />
-                          {formatTime(b.startHour, b.startMinute)}
-                        </span>
-                        {done && <Sparkles className="size-3 text-emerald-600" />}
-                      </div>
-                      <p className={cn('mt-0.5 text-xs font-semibold', color.text)}>
-                        {disc?.shortName ?? (b.isReview ? 'Revisão' : '—')}
-                      </p>
-                      <p className="text-[10px] leading-snug text-foreground/70 line-clamp-1">{b.title}</p>
-                    </li>
-                  );
-                })}
+              {todayBlocks.slice(0, 4).map((b) => {
+                const isSpecial = SPECIAL_BLOCK_CODES.has(b.disciplineCode);
+                const disc = isSpecial ? null : getDisciplineByCode(b.disciplineCode);
+                const color = getColorClasses(disc?.color ?? 'slate');
+                const done = sp.progress.scheduleBlocksDone.includes(b.id);
+                return (
+                  <li
+                    key={b.id}
+                    className={cn(
+                      'rounded-md border-l-4 p-2',
+                      color.border,
+                      color.bgSoft,
+                      done && 'opacity-60',
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="inline-flex items-center gap-1 font-mono font-medium">
+                        <Clock4 className="size-3" />
+                        {formatTime(b.startHour, b.startMinute)}
+                      </span>
+                      {done && <Sparkles className="size-3 text-emerald-600" />}
+                    </div>
+                    <p className={cn('mt-0.5 text-xs font-semibold', color.text)}>
+                      {disc?.shortName ?? (b.isReview ? 'Revisão' : '—')}
+                    </p>
+                    <p className="text-[10px] leading-snug text-foreground/70 line-clamp-1">{b.title}</p>
+                  </li>
+                );
+              })}
             </ul>
 
             <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">

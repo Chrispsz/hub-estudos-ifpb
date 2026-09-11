@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
   BookMarked,
   BookOpen,
+  Briefcase,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -12,6 +13,9 @@ import {
   ExternalLink,
   FileText,
   GraduationCap,
+  HandCoins,
+  HeartHandshake,
+  Mail,
   ScrollText,
   Terminal,
   Video,
@@ -33,14 +37,20 @@ const iconMap: Record<string, React.ReactNode> = {
   Code2: <Code2 className="size-4" />,
   BookMarked: <BookMarked className="size-4" />,
   Terminal: <Terminal className="size-4" />,
+  HandCoins: <HandCoins className="size-4" />,
+  HeartHandshake: <HeartHandshake className="size-4" />,
+  Briefcase: <Briefcase className="size-4" />,
+  Mail: <Mail className="size-4" />,
+  CheckCircle2: <CheckCircle2 className="size-4" />,
 };
 
+// Paleta com variantes dark (AMOLED): fundos claros viram tons escuros translúcidos.
 const categoryColor: Record<ImportantLink['category'], string> = {
-  curso: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  institucional: 'border-violet-200 bg-violet-50 text-violet-700',
-  ferramenta: 'border-amber-200 bg-amber-50 text-amber-700',
-  pnaat: 'border-rose-200 bg-rose-50 text-rose-700',
-  material: 'border-teal-200 bg-teal-50 text-teal-700',
+  curso: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
+  institucional: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300',
+  ferramenta: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
+  pnaat: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
+  material: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950/60 dark:text-teal-300',
 };
 
 const categoryLabel: Record<ImportantLink['category'], string> = {
@@ -58,9 +68,9 @@ export function ImportantLinks({ className }: { className?: string }) {
         <ExternalLink className="size-4 text-teal-500" /> Links importantes
       </h3>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {importantLinks.map((link, i) => (
+        {importantLinks.map((link) => (
           <a
-            key={i}
+            key={link.url}
             href={link.url}
             target="_blank"
             rel="noreferrer"

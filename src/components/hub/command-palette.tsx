@@ -29,13 +29,17 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import type { TabKey } from './sidebar-nav';
-import { disciplines, materials } from '@/data/course-data';
+import {
+  disciplines,
+  materials,
+  type Discipline,
+  type Material,
+} from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { DownloadsDialog } from './downloads-dialog';
-import type { Discipline, Material } from '@/data/course-data';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -141,7 +145,12 @@ export function CommandPalette({ onNavigate }: Props) {
       >
         <CommandInput placeholder="Buscar páginas, disciplinas, materiais e ações..." />
         <CommandList className="max-h-[min(60vh,420px)] [scrollbar-width:thin]">
-          <CommandEmpty>Nada encontrado. Tente outro termo.</CommandEmpty>
+          <CommandEmpty>
+            <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
+              <Search className="size-5 opacity-60" aria-hidden="true" />
+              Nada encontrado. Tente outro termo.
+            </span>
+          </CommandEmpty>
 
           <CommandGroup heading="Ir para">
             {PAGES.map((p) => (
@@ -315,7 +324,7 @@ export function PaletteTriggerButton() {
       title="Busca rápida (Ctrl+K)"
       onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
       className={cn(
-        'group inline-flex h-8 items-center gap-2 rounded-full border border-border bg-muted/40',
+        'group inline-flex h-11 sm:h-8 items-center gap-2 rounded-full border border-border bg-muted/40',
         'px-2.5 text-xs text-muted-foreground transition-colors',
         'hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50',

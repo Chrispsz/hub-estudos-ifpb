@@ -6,7 +6,11 @@
 //
 // ⚠️ NÃO duplicar SEMESTER_START em outros arquivos. Importe daqui.
 
-import { evaluationPeriods, getDisciplineByCode } from '@/data/course-data';
+import {
+  evaluationPeriods,
+  getDisciplineByCode,
+  type EvaluationPeriod,
+} from '@/data/course-data';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
@@ -34,6 +38,15 @@ export const FINAL_EXAM_END = new Date(2027, 1, 4);
 export const TOTAL_TEACHING_WEEKS = 19;
 /** Nº da última semana de ensino de 2026 (antes da pausa). */
 const LAST_WEEK_2026 = 17;
+
+/**
+ * Converte 'YYYY-MM-DD' em Date local à meia-noite.
+ * Convenção única do módulo: todas as datas ISO do calendário são interpretadas
+ * como datas LOCAIS (sem fuso UTC) para bater com `startOfDay`.
+ */
+function parseISODateLocal(dateIso: string): Date {
+  return new Date(`${dateIso}T00:00:00`);
+}
 
 function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -74,7 +87,12 @@ export function currentWeekOfSemester(now: Date = new Date()): number {
   );
 }
 
-/** Dias até o início da semana letiva informada (pode ser negativo = já passou). */
+/**
+ * @deprecated LEGADO — deriva prazo a partir de SEMANA estimada, o que contraria
+ * a política ANTI-ESTIMATIVA do app (urgência só com data oficial em `date`).
+ * Mantido apenas por compatibilidade de exports; NÃO usar em código novo —
+ * use `daysUntilDate` com a data oficial.
+ */
 export function daysUntilEvaluation(estimatedWeek: number, now: Date = new Date()): number {
   const target = startOfDay(weekStartDate(estimatedWeek)).getTime();
   const t = startOfDay(now).getTime();
@@ -83,7 +101,7 @@ export function daysUntilEvaluation(estimatedWeek: number, now: Date = new Date(
 
 /** Dias até uma data ISO 'YYYY-MM-DD' (pode ser negativo = já passou). */
 export function daysUntilDate(dateIso: string, now: Date = new Date()): number {
-  const target = startOfDay(new Date(`${dateIso}T00:00:00`)).getTime();
+  const target = startOfDay(parseISODateLocal(dateIso)).getTime();
   return Math.ceil((target - startOfDay(now).getTime()) / DAY_MS);
 }
 
@@ -173,8 +191,8 @@ export function upcomingEvents(now: Date = new Date(), limit = 4): (AcademicEven
   const result: (AcademicEvent & { daysLeft: number; ongoing: boolean })[] = [];
 
   for (const ev of ACADEMIC_EVENTS) {
-    const start = new Date(`${ev.date}T00:00:00`).getTime();
-    const end = ev.endDate ? new Date(`${ev.endDate}T00:00:00`).getTime() : start;
+    const start = parseISODateLocal(ev.date).getTime();
+    const end = ev.endDate ? parseISODateLocal(ev.endDate).getTime() : start;
     if (end < today) continue; // já passou
     const ongoing = today >= start && today <= end;
     result.push({ ...ev, daysLeft: Math.ceil((start - today) / DAY_MS), ongoing });
@@ -204,9 +222,10 @@ export function getNextEvaluation(now: Date = new Date()): NextEvaluation | null
   const week = currentWeekOfSemester(now);
   if (week <= 0) return null;
 
+  // Type predicate elimina o cast `as string`: só entra avaliação com data oficial.
   const pick = evaluationPeriods
-    .filter((e) => !e.conditional && e.date)
-    .map((e) => ({ e, days: daysUntilDate(e.date as string, now) }))
+    .filter((e): e is EvaluationPeriod & { date: string } => !e.conditional && !!e.date)
+    .map((e) => ({ e, days: daysUntilDate(e.date, now) }))
     .filter((x) => x.days >= 0)
     .sort((a, b) => a.days - b.days)[0];
 

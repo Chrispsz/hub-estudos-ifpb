@@ -47,15 +47,22 @@ export function ClockWidget({
 }: ClockWidgetProps) {
   const [now, setNow] = React.useState<Date | null>(null);
 
+  // onTick em ref: o callback mais recente é usado sem recriar o intervalo
+  // a cada render do pai (que passaria uma função inline nova).
+  const onTickRef = React.useRef(onTick);
+  React.useEffect(() => {
+    onTickRef.current = onTick;
+  }, [onTick]);
+
   React.useEffect(() => {
     setNow(new Date());
     const id = setInterval(() => {
       const d = new Date();
       setNow(d);
-      onTick?.(d);
+      onTickRef.current?.(d);
     }, 1000);
     return () => clearInterval(id);
-  }, [onTick]);
+  }, []);
 
   if (!now) {
     return <span suppressHydrationWarning className={className}>—</span>;

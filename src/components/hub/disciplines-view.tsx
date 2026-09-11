@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '@/components/ui/card';
 import { disciplines, materials, type Discipline } from '@/data/course-data';
 import { useStudyProgress } from '@/lib/study-progress';
 import { DisciplineCard } from './discipline-card';
@@ -16,7 +15,7 @@ export function DisciplinesView() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">Disciplinas do 1º período</h2>
+        <h2 className="text-xl font-semibold">Disciplinas do 2º período</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {disciplines.length} disciplinas • {materials.length} materiais no total.
           Clique em um card para ver ementa, conteúdo, avaliação e materiais.

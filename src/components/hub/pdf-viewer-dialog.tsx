@@ -34,6 +34,9 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
+const touchBtn = 'h-11 sm:h-8';
+
 export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const sp = useStudyProgress();
   const [tutorOpen, setTutorOpen] = React.useState(false);
@@ -58,7 +61,6 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   }, [open, material, markAccessed]);
 
   if (!material) return null;
-  const completed = isCompleted;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,7 +99,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
             className="ml-auto"
             onClick={() => onOpenChange(false)}
           >
-            <X className="size-4" />
+            <X className="size-4" aria-hidden />
           </Button>
         </div>
 
@@ -106,7 +108,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
             asChild
             size="sm"
             variant="secondary"
-            className="h-8"
+            className={touchBtn}
           >
             <a href={material.pdfPath} target="_blank" rel="noreferrer">
               <ExternalLink className="size-3.5" /> Abrir em nova aba
@@ -115,7 +117,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
           <Button
             size="sm"
             variant="outline"
-            className="h-8"
+            className={touchBtn}
             onClick={() => {
               if (!material.pdfPath) return;
               const filename = material.pdfPath.split('/').pop() ?? 'arquivo.pdf';
@@ -128,7 +130,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
           <Button
             size="sm"
             variant={tutorOpen ? 'default' : 'outline'}
-            className={cn('h-8', tutorOpen && 'bg-emerald-600 text-white hover:bg-emerald-700')}
+            className={cn(touchBtn, tutorOpen && 'bg-emerald-600 text-white hover:bg-emerald-700')}
             aria-pressed={tutorOpen}
             onClick={() => setTutorOpen((v) => !v)}
           >
@@ -136,10 +138,11 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
           </Button>
           <Button
             size="sm"
-            variant={completed ? 'outline' : 'default'}
-            className={cn('h-8', !completed && 'bg-emerald-600 text-white hover:bg-emerald-700')}
+            variant={isCompleted ? 'outline' : 'default'}
+            className={cn(touchBtn, !isCompleted && 'bg-emerald-600 text-white hover:bg-emerald-700')}
+            aria-pressed={isCompleted}
             onClick={() => {
-              if (completed) {
+              if (isCompleted) {
                 unmarkCompleted(material.id, material.disciplineCode);
                 toast.success('Marcado como não concluído');
               } else {
@@ -148,13 +151,13 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
               }
             }}
           >
-            {completed ? (
+            {isCompleted ? (
               <>
-                <CheckCircle2 className="size-3.5 text-emerald-600" /> Concluído
+                <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden /> Concluído
               </>
             ) : (
               <>
-                <Circle className="size-3.5" /> Marcar concluído
+                <Circle className="size-3.5" aria-hidden /> Marcar concluído
               </>
             )}
           </Button>

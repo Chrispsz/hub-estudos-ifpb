@@ -183,7 +183,7 @@ export function GradeCalculator() {
           </p>
         )}
         {discipline.finalExamFormula && (
-          <p className="mt-2 inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-900">
+          <p className="mt-2 inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400">
             <Calculator className="size-3" />
             <code className="font-mono">{discipline.finalExamFormula}</code>
           </p>
@@ -268,11 +268,11 @@ export function GradeCalculator() {
         className={cn(
           'rounded-2xl border-l-4 p-5 shadow-sm',
           result.status === 'aprovado'
-            ? 'border-l-emerald-500 bg-emerald-50'
+            ? 'border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
             : result.status === 'final'
-              ? 'border-l-amber-500 bg-amber-50'
+              ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-950/30'
               : result.status === 'reprovado'
-                ? 'border-l-rose-500 bg-rose-50'
+                ? 'border-l-rose-500 bg-rose-50 dark:bg-rose-950/30'
                 : 'border-l-slate-500 bg-muted/30',
         )}
       >
@@ -321,7 +321,8 @@ export function GradeCalculator() {
           <CheckCircle2 className="size-4 text-emerald-500" /> Histórico de notas salvas
         </h3>
         {history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-4 text-muted-foreground/50" aria-hidden />
             Nenhuma nota salva ainda. Preencha os componentes e clique em &quot;Salvar notas&quot;.
           </p>
         ) : (
@@ -343,20 +344,21 @@ export function GradeCalculator() {
                   className={cn(
                     'border text-[10px]',
                     r.status === 'aprovado'
-                      ? 'border-emerald-200 bg-emerald-100 text-emerald-700'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
                       : r.status === 'final'
-                        ? 'border-amber-200 bg-amber-100 text-amber-700'
+                        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400'
                         : r.status === 'reprovado'
-                          ? 'border-rose-200 bg-rose-100 text-rose-700'
-                          : 'border-slate-200 bg-slate-50 text-slate-700',
+                          ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400',
                   )}
                 >
                   {statusLabel(r)}
                 </Badge>
                 <button
+                  type="button"
                   onClick={() => sp.resetGradeNotes(d.code)}
-                  className="text-muted-foreground hover:text-rose-600"
-                  aria-label="Limpar notas desta disciplina"
+                  className="-m-1 rounded p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600"
+                  aria-label={`Limpar notas de ${d.shortName}`}
                 >
                   <Eraser className="size-3.5" />
                 </button>
@@ -429,6 +431,28 @@ function RealGradesSection() {
   const totalDone = Object.keys(sp.progress.realGrades).length;
   const totalEvals = allEvaluations.length;
 
+  // Próxima avaliação COM DATA OFICIAL à frente (política anti-estimativa) — memoizada.
+  const nextEvaluationLabel = React.useMemo(() => {
+    const done = new Set(Object.keys(sp.progress.realGrades));
+    const next = allEvaluations.find(
+      (e) => !done.has(e.key) && e.date && daysUntilDate(e.date) > 0,
+    );
+    if (!next) {
+      return 'Nenhuma data oficial à frente (demais avaliações: aguarde divulgação ou adicione uma customizada).';
+    }
+    const date = next.date;
+    if (!date) {
+      return 'Nenhuma data oficial à frente (demais avaliações: aguarde divulgação ou adicione uma customizada).';
+    }
+    const disc = getDisciplineByCode(next.disciplineCode);
+    const days = daysUntilDate(date);
+    const when = new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+    return `${disc?.shortName} • ${next.name} — ${when} (em ${days} dias)`;
+  }, [allEvaluations, sp.progress.realGrades]);
+
   function setRealGrade(key: string, value: string, scale: 10 | 100) {
     const v = parseFloat(value.replace(',', '.'));
     if (Number.isNaN(v)) {
@@ -461,7 +485,7 @@ function RealGradesSection() {
         Registre as notas reais das avaliações que você já fez. Compare com a média alvo e veja sua situação real.
       </p>
 
-      <div className="overflow-hidden rounded-md border border-border">
+      <div className="max-h-[420px] overflow-y-auto rounded-md border border-border [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -488,7 +512,7 @@ function RealGradesSection() {
               const normalized = gradeEntry && scale === 10 ? gradeEntry.grade * 10 : gradeEntry?.grade;
               const passed = normalized != null && normalized >= target;
               return (
-                <TableRow key={ev.key} className={cn(isDone && 'bg-emerald-50/30')}>
+                <TableRow key={ev.key} className={cn(isDone && 'bg-emerald-50/30 dark:bg-emerald-500/5')}>
                   <TableCell>
                     <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', color.text)}>
                       <span className={cn('size-2 rounded-full', color.dot)} />
@@ -526,15 +550,15 @@ function RealGradesSection() {
                   </TableCell>
                   <TableCell className="text-right">
                     {!isDone ? (
-                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[9px]">
+                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[9px] dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400">
                         pendente
                       </Badge>
                     ) : passed ? (
-                      <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700 text-[9px]">
+                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[9px] dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
                         ✓ ok
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="border-rose-200 bg-rose-100 text-rose-700 text-[9px]">
+                      <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 text-[9px] dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400">
                         abaixo
                       </Badge>
                     )}
@@ -567,8 +591,8 @@ function RealGradesSection() {
                     className={cn(
                       'border text-[9px]',
                       passed
-                        ? 'border-emerald-200 bg-emerald-100 text-emerald-700'
-                        : 'border-rose-200 bg-rose-100 text-rose-700',
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
+                        : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400',
                     )}
                   >
                     {passed ? 'acima' : 'abaixo'}
@@ -581,21 +605,9 @@ function RealGradesSection() {
       )}
 
       {/* Próxima prova baseada nas notas já feitas */}
-      <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900">
+      <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">
         <p className="font-semibold">Próxima prova:</p>
-        <p className="mt-0.5">
-          {(() => {
-            const done = new Set(Object.keys(sp.progress.realGrades).map((k) => k));
-            const next = allEvaluations.find(
-              (e) => !done.has(e.key) && e.date && daysUntilDate(e.date) > 0,
-            );
-            if (!next) return 'Nenhuma data oficial à frente (demais avaliações: aguarde divulgação ou adicione uma customizada).';
-            const disc = getDisciplineByCode(next.disciplineCode);
-            const days = daysUntilDate(next.date!);
-            const when = new Date(`${next.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            return `${disc?.shortName} • ${next.name} — ${when} (em ${days} dias)`;
-          })()}
-        </p>
+        <p className="mt-0.5">{nextEvaluationLabel}</p>
       </div>
 
       <AddCustomEvaluationDialog open={addCustomOpen} onOpenChange={setAddCustomOpen} />

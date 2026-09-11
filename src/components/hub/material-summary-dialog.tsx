@@ -77,6 +77,9 @@ const typeLabel: Record<Material['type'], string> = {
 // Cache simples em memória (session) para evitar re-fetching
 const summaryCache = new Map<string, AiSummary>();
 
+/** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
+const touchBtn = 'h-11 sm:h-8';
+
 export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
   const sp = useStudyProgress();
   const [loading, setLoading] = React.useState(false);
@@ -151,12 +154,30 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
     ? sp.progress.completedMaterials.includes(material.id)
     : false;
 
-  // Quantas perguntas respondidas para este material?
-  const checksForMaterial = material
-    ? sp.progress.autoavaliacaoChecks[material.id] ?? {}
-    : {};
+  // Derivações memoizadas: evitam recriar o mapa de checks e recontar a cada render.
+  const autoavaliacaoChecks = sp.progress.autoavaliacaoChecks;
+  const materialId = material?.id ?? '';
+  const checksForMaterial = React.useMemo(
+    () => (materialId ? autoavaliacaoChecks[materialId] ?? {} : {}),
+    [autoavaliacaoChecks, materialId],
+  );
   const totalQuestions = summary?.perguntas_autoavaliacao?.length ?? 0;
-  const answeredCount = Object.values(checksForMaterial).filter(Boolean).length;
+  const answeredCount = React.useMemo(
+    () => Object.values(checksForMaterial).filter(Boolean).length,
+    [checksForMaterial],
+  );
+
+  // Handlers estáveis passados ao SummaryBody (React.memo) — evitam re-render
+  // de todo o resumo a cada troca de estado do pai.
+  const handleToggleCheck = React.useCallback(
+    (i: number) => {
+      if (material) sp.toggleAutoavaliacao(material.id, i);
+    },
+    [material, sp.toggleAutoavaliacao],
+  );
+  const handleReload = React.useCallback(() => {
+    if (material) loadSummary(material, true);
+  }, [material, loadSummary]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,8 +201,11 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 </Badge>
               ) : null}
               {completed && (
-                <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 className="size-3" /> Concluído
+                <Badge
+                  variant="outline"
+                  className="border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/60 dark:text-emerald-300"
+                >
+                  <CheckCircle2 className="size-3" aria-hidden /> Concluído
                 </Badge>
               )}
             </div>
@@ -228,8 +252,8 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 color={color}
                 materialId={material?.id ?? ''}
                 checks={checksForMaterial}
-                onToggle={(i) => material && sp.toggleAutoavaliacao(material.id, i)}
-                onReload={() => material && loadSummary(material, true)}
+                onToggle={handleToggleCheck}
+                onReload={handleReload}
                 answeredCount={answeredCount}
                 totalQuestions={totalQuestions}
               />
@@ -244,19 +268,20 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-8"
+                className={touchBtn}
                 onClick={() => setPdfOpen(true)}
               >
-                <ExternalLink className="size-3.5" /> Abrir PDF
+                <ExternalLink className="size-3.5" aria-hidden /> Abrir PDF
               </Button>
             )}
             <Button
               size="sm"
               variant={completed ? 'outline' : 'default'}
               className={cn(
-                'h-8',
+                touchBtn,
                 !completed && 'bg-emerald-600 text-white hover:bg-emerald-700',
               )}
+              aria-pressed={completed}
               onClick={() => {
                 if (completed) {
                   sp.unmarkCompleted(material.id, material.disciplineCode);
@@ -278,9 +303,9 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
               )}
             </Button>
             {material.externalUrl && (
-              <Button asChild size="sm" variant="outline" className="h-8">
+              <Button asChild size="sm" variant="outline" className={touchBtn}>
                 <a href={material.externalUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="size-3.5" /> Link externo
+                  <ExternalLink className="size-3.5" aria-hidden /> Link externo
                 </a>
               </Button>
             )}
@@ -321,7 +346,7 @@ function Section({
   );
 }
 
-function SummaryBody({
+const SummaryBody = React.memo(function SummaryBody({
   summary,
   color,
   materialId,
@@ -412,14 +437,14 @@ function SummaryBody({
       )}
 
       {erros.length > 0 && (
-        <Section icon={<AlertTriangle className="size-4" />} title="Erros Comuns" color="text-amber-700">
+        <Section icon={<AlertTriangle className="size-4" aria-hidden />} title="Erros Comuns" color="text-amber-700 dark:text-amber-400">
           <ul className="grid gap-1.5">
             {erros.map((e, i) => (
               <li
                 key={i}
-                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900"
+                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
               >
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 {e}
               </li>
             ))}
@@ -464,7 +489,7 @@ function SummaryBody({
           <ul className="grid gap-1.5">
             {perguntas.map((p, i) => (
               <li key={i}>
-                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/30 p-2.5 text-sm hover:bg-muted/50">
+                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/30 p-3 text-sm hover:bg-muted/50 sm:p-2.5">
                   <Checkbox
                     checked={!!checks[i]}
                     onCheckedChange={() => onToggle(i)}
@@ -492,11 +517,10 @@ function SummaryBody({
           <ClipboardList className="size-3.5" />
           {answeredCount} / {totalQuestions} perguntas respondidas
         </span>
-        <Button size="sm" variant="ghost" onClick={onReload} className="h-7 text-xs">
-          <RefreshCw className="size-3" /> Recarregar
+        <Button size="sm" variant="ghost" onClick={onReload} className="h-11 text-xs sm:h-7">
+          <RefreshCw className="size-3" aria-hidden /> Recarregar
         </Button>
       </div>
     </div>
   );
-
-}
+});

@@ -104,7 +104,14 @@ export function SidebarNav({
         <GraduationCap className="size-4 text-emerald-600 dark:text-emerald-400" />
         <span className="text-xs font-medium">Progresso geral</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
+      <div
+        role="progressbar"
+        aria-label="Progresso geral de materiais concluídos"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={overallProgress ?? 0}
+        className="h-2 overflow-hidden rounded-full bg-muted"
+      >
         <div
           className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
           style={{ width: `${overallProgress ?? 0}%` }}
@@ -126,7 +133,7 @@ export function SidebarNav({
               variant="outline"
               size="icon"
               aria-label="Abrir menu"
-              className="fixed left-3 top-3 z-50 rounded-lg"
+              className="fixed left-3 top-3 z-50 size-11 rounded-lg sm:size-9"
             >
               <Menu className="size-4" />
             </Button>

@@ -1,0 +1,53 @@
+{
+  "titulo": "URLs e caminhos de arquivos — apostila da disciplina (web)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "origem": "Resumo autoral do Hub sobre a página da apostila digital do Prof. Diogo Moreira. Conteúdo completo no link externo.",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "Um URL é uma sequência de texto que define onde algo está localizado na web (ex.: https://www.ifpb.edu.br). Para entender hyperlinks de verdade é preciso entender URLs e caminhos de arquivos: como navegar na estrutura de diretórios de um projeto usando caminhos relativos — no mesmo diretório, descendo em subdiretórios e subindo com dois pontos (..).",
+  "conceitos_chave": [
+    {
+      "conceito": "URL",
+      "explicacao": "Sequência de texto que define a localização de um recurso na web. Os URLs usam caminhos para encontrar arquivos, especificando onde o recurso está no explorador de arquivos.",
+      "exemplo": "https://www.ifpb.edu.br"
+    },
+    {
+      "conceito": "Mesmo diretório",
+      "explicacao": "Se o arquivo alvo está no mesmo diretório do documento atual, basta indicar o nome do arquivo.",
+      "exemplo": "<a href=\"contato.html\">página de contatos</a> (dentro de index.html)"
+    },
+    {
+      "conceito": "Descer em subdiretório",
+      "explicacao": "Indique o diretório, uma barra (/) e o nome do arquivo.",
+      "exemplo": "<a href=\"equipe/equipe.html\">equipe</a>"
+    },
+    {
+      "conceito": "Subir um nível (..)",
+      "explicacao": "Dois pontos (..) sobem um nível de diretório; depois desça para o diretório desejado.",
+      "exemplo": "<a href=\"../imagens/foto_perfil_diogo.jpg\">minha foto</a> (dentro de equipe/equipe.html)"
+    },
+    {
+      "conceito": "index.html como página de entrada",
+      "explicacao": "Em um site real, index.html é a página inicial (ponto de entrada do site ou de uma seção). Vários index.html podem coexistir em diretórios diferentes — muitos sites fazem isso."
+    }
+  ],
+  "pontos_importantes": [
+    "Exemplo do livro: raiz linguagens-marcacao contendo index.html, contato.html e os diretórios equipe/ (equipe.html) e imagens/ (foto_perfil_diogo.jpg).",
+    "É possível combinar vários níveis: ../../../caminho/para/arquivo.html — mas a recomendação é manter os caminhos simples.",
+    "A forma de referenciar URLs desta página serve para TODAS as vezes que o assunto voltar (imagens, áudio, vídeo): em caso de dúvida, volte aqui."
+  ],
+  "erros_comuns": [
+    "Esquecer o ../ ao subir de nível — o navegador procuraria o arquivo dentro do diretório atual.",
+    "Inverter a ordem: primeiro sobe com ../, depois entra no diretório desejado (../imagens/foto.jpg, não imagens/../foto.jpg)."
+  ],
+  "exercicios_sugeridos": [
+    "Monte a estrutura do livro (raiz com index.html, contato.html, equipe/ e imagens/) e crie links entre os três HTML.",
+    "Escreva o caminho relativo de equipe/equipe.html para contato.html (sobe um nível com ../)."
+  ],
+  "perguntas_autoavaliacao": [
+    "O que é um URL?",
+    "Como referenciar um arquivo no mesmo diretório, em um subdiretório e em um diretório pai?",
+    "O que os dois pontos (..) significam em um caminho?",
+    "Qual a função do index.html em um site?"
+  ]
+}

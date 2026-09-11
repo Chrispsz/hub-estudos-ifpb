@@ -70,20 +70,38 @@ const PRIORITY_LABEL: Record<Discipline['prioridade'], string> = {
   baixa: 'Prioridade baixa',
 };
 
+// Dados imutáveis — contagem de materiais por disciplina calculada uma única vez.
+const MATERIAL_COUNT_BY_CODE = new Map(
+  disciplines.map((d) => [
+    d.code,
+    materials.filter((m) => m.disciplineCode === d.code).length,
+  ]),
+);
+
+// Badges do cabeçalho com variantes dark: coerentes com lib/discipline-colors.
+const STAT_BADGES = {
+  disciplinas: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300',
+  pdfs: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/15 dark:text-teal-300',
+  resumos: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300',
+} as const;
+
 export function LibraryView() {
   const [tab, setTab] = React.useState<string>('disciplinas');
   const [filtro, setFiltro] = React.useState<CategoryFilter>('todos');
 
-  const filteredDisciplines =
-    filtro === 'todos'
-      ? []
-      : disciplines.filter((d) => d.category === filtro);
+  const filteredDisciplines = React.useMemo(
+    () =>
+      filtro === 'todos'
+        ? []
+        : disciplines.filter((d) => d.category === filtro),
+    [filtro],
+  );
 
   // Card filtrado clicado → volta para a visão completa (aba Disciplinas, filtro Todos).
-  function verVisaoCompleta() {
+  const verVisaoCompleta = React.useCallback(() => {
     setFiltro('todos');
     setTab('disciplinas');
-  }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -97,24 +115,15 @@ export function LibraryView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2" aria-label="Resumo da biblioteca">
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700"
-          >
+          <Badge variant="outline" className={`gap-1.5 ${STAT_BADGES.disciplinas}`}>
             <BookOpen className="size-3.5" aria-hidden="true" />
             {disciplines.length} disciplinas
           </Badge>
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-teal-200 bg-teal-50 text-teal-700"
-          >
+          <Badge variant="outline" className={`gap-1.5 ${STAT_BADGES.pdfs}`}>
             <FileText className="size-3.5" aria-hidden="true" />
             {PDF_COUNT} PDFs
           </Badge>
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-violet-200 bg-violet-50 text-violet-700"
-          >
+          <Badge variant="outline" className={`gap-1.5 ${STAT_BADGES.resumos}`}>
             <Sparkles className="size-3.5" aria-hidden="true" />
             {SUMMARY_COUNT} resumos IA
           </Badge>
@@ -123,7 +132,7 @@ export function LibraryView() {
 
       <Tabs
         value={tab}
-        onValueChange={(v) => setTab(v)}
+        onValueChange={setTab}
         className="space-y-4"
       >
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1.5 sm:inline-grid sm:w-auto">
@@ -164,7 +173,7 @@ export function LibraryView() {
                     type="button"
                     aria-pressed={ativo}
                     onClick={() => setFiltro(f.value)}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0 ${
                       ativo
                         ? f.activeClasses
                         : 'border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground'
@@ -188,9 +197,12 @@ export function LibraryView() {
               {filtro === 'todos' ? (
                 <DisciplinesView />
               ) : filteredDisciplines.length === 0 ? (
-                <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-                  Nenhuma disciplina nesta categoria.
-                </p>
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-6 text-center">
+                  <BookOpen className="size-8 text-muted-foreground/60" aria-hidden="true" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma disciplina nesta categoria.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">
@@ -206,10 +218,7 @@ export function LibraryView() {
                       <FilteredDisciplineCard
                         key={d.code}
                         discipline={d}
-                        materialsCount={
-                          materials.filter((m) => m.disciplineCode === d.code)
-                            .length
-                        }
+                        materialsCount={MATERIAL_COUNT_BY_CODE.get(d.code) ?? 0}
                         onClick={verVisaoCompleta}
                       />
                     ))}
@@ -239,8 +248,9 @@ export function LibraryView() {
  * Card simplificado exibido quando um filtro de categoria está ativo.
  * Informativo + clicável: leva o usuário de volta à visão completa
  * (filtro "Todos") onde estão os detalhes de cada disciplina.
+ * Memoizado: os dados são imutáveis e o handler é estável.
  */
-function FilteredDisciplineCard({
+const FilteredDisciplineCard = React.memo(function FilteredDisciplineCard({
   discipline,
   materialsCount,
   onClick,
@@ -302,4 +312,4 @@ function FilteredDisciplineCard({
       </button>
     </motion.div>
   );
-}
+});

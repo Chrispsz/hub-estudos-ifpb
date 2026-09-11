@@ -5,11 +5,9 @@ import { motion } from 'framer-motion';
 import {
   PlayCircle,
   CheckCircle2,
-  Circle,
   ExternalLink,
   FileText,
   History,
-  Loader2,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -31,9 +29,7 @@ import {
   materials,
   disciplines,
   getMaterialsByDiscipline,
-  getDisciplineByCode,
   type Material,
-  type Discipline,
 } from '@/data/course-data';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import {
@@ -58,11 +54,54 @@ const typeLabel: Record<Material['type'], string> = {
   calendar: 'Calendário',
 };
 
+type MaterialStatus = 'notViewed' | 'recent' | 'completed';
+
+// Dados imutáveis — mapa de disciplinas calculado uma única vez (busca O(1)).
+const DISCIPLINE_BY_CODE = new Map(disciplines.map((d) => [d.code, d]));
+
+// Badges de status estáticos (ícones fixos) — criados uma única vez.
+const STATUS_BADGES: Record<MaterialStatus, React.ReactNode> = {
+  notViewed: (
+    <Badge
+      variant="outline"
+      className="border-slate-200 bg-slate-50 text-slate-600 text-[10px] dark:border-slate-500/30 dark:bg-slate-500/15 dark:text-slate-300"
+    >
+      Não visto
+    </Badge>
+  ),
+  recent: (
+    <Badge
+      variant="outline"
+      className="border-teal-200 bg-teal-50 text-teal-700 text-[10px] dark:border-teal-500/30 dark:bg-teal-500/15 dark:text-teal-300"
+    >
+      <History className="size-2.5" /> Acessado
+    </Badge>
+  ),
+  completed: (
+    <Badge
+      variant="outline"
+      className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300"
+    >
+      <CheckCircle2 className="size-2.5" /> Concluído
+    </Badge>
+  ),
+};
+
 export function MaterialsList() {
   const [videoMaterial, setVideoMaterial] = React.useState<Material | null>(null);
   const sp = useStudyProgress();
   const [selected, setSelected] = React.useState<Material | null>(null);
   const [pdfFor, setPdfFor] = React.useState<Material | null>(null);
+
+  // Conjuntos de IDs (busca O(1)) memoizados — só recalculam quando o progresso muda.
+  const completedIds = React.useMemo(
+    () => new Set(sp.progress.completedMaterials),
+    [sp.progress.completedMaterials],
+  );
+  const recentIds = React.useMemo(
+    () => new Set(sp.progress.recentMaterials.map((r) => r.id)),
+    [sp.progress.recentMaterials],
+  );
 
   // Recentes
   const recents = React.useMemo(() => {
@@ -73,20 +112,31 @@ export function MaterialsList() {
   }, [sp.progress.recentMaterials]);
 
   // Concluídos
-  const completed = React.useMemo(() => {
-    return materials.filter((m) => sp.progress.completedMaterials.includes(m.id));
-  }, [sp.progress.completedMaterials]);
+  const completed = React.useMemo(
+    () => materials.filter((m) => completedIds.has(m.id)),
+    [completedIds],
+  );
 
-  const byDiscipline = disciplines.map((d) => ({
-    discipline: d,
-    items: getMaterialsByDiscipline(d.code),
-  }));
+  // Agrupamento por disciplina (dados estáticos) calculado uma única vez.
+  const byDiscipline = React.useMemo(
+    () =>
+      disciplines.map((d) => ({
+        discipline: d,
+        items: getMaterialsByDiscipline(d.code),
+      })),
+    [],
+  );
 
-  const notViewedCount = materials.filter(
-    (m) =>
-      !sp.progress.recentMaterials.some((r) => r.id === m.id) &&
-      !sp.progress.completedMaterials.includes(m.id),
-  ).length;
+  const notViewedCount = React.useMemo(
+    () =>
+      materials.filter((m) => !recentIds.has(m.id) && !completedIds.has(m.id)).length,
+    [recentIds, completedIds],
+  );
+
+  // Handlers estáveis — permitem memoizar as linhas (React.memo no MaterialRow).
+  const handleOpen = React.useCallback((m: Material) => setSelected(m), []);
+  const handleOpenPdf = React.useCallback((m: Material) => setPdfFor(m), []);
+  const handleWatch = React.useCallback((m: Material) => setVideoMaterial(m), []);
 
   return (
     <div className="space-y-4">
@@ -108,7 +158,10 @@ export function MaterialsList() {
           </TabsTrigger>
           <TabsTrigger value="completed" className="gap-1.5 rounded-lg text-xs">
             <CheckCircle2 className="size-3.5" /> Concluídos
-            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
+            <Badge
+              variant="outline"
+              className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300"
+            >
               {completed.length}
             </Badge>
           </TabsTrigger>
@@ -135,9 +188,9 @@ export function MaterialsList() {
                   key={m.id}
                   material={m}
                   status="recent"
-                  onOpen={() => setSelected(m)}
-                  onOpenPdf={() => setPdfFor(m)}
-                  onWatch={setVideoMaterial}
+                  onOpen={handleOpen}
+                  onOpenPdf={handleOpenPdf}
+                  onWatch={handleWatch}
                 />
               ))}
             </div>
@@ -159,9 +212,9 @@ export function MaterialsList() {
                   key={m.id}
                   material={m}
                   status="completed"
-                  onOpen={() => setSelected(m)}
-                  onOpenPdf={() => setPdfFor(m)}
-                  onWatch={setVideoMaterial}
+                  onOpen={handleOpen}
+                  onOpenPdf={handleOpenPdf}
+                  onWatch={handleWatch}
                 />
               ))}
             </div>
@@ -221,9 +274,9 @@ export function MaterialsList() {
                     ) : (
                       <ul className="grid gap-2 pb-2 pt-1">
                         {items.map((m) => {
-                          const status = sp.progress.completedMaterials.includes(m.id)
+                          const status: MaterialStatus = completedIds.has(m.id)
                             ? 'completed'
-                            : sp.progress.recentMaterials.some((r) => r.id === m.id)
+                            : recentIds.has(m.id)
                               ? 'recent'
                               : 'notViewed';
                           return (
@@ -231,10 +284,10 @@ export function MaterialsList() {
                               key={m.id}
                               material={m}
                               status={status}
-                              onOpen={() => setSelected(m)}
-                              onOpenPdf={() => setPdfFor(m)}
-                              onWatch={setVideoMaterial}
-                />
+                              onOpen={handleOpen}
+                              onOpenPdf={handleOpenPdf}
+                              onWatch={handleWatch}
+                            />
                           );
                         })}
                       </ul>
@@ -286,7 +339,11 @@ function EmptyState({
   );
 }
 
-function MaterialRow({
+/**
+ * Linha de material — memoizada: handlers estáveis + material imutável fazem
+ * a linha re-renderizar apenas quando o próprio status muda.
+ */
+const MaterialRow = React.memo(function MaterialRow({
   material,
   status,
   onOpen,
@@ -294,31 +351,14 @@ function MaterialRow({
   onWatch,
 }: {
   material: Material;
-  status: 'notViewed' | 'recent' | 'completed';
-  onOpen: () => void;
-  onOpenPdf: () => void;
+  status: MaterialStatus;
+  onOpen: (m: Material) => void;
+  onOpenPdf: (m: Material) => void;
   onWatch: (m: Material) => void;
 }) {
-  const discipline = disciplines.find((d) => d.code === material.disciplineCode);
+  const discipline = DISCIPLINE_BY_CODE.get(material.disciplineCode);
   const color = getColorClasses(discipline?.color ?? 'slate');
-
-  const statusBadge = {
-    notViewed: (
-      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[10px]">
-        Não visto
-      </Badge>
-    ),
-    recent: (
-      <Badge variant="outline" className="border-teal-200 bg-teal-50 text-teal-700 text-[10px]">
-        <History className="size-2.5" /> Acessado
-      </Badge>
-    ),
-    completed: (
-      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
-        <CheckCircle2 className="size-2.5" /> Concluído
-      </Badge>
-    ),
-  }[status];
+  const statusBadge = STATUS_BADGES[status];
 
   return (
     <motion.li
@@ -344,7 +384,7 @@ function MaterialRow({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+            className="h-11 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 sm:h-8 dark:text-emerald-400"
             onClick={() => onWatch(material)}
           >
             {material.type === 'video' ? (
@@ -362,8 +402,8 @@ function MaterialRow({
           <Button
             size="sm"
             variant="outline"
-            className="h-8"
-            onClick={onOpenPdf}
+            className="h-11 sm:h-8"
+            onClick={() => onOpenPdf(material)}
           >
             <FileText className="size-3.5" /> PDF
           </Button>
@@ -372,8 +412,8 @@ function MaterialRow({
           <Button
             size="sm"
             variant="secondary"
-            className={cn('h-8 border', color.bgSoft, color.text, color.borderAll)}
-            onClick={onOpen}
+            className={cn('h-11 border sm:h-8', color.bgSoft, color.text, color.borderAll)}
+            onClick={() => onOpen(material)}
           >
             <Sparkles className="size-3.5" /> Resumo IA
           </Button>
@@ -381,4 +421,4 @@ function MaterialRow({
       </div>
     </motion.li>
   );
-}
+});

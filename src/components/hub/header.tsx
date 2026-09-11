@@ -23,6 +23,10 @@ export function Header() {
     return () => clearInterval(id);
   }, []);
 
+  const toggleTheme = React.useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  }, [theme, setTheme]);
+
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="flex items-center gap-3 px-6 py-2.5 pl-16 lg:pl-6">
@@ -54,7 +58,7 @@ export function Header() {
             size="icon"
             aria-label="Downloads e backup"
             title="Downloads e backup"
-            className="shrink-0 rounded-full"
+            className="size-11 shrink-0 rounded-full sm:size-9"
             onClick={() => setDownloadsOpen(true)}
           >
             <Download className="size-4" />
@@ -64,8 +68,8 @@ export function Header() {
             size="icon"
             aria-label="Alternar tema"
             title="Alternar tema"
-            className="shrink-0 rounded-full"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="size-11 shrink-0 rounded-full sm:size-9"
+            onClick={toggleTheme}
           >
             {mounted && theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>

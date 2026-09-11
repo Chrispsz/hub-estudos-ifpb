@@ -38,25 +38,32 @@ export function SemesterProjection() {
 
   // Próximas 6 semanas (se semana atual = 0 — pré/fim de semestre — mostra as 6 primeiras)
   // Só avaliações com DATA OFICIAL aparecem na projeção (política anti-estimativa).
-  const weeks = React.useMemo(() => {
+  const { weeks, criticalWeeks } = React.useMemo(() => {
     const base = currentWeek > 0 ? currentWeek : 1;
-    return Array.from({ length: 6 }, (_, i) => {
+    const nextWeeks = Array.from({ length: 6 }, (_, i) => {
       const week = base + i;
       const evals = evaluationPeriods.filter((e) => e.date && e.estimatedWeek === week);
       return { week, evals };
     });
+    return {
+      weeks: nextWeeks,
+      criticalWeeks: nextWeeks.filter((w) => w.evals.length >= 2).map((w) => w.week),
+    };
   }, [currentWeek]);
 
-  // Identifica semanas críticas (com 2+ avaliações)
-  const criticalWeeks = weeks.filter((w) => w.evals.length >= 2).map((w) => w.week);
+  // Agregação de tópicos por disciplina — computada UMA vez e reaproveitada
+  // pelas sugestões e pelo resumo de progresso.
+  const topicSummaries = React.useMemo(
+    () => getAllDisciplinesTopics(sp.progress.topicProgress),
+    [sp.progress.topicProgress],
+  );
 
   // Sugestões de "comece agora"
   const startNowSuggestions = React.useMemo(() => {
-    const summaries = getAllDisciplinesTopics(sp.progress.topicProgress);
     const suggestions: { discipline: ReturnType<typeof getDisciplineByCode>; topic: string; reason: string }[] = [];
 
     // Para Matemática - Funções (precisa de 3 semanas)
-    const mat = summaries.find((s) => s.discipline.code === 'TEC.1984');
+    const mat = topicSummaries.find((s) => s.discipline.code === 'TEC.1984');
     if (mat) {
       const funcoesUnit = mat.units.find((u) => u.name.includes('Funções'));
       if (funcoesUnit && !funcoesUnit.done) {
@@ -68,7 +75,7 @@ export function SemesterProjection() {
       }
     }
     // Para Algoritmos - Vetores/Matrizes
-    const alg = summaries.find((s) => s.discipline.code === 'TEC.1687');
+    const alg = topicSummaries.find((s) => s.discipline.code === 'TEC.1687');
     if (alg) {
       const vetoresUnit = alg.units.find((u) => u.name.toLowerCase().includes('vetores'));
       if (vetoresUnit && !vetoresUnit.done) {
@@ -80,7 +87,7 @@ export function SemesterProjection() {
       }
     }
     // Para LM - CSS (precisa de prática)
-    const lm = summaries.find((s) => s.discipline.code === 'TEC.1632');
+    const lm = topicSummaries.find((s) => s.discipline.code === 'TEC.1632');
     if (lm) {
       const cssUnit = lm.units.find((u) => u.name.toLowerCase().includes('css'));
       if (cssUnit && !cssUnit.done) {
@@ -92,7 +99,7 @@ export function SemesterProjection() {
       }
     }
     return suggestions.slice(0, 3);
-  }, [sp.progress.topicProgress]);
+  }, [topicSummaries]);
 
   return (
     <div className="space-y-4">
@@ -141,7 +148,7 @@ export function SemesterProjection() {
                     {isCurrent && (
                       <Badge
                         variant="outline"
-                        className="border-emerald-200 bg-emerald-100 text-emerald-700 text-[9px]"
+                        className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[9px] dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
                       >
                         agora
                       </Badge>
@@ -149,7 +156,7 @@ export function SemesterProjection() {
                     {isCritical && (
                       <Badge
                         variant="outline"
-                        className="border-rose-200 bg-rose-100 text-rose-700 text-[9px]"
+                        className="border-rose-200 bg-rose-50 text-rose-700 text-[9px] dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
                       >
                         <AlertTriangle className="size-2.5" /> crítica
                       </Badge>
@@ -195,11 +202,11 @@ export function SemesterProjection() {
 
       {/* Semanas críticas */}
       {criticalWeeks.length > 0 && (
-        <Card className="rounded-xl border-l-4 border-l-rose-500 bg-rose-50 p-4 shadow-sm">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-rose-700">
+        <Card className="rounded-xl border-l-4 border-l-rose-500 bg-rose-50 p-4 shadow-sm dark:bg-rose-950/30">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-rose-700 dark:text-rose-400">
             <AlertTriangle className="size-4" /> Semanas críticas
           </h3>
-          <p className="mt-1 text-xs text-rose-900">
+          <p className="mt-1 text-xs text-rose-900 dark:text-rose-300">
             {criticalWeeks.length > 1
               ? `As semanas ${criticalWeeks.join(', ')} têm 2+ avaliações.`
               : `A semana ${criticalWeeks[0]} tem 2+ avaliações.`}
@@ -254,7 +261,7 @@ export function SemesterProjection() {
           <Flag className="size-4 text-emerald-500" /> Progresso por disciplina (PPC)
         </h3>
         <div className="space-y-2">
-          {getAllDisciplinesTopics(sp.progress.topicProgress).map((s) => {
+          {topicSummaries.map((s) => {
             const color = getColorClasses(s.discipline.color);
             return (
               <div key={s.discipline.code} className="flex items-center gap-3 text-xs">
@@ -276,10 +283,10 @@ export function SemesterProjection() {
                   className={cn(
                     'shrink-0 border text-[9px]',
                     s.isComplete
-                      ? 'border-emerald-200 bg-emerald-100 text-emerald-700'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
                       : s.progress >= 50
-                        ? 'border-amber-200 bg-amber-100 text-amber-700'
-                        : 'border-slate-200 bg-slate-50 text-slate-700',
+                        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400',
                   )}
                 >
                   {s.isComplete ? '✓' : s.progress >= 50 ? 'em dia' : 'atrasada'}

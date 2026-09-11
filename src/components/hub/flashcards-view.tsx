@@ -196,6 +196,18 @@ function parseDeckFile(raw: string): DeckFile['cards'] | null {
 
 // ---------- View principal ----------
 
+/** Cartão gerado pela IA na prévia editável (id estável p/ keys em lista removível). */
+interface GeneratedCard {
+  id: string;
+  front: string;
+  back: string;
+}
+
+let generatedSeq = 0;
+function toGeneratedCards(cards: Array<{ front: string; back: string }>): GeneratedCard[] {
+  return cards.map((c) => ({ ...c, id: `gen-${++generatedSeq}` }));
+}
+
 export function FlashcardsView() {
   const sp = useStudyProgress();
   const [mode, setMode] = React.useState<'list' | 'review' | 'cram'>('list');
@@ -343,7 +355,7 @@ export function FlashcardsView() {
           <Button
             size="icon"
             variant="outline"
-            className="size-8 border-border/70 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-300"
+            className="size-11 border-border/70 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-300 sm:size-8"
             onClick={handleExportDeck}
             disabled={!mounted || stats.total === 0}
             aria-label="Exportar baralho como arquivo JSON"
@@ -354,7 +366,7 @@ export function FlashcardsView() {
           <Button
             size="icon"
             variant="outline"
-            className="size-8 border-border/70 text-muted-foreground hover:bg-teal-500/10 hover:text-teal-300"
+            className="size-11 border-border/70 text-muted-foreground hover:bg-teal-500/10 hover:text-teal-300 sm:size-8"
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
             aria-label="Importar baralho de um arquivo JSON"
@@ -505,7 +517,7 @@ export function FlashcardsView() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-7 text-muted-foreground opacity-60 transition-opacity hover:text-rose-400 group-hover:opacity-100"
+                    className="relative size-7 text-muted-foreground opacity-60 transition-opacity after:absolute after:-inset-2 after:content-[''] hover:text-rose-400 group-hover:opacity-100"
                     onClick={() => {
                       sp.removeFlashcard(card.id);
                       toast.info('Cartão removido');
@@ -583,17 +595,20 @@ function ReviewSession({
   const current = queue[0];
   const finished = queue.length === 0 && reviewed > 0;
 
-  const grade = (g: FlashcardGrade) => {
-    if (!current) return;
-    sp.gradeFlashcard(current.id, g);
-    setReviewed((r) => r + 1);
-    if (g === 'again') setAgainCount((a) => a + 1);
-    setQueue((q) => {
-      const [, ...rest] = q;
-      return g === 'again' ? [...rest, current] : rest;
-    });
-    setFlipped(false);
-  };
+  const grade = React.useCallback(
+    (g: FlashcardGrade) => {
+      if (!current) return;
+      sp.gradeFlashcard(current.id, g);
+      setReviewed((r) => r + 1);
+      if (g === 'again') setAgainCount((a) => a + 1);
+      setQueue((q) => {
+        const [, ...rest] = q;
+        return g === 'again' ? [...rest, current] : rest;
+      });
+      setFlipped(false);
+    },
+    [current, sp],
+  );
 
   // Atalhos de teclado: Espaço/Enter viram o cartão, 1-4 aplicam notas.
   // Usa fase de captura + stopPropagation para SUPRIMIR os atalhos globais
@@ -671,6 +686,7 @@ function ReviewSession({
   if (!current) {
     return (
       <Card className="flex flex-col items-center gap-3 rounded-xl bg-muted/30 p-8 text-center">
+        <Layers className="size-7 text-muted-foreground/50" aria-hidden />
         <p className="text-sm text-muted-foreground">Nada para revisar neste momento.</p>
         <Button size="sm" variant="outline" onClick={onExit}>
           Voltar à lista
@@ -925,7 +941,7 @@ function GenerateCardsDialog({
   const [topic, setTopic] = React.useState('');
   const [count, setCount] = React.useState<string>('5');
   const [loading, setLoading] = React.useState(false);
-  const [generated, setGenerated] = React.useState<Array<{ front: string; back: string }>>([]);
+  const [generated, setGenerated] = React.useState<GeneratedCard[]>([]);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -966,7 +982,7 @@ function GenerateCardsDialog({
       if (!parsed) {
         throw new Error('A IA respondeu em um formato inesperado. Tente novamente.');
       }
-      setGenerated(parsed);
+      setGenerated(toGeneratedCards(parsed));
       toast.success(`${parsed.length} cartões gerados — revise e importe.`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado.';
@@ -1066,7 +1082,7 @@ function GenerateCardsDialog({
               <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
                 {generated.map((c, i) => (
                   <motion.div
-                    key={i}
+                    key={c.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: i * 0.04 }}

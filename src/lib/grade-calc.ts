@@ -10,6 +10,11 @@ export interface GradeResult {
   scale: 10 | 100;
 }
 
+/** Nota preenchida e numérica — undefined/null/NaN não entram no cálculo. */
+function isFilledNote(note: number | undefined): note is number {
+  return note != null && !Number.isNaN(note);
+}
+
 /**
  * Calcula a média do semestre (MS) usando os pesos dos componentes.
  * Trata escala: se escala for 10, normaliza para 100 para comparação com thresholds.
@@ -25,7 +30,7 @@ export function calcGrade(
   const components = discipline.gradeComponents;
 
   // Verifica se todos os componentes foram preenchidos
-  const filledComponents = components.filter((c) => notes[c.name] != null && !Number.isNaN(notes[c.name]));
+  const filledComponents = components.filter((c) => isFilledNote(notes[c.name]));
   if (filledComponents.length === 0) {
     return {
       ms: null,
@@ -37,16 +42,14 @@ export function calcGrade(
     };
   }
 
-  // Calcula MS como soma ponderada (peso em %)
+  // Calcula MS como soma ponderada (peso em %).
+  // Preenchimento parcial: mantém o cálculo proporcional ao que já existe
+  // (não penaliza componentes ainda sem nota).
   let totalWeight = 0;
   let weightedSum = 0;
-  let hasPartial = false;
   for (const c of components) {
     const note = notes[c.name];
-    if (note == null || Number.isNaN(note)) {
-      hasPartial = true;
-      continue;
-    }
+    if (!isFilledNote(note)) continue;
     // Normaliza para 100 se escala for 10
     const normalized = scale === 10 ? note * 10 : note;
     weightedSum += normalized * c.weight;
@@ -65,13 +68,7 @@ export function calcGrade(
   }
 
   // MS em escala 0-100
-  let ms100 = weightedSum / totalWeight;
-
-  // Se preenchimento parcial, calcula proporcional ao que já tem (não penaliza o que falta)
-  // Mas marca como parcial
-  if (hasPartial) {
-    // mantém cálculo proporcional
-  }
+  const ms100 = weightedSum / totalWeight;
 
   // Converte de volta para escala da disciplina
   const ms = scale === 10 ? ms100 / 10 : ms100;
@@ -96,7 +93,11 @@ export function calcGrade(
     // MF = (6*MS + 4*AF)/10 — em escala 0-100
     const mf100 = (6 * ms100 + 4 * afNormalized) / 10;
     mf = scale === 10 ? mf100 / 10 : mf100;
-    status = mf100 >= (scale === 10 ? 5 : 50) ? 'aprovado' : 'reprovado';
+    // Limiar de aprovação pós-final: MF ≥ 5,0 (escala 10) ou MF ≥ 50 (escala 100).
+    // mf100 está SEMPRE em 0-100 → para escala 10 o limiar em mf100 é 50 (= MF 5,0).
+    // Fix do bug latente encontrado na R07: comparava com 5 (= MF 0,5, aprovava errado).
+    // Afeta apenas disciplinas com escala 10 (ex.: RHT, Inglês/Português Instrumental).
+    status = mf100 >= 50 ? 'aprovado' : 'reprovado';
   }
 
   return {
@@ -125,9 +126,10 @@ export function statusColor(result: GradeResult): string {
   return 'text-muted-foreground';
 }
 
-export function formatNote(value: number | null, scale: 10 | 100): string {
+export function formatNote(value: number | null, _scale: 10 | 100): string {
   if (value == null) return '—';
-  const decimals = scale === 10 ? 1 : 1;
+  // 1 casa decimal nas duas escalas (ex.: 7,0 na escala 10; 70,0 na escala 100).
+  const decimals = 1;
   return value.toFixed(decimals).replace('.', ',');
 }
 

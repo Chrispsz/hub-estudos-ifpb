@@ -78,6 +78,24 @@ const typeLabel: Record<Material['type'], string> = {
   calendar: 'Calendário',
 };
 
+/** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
+const touchBtn = 'h-11 sm:h-8';
+
+// Complementos dark-mode para badges com fundo claro (priority/categoryClasses
+// só definem as variantes light — o mapa vive aqui, junto do ponto de uso).
+const priorityDarkClasses: Record<string, string> = {
+  alta: 'dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900/60',
+  media: 'dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900/60',
+  baixa: 'dark:bg-slate-900/60 dark:text-slate-300 dark:border-slate-800',
+};
+
+const categoryDarkClasses: Record<string, string> = {
+  exata: 'dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900/60',
+  tecnica: 'dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-900/60',
+  humanas: 'dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900/60',
+  linguagens: 'dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-900/60',
+};
+
 export function DisciplineDetailDialog({ discipline, open, onOpenChange, initialTab }: Props) {
   const [summaryFor, setSummaryFor] = React.useState<Material | null>(null);
   const [pdfFor, setPdfFor] = React.useState<Material | null>(null);
@@ -88,13 +106,23 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
     if (open && initialTab) setTab(initialTab);
   }, [open, initialTab]);
 
+  // Derivações memoizadas — ANTES do early-return para manter a ordem de
+  // hooks estável entre renders com discipline null/não-null.
+  const mats = React.useMemo(
+    () => (discipline ? getMaterialsByDiscipline(discipline.code) : []),
+    [discipline],
+  );
+  const evals = React.useMemo(
+    () =>
+      discipline
+        ? evaluationPeriods.filter((e) => e.disciplineCode === discipline.code)
+        : [],
+    [discipline],
+  );
+
   if (!discipline) return null;
 
   const color = getColorClasses(discipline.color);
-  const mats = getMaterialsByDiscipline(discipline.code);
-  const evals = evaluationPeriods.filter(
-    (e) => e.disciplineCode === discipline.code,
-  );
 
   return (
     <>
@@ -115,7 +143,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                     color.text,
                   )}
                 >
-                  <DisciplineIcon name={discipline.icon} className="size-6" />
+                  <DisciplineIcon name={discipline.icon} className="size-6" aria-hidden />
                 </div>
                 <div className="min-w-0">
                   <DialogTitle className="text-xl leading-tight">
@@ -128,10 +156,16 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <Badge variant="outline" className={priorityClasses[discipline.prioridade]}>
+                <Badge
+                  variant="outline"
+                  className={cn(priorityClasses[discipline.prioridade], priorityDarkClasses[discipline.prioridade])}
+                >
                   Prioridade {discipline.prioridade}
                 </Badge>
-                <Badge variant="outline" className={categoryClasses[discipline.category]}>
+                <Badge
+                  variant="outline"
+                  className={cn(categoryClasses[discipline.category], categoryDarkClasses[discipline.category])}
+                >
                   {categoryLabel[discipline.category]}
                 </Badge>
                 <Badge variant="outline" className="border-border text-muted-foreground">
@@ -144,7 +178,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
 
           <Tabs value={tab} onValueChange={setTab} className="w-full">
             <div className="border-b bg-muted/30 px-4">
-              <TabsList className="h-auto gap-1 bg-transparent p-1.5">
+              <TabsList className="h-11 gap-1 bg-transparent p-1.5 sm:h-9">
                 <TabsTrigger value="overview" className="text-xs">Visão Geral</TabsTrigger>
                 <TabsTrigger value="content" className="text-xs">Conteúdo</TabsTrigger>
                 <TabsTrigger value="evaluation" className="text-xs">Avaliação</TabsTrigger>
@@ -273,7 +307,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                       </div>
                     )}
                     {discipline.finalExamFormula && (
-                      <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
                         <span className="font-medium">Fórmula final: </span>
                         <code className="font-mono text-xs">{discipline.finalExamFormula}</code>
                       </div>
@@ -342,9 +376,12 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                 <TabsContent value="materials" className="mt-0 space-y-3 outline-none">
                   <Section icon={<FileText className="size-4" />} title={`Materiais (${mats.length})`} color={color.text}>
                     {mats.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        Sem materiais cadastrados para esta disciplina.
-                      </p>
+                      <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border bg-muted/30 p-6 text-center">
+                        <FileText className="size-6 text-muted-foreground" aria-hidden />
+                        <p className="text-sm text-muted-foreground">
+                          Sem materiais cadastrados para esta disciplina.
+                        </p>
+                      </div>
                     ) : (
                       <ul className="grid gap-2">
                         {mats.map((m) => (
@@ -368,7 +405,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                                  className={cn(touchBtn, 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400')}
                                   onClick={() => setVideoFor(m)}
                                 >
                                   {m.type === 'video' ? (
@@ -386,7 +423,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8"
+                                  className={touchBtn}
                                   onClick={() => setPdfFor(m)}
                                 >
                                   <FileText className="size-3.5" /> Abrir PDF
@@ -396,7 +433,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  className={cn('h-8 border', color.bgSoft, color.text, color.borderAll)}
+                                  className={cn(touchBtn, 'border', color.bgSoft, color.text, color.borderAll)}
                                   onClick={() => setSummaryFor(m)}
                                 >
                                   <Sparkles className="size-3.5" /> Ver resumo IA

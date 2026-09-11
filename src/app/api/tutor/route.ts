@@ -198,6 +198,7 @@ function buildSystemPrompt(
     '- Abra com a resposta direta à pergunta (1-2 frases). Depois explique com um exemplo.',
     '- Use **negrito** para conceitos-chave e listas numeradas para passos.',
     '- Código, pseudocódigo e fórmulas SEMPRE em bloco de código (```).',
+    '- PROIBIDO usar LaTeX/markdown matemático (cifrão simples ou duplo, colchetes de display math, comandos tipo "frac" ou "begin"): o app não renderiza. Escreva fórmulas em texto simples (ex.: det = a*d - b*c) ou em bloco de código.',
     '- EXEMPLOS DE CÓDIGO: em C, sempre (é a linguagem do curso desde o início). Pseudocódigo Portugol (ALGORITMO / VAR / INICIO / LEIA / ESCREVA / SE … ENTAO / ENQUANTO … FACA) só para explicar a LÓGICA abstrata ANTES do código, ou se o aluno pedir explicitamente.',
     '- Feche com um próximo passo prático (mini-exercício ou conexão com o material/prova).',
     '- Máximo ~350 palavras. 1 ou 2 emojis no máximo. Tom acolhedor de tutor particular.',
@@ -207,6 +208,16 @@ function buildSystemPrompt(
     '- Portugol apareceu APENAS como pseudocódigo introdutório para lógica — NUNCA diga que "a disciplina é em Portugol" ou que C "vem depois". Quem disser isso está desatualizado.',
     '- Linguagens de Marcação usa HTML (estrutura) e CSS (estilo) no projeto prático.',
     '- Detalhe curricular além disso (qual unidade usa qual recurso): SÓ afirme se estiver no CONTEXTO DO HUB. Caso contrário, diga o que sabe do stack e que o professor (cite-o se estiver no contexto) confirmará os detalhes.',
+    '',
+    'BASE DE CONHECIMENTO DO CONTEÚDO (dos materiais reais do Hub — use para respostas ESPECÍFICAS; não invente além disso):',
+    '- Ao citar caminhos, nomes de arquivos e exemplos destes materiais, use EXATAMENTE os nomes originais (ex.: ../imagens/foto.jpg com "imagens", não "images").',
+    '- LM/HTML Hyperlinks: elemento <a> com atributo href (Hypertext Reference) cria o link para qualquer recurso da web; atributo title adiciona informações úteis sobre o destino; links podem apontar para partes específicas de um documento.',
+    '- LM/HTML URLs e caminhos: URL define onde algo está na web (ex.: https://www.ifpb.edu.br). Mesmo diretório = só o nome (contato.html); descer em subdiretório = dir/arquivo (equipe/equipe.html); subir um nível = ../ (../imagens/foto.jpg); combine vários ../ se preciso, mas prefira simplicidade. index.html é a página de entrada e pode existir em múltiplos diretórios.',
+    '- LM/HTML Imagens: <img> é elemento VAZIO (sem fechamento); src obrigatório (caminho relativo ou absoluto, regras iguais às do href); alt = descrição textual (imagem que não carrega/acessibilidade); teste do alt: errar o nome do arquivo de propósito; escreva o alt pensando no que se perde sem a imagem.',
+    '- LM/HTML Áudio: <audio src="musica.mp3"> com <p> interno como fallback para navegadores antigos; formatos .mp3/.ogg (teste em vários navegadores); atributos: controls (controles visíveis), autoplay (pode ser bloqueado por permissões), loop (repetir).',
+    '- LM/HTML Vídeo: <video src="video.mp4" controls autoplay loop> + fallback <p>, mesma sintaxe do áudio; atributo poster = imagem estática exibida antes do vídeo carregar (como as miniaturas do YouTube); vídeos com licença Creative Commons no YouTube.',
+    '- Algoritmos (C): temas do semestre — algoritmo/lógica, entrada-processamento-saída, tipos de variáveis, operadores aritméticos/relacionais/lógicos e precedência, condicionais, laços, vetores, matrizes, funções e recursão; compilação com gcc.',
+    '- Matemática: matrizes (definição, tipos, operações, transposição/inversão, determinante) e lógica proposicional (proposição, negação, conjunção ∧, disjunção ∨, condicional →, bicondicional ↔, tabelas-verdade).',
     '',
     'O QUE VOCÊ PODE E COMO AGIR:',
     '- Perguntas sobre o próprio Hub ou a turma (professor, datas de prova, calendário, progresso do aluno, como usar o app): responda com precisão usando o CONTEXTO DO HUB. NUNCA diga que "não tem acesso" ao que está listado ali.',
@@ -381,6 +392,56 @@ export async function GET() {
   });
 }
 
+/**
+ * Converte LaTeX simples (que o tutor-markdown NÃO renderiza) em texto legível.
+ * Modelos free costumam escapar para \[...\]/\begin{matrix} em perguntas de matemática;
+ * o sanitizador garante que o aluno sempre leia a fórmula, independente do modelo.
+ */
+function sanitizeLatex(input: string): string {
+  let out = input;
+
+  // Matrizes: \begin{bmatrix} a & b \\ c & d \end{bmatrix} → [ a b / c d ]
+  out = out.replace(
+    /\\begin\{(?:b|p|v)?matrix\}([\s\S]*?)\\end\{(?:b|p|v)?matrix\}/g,
+    (_m, body: string) => {
+      const rows = body
+        .split(/\\\\/)
+        .map((r) => r.split('&').map((c) => c.trim()).filter(Boolean).join(' '))
+        .filter(Boolean);
+      return `[ ${rows.join(' / ')} ]`;
+    },
+  );
+
+  // \frac{a}{b} → (a)/(b)  ·  \sqrt{x} → √(x)
+  out = out.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+  out = out.replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
+
+  // Símbolos comuns → unicode legível
+  const symbols: Record<string, string> = {
+    '\\cdot': '·', '\\times': '×', '\\div': '÷',
+    '\\geq': '≥', '\\ge': '≥', '\\leq': '≤', '\\le': '≤',
+    '\\neq': '≠', '\\ne': '≠', '\\pm': '±', '\\approx': '≈',
+    '\\rightarrow': '→', '\\to': '→', '\\leftrightarrow': '↔',
+    '\\infty': '∞', '\\sum': 'Σ',
+  };
+  for (const [latex, unicode] of Object.entries(symbols)) {
+    out = out.split(latex).join(unicode);
+  }
+
+  // \text{...}/\mathrm{...}/\mathbf{...} → conteúdo
+  out = out.replace(/\\(?:text|mathrm|mathbf|mathit)\{([^{}]*)\}/g, '$1');
+
+  // Blocos $$...$$ e $...$ (pares) → conteúdo
+  out = out.replace(/\$\$([\s\S]*?)\$\$/g, '$1');
+  out = out.replace(/\$([^$\n]+)\$/g, '$1');
+
+  // Delimitadores display/inline \[ \] \( \)
+  out = out.split('\\[').join('').split('\\]').join('');
+  out = out.split('\\(').join('').split('\\)').join('');
+
+  return out;
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as TutorRequestBody;
@@ -471,6 +532,9 @@ export async function POST(req: Request) {
         console.error('[api/tutor] fallback ZAI falhou:', err instanceof Error ? err.message : err);
       }
     }
+
+    // Sanitiza LaTeX que o markdown do app não renderiza (todas as respostas)
+    answer = sanitizeLatex(answer);
 
     if (!answer) {
       return Response.json(

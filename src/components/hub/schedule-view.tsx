@@ -69,6 +69,7 @@ import { cn } from '@/lib/utils';
 const FULL_DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 const START_HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6..22
+const HOURS_24 = Array.from({ length: 24 }, (_, i) => i); // 0..23 (bloco manual)
 const DAY_DURATIONS = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360];
 const MANUAL_DURATIONS = [15, 30, 45, 60, 90, 120, 150, 180];
 const MAX_MINUTES_OPTIONS = [60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360];
@@ -144,6 +145,9 @@ function getBlockVisual(code: string): BlockVisual {
 }
 
 // ---------- Componente principal ----------
+
+/** Área de toque >=44px em mobile sem inflar o botão visualmente (pseudo-elemento). */
+const TOUCH_AREA = 'relative after:absolute after:-inset-2.5 after:content-[\'\']';
 
 export function ScheduleView() {
   const sp = useStudyProgress();
@@ -229,10 +233,13 @@ export function ScheduleView() {
   const today = now ? now.getDay() : -1;
   const enabledDaysCount = DAYS_OF_WEEK.filter((d) => prefs.days[d.num]?.enabled).length;
 
-  function handleRemoveManual(fullId: string) {
-    sp.removeStudyBlock(fullId.replace(/^manual-/, ''));
-    toast('Bloco manual removido do cronograma');
-  }
+  const handleRemoveManual = React.useCallback(
+    (fullId: string) => {
+      sp.removeStudyBlock(fullId.replace(/^manual-/, ''));
+      toast('Bloco manual removido do cronograma');
+    },
+    [sp],
+  );
 
   return (
     <div className="space-y-4">
@@ -399,7 +406,9 @@ function DayCard({
   onRemoveManual: (id: string) => void;
 }) {
   const isToday = day.num === today;
-  const totalMin = blocks.reduce((acc, b) => acc + b.durationMin, 0);
+  const totalMin = React.useMemo(() => blocks.reduce((acc, b) => acc + b.durationMin, 0), [blocks]);
+  // Set p/ lookup O(1) dos blocos concluídos (evita includes O(n) por bloco).
+  const doneSet = React.useMemo(() => new Set(doneIds), [doneIds]);
   const d = nextOccurrenceOfDay(day.num, now);
   const dateLabel = `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}`;
   const fixedDisc = fixedCode ? getDisciplineByCode(fixedCode) : undefined;
@@ -462,7 +471,7 @@ function DayCard({
               <ScheduleBlockItem
                 key={b.id}
                 block={b}
-                done={doneIds.includes(b.id)}
+                done={doneSet.has(b.id)}
                 onToggleDone={() => onToggleDone(b.id)}
                 onRemove={
                   b.id.startsWith('manual-') ? () => onRemoveManual(b.id) : undefined
@@ -558,7 +567,10 @@ function ScheduleBlockItem({
               type="button"
               onClick={onRemove}
               aria-label="Remover bloco manual"
-              className="flex size-6 items-center justify-center rounded-full text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+              className={cn(
+                'flex size-6 items-center justify-center rounded-full text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300',
+                TOUCH_AREA,
+              )}
             >
               <Trash2 className="size-3" />
             </button>
@@ -572,6 +584,7 @@ function ScheduleBlockItem({
               done
                 ? 'border-emerald-500 bg-emerald-500 text-black'
                 : 'border-border text-muted-foreground hover:border-emerald-500/60 hover:text-emerald-400',
+              TOUCH_AREA,
             )}
           >
             <Check className="size-3.5" />
@@ -686,7 +699,7 @@ function PreferencesPanel({
                         }
                       >
                         <SelectTrigger
-                          className="h-8 w-[74px]"
+                          className="h-11 w-[74px] sm:h-8"
                           aria-label={`Hora de início de ${FULL_DAYS[d.num]}`}
                         >
                           <SelectValue />
@@ -710,7 +723,7 @@ function PreferencesPanel({
                         }
                       >
                         <SelectTrigger
-                          className="h-8 w-24"
+                          className="h-11 w-24 sm:h-8"
                           aria-label={`Duração de ${FULL_DAYS[d.num]}`}
                         >
                           <SelectValue />
@@ -734,7 +747,7 @@ function PreferencesPanel({
                         }
                       >
                         <SelectTrigger
-                          className="h-8"
+                          className="h-11 sm:h-8"
                           aria-label={`Disciplina fixada em ${FULL_DAYS[d.num]}`}
                         >
                           <SelectValue />
@@ -762,7 +775,7 @@ function PreferencesPanel({
                   value={String(prefs.maxBlocksPerDay)}
                   onValueChange={(v) => sp.updateStudyPreferences({ maxBlocksPerDay: Number(v) })}
                 >
-                  <SelectTrigger className="h-8 w-16" aria-label="Máximo de blocos por dia">
+                  <SelectTrigger className="h-11 w-16 sm:h-8" aria-label="Máximo de blocos por dia">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -781,7 +794,7 @@ function PreferencesPanel({
                   value={String(prefs.maxMinutesPerDay)}
                   onValueChange={(v) => sp.updateStudyPreferences({ maxMinutesPerDay: Number(v) })}
                 >
-                  <SelectTrigger className="h-8 w-24" aria-label="Máximo de minutos por dia">
+                  <SelectTrigger className="h-11 w-24 sm:h-8" aria-label="Máximo de minutos por dia">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -854,7 +867,7 @@ function AddBlockDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Dia</Label>
             <Select value={day} onValueChange={setDay}>
-              <SelectTrigger aria-label="Dia da semana do bloco">
+              <SelectTrigger className="h-11 sm:h-9" aria-label="Dia da semana do bloco">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -870,7 +883,7 @@ function AddBlockDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Disciplina</Label>
             <Select value={discipline} onValueChange={setDiscipline}>
-              <SelectTrigger aria-label="Disciplina do bloco">
+              <SelectTrigger className="h-11 sm:h-9" aria-label="Disciplina do bloco">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -888,11 +901,11 @@ function AddBlockDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Hora início</Label>
             <Select value={startHour} onValueChange={setStartHour}>
-              <SelectTrigger aria-label="Hora de início do bloco">
+              <SelectTrigger className="h-11 sm:h-9" aria-label="Hora de início do bloco">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 24 }, (_, i) => i).map((h) => (
+                {HOURS_24.map((h) => (
                   <SelectItem key={h} value={String(h)}>
                     {String(h).padStart(2, '0')}h
                   </SelectItem>
@@ -904,7 +917,7 @@ function AddBlockDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Minuto</Label>
             <Select value={startMinute} onValueChange={setStartMinute}>
-              <SelectTrigger aria-label="Minuto de início do bloco">
+              <SelectTrigger className="h-11 sm:h-9" aria-label="Minuto de início do bloco">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -920,7 +933,7 @@ function AddBlockDialog({
           <div className="col-span-2 space-y-1.5">
             <Label className="text-xs">Duração</Label>
             <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger aria-label="Duração do bloco">
+              <SelectTrigger className="h-11 sm:h-9" aria-label="Duração do bloco">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

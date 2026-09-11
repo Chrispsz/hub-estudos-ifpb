@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import { CalendarDays } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { calendarEvents } from '@/data/course-data';
+import { calendarEvents, type CalendarEvent } from '@/data/course-data';
 import { cn } from '@/lib/utils';
 
-const categoryStyle: Record<string, string> = {
+const categoryStyle: Record<CalendarEvent['category'], string> = {
   feriado: 'bg-rose-500',
   avaliacao: 'bg-amber-500',
   aula: 'bg-emerald-500',
@@ -15,13 +16,23 @@ const categoryStyle: Record<string, string> = {
   outro: 'bg-violet-500',
 };
 
-const categoryBadge: Record<string, string> = {
-  feriado: 'bg-rose-100 text-rose-700 border-rose-200',
-  avaliacao: 'bg-amber-100 text-amber-700 border-amber-200',
-  aula: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  recesso: 'bg-slate-100 text-slate-700 border-slate-200',
-  outro: 'bg-violet-100 text-violet-700 border-violet-200',
+const categoryBadge: Record<CalendarEvent['category'], string> = {
+  feriado: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900',
+  avaliacao: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900',
+  aula: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900',
+  recesso: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-950/60 dark:text-slate-300 dark:border-slate-800',
+  outro: 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-900',
 };
+
+/** Compara uma data local com uma chave ISO yyyy-mm-dd (mesmo dia civil). */
+function isSameDay(a: Date, b: string): boolean {
+  const d = new Date(b + 'T00:00:00');
+  return (
+    a.getFullYear() === d.getFullYear() &&
+    a.getMonth() === d.getMonth() &&
+    a.getDate() === d.getDate()
+  );
+}
 
 export function CalendarWidget({ className }: { className?: string }) {
   const [selected, setSelected] = React.useState<Date | undefined>(new Date());
@@ -37,27 +48,19 @@ export function CalendarWidget({ className }: { className?: string }) {
     return m;
   }, []);
 
-  function isSameDay(a: Date, b: string): boolean {
-    const d = new Date(b + 'T00:00:00');
-    return (
-      a.getFullYear() === d.getFullYear() &&
-      a.getMonth() === d.getMonth() &&
-      a.getDate() === d.getDate()
-    );
-  }
-
   // Eventos do dia selecionado
   const selectedEvents = React.useMemo(() => {
     if (!selected) return [];
     return calendarEvents.filter((e) => isSameDay(selected, e.date));
   }, [selected]);
 
-  // Próximos eventos (após hoje)
+  // Próximos eventos (após hoje, em ordem cronológica)
   const upcomingEvents = React.useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return calendarEvents
       .filter((e) => new Date(e.date + 'T00:00:00') >= today)
+      .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 5);
   }, []);
 
@@ -93,14 +96,15 @@ export function CalendarWidget({ className }: { className?: string }) {
               Eventos do dia selecionado
             </h3>
             {selectedEvents.length === 0 ? (
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
                 Nenhum evento acadêmico cadastrado para este dia.
               </p>
             ) : (
               <ul className="mt-2 space-y-1.5">
-                {selectedEvents.map((e, i) => (
+                {selectedEvents.map((e) => (
                   <li
-                    key={i}
+                    key={`${e.date}-${e.title}`}
                     className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2 text-xs"
                   >
                     <span
@@ -129,13 +133,14 @@ export function CalendarWidget({ className }: { className?: string }) {
             <h3 className="text-sm font-semibold">Próximos eventos</h3>
             <ul className="mt-2 space-y-1.5">
               {upcomingEvents.length === 0 ? (
-                <li className="text-xs text-muted-foreground">
+                <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
                   Nenhum evento futuro cadastrado.
                 </li>
               ) : (
-                upcomingEvents.map((e, i) => (
+                upcomingEvents.map((e) => (
                   <li
-                    key={i}
+                    key={`${e.date}-${e.title}`}
                     className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2 text-xs"
                   >
                     <Badge

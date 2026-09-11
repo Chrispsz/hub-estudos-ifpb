@@ -66,7 +66,8 @@ export function useSmartCrons() {
     if (state.lastDailyCheck === today) return;
 
     const notified = [...state.lastNotifiedEvals];
-    const notifiedEvents = state.lastDailyCheck === today ? [...state.lastNotifiedEvents] : [];
+    // Novo dia (ou 1º check do dia): notificações de eventos do calendário recomeçam.
+    const notifiedEvents: string[] = [];
 
     // 1. Eventos do calendário oficial (hoje/amanhã/em 2 dias) — 1 toast por evento/dia
     const RELEVANT_KINDS = new Set(['feriado', 'letivo', 'provas', 'prazo']);
@@ -86,7 +87,9 @@ export function useSmartCrons() {
       notifiedEvents.push(evId);
     }
 
-    // 2. Avaliações com DATA OFICIAL próximas (≤7 dias) — sem estimativas
+    // 2. Avaliações com DATA OFICIAL próximas (≤7 dias).
+    // Política ANTI-ESTIMATIVA: sem `date` oficial não há alarme (reposição condicional
+    // só avisa quando o professor publicar a data).
     for (const ev of evaluationPeriods) {
       if (ev.conditional || !ev.date) continue; // reposição só avisa se o aluno agendar; sem data = sem alarme
       const days = daysUntilDate(ev.date);
@@ -106,12 +109,13 @@ export function useSmartCrons() {
       }
     }
 
-    // 2. Disciplinas paradas (≥5 dias)
+    // 3. Disciplinas paradas (≥5 dias)
     const stale: string[] = [];
     for (const d of disciplines) {
       const dp = sp.progress.disciplineProgress[d.code];
       if (!dp?.lastStudiedAt) continue;
       const last = new Date(dp.lastStudiedAt);
+      if (Number.isNaN(last.getTime())) continue; // data corrompida → ignora
       const diffDays = Math.floor((Date.now() - last.getTime()) / (24 * 60 * 60 * 1000));
       if (diffDays >= 5) stale.push(`${d.shortName} (${diffDays}d)`);
     }

@@ -76,6 +76,8 @@ const DURATION_OPTIONS = [
   { value: 45, label: '45 minutos' },
 ];
 
+const QUANTITY_OPTIONS = [5, 10, 15];
+
 function fmtClock(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
@@ -255,9 +257,17 @@ export function SimuladoView({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, phase, questions.length, idx]);
 
-  const solvedCount = results.filter((r) => r.solved === true).length;
-  const missedCount = results.filter((r) => r.solved === false).length;
-  const skippedCount = results.filter((r) => r.solved === null).length;
+  const { solvedCount, missedCount, skippedCount } = React.useMemo(() => {
+    let solved = 0;
+    let missed = 0;
+    let skipped = 0;
+    for (const r of results) {
+      if (r.solved === true) solved += 1;
+      else if (r.solved === false) missed += 1;
+      else skipped += 1;
+    }
+    return { solvedCount: solved, missedCount: missed, skippedCount: skipped };
+  }, [results]);
   const pct = questions.length > 0 ? Math.round((solvedCount / questions.length) * 100) : 0;
 
   const timeInfo =
@@ -405,12 +415,14 @@ function SetupScreen({
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">Questões</Label>
           <div className="grid grid-cols-3 gap-2">
-            {[5, 10, 15].map((n) => (
+            {QUANTITY_OPTIONS.map((n) => (
               <button
                 key={n}
+                type="button"
                 onClick={() => setConfig({ ...config, quantity: n })}
+                aria-pressed={config.quantity === n}
                 className={cn(
-                  'h-9 rounded-lg border text-sm font-medium transition-all',
+                  'h-11 rounded-lg border text-sm font-medium transition-all sm:h-9',
                   config.quantity === n
                     ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 shadow-sm shadow-emerald-500/20 dark:text-emerald-400'
                     : 'border-border text-muted-foreground hover:border-emerald-500/40 hover:text-foreground',
@@ -575,10 +587,12 @@ function ExamScreen({
             return (
               <button
                 key={i}
+                type="button"
                 onClick={() => onNavigate(i)}
                 aria-label={`Ir para questão ${i + 1}`}
+                aria-current={i === idx ? 'step' : undefined}
                 className={cn(
-                  'size-7 rounded-md border text-[11px] font-semibold transition-all',
+                  'size-11 rounded-md border text-[11px] font-semibold transition-all sm:size-7',
                   i === idx && 'ring-2 ring-emerald-500 ring-offset-1 ring-offset-background',
                   r.solved === true && 'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
                   r.solved === false && 'border-rose-500/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
@@ -600,7 +614,7 @@ function ExamScreen({
             variant="outline"
             size="sm"
             onClick={onHintToggle}
-            className="border-amber-500/40 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400"
+            className="h-11 border-amber-500/40 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400 sm:h-8"
           >
             {hintVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {hintVisible ? 'Esconder dica' : 'Ver dica'}
@@ -611,15 +625,16 @@ function ExamScreen({
               size="sm"
               disabled={idx === 0}
               onClick={() => onNavigate(idx - 1)}
+              className="h-11 sm:h-8"
             >
               <ArrowLeft className="size-3.5" /> Anterior
             </Button>
             {idx < questions.length - 1 ? (
-              <Button variant="outline" size="sm" onClick={() => onNavigate(idx + 1)}>
+              <Button variant="outline" size="sm" onClick={() => onNavigate(idx + 1)} className="h-11 sm:h-8">
                 Próxima <ArrowRight className="size-3.5" />
               </Button>
             ) : (
-              <Button size="sm" variant="ghost" onClick={onFinish}>
+              <Button size="sm" variant="ghost" onClick={onFinish} className="h-11 sm:h-8">
                 <Flag className="size-3.5" /> Encerrar
               </Button>
             )}
@@ -628,7 +643,7 @@ function ExamScreen({
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-2">
           <Button
             size="sm"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            className="h-11 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-8"
             onClick={() => onMark(true)}
           >
             <CheckCircle2 className="size-3.5" /> Consegui <kbd className="ml-1 hidden rounded bg-white/20 px-1 text-[10px] lg:inline">1</kbd>
@@ -636,7 +651,7 @@ function ExamScreen({
           <Button
             size="sm"
             variant="outline"
-            className="border-rose-500/40 text-rose-600 hover:bg-rose-500/10 hover:text-rose-600 dark:text-rose-400"
+            className="h-11 border-rose-500/40 text-rose-600 hover:bg-rose-500/10 hover:text-rose-600 dark:text-rose-400 sm:h-8"
             onClick={() => onMark(false)}
           >
             <XCircle className="size-3.5" /> Não consegui <kbd className="ml-1 hidden rounded bg-muted px-1 text-[10px] lg:inline">2</kbd>

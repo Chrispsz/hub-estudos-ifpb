@@ -18,7 +18,6 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useStudyProgress } from '@/lib/study-progress';
-import { materials } from '@/data/course-data';
 import { cn } from '@/lib/utils';
 
 interface Achievement {
@@ -129,21 +128,36 @@ export function AchievementsCard() {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const snapshot = {
-    totalSessions: sp.progress.pomodoroSessions.length,
-    minutesToday: sp.minutesToday,
-    streak: sp.studyStreak,
-    topicsDone: sp.totalTopicsCompleted,
-    materialsDone: sp.progress.completedMaterials.length,
-    exercisesTried: sp.totalExercisesTried,
-    exercisesSolved: sp.totalExercisesSolved,
-    flashcardsTotal: sp.allFlashcards.length,
-    flashcardReviews: sp.flashcardStats.reviewsDone,
-  };
+  // Snapshot dos indicadores — memoizado para não recriar objeto a cada render
+  const snapshot = React.useMemo(
+    () => ({
+      totalSessions: sp.progress.pomodoroSessions.length,
+      minutesToday: sp.minutesToday,
+      streak: sp.studyStreak,
+      topicsDone: sp.totalTopicsCompleted,
+      materialsDone: sp.progress.completedMaterials.length,
+      exercisesTried: sp.totalExercisesTried,
+      exercisesSolved: sp.totalExercisesSolved,
+      flashcardsTotal: sp.allFlashcards.length,
+      flashcardReviews: sp.flashcardStats.reviewsDone,
+    }),
+    [
+      sp.progress.pomodoroSessions,
+      sp.minutesToday,
+      sp.studyStreak,
+      sp.totalTopicsCompleted,
+      sp.progress.completedMaterials,
+      sp.totalExercisesTried,
+      sp.totalExercisesSolved,
+      sp.allFlashcards,
+      sp.flashcardStats,
+    ],
+  );
 
-  const unlockedCount = mounted
-    ? ACHIEVEMENTS.filter((a) => a.isUnlocked(snapshot)).length
-    : 0;
+  const unlockedCount = React.useMemo(
+    () => (mounted ? ACHIEVEMENTS.filter((a) => a.isUnlocked(snapshot)).length : 0),
+    [mounted, snapshot],
+  );
   const pct = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
 
   return (

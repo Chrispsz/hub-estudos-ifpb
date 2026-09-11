@@ -89,10 +89,13 @@ export function SettingsView() {
     reader.readAsText(file);
   }
 
-  const pomodoroStats = {
-    sessions: sp.progress.pomodoroSessions.length,
-    minutes: sp.progress.pomodoroSessions.reduce((acc, s) => acc + s.focusMinutes, 0),
-  };
+  const pomodoroStats = React.useMemo(
+    () => ({
+      sessions: sp.progress.pomodoroSessions.length,
+      minutes: sp.progress.pomodoroSessions.reduce((acc, s) => acc + s.focusMinutes, 0),
+    }),
+    [sp.progress.pomodoroSessions],
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -157,115 +160,74 @@ export function SettingsView() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Foco (min)</p>
-                <p className="text-xs text-muted-foreground">Duração de cada bloco</p>
-              </div>
-              <Input
-                type="number"
-                min={5}
-                max={90}
-                step={5}
-                value={cfg.pomodoroConfig.focus}
-                onChange={(e) =>
-                  sp.updatePreferences({
-                    pomodoroConfig: {
-                      ...cfg.pomodoroConfig,
-                      focus: Math.max(5, Math.min(90, Number(e.target.value) || 25)),
-                    },
-                  })
-                }
-                className="w-20 text-center"
-                aria-label="Minutos de foco"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Pausa curta (min)</p>
-                <p className="text-xs text-muted-foreground">Entre focos</p>
-              </div>
-              <Input
-                type="number"
-                min={1}
-                max={30}
-                value={cfg.pomodoroConfig.shortBreak}
-                onChange={(e) =>
-                  sp.updatePreferences({
-                    pomodoroConfig: {
-                      ...cfg.pomodoroConfig,
-                      shortBreak: Math.max(1, Math.min(30, Number(e.target.value) || 5)),
-                    },
-                  })
-                }
-                className="w-20 text-center"
-                aria-label="Minutos de pausa curta"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Pausa longa (min)</p>
-                <p className="text-xs text-muted-foreground">A cada N ciclos</p>
-              </div>
-              <Input
-                type="number"
-                min={5}
-                max={60}
-                step={5}
-                value={cfg.pomodoroConfig.longBreak}
-                onChange={(e) =>
-                  sp.updatePreferences({
-                    pomodoroConfig: {
-                      ...cfg.pomodoroConfig,
-                      longBreak: Math.max(5, Math.min(60, Number(e.target.value) || 15)),
-                    },
-                  })
-                }
-                className="w-20 text-center"
-                aria-label="Minutos de pausa longa"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Ciclos p/ pausa longa</p>
-                <p className="text-xs text-muted-foreground">Focos antes da longa</p>
-              </div>
-              <Input
-                type="number"
-                min={2}
-                max={8}
-                value={cfg.pomodoroConfig.cyclesBeforeLong}
-                onChange={(e) =>
-                  sp.updatePreferences({
-                    pomodoroConfig: {
-                      ...cfg.pomodoroConfig,
-                      cyclesBeforeLong: Math.max(2, Math.min(8, Number(e.target.value) || 4)),
-                    },
-                  })
-                }
-                className="w-20 text-center"
-                aria-label="Ciclos antes da pausa longa"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Meta diária</p>
-                <p className="text-xs text-muted-foreground">Pomodoros por dia</p>
-              </div>
-              <Input
-                type="number"
-                min={1}
-                max={12}
-                value={cfg.dailyGoal}
-                onChange={(e) =>
-                  sp.updatePreferences({
-                    dailyGoal: Math.max(1, Math.min(12, Number(e.target.value) || 4)),
-                  })
-                }
-                className="w-20 text-center"
-                aria-label="Meta diária de pomodoros"
-              />
-            </div>
+            <NumberSetting
+              label="Foco (min)"
+              description="Duração de cada bloco"
+              ariaLabel="Minutos de foco"
+              value={cfg.pomodoroConfig.focus}
+              min={5}
+              max={90}
+              step={5}
+              fallback={25}
+              onCommit={(focus) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, focus },
+                })
+              }
+            />
+            <NumberSetting
+              label="Pausa curta (min)"
+              description="Entre focos"
+              ariaLabel="Minutos de pausa curta"
+              value={cfg.pomodoroConfig.shortBreak}
+              min={1}
+              max={30}
+              fallback={5}
+              onCommit={(shortBreak) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, shortBreak },
+                })
+              }
+            />
+            <NumberSetting
+              label="Pausa longa (min)"
+              description="A cada N ciclos"
+              ariaLabel="Minutos de pausa longa"
+              value={cfg.pomodoroConfig.longBreak}
+              min={5}
+              max={60}
+              step={5}
+              fallback={15}
+              onCommit={(longBreak) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, longBreak },
+                })
+              }
+            />
+            <NumberSetting
+              label="Ciclos p/ pausa longa"
+              description="Focos antes da longa"
+              ariaLabel="Ciclos antes da pausa longa"
+              value={cfg.pomodoroConfig.cyclesBeforeLong}
+              min={2}
+              max={8}
+              fallback={4}
+              onCommit={(cyclesBeforeLong) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, cyclesBeforeLong },
+                })
+              }
+            />
+            <NumberSetting
+              label="Meta diária"
+              description="Pomodoros por dia"
+              ariaLabel="Meta diária de pomodoros"
+              value={cfg.dailyGoal}
+              min={1}
+              max={12}
+              fallback={4}
+              onCommit={(dailyGoal) => sp.updatePreferences({ dailyGoal })}
+            />
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {cfg.silentMode ? (
@@ -449,6 +411,50 @@ export function SettingsView() {
       <p className="pb-2 text-center text-[11px] text-muted-foreground/70">
         Hub de Estudos IFPB v2.0 • dados 100% no seu navegador • IA via OpenRouter (modelos free)
       </p>
+    </div>
+  );
+}
+
+/** Linha repetida de configuração numérica do Pomodoro (rótulo + descrição + input com clamp). */
+function NumberSetting({
+  label,
+  description,
+  ariaLabel,
+  value,
+  min,
+  max,
+  step,
+  fallback,
+  onCommit,
+}: {
+  label: string;
+  description: string;
+  ariaLabel: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  fallback: number;
+  onCommit: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) =>
+          onCommit(Math.max(min, Math.min(max, Number(e.target.value) || fallback)))
+        }
+        className="h-11 w-20 text-center sm:h-9"
+        aria-label={ariaLabel}
+      />
     </div>
   );
 }

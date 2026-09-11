@@ -14,6 +14,8 @@ import { buildHubContext } from '@/lib/tutor-context';
 import { TutorMarkdown } from './tutor-markdown';
 
 interface ChatMessage {
+  /** Identificador estável para as chaves da lista (append-only). */
+  id: number;
   role: 'user' | 'assistant';
   content: string;
   model?: string;
@@ -41,6 +43,13 @@ export function TutorQuickPanel({
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const nextIdRef = React.useRef(0);
+
+  // Anexa mensagem com id único — chaves estáveis na lista de conversa.
+  const appendMessage = React.useCallback((msg: Omit<ChatMessage, 'id'>) => {
+    const id = nextIdRef.current++;
+    setMessages((m) => [...m, { ...msg, id }]);
+  }, []);
 
   const defaultSuggestions = React.useMemo(
     () => [
@@ -61,7 +70,7 @@ export function TutorQuickPanel({
     const q = question.trim();
     if (!q || loading) return;
     setInput('');
-    setMessages((m) => [...m, { role: 'user', content: q }]);
+    appendMessage({ role: 'user', content: q });
     setLoading(true);
     try {
       const res = await fetch('/api/tutor', {
@@ -77,18 +86,15 @@ export function TutorQuickPanel({
       });
       const data = (await res.json()) as { answer?: string; model?: string; error?: string };
       if (!res.ok || !data.answer) throw new Error(data.error ?? 'Falha ao consultar o tutor.');
-      setMessages((m) => [...m, { role: 'assistant', content: data.answer!, model: data.model }]);
+      appendMessage({ role: 'assistant', content: data.answer, model: data.model });
     } catch (err) {
-      setMessages((m) => [
-        ...m,
-        {
-          role: 'assistant',
-          content:
-            err instanceof Error
-              ? `⚠️ ${err.message}`
-              : '⚠️ Não consegui responder agora. Tente novamente.',
-        },
-      ]);
+      appendMessage({
+        role: 'assistant',
+        content:
+          err instanceof Error
+            ? `⚠️ ${err.message}`
+            : '⚠️ Não consegui responder agora. Tente novamente.',
+      });
     } finally {
       setLoading(false);
     }
@@ -98,6 +104,8 @@ export function TutorQuickPanel({
     <div className={cn('flex min-h-0 flex-col', className)}>
       <div
         ref={scrollRef}
+        role="log"
+        aria-label="Conversa com o tutor"
         className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 [scrollbar-width:thin]"
       >
         {showChips && (
@@ -112,7 +120,7 @@ export function TutorQuickPanel({
                   key={s}
                   type="button"
                   onClick={() => ask(s)}
-                  className="rounded-full border border-border bg-muted/60 px-3 py-1.5 text-xs transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:text-emerald-400"
+                  className="rounded-full border border-border bg-muted/60 px-3 py-2 text-xs transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:text-emerald-400 sm:py-1.5"
                 >
                   {s}
                 </button>
@@ -121,8 +129,8 @@ export function TutorQuickPanel({
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div key={i} className={cn('flex gap-2', m.role === 'user' && 'flex-row-reverse')}>
+        {messages.map((m) => (
+          <div key={m.id} className={cn('flex gap-2', m.role === 'user' && 'flex-row-reverse')}>
             <div
               className={cn(
                 'grid size-6 shrink-0 place-items-center rounded-full',
@@ -156,8 +164,8 @@ export function TutorQuickPanel({
         ))}
 
         {loading && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin" /> O tutor está pensando…
+          <div aria-live="polite" className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden /> O tutor está pensando…
           </div>
         )}
       </div>
@@ -173,12 +181,17 @@ export function TutorQuickPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={`Dúvida sobre ${materialTitle ?? discipline}?`}
-          className="h-9 bg-background text-sm"
+          className="h-11 bg-background text-sm sm:h-9"
           maxLength={2000}
           aria-label="Pergunta ao tutor"
         />
-        <Button type="submit" size="sm" className="h-9 shrink-0" disabled={loading || !input.trim()}>
-          Enviar <CornerDownLeft className="size-3.5" />
+        <Button
+          type="submit"
+          size="sm"
+          className="h-11 shrink-0 sm:h-9"
+          disabled={loading || !input.trim()}
+        >
+          Enviar <CornerDownLeft className="size-3.5" aria-hidden />
         </Button>
       </form>
     </div>

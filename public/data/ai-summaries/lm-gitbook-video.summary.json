@@ -1,0 +1,43 @@
+{
+  "titulo": "Vídeo — apostila da disciplina (web)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "origem": "Resumo autoral do Hub sobre a página da apostila digital do Prof. Diogo Moreira. Conteúdo completo no link externo.",
+  "tempo_estudo_minutos": 12,
+  "resumo_geral": "Assim como o áudio, o HTML embute vídeos por meio do elemento <video>: o atributo src aponta para o arquivo (URL ou caminho local), um <p> interno avisa navegadores sem suporte, e os atributos controls, autoplay e loop controlam a reprodução. O diferencial do vídeo é o atributo poster, que define uma imagem estática exibida antes do vídeo carregar — semelhante às miniaturas do YouTube.",
+  "conceitos_chave": [
+    {
+      "conceito": "Elemento <video> básico",
+      "explicacao": "src recebe a URL do arquivo de vídeo ou o caminho local; o <p> interno aparece apenas se o browser não der suporte a vídeos em HTML.",
+      "exemplo": "<video src=\"videos/arcticmonkeys.mp4\" controls autoplay loop>\n  <p>Seu browser não dá suporte a vídeos em HTML</p>\n</video>"
+    },
+    {
+      "conceito": "controls, autoplay e loop",
+      "explicacao": "Mesmo comportamento do <audio>: controls mostra os controles padrão, autoplay reproduz ao carregar (pode ser bloqueado por permissões) e loop repete automaticamente."
+    },
+    {
+      "conceito": "Atributo poster",
+      "explicacao": "Define uma imagem estática a ser mostrada antes que o vídeo seja carregado — semelhante ao que o YouTube faz com as miniaturas dos vídeos.",
+      "exemplo": "<video src=\"video.mp4\" poster=\"capa.jpg\" controls>"
+    }
+  ],
+  "pontos_importantes": [
+    "A sintaxe espelha o <audio> (src, fallback <p>, controls/autoplay/loop) — aprendendo um, aprende-se o outro.",
+    "poster melhora a experiência: o usuário vê uma capa em vez de um player vazio enquanto o vídeo não carrega.",
+    "Sugestão do livro: buscar vídeos no YouTube com licença Creative Commons (filtro de direitos autorais mais permissivos)."
+  ],
+  "erros_comuns": [
+    "Confundir poster com thumbnail: poster é um atributo do <video>, definido por você no código.",
+    "Publicar sem testar o autoplay — muitos navegadores o bloqueiam sem interação do usuário."
+  ],
+  "exercicios_sugeridos": [
+    "Incorpore um vídeo com controls e loop, adicionando também um poster próprio.",
+    "Adicione um fallback <p> ao <video> e simule um navegador sem suporte (comentando o src) para vê-lo em ação."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual elemento embute vídeo e como se parece com o de áudio?",
+    "O que o atributo poster faz e quando a imagem aparece?",
+    "Quais atributos de reprodução o <video> compartilha com o <audio>?",
+    "Como buscar vídeos com licença permissiva no YouTube?"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "titulo": "Hyperlinks — apostila da disciplina (web)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "origem": "Resumo autoral do Hub sobre a página da apostila digital do Prof. Diogo Moreira. Conteúdo completo no link externo.",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "Hyperlinks são a base da web: é por meio deles que conectamos um endereço (URL) a outro, vinculando um documento .html a qualquer outro documento ou recurso (imagens, instaladores, vídeos) — inclusive a partes específicas de um documento. Um link básico é criado envolvendo o conteúdo desejado em um elemento <a> e dando ao atributo href (Hypertext Reference) o endereço de destino.",
+  "conceitos_chave": [
+    {
+      "conceito": "Elemento <a> e href",
+      "explicacao": "Envolve o texto (ou qualquer conteúdo) que virará link; o atributo href (Hypertext Reference) recebe a URL de destino.",
+      "exemplo": "<p>Estou criando um link para <a href=\"https://www.ifpb.edu.br\">a página inicial do IFPB</a>.</p>"
+    },
+    {
+      "conceito": "Atributo title",
+      "explicacao": "Recomendado conter informações úteis sobre o link (que tipo de informação a página contém), exibido como dica pelo navegador.",
+      "exemplo": "<a href=\"https://www.ifpb.edu.br\" title=\"Página do IFPB, com informações sobre a oferta de cursos\">página inicial do IFPB</a>"
+    },
+    {
+      "conceito": "Qualquer conteúdo vira link",
+      "explicacao": "Literamente qualquer conteúdo da web pode ser convertido em link: ao clicar (ou ativar de outra forma), o navegador vai para a URL de destino."
+    }
+  ],
+  "pontos_importantes": [
+    "Hyperlinks conectam páginas do mesmo site ou endereços externos — são o fundamento da navegação na web.",
+    "Também é possível vincular a partes específicas de um documento, não só a páginas inteiras.",
+    "href significa Hypertext Reference: é o endereço (URL) para onde o link aponta."
+  ],
+  "erros_comuns": [
+    "Escrever o destino fora do atributo href (o link precisa da URL como valor de href).",
+    "Esquecer o title em links cujo texto não deixa claro o destino — o title ajuda o usuário a decidir se vale clicar."
+  ],
+  "exercicios_sugeridos": [
+    "Crie um parágrafo com um link para o site do IFPB incluindo um title descritivo.",
+    "Transforme uma imagem em link clicável envolvendo o <img> dentro de um <a>."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual elemento cria um hyperlink e qual atributo recebe o destino?",
+    "O que significa href?",
+    "Para que serve o atributo title em um link?",
+    "Quais tipos de conteúdo podem ser vinculados por um hyperlink?"
+  ]
+}
