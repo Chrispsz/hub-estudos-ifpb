@@ -5,8 +5,10 @@ import { useTheme } from 'next-themes';
 import {
   AppWindow,
   BellRing,
+  CircleCheck,
   DatabaseBackup,
   Download,
+  ExternalLink,
   Moon,
   RotateCcw,
   Settings2,
@@ -15,6 +17,7 @@ import {
   Sun,
   Timer,
   Trash2,
+  TriangleAlert,
   Upload,
   Volume2,
   VolumeX,
@@ -456,13 +459,22 @@ function AiInfoCard() {
     tutor: { id: string; label: string }[];
     flashcards: { id: string; label: string }[];
   } | null>(null);
+  const [providers, setProviders] = React.useState<{
+    openrouter?: boolean;
+    zaiPublic?: boolean;
+  } | null>(null);
 
   React.useEffect(() => {
     fetch('/api/tutor')
       .then((r) => r.json())
-      .then((d) => d?.chains && setChains(d.chains))
+      .then((d) => {
+        if (d?.chains) setChains(d.chains);
+        if (d?.providers) setProviders(d.providers);
+      })
       .catch(() => {});
   }, []);
+
+  const anyKey = Boolean(providers?.openrouter || providers?.zaiPublic);
 
   return (
     <Card className="rounded-xl">
@@ -478,6 +490,56 @@ function AiInfoCard() {
           fallback automático: se um modelo atingir o limite diário, o próximo assume
           instantaneamente — sem erro para você.
         </p>
+
+        {providers && (
+          <div className="flex flex-wrap items-center gap-2" aria-label="Provedores de IA configurados">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                providers.openrouter
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {providers.openrouter ? (
+                <CircleCheck className="size-3" aria-hidden />
+              ) : null}
+              OpenRouter {providers.openrouter ? 'ativo' : 'inativo'}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                providers.zaiPublic
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {providers.zaiPublic ? <CircleCheck className="size-3" aria-hidden /> : null}
+              Z.ai {providers.zaiPublic ? 'ativo' : 'inativo'}
+            </span>
+          </div>
+        )}
+
+        {providers && !anyKey && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+            <p className="flex items-start gap-1.5 font-medium">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              Nenhuma chave de IA configurada — o tutor só funciona em desenvolvimento.
+            </p>
+            <p className="mt-1 leading-relaxed">
+              Para colocar no ar: crie uma key grátis na{' '}
+              <a
+                href="https://openrouter.ai/keys"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 underline underline-offset-2"
+              >
+                openrouter.ai/keys <ExternalLink className="size-3" aria-hidden />
+              </a>{' '}
+              e adicione <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">OPENROUTER_API_KEY</code>{' '}
+              nas variáveis de ambiente (Vercel → Settings → Environment Variables).
+            </p>
+          </div>
+        )}
+
         {chains ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
