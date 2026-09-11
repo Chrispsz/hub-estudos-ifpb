@@ -285,6 +285,30 @@ async function callZAI(
   return completion.choices[0]?.message?.content?.trim() ?? '';
 }
 
+/** Z-AI com retry + backoff — sob rajadas (429 Too many requests) tenta até 3x
+ *  antes de desistir, evitando 502 para o aluno quando a OpenRouter também
+ *  está limitando. Total extra no pior caso: ~3,7s. */
+async function callZAIRetry(
+  systemPrompt: string,
+  history: ChatMessage[],
+  question: string,
+): Promise<string> {
+  const backoffMs = [0, 1200, 2500];
+  let lastErr: unknown;
+  for (const delay of backoffMs) {
+    if (delay) await new Promise((r) => setTimeout(r, delay));
+    try {
+      const answer = await callZAI(systemPrompt, history, question);
+      if (answer) return answer;
+      lastErr = new Error('resposta vazia');
+    } catch (err) {
+      lastErr = err;
+      console.warn('[api/tutor] ZAI tentativa falhou (retry em sequência):', err instanceof Error ? err.message : err);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('ZAI esgotou as retentativas');
+}
+
 /** GET: lista os modelos free em uso (para exibir nas Configurações). */
 export async function GET() {
   return Response.json({
@@ -361,10 +385,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2º: fallback Z-AI
+    // 2º: fallback Z-AI (com retry — sobrevive a rajadas de 429)
     if (!answer) {
       try {
-        answer = await callZAI(systemPrompt, history, question);
+        answer = await callZAIRetry(systemPrompt, history, question);
         usedModel = 'Z-AI (fallback)';
       } catch (err) {
         console.error('[api/tutor] fallback ZAI falhou:', err instanceof Error ? err.message : err);
