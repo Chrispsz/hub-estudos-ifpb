@@ -29,20 +29,52 @@ echo 'OPENROUTER_API_KEY=sua_chave' > .env
 bun run dev
 ```
 
-> A chave `OPENROUTER_API_KEY` é opcional para o app funcionar (o tutor tem fallback), mas obrigatória para os modelos gratuitos da OpenRouter.
+> A chave `OPENROUTER_API_KEY` (ou `ZAI_API_KEY` — veja a seção abaixo) é opcional para o app funcionar, mas obrigatória para o tutor IA responder fora do ambiente de desenvolvimento.
+
+## 🔑 Colocando o Tutor IA no ar (1 chave gratuita, 2 minutos)
+
+O tutor funciona com **UMA** das duas opções abaixo — escolha a que preferir. Nenhuma delas interfere em contas existentes: são chaves suas, novas e gratuitas.
+
+### Opção A — OpenRouter (recomendado)
+
+1. Crie conta grátis em [openrouter.ai](https://openrouter.ai) → *Keys* → *Create Key*
+2. Adicione nas variáveis de ambiente (local `.env` + Vercel):
+
+   ```
+   OPENROUTER_API_KEY=sk-or-v1-...
+   ```
+
+   Acesso a dezenas de modelos gratuitos (a cadeia já usa Nemotron, Nex, Ling e mais — sem custo).
+
+### Opção B — API pública Z.ai (GLM)
+
+1. Crie conta em [z.ai](https://z.ai) (ou [bigmodel.cn](https://bigmodel.cn)) e gere sua API key
+2. Adicione nas variáveis de ambiente:
+
+   ```
+   ZAI_API_KEY=sua_chave
+   # opcionais:
+   ZAI_BASE_URL=https://api.z.ai/api/paas/v4
+   ZAI_MODEL=glm-4.5-flash
+   ```
+
+   O modelo `glm-4.5-flash` tem **tier gratuito** com limites generosos — ideal para o tutor.
+
+> ℹ️ Sem nenhuma chave, o tutor ainda tenta o SDK Z-AI embutido, que **só funciona em desenvolvimento** (depende de credencial interna do ambiente sandbox). Em produção (Vercel) ele é ignorado silenciosamente — por isso uma chave acima é necessária.
 
 ## ▲ Deploy na Vercel
 
 O projeto é 100% compatível com a Vercel — Next.js 16 App Router, sem banco em runtime, sem serviços externos além da OpenRouter:
 
 1. **Importe o repositório** em [vercel.com/new](https://vercel.com/new) (framework detectado: Next.js, build `next build`, nada para ajustar).
-2. **Adicione a variável de ambiente** em *Settings → Environment Variables*:
+2. **Adicione a variável de ambiente** em *Settings → Environment Variables* (Opção A ou B acima):
 
    | Nome | Valor | Ambientes |
    | --- | --- | --- |
    | `OPENROUTER_API_KEY` | sua chave da [openrouter.ai/keys](https://openrouter.ai/keys) | Production, Preview, Development |
+   | *ou* `ZAI_API_KEY` | sua chave da [z.ai](https://z.ai) | Production, Preview, Development |
 
-3. **Deploy.** Pronto — o tutor responde pelos modelos free da OpenRouter.
+3. **Deploy.** Pronto — o tutor responde pela cadeia de modelos gratuitos.
 
 ### Notas técnicas
 

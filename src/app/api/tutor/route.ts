@@ -1,12 +1,14 @@
 // /api/tutor — Tutor IA + gerador de flashcards
 //
-// Provedor primário: OpenRouter (modelos FREE mapeados e testados — cadeia de
-// fallback para nunca falhar por rate-limit). Configure OPENROUTER_API_KEY no
-// ambiente (.env local ou Environment Variables da Vercel).
-// Fallback final: SDK Z-AI via import dinâmico protegido (se o pacote estiver
-// disponível no ambiente; fora dele, é ignorado sem quebrar o build).
+// Cadeia de provedores (primeiro disponível responde):
 //
-// Modelos free verificados:
+//  1º OpenRouter (se OPENROUTER_API_KEY)   — recomendado: 1 key grátis → dezenas de modelos free
+//  2º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
+//  3º SDK Z-AI do sandbox (dinâmico)       — funciona só em dev/sandbox (baseUrl interno),
+//                                            na Vercel falha silenciosamente e é ignorado
+//
+// Configure no .env local e nas Environment Variables da Vercel — UMA das duas keys basta.
+// Modelos OpenRouter free verificados:
 //  ✅ nvidia/nemotron-3-super-120b-a12b:free  — melhor qualidade/velocidade p/ tutoria PT-BR
 //  ✅ nvidia/nemotron-3-ultra-550b-a55b:free  — 550B, mais profundo (mais lento)
 //  ✅ nex-agi/nex-n2.5-pro:free               — JSON limpo, ótimo p/ flashcards
@@ -76,6 +78,13 @@ interface TutorRequestBody {
 
 const MAX_HISTORY = 8; // stateless por sessão — leve
 const MODEL_TIMEOUT_MS = 35_000; // se um modelo demorar >35s, cai para o próximo
+
+/** Provedor público da Z.ai (api.z.ai) — OpenAI-compatible. Tier grátis no glm-4.5-flash. */
+const ZAI_PUBLIC = {
+  get key() { return process.env.ZAI_API_KEY; },
+  baseUrl: process.env.ZAI_BASE_URL || 'https://api.z.ai/api/paas/v4',
+  model: process.env.ZAI_MODEL || 'glm-4.5-flash',
+};
 
 /**
  * Cadeia de modelos free — ordem otimizada por modo (testada em 10/09/2026):
@@ -262,6 +271,53 @@ async function callOpenRouter(
   }
 }
 
+/** Chama a API pública da Z.ai (OpenAI-compatible, api.z.ai/api/paas/v4). */
+async function callZAIPublic(
+  apiKey: string,
+  systemPrompt: string,
+  history: ChatMessage[],
+  question: string,
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${ZAI_PUBLIC.baseUrl}/chat/completions`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: ZAI_PUBLIC.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...history,
+          { role: 'user', content: question },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${detail.slice(0, 200)}`);
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+      error?: { message?: string };
+    };
+    if (data.error) throw new Error(data.error.message ?? 'erro da API Z.ai');
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) throw new Error('resposta vazia');
+    return content.trim();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Fallback final: SDK Z-AI — import dinâmico protegido p/ portabilidade (Vercel-safe). */
 async function callZAI(
   systemPrompt: string,
@@ -317,6 +373,11 @@ export async function GET() {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
       flashcards: MODEL_CHAIN.flashcards.map((id) => ({ id, label: prettyModelName(id) })),
     },
+    providers: {
+      openrouter: Boolean(process.env.OPENROUTER_API_KEY),
+      zaiPublic: Boolean(process.env.ZAI_API_KEY),
+      zaiSdk: 'auto (só em dev/sandbox)',
+    },
   });
 }
 
@@ -364,6 +425,7 @@ export async function POST(req: Request) {
       : buildSystemPrompt(discipline, topic, material, hub);
 
     const apiKey = process.env.OPENROUTER_API_KEY;
+    const zaiPubKey = ZAI_PUBLIC.key;
     let answer = '';
     let usedModel = '';
 
@@ -385,7 +447,22 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2º: fallback Z-AI (com retry — sobrevive a rajadas de 429)
+    // 2º: API pública da Z.ai (key própria do dono do app — funciona na Vercel)
+    if (!answer && zaiPubKey) {
+      const t0 = Date.now();
+      try {
+        answer = await callZAIPublic(zaiPubKey, systemPrompt, history, question);
+        usedModel = `Z.ai (${ZAI_PUBLIC.model})`;
+        console.log(`[api/tutor] zai-public ${ZAI_PUBLIC.model} → ${Date.now() - t0}ms`);
+      } catch (err) {
+        console.warn(
+          `[api/tutor] zai-public falhou em ${Date.now() - t0}ms:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
+
+    // 3º: fallback Z-AI do sandbox (com retry — sobrevive a rajadas de 429)
     if (!answer) {
       try {
         answer = await callZAIRetry(systemPrompt, history, question);
@@ -397,7 +474,12 @@ export async function POST(req: Request) {
 
     if (!answer) {
       return Response.json(
-        { error: 'A IA não conseguiu responder agora. Tente novamente em instantes.' },
+        {
+          error:
+            'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). ' +
+            'Dono do app: configure OPENROUTER_API_KEY (openrouter.ai, grátis) ou ZAI_API_KEY ' +
+            '(api.z.ai, tier grátis do glm-4.5-flash) nas variáveis de ambiente e faça redeploy.',
+        },
         { status: 502 },
       );
     }
