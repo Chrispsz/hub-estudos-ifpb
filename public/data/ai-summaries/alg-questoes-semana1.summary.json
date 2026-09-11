@@ -1,0 +1,60 @@
+{
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "lista_exercicios",
+  "tempo_estudo_minutos": 90,
+  "resumo_geral": "Primeira bateria semanal de questões do prof. Fábio (postada no Classroom em 09/09): 8 exercícios clássicos de entrada-processamento-saída em C. Todos seguem a mesma receita — ler valores com scanf, aplicar uma fórmula simples e imprimir o resultado com printf. É o treino perfeito da rotina gcc + VS Code/Replit antes da Prova 1 (30/10).",
+  "conceitos_chave": [
+    {
+      "conceito": "Estrutura padrão dos programas",
+      "explicacao": "Todos os exercícios seguem: declarar variáveis → scanf para ler → calcular a fórmula → printf para mostrar. Domine esse esqueleto e resolve os 8.",
+      "exemplo": "int main(void) {\n    int n;\n    scanf(\"%d\", &n);\n    printf(\"%d %d\\n\", n - 1, n + 1);\n    return 0;\n}"
+    },
+    {
+      "conceito": "Tipos: int vs float/double",
+      "explicacao": "Q1 usa int (antecessor/sucessor). As demais (área, temperatura, terreno, velocidade) precisam de float/double porque envolvem divisão e casas decimais."
+    },
+    {
+      "conceito": "Divisão inteira pega de surpresa",
+      "explicacao": "Em C, 9/5 vale 1 (inteiros!). Nas fórmulas use constantes decimais: C * 9.0 / 5.0 + 32. É o erro nº 1 da Q3."
+    },
+    {
+      "conceito": "Conversão de unidades",
+      "explicacao": "Q4 pede velocidade em m/s a partir de km e horas: multiplique km por 1000 e horas por 3600 antes de dividir. Q5 é direta: polegadas × 2,54."
+    },
+    {
+      "conceito": "Relação fundamental (Q6)",
+      "explicacao": "Com o seno, o cosseno vem da identidade sen²(x) + cos²(x) = 1 → cos = sqrt(1 - sen*sen); o valor absoluto usa fabs() de math.h (compile com -lm)."
+    },
+    {
+      "conceito": "Laço simples (Q8)",
+      "explicacao": "A PA imprime 5 termos: termo n = a1 + (n-1)*r, com um for de 1 a 5 — primeiro contato leve com repetição."
+    }
+  ],
+  "pontos_importantes": [
+    "Fórmulas da semana: área = base×altura/2 (Q2); F = C×9/5+32 e K = C+273,15 (Q3); v = km×1000/(h×3600) (Q4); cm = pol×2,54 (Q5); cos = √(1−sen²) (Q6); valor = comprimento×largura×300 (Q7); PA: an = a1+(n−1)r (Q8).",
+    "printf com formatação: %.2f para casas decimais, %d para inteiros, e & no scanf (&n, não n).",
+    "Rotina recomendada: compile sempre com gcc -Wall e teste com valores conhecidos (ex.: 0 °C = 32 °F = 273,15 K)."
+  ],
+  "erros_comuns": [
+    "Esquecer o & no scanf (scanf(\"%d\", n) em vez de &n) — compila mas quebra na execução.",
+    "Usar int em variáveis que precisam de casas decimais (área, temperatura, dinheiro).",
+    "Divisão inteira 9/5 = 1 na fórmula de Fahrenheit; escreva 9.0/5.0."
+  ],
+  "exercicios_sugeridos": [
+    "Q1: antecessor e sucessor de um inteiro.",
+    "Q2: área de um triângulo (base × altura / 2).",
+    "Q3: Celsius → Fahrenheit e Kelvin.",
+    "Q4: velocidade média em m/s a partir de km e horas.",
+    "Q5: polegadas → centímetros (× 2,54).",
+    "Q6: valor absoluto do cosseno a partir do seno (identidade fundamental + fabs).",
+    "Q7: valor de mercado de um terreno (R$ 300,00 por m²).",
+    "Q8: 5 primeiros termos de uma progressão aritmética (a1 e razão lidos)."
+  ],
+  "perguntas_autoavaliação": [
+    "Por que usar 9.0/5.0 e não 9/5 na conversão de temperatura?",
+    "Quais questões exigem float/double e quais resolvem com int?",
+    "Como obter o cosseno conhecendo apenas o seno?",
+    "Como calcular o n-ésimo termo de uma PA sem laço? E com laço?"
+  ]
+}
