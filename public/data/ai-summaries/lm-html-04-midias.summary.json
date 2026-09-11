@@ -1,0 +1,84 @@
+{
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 40,
+  "resumo_geral": "HTML dá suporte a mídia embutida por meio dos elementos <img>, <audio> e <video>. Imagens usam <img> (elemento sem fechamento) com src e alt, podendo ser agrupadas com legenda em <figure>/<figcaption>. Áudio e vídeo têm dentro de si um elemento <source> indicando o arquivo a reproduzir, e aceitam atributos como controls, autoplay, muted, poster e loop.",
+  "conceitos_chave": [
+    {
+      "conceito": "Elemento <img>",
+      "explicacao": "O elemento HTML <img> representa a inserção de imagem no documento — uma referência para uma imagem que existe independentemente do documento HTML. É um elemento que NÃO necessita de fechamento e exibe o arquivo indicado em src, desde que ele exista no caminho especificado.",
+      "exemplo": "<img src=\"gato.jpg\" />"
+    },
+    {
+      "conceito": "Atributo alt",
+      "explicacao": "Mostra um texto alternativo caso não seja possível exibir a imagem (arquivo ausente ou leitor de tela).",
+      "exemplo": "<img src=\"gato.jpg\" alt=\"Um gato\" />"
+    },
+    {
+      "conceito": "Atributos width e height",
+      "explicacao": "Definem largura e altura da imagem. Definindo apenas um deles, a imagem é redimensionada proporcionalmente.",
+      "exemplo": "<img src=\"gato.jpg\" alt=\"Um gato\" width=\"300\" />"
+    },
+    {
+      "conceito": "<figure> e <figcaption>",
+      "explicacao": "<figure> marca uma unidade de conteúdo e, opcionalmente, uma legenda para o conteúdo; a legenda fica no <figcaption>. Deve ser utilizado junto com o <figcaption>.",
+      "exemplo": "<figure>\n  <img src=\"gato.jpg\" alt=\"Um gato\" />\n  <figcaption>Um gato incrível</figcaption>\n</figure>"
+    },
+    {
+      "conceito": "Imagem como hyperlink",
+      "explicacao": "O elemento <img> pode ser usado com hyperlinks: basta envolvê-lo em um elemento <a> — ao clicar na imagem, o usuário vai para o link.",
+      "exemplo": "<a href=\"https://youtube.com/watch?v=ILQTZCb7-Uw\">\n  <img src=\"gato.jpg\" alt=\"Um gato\" />\n</a>"
+    },
+    {
+      "conceito": "Elemento <source> dentro de <audio> e <video>",
+      "explicacao": "Cada elemento <audio> ou <video> tem dentro dele um elemento <source>, que indica qual arquivo de áudio ou vídeo deve ser reproduzido.",
+      "exemplo": "<video controls>\n  <source src=\"bigbuckbunny.mp4\">\n</video>"
+    },
+    {
+      "conceito": "Atributos do <video>",
+      "explicacao": "controls exibe os controles (play, pause, volume, tela cheia); autoplay inicia a reprodução ao carregar a página — atualmente só funciona junto com muted; muted inibe o som; poster define uma imagem fixa exibida enquanto o vídeo não começa; loop repete a reprodução; width/height definem dimensões.",
+      "exemplo": "<video controls poster=\"video_poster.jpg\">\n  <source src=\"video.mp4\">\n</video>"
+    },
+    {
+      "conceito": "Atributos do <audio>",
+      "explicacao": "controls exibe o tocador de música (play, pause, volume); autoplay reproduz assim que a página carrega (com uma série de restrições nos navegadores); muted inibe o som.",
+      "exemplo": "<audio>\n  <source src=\"dttm.mp3\">\n</audio>"
+    }
+  ],
+  "pontos_importantes": [
+    "<img> não tem fechamento — todo o conteúdo vem dos atributos (src, alt, width, height)",
+    "autoplay só funciona em conjunto com muted nos navegadores atuais",
+    "poster mostra a cena/imagem enquanto o vídeo não é reproduzido",
+    "Ao usar apenas controls, o vídeo aparece em pausa exibindo o início do vídeo",
+    "O caminho do arquivo em src/source segue as mesmas regras de caminhos dos hyperlinks (mesmo diretório, pasta/, ../)"
+  ],
+  "formulas_regras": [
+    "Estrutura padrão de mídia: <video controls> <source src=\"arquivo.mp4\"> </video>",
+    "Imagem com legenda: <figure> <img ... /> <figcaption>legenda</figcaption> </figure>",
+    "Imagem clicável: <a href=\"URL\"> <img ... /> </a>"
+  ],
+  "erros_comuns": [
+    "Esquecer o atributo alt na imagem (acessibilidade — cai na disciplina)",
+    "Usar autoplay sem muted e o vídeo/áudio não iniciar",
+    "Apontar src para um arquivo que não existe no diretório (imagem quebrada)",
+    "Esquecer o <source> dentro do <audio>/<video> e o player não carregar arquivo"
+  ],
+  "exercicios_sugeridos": [
+    "Prática 1: baixe um vídeo MP4, crie um HTML com título e insira o vídeo com <video controls>, seguido de um parágrafo descrevendo-o",
+    "Prática 2: baixe uma música MP3, crie um HTML com o título da música e insira o áudio com <audio controls>, seguido da letra",
+    "Prática 3 (Imagens + hyperlinks): crie um HTML com h1 de uma série/filme favorito, figure com 3 imagens de personagens + legenda, hyperlink ao clicar na imagem e lista de definição (dl) abaixo do figure descrevendo os personagens"
+  ],
+  "proximos_passos": [
+    "Ler as páginas Imagens, Áudio e Vídeo da apostila da disciplina (gitbook do prof. Diogo)",
+    "Fazer as três práticas da aula 04 e validar o HTML no W3C Validator",
+    "Aplicar figure/figcaption no projeto A1 do site pessoal"
+  ],
+  "perguntas_autoavaliacao": [
+    "Por que o <img> não precisa de fechamento e o que acontece se o arquivo de src não existir?",
+    "Para que serve o atributo alt e qual sua relação com acessibilidade?",
+    "O que acontece com a imagem se eu definir apenas width em vez de width e height?",
+    "Quais atributos o <video> aceita e por que autoplay exige muted?",
+    "Qual a função do elemento <source> dentro de <audio> e <video>?"
+  ]
+}

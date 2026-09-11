@@ -1,0 +1,83 @@
+{
+  "titulo": "HTML - Hyperlinks (Aula 03)",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 35,
+  "resumo_geral": "Hyperlinks permitem vincular documentos (ou partes deles) a qualquer outro documento ou recurso da Web. Um link básico é criado envolvendo o conteúdo em um elemento <a> com o atributo href apontando para uma URL. A aula cobre caminhos relativos (mesmo diretório, subdiretório e diretório paralelo com ..), URLs absolutas vs relativas, o atributo download e o atributo target.",
+  "conceitos_chave": [
+    {
+      "conceito": "Elemento <a> e atributo href",
+      "explicacao": "Um hyperlink é criado envolvendo o texto (ou outro conteúdo) que se quer transformar em link dentro de um elemento <a>, com o atributo href contendo a URL de destino.",
+      "exemplo": "<p>Link para <a href=\"https://ifpb.edu.br\">página do IFPB</a></p>"
+    },
+    {
+      "conceito": "Caminho no mesmo diretório",
+      "explicacao": "Se o arquivo vinculado está no mesmo diretório do documento atual, basta especificar o nome do arquivo.",
+      "exemplo": "<a href=\"gato.jpg\">Link para uma foto de gato</a>"
+    },
+    {
+      "conceito": "Caminho em subdiretório (abaixo)",
+      "explicacao": "Se o arquivo está em um diretório abaixo do documento atual, especifica-se o diretório e então o nome do arquivo, separados por /.",
+      "exemplo": "<a href=\"imagens/gato.jpg\">Link para uma foto de gato</a>"
+    },
+    {
+      "conceito": "Caminho em diretório paralelo (subir com ..)",
+      "explicacao": "Se o arquivo está em um diretório paralelo ao do documento atual, é preciso subir um nível com dois pontos (..), entrar no diretório do arquivo e então indicar o nome dele.",
+      "exemplo": "<a href=\"../imagens/gato.jpg\">Link para uma foto de gato</a>"
+    },
+    {
+      "conceito": "URL absolto",
+      "explicacao": "Aponta para um local definido por sua localização absoluta na web, a partir do nome do domínio (inclui o protocolo).",
+      "exemplo": "<a href=\"http://www.ifpb.edu.br\">IFPB</a>"
+    },
+    {
+      "conceito": "URL relativo",
+      "explicacao": "Aponta para um local relativo ao arquivo do qual você está vinculando. Ex.: contato.html faz o navegador buscar essa página no mesmo diretório da página exibida.",
+      "exemplo": "<a href=\"contato.html\">Contato</a>"
+    },
+    {
+      "conceito": "Atributo download",
+      "explicacao": "Quando o recurso vinculado deve ser baixado em vez de aberto no navegador, usa-se o atributo download para fornecer um nome de arquivo padrão.",
+      "exemplo": "<a href=\"https://code.visualstudio.com/...\" download=\"visual-studio-code.exe\">Visual Studio Code</a>"
+    },
+    {
+      "conceito": "Atributo target",
+      "explicacao": "Especifica ONDE o hyperlink deve abrir. Valores: _blank (nova aba), _self (padrão, mesma aba) e framename (qualquer nome escolhido).",
+      "exemplo": "<a href=\"https://ifpb.edu.br\" target=\"_blank\">Abrir em nova aba</a>"
+    }
+  ],
+  "pontos_importantes": [
+    "O href pode apontar para arquivos HTML, texto, imagens, vídeos, áudio e qualquer recurso da web",
+    "Se o navegador não souber como exibir o arquivo, ele pergunta se o usuário quer abrir ou baixar",
+    "Hyperlinks também permitem vincular partes específicas de um documento",
+    "Todos os sites usam links para navegação, login/registro e apontamento de conteúdo",
+    "_self é o valor padrão de target (abre na mesma aba)"
+  ],
+  "formulas_regras": [
+    "Mesmo diretório: href=\"arquivo.ext\"",
+    "Subdiretório: href=\"pasta/arquivo.ext\"",
+    "Diretório paralelo: href=\"../pasta/arquivo.ext\" (dois pontos sobem um nível)"
+  ],
+  "erros_comuns": [
+    "Esquecer o protocolo em URLs absolutas (href=\"ifpb.edu.br\" em vez de \"https://www.ifpb.edu.br\")",
+    "Confundir caminho relativo com absoluto e usar / no início quando não quer apontar para a raiz",
+    "Escrever target=\"_blank\" incorretamente (ex.: _blanK ou blank)",
+    "Esquecer de fechar o elemento </a>, tornando tudo depois do início do link clicável"
+  ],
+  "exercicios_sugeridos": [
+    "Prática da aula: crie a estrutura favoritos/ com index.html na raiz e filme.html + serie.html dentro da pasta, com conteúdo sobre seu filme e série favoritos",
+    "Cada página dentro de favoritos/ deve ter um link para voltar para a página inicial usando caminho relativo (../index.html ou href=\"../\")",
+    "Adicione um link com target=\"_blank\" para um site externo e um link com o atributo download para um arquivo"
+  ],
+  "proximos_passos": [
+    "Ler a página Hyperlinks da apostila da disciplina (gitbook do prof. Diogo)",
+    "Ler a página URLs da apostila para aprofundar caminhos",
+    "Fazer a prática da aula 03 e validar o HTML no W3C Validator"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença entre uma URL absoluta e uma relativa?",
+    "Como vincular um arquivo que está em um diretório paralelo ao do documento atual?",
+    "O que o atributo target=\"_blank\" faz e qual é o valor padrão de target?",
+    "Quando usar o atributo download em um hyperlink?"
+  ]
+}

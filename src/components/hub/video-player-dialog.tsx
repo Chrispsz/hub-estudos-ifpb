@@ -77,9 +77,11 @@ export function parseVideoUrl(rawUrl: string): ParsedVideo {
       }
     }
 
-    // Genérico https — tenta iframe (alguns sites bloqueiam)
+    // Genérico https — NÃO tenta iframe: a maioria dos sites (gitbook, MDN etc.)
+    // envia X-Frame-Options/CSP e viraria um frame quebrado. Cai no card de
+    // fallback com botão "Abrir conteúdo em nova aba".
     if (url.protocol === 'https:') {
-      return { provider: 'generic', embedUrl: rawUrl, canEmbed: true };
+      return { provider: 'generic', embedUrl: null, canEmbed: false };
     }
 
     return { provider: 'unsupported', embedUrl: null, canEmbed: false };
@@ -125,7 +127,7 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
             {parsed?.provider === 'drive-folder'
               ? 'Pasta do Google Drive — abra em nova aba para assistir.'
               : parsed?.provider === 'generic'
-                ? 'Se o vídeo não carregar no player, abra em nova aba.'
+                ? 'Conteúdo web — abra em nova aba para ler.'
                 : 'Videoaula embutida — assista sem sair do Hub.'}
             {discName ? ` • ${discName}` : ''}
           </DialogDescription>
@@ -144,14 +146,22 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
             <PlayCircle className="size-10 text-emerald-500" aria-hidden />
-            <p className="text-sm font-medium">Este conteúdo abre no Google Drive</p>
+            <p className="text-sm font-medium">
+              {parsed?.provider === 'drive-folder'
+                ? 'Este conteúdo abre no Google Drive'
+                : 'Este conteúdo abre em nova aba'}
+            </p>
             <p className="max-w-md text-xs text-muted-foreground">
-              Pastas de vídeo não podem ser exibidas aqui (limitação do Drive). Clique abaixo
-              para assistir em uma nova aba — seu progresso continua salvo no Hub.
+              {parsed?.provider === 'drive-folder'
+                ? 'Pastas de vídeo não podem ser exibidas aqui (limitação do Drive). Clique abaixo para assistir em uma nova aba — seu progresso continua salvo no Hub.'
+                : 'Esta página não pode ser exibida aqui. Clique abaixo para abrir em uma nova aba — seu progresso continua salvo no Hub.'}
             </p>
             <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-700">
               <a href={material.externalUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="size-4" /> Abrir videoaulas em nova aba
+                <ExternalLink className="size-4" />{' '}
+                {parsed?.provider === 'drive-folder'
+                  ? 'Abrir videoaulas em nova aba'
+                  : 'Abrir conteúdo em nova aba'}
               </a>
             </Button>
           </div>

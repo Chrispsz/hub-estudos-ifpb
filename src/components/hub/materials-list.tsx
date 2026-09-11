@@ -347,7 +347,15 @@ function MaterialRow({
             className="h-8 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
             onClick={() => onWatch(material)}
           >
-            <PlayCircle className="size-3.5" /> Assistir
+            {material.type === 'video' ? (
+              <>
+                <PlayCircle className="size-3.5" /> Assistir
+              </>
+            ) : (
+              <>
+                <ExternalLink className="size-3.5" /> Abrir
+              </>
+            )}
           </Button>
         )}
         {material.pdfPath && (

@@ -371,7 +371,15 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                   className="h-8 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
                                   onClick={() => setVideoFor(m)}
                                 >
-                                  <PlayCircle className="size-3.5" /> Assistir
+                                  {m.type === 'video' ? (
+                                    <>
+                                      <PlayCircle className="size-3.5" /> Assistir
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ExternalLink className="size-3.5" /> Abrir
+                                    </>
+                                  )}
                                 </Button>
                               )}
                               {m.pdfPath && (
