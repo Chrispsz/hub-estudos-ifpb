@@ -1,0 +1,76 @@
+{
+  "titulo": "mat-00-matrizes",
+  "disciplina": "Matemática Aplicada à Computação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 30,
+  "resumo_geral": "Matrizes são tabelas organizadas em linhas e colunas que servem como uma representação compacta e eficiente de dados. Este material aborda desde a definição básica e tipos de matrizes (linha, coluna, quadrada, identidade) até operações fundamentais como soma, produto por escalar e multiplicação entre matrizes, culminando em conceitos mais avançados como matriz inversa e propriedades da transposta.",
+  "conceitos_chave": [
+    {
+      "conceito": "Matriz",
+      "explicacao": "Uma tabela de números reais com 'm' linhas e 'n' colunas, denotada como M_{m x n}. Cada elemento é identificado por a_{ij}, onde 'i' é o índice da linha e 'j' o da coluna.",
+      "exemplo": "A = [3 5 -1; 0 4 5] é uma matriz 2x3. O elemento a_{12} é 5."
+    },
+    {
+      "conceito": "Matriz Transposta (A^t)",
+      "explicacao": "Obtida trocando as linhas da matriz original pelas colunas. Se A é m x n, A^t é n x m, com a'_{ji} = a_{ij}.",
+      "exemplo": "Se A = [1 2; 3 4], então A^t = [1 3; 2 4]."
+    },
+    {
+      "conceito": "Matriz Inversa (A^{-1})",
+      "explicacao": "Para uma matriz quadrada A, a inversa é uma única matriz A^{-1} tal que A * A^{-1} = A^{-1} * A = I_n (matriz identidade). Nem toda matriz possui inversa.",
+      "exemplo": "A inversa de A = [1 2; 3 4] é A^{-1} = [-2 1; 1.5 -0.5]."
+    },
+    {
+      "conceito": "Multiplicação de Matrizes",
+      "explicacao": "O produto AB é definido apenas se o número de colunas de A for igual ao número de linhas de B. O elemento c_{ik} do resultado é a soma dos produtos dos elementos da linha 'i' de A com os da coluna 'k' de B.",
+      "exemplo": "Se A = [1 2] e B = [3; 4], então AB = [1*3 + 2*4] = [11]."
+    },
+    {
+      "conceito": "Matriz Simétrica e Antissimétrica",
+      "explicacao": "Uma matriz quadrada A é simétrica se A^t = A. É antissimétrica se A^t = -A. Uma matriz antissimétrica tem zeros na diagonal principal.",
+      "exemplo": "A = [1 2; 2 3] é simétrica. B = [0 2; -2 0] é antissimétrica."
+    }
+  ],
+  "pontos_importantes": [
+    "A ordem de uma matriz é 'm x n', onde 'm' é o número de linhas e 'n' o de colunas.",
+    "Para somar ou subtrair matrizes, elas devem ter a mesma ordem (m x n). A operação é elemento a elemento.",
+    "O produto de um escalar (k) por uma matriz multiplica cada elemento da matriz por k.",
+    "A multiplicação de matrizes NÃO é comutativa, ou seja, em geral AB ≠ BA.",
+    "AB = 0 (matriz nula) não implica que A=0 ou B=0.",
+    "Uma matriz só é multiplicada pela matriz identidade (I) do lado correspondente (esquerda ou direita)."
+  ],
+  "formulas_relegas": [
+    "Soma: C = A + B => c_{ij} = a_{ij} + b_{ij}",
+    "Produto por escalar: B = kA => b_{ij} = k * a_{ij}",
+    "Produto: C = AB => c_{ik} = Σ (a_{ij} * b_{jk}) para j de 1 a n",
+    "Transposta: (AB)^t = B^t * A^t",
+    "Inversa: A * A^{-1} = A^{-1} * A = I_n"
+  ],
+  "erros_comuns": [
+    "Tentar somar matrizes de ordens diferentes.",
+    "Esquecer que a ordem das matrizes na multiplicação é fundamental e não é comutativa.",
+    "Confundir a posição dos índices ao calcular um elemento do produto AB (linha de A com coluna de B).",
+    "Achar que o produto de duas matrizes não nulas resulta em uma matriz não nula.",
+    "Calcular a transposta trocando apenas a diagonal principal."
+  ],
+  "exercicios_sugeridos": [
+    "Dadas as matrizes A e B, calcule A + B, A - B e 2A.",
+    "Dadas as matrizes A (2x3) e B (3x2), calcule AB e BA (se possível). Compare os resultados.",
+    "Determine a matriz transposta de uma matriz 3x2 de sua escolha.",
+    "Verifique se uma dada matriz quadrada é simétrica ou antissimétrica.",
+    "Calcule a inversa de uma matriz 2x2 usando a fórmula adj(A)/det(A)."
+  ],
+  "proximos_passos": [
+    "Estudar o cálculo do determinante de uma matriz quadrada.",
+    "Aprofundar-se no método de Gauss-Jordan para encontrar a matriz inversa.",
+    "Explorar sistemas de equações lineares e sua representação matricial (Ax = b).",
+    "Aprender sobre matrizes de permutação e matrizes elementares."
+  ],
+  "perguntas_autoavaliacao": [
+    "O que define a ordem de uma matriz e por que isso é crucial para as operações?",
+    "Por que a multiplicação de matrizes não é comutativa? Dê um exemplo.",
+    "Qual é a condição para que uma matriz tenha uma inversa?",
+    "Explique a diferença entre uma matriz simétrica e uma antissimétrica.",
+    "Como a propriedade (AB)^t = B^t * A^t simplifica cálculos envolvendo matrizes complexas?"
+  ]
+}

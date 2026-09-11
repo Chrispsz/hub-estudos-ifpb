@@ -1,0 +1,62 @@
+{
+  "titulo": "alg-slides-geral",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 30,
+  "resumo_geral": "Um algoritmo é uma sequência finita e lógica de passos para resolver um problema. Ele pode ser representado de formas diversas, como descrição narrativa, fluxograma ou pseudocódigo, cada uma com vantagens e desvantagens. A qualidade de um algoritmo está ligada à sua clareza, precisão e eficiência, devendo sempre produzir uma saída a partir de uma determinada entrada.",
+  "conceitos_chave": [
+    {
+      "conceito": "Algoritmo",
+      "explicacao": "Sequência finita e não ambígua de instruções para resolver um problema.",
+      "exemplo": "Receita de bolo, manual de instruções para trocar um pneu."
+    },
+    {
+      "conceito": "Lógica",
+      "explicacao": "Ciência do raciocínio, usada para deduzir conclusões a partir de argumentos.",
+      "exemplo": "Todo homem é mortal. Socrates é homem. Portanto, Socrates é mortal."
+    },
+    {
+      "conceito": "Entrada, Processamento e Saída",
+      "explicacao": "Elementos fundamentais de um algoritmo: dados de entrada, o processamento que transforma esses dados e o resultado obtido (saída).",
+      "exemplo": "Calcular a média de notas: notas das provas (entrada), cálculo da média (processamento), valor da média (saída)."
+    },
+    {
+      "conceito": "Representação de Algoritmos",
+      "explicacao": "Formas de descrever um algoritmo, como narrativa, fluxograma e pseudocódigo.",
+      "exemplo": "Fluxograma usa símbolos gráficos para representar passos; pseudocódigo usa uma linguagem de programação híbrida."
+    }
+  ],
+  "pontos_importantes": [
+    "Algoritmos devem ser finitos, claros e corretos.",
+    "Para um mesmo problema, podem existir vários algoritmos, mas alguns podem ser mais eficientes que outros.",
+    "A legibilidade do algoritmo é crucial, e pode ser melhorada com comentários e nomes de variáveis descritivas.",
+    "O pseudocódigo é uma ponte entre a descrição do algoritmo e sua implementação em uma linguagem de programação."
+  ],
+  "formulas_regras": [
+    "Média Aritmética: soma dos valores / quantidade de valores."
+  ],
+  "erros_comuns": [
+    "Criar algoritmos ambíguos ou com instruções que podem ser interpretadas de mais de uma forma.",
+    "Esquecer que um algoritmo deve terminar em um tempo finito.",
+    "Usar nomes de variáveis genéricos (ex: 'a', 'b', 'x') que dificultam a compreensão do código."
+  ],
+  "exercicios_sugeridos": [
+    "Descreva um algoritmo para fazer um sanduíche de presunto e queijo usando descrição narrativa.",
+    "Crie um fluxograma para o algoritmo de calcular a média de três provas.",
+    "Escreva um pseudocódigo para resolver o problema dos 4 litros de água usando os recipientes de 3 e 5 litros.",
+    "Desenvolva um algoritmo narrativo para ordenar três números em ordem crescente."
+  ],
+  "proximos_passos": [
+    "Estudar as estruturas básicas de algoritmos: sequência, seleção e repetição.",
+    "Aprofundar no estudo de fluxogramas e seus símbolos.",
+    "Praticar a escrita de pseudocódigo para problemas simples.",
+    "Começar a aprender a implementar algoritmos em uma linguagem de programação concreta, como C ou Python."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são as três características essenciais de um algoritmo?",
+    "Qual a diferença fundamental entre uma descrição narrativa e um fluxograma?",
+    "Por que é importante usar nomes de variáveis descritivos?",
+    "Dê um exemplo de um problema do cotidiano que pode ser resolvido por um algoritmo e descreva seus passos.",
+    "O que é um algoritmo ineficiente e como isso pode ser identificado?"
+  ]
+}

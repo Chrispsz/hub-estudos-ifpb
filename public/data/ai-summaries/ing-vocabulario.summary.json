@@ -1,0 +1,66 @@
+{
+  "titulo": "ing-vocabulario",
+  "disciplina": "Inglês Instrumental",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 30,
+  "resumo_geral": "Este material abrange vocabulário essencial para o inglês instrumental, incluindo números, estações do ano, advérbios de frequência, preposições, falsos cognatos e a formação de comparativos e superlativos de adjetivos. É um guia prático para enriquecer o léxico e a gramática básica, com foco em evitar equívocos comuns entre o inglês e o português.",
+  "conceitos_chave": [
+    {
+      "conceito": "Falsos Cognatos",
+      "explicacao": "Palavras que parecem semelhantes em inglês e português, mas possuem significados diferentes. É crucial identificá-los para evitar mal-entendidos.",
+      "exemplo": "Actually (adv) = na verdade, não 'atualmente'. Library (n) = biblioteca, não 'livraria'."
+    },
+    {
+      "conceito": "Comparativos e Superlativos",
+      "explicacao": "Formas de comparar adjetivos, variando conforme o número de sílabas e a terminação da palavra.",
+      "exemplo": "Comparativo: 'tall' (1 sílaba) -> 'taller'. 'expensive' (3 sílabas) -> 'more expensive'. Irregular: 'good' -> 'better'."
+    },
+    {
+      "conceito": "Advérbios de Frequência",
+      "explicacao": "Palavras que indicam a frequência com que uma ação ocorrem, variando de 0% a 100%.",
+      "exemplo": "Always (sempre), Sometimes (às vezes), Never (nunca)."
+    },
+    {
+      "conceito": "Formação do Plural",
+      "explicacao": "Regras para transformar substantivos no plural em inglês, incluindo casos especiais e irregularidades.",
+      "exemplo": "Terminados em -f/-fe: 'leaf' -> 'leaves'. Irregulares: 'child' -> 'children'."
+    }
+  ],
+  "pontos_importantes": [
+    "Atenção especial aos falsos cognatos, pois são uma fonte comum de erros de comunicação.",
+    "A formação de comparativos e superlativos segue regras claras baseadas no número de sílabas do adjetivo.",
+    "Os advérbios de frequência seguem uma ordem gramatical específica dentro de uma frase (ex: She always arrives on time).",
+    "Existem plurais irregulares e palavras que não mudam no plural (ex: sheep, aircraft)."
+  ],
+  "formulas_regras": [
+    "Comparativo de Igualdade: as... as (ex: as new as).",
+    "Comparativo de Superioridade (Adjetivo curto - 1 sílaba): adjetivo + er (ex: taller).",
+    "Comparativo de Superioridade (Adjetivo longo - 3+ sílabas): more + adjetivo (ex: more important).",
+    "Superlativo (Adjetivo curto - 1 sílaba): the + adjetivo + est (ex: the tallest).",
+    "Superlativo (Adjetivo longo - 3+ sílabas): the most + adjetivo (ex: the most important).",
+    "Formação do plural com consoante + y: troca -y por -ies (ex: baby -> babies)."
+  ],
+  "erros_comuns": [
+    "Usar falsos cognatos (ex: 'actually' para dizer 'atualmente').",
+    "Formular comparativos e superlativos de forma incorreta para adjetivos de duas sílabas (ex: 'more taller' em vez de 'taller').",
+    "Esquecer o 'the' na formação do superlativo (ex: 'tallest' em vez de 'the tallest').",
+    "Aplicar as regras de plural a palavras irregulares ou invariáveis (ex: 'sheeps' em vez de 'sheep')."
+  ],
+  "exercicios_sugeridos": [
+    "Criar uma lista com 10 falsos cognatos e suas traduções corretas.",
+    "Praticar a formação de comparativos e superlativos com 10 adjetivos diferentes (curtos, longos e irregulares).",
+    "Escrever 5 frases usando advérbios de frequência para descrever sua rotina.",
+    "Transformar uma lista de 15 substantivos no plural, aplicando as regras vistas."
+  ],
+  "proximos_passos": [
+    "Estudar a aplicação dos comparativos e superlativos em estruturas mais complexas.",
+    "Ampliar o vocabulário com listas de verbos, adjetivos e substantivos específicos para a área de atuação do estudante.",
+    "Praticar a formação de perguntas usando os 'Wh-words' (What, Where, When, etc.)."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença de significado entre 'library' e 'bookstore'?",
+    "Como se forma o comparativo e o superlativo do adjetivo 'beautiful'?",
+    "Qual a tradução correta para 'eventually'? 'Finalmente' ou 'Ocasionalmente'?",
+    "Quais são as duas formas corretas de plural para a palavra 'mosquito'?"
+  ]
+}

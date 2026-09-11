@@ -1,0 +1,70 @@
+{
+  "titulo": "matematica-ementa.summary.json",
+  "disciplina": "Matemática Aplicada à Computação",
+  "tipo": "ementa",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "Esta disciplina aborda conceitos fundamentais de matemática essenciais para a computação, incluindo álgebra matricial, lógica matemática, teoria dos conjuntos e funções. O objetivo é desenvolver o raciocínio lógico e a capacidade de aplicar ferramentas matemáticas para resolver problemas e modelar situações do cotidiano, com foco em aplicações para análise e desenvolvimento de sistemas.",
+  "conceitos_chave": [
+    {
+      "conceito": "Álgebra Matricial",
+      "explicacao": "Estudo de matrizes, operações entre elas, determinantes e sistemas lineares, utilizados para resolver problemas algébricos e geométricos.",
+      "exemplo": "Resolver um sistema de equações lineares usando a matriz aumentada e o método de Gauss-Jordan."
+    },
+    {
+      "conceito": "Lógica Matemática",
+      "explicacao": "Fundamentos do raciocínio lógico, incluindo proposições, conectivos, tabelas verdade, tautologias e quantificadores.",
+      "exemplo": "Construir uma tabela verdade para a proposição composta '(P ∧ Q) → R'."
+    },
+    {
+      "conceito": "Teoria dos Conjuntos",
+      "explicacao": "Conceitos básicos de conjuntos, relações entre elementos, operações com conjuntos e conjuntos numéricos.",
+      "exemplo": "Representar a união de dois conjuntos A = {1, 2, 3} e B = {3, 4, 5}, resultando em A ∪ B = {1, 2, 3, 4, 5}."
+    },
+    {
+      "conceito": "Funções",
+      "explicacao": "Estudo de funções, incluindo definição, notação, gráficos, funções compostas, inversas e tipos específicas como polinomiais, exponenciais e trigonométricas.",
+      "exemplo": "Determinar o domínio e a imagem da função f(x) = x² + 2x + 1."
+    }
+  ],
+  "pontos_importantes": [
+    "A disciplina tem carga horária total de 67 horas, sendo 4 horas semanais.",
+    "Os pré-requisitos não são explicitados, mas o conhecimento de matemática do ensino médio é fundamental.",
+    "A metodologia combina aulas expositivas com resolução de exemplos, estudos de casos e atividades extraclasse.",
+    "Serão realizadas 3 avaliações ao longo do semestre, incluindo provas e um trabalho.",
+    "O uso de softwares matemáticos pode ser necessário para visualização e manipulação de conceitos."
+  ],
+  "formulas_regras": [
+    "A nota final será composta pela média das 3 avaliações realizadas durante o semestre.",
+    "Para aprovação, o estudante precisa atingir média mínima conforme as normas da instituição.",
+    "As atividades extraclasse, desenvolvidas na Plataforma Google Classroom, podem compor a nota final.",
+    "O trabalho individual ou em grupo será um dos instrumentos de avaliação, com ou sem consulta, a critério do professor."
+  ],
+  "erros_comuns": [
+    "Confusão entre operações de conjuntos (união, interseção, diferença) e suas propriedades.",
+    "Erros ao calcular determinantes de matrizes de ordem superior a 2x2.",
+    "Má interpretação de proposições lógicas e construção incorreta de tabelas verdade.",
+    "Dificuldade em identificar o domínio e imagem de funções, especialmente as exponenciais e logarítmicas.",
+    "Aplicação inadequada de funções para modelar problemas do cotidiano."
+  ],
+  "exercicios_sugeridos": [
+    "Resolver sistemas lineares usando métodos de eliminação de Gauss e por determinantes (Cramer).",
+    "Construir tabelas verdade para diferentes tipos de proposições compostas e identificar tautologias.",
+    "Realizar operações com conjuntos (união, interseção, complemento) e representá-los em diagramas de Venn.",
+    "Esboçar gráficos de funções polinomiais do 1º e 2º grau, identificando vértice, zeros e concavidade.",
+    "Resolver problemas de aplicação envolvendo funções exponenciais e logarítmicas."
+  ],
+  "proximos_passos": [
+    "Revisar os conceitos básicos de matemática do ensino médio, especialmente álgebra e geometria.",
+    "Familiarizar-se com softwares matemáticos como GeoGebra ou MATLAB, que podem ser utilizados em aulas.",
+    "Organizar o material de estudo e criar um cronograma para revisão dos conteúdos programáticos.",
+    "Participar ativamente das atividades na Plataforma Google Classroom e esclarecer dúvidas com o professor e monitores.",
+    "Começar a resolver exercícios práticos de cada tópico conforme forem sendo abordados em sala de aula."
+  ],
+  "perguntas_autoavaliacao": [
+    "Consigo definir e calcular o determinante de uma matriz 3x3 corretamente?",
+    "Sei construir uma tabela verdade para uma proposição composta com conectivos lógicos?",
+    "Entendo a diferença entre uma função e uma relação e consigo identificar o domínio e imagem de uma função dada?",
+    "Consigo resolver um sistema de equações lineares usando álgebra matricial?",
+    "Sei aplicar os conceitos de lógica matemática para construir argumentos válidos?"
+  ]
+}

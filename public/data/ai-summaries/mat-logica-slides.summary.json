@@ -1,0 +1,79 @@
+{
+  "titulo": "Lógica Matemática",
+  "disciplina": "Matemática Aplicada à Computação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 60,
+  "resumo_geral": "Este material aborda os fundamentos da lógica matemática, incluindo proposições, conectivos lógicos e suas operações. A lógica matemática é essencial para a computação, sendo aplicada em bancos de dados, inteligência artificial, algoritmos e linguagens de programação.",
+  "conceitos_chave": [
+    {
+      "conceito": "Proposição",
+      "explicacao": "É uma oração declarativa que pode ser classificada como verdadeira (V) ou falsa (F). Deve ter sujeito e predicado, ser declarativa e ter um valor lógico definido.",
+      "exemplo": "Nove é diferente de cinco (9 ≠ 5) - é uma proposição verdadeira."
+    },
+    {
+      "conceito": "Negação",
+      "explicacao": "Operação lógica que inverte o valor de uma proposição. Se p é verdadeira, ~p é falsa, e vice-versa.",
+      "exemplo": "p: Sete é maior que três (7 > 3) - V; ~p: Sete é menor ou igual a três (7 ≤ 3) - F."
+    },
+    {
+      "conceito": "Conjunção (∧)",
+      "explicacao": "Conectivo lógico que representa 'e'. A conjunção p ∧ q é verdadeira apenas quando ambas as proposições são verdadeiras.",
+      "exemplo": "p: 2 > 0 (V); q: 2 ≠ 1 (V); p ∧ q: 2 > 0 e 2 ≠ 1 (V)."
+    },
+    {
+      "conceito": "Disjunção (∨)",
+      "explicacao": "Conectivo lógico que representa 'ou'. A disjunção p ∨ q é verdadeira quando pelo menos uma das proposições é verdadeira.",
+      "exemplo": "p: 5 > 0 (V); q: 5 > 1 (V); p ∨ q: 5 > 0 ou 5 > 1 (V)."
+    },
+    {
+      "conceito": "Condicional (→)",
+      "explicacao": "Conectivo lógico que representa 'se... então'. O condicional p → q é falso apenas quando p é verdadeira e q é falsa.",
+      "exemplo": "p: dois é divisor de quatro (2 | 4) (V); q: quatro é divisor de vinte (4 | 20) (V); p → q: se dois é divisor de quatro, então quatro é divisor de vinte (V)."
+    },
+    {
+      "conceito": "Bicondicional (↔)",
+      "explicacao": "Conectivo lógico que representa 'se e somente se'. O bicondicional p ↔ q é verdadeiro quando ambas as proposições têm o mesmo valor lógico.",
+      "exemplo": "p: 2 | 12 (V); q: 2⋅7 | 12⋅7 (V); p ↔ q: 2 | 12 se e somente se 2⋅7 | 12⋅7 (V)."
+    }
+  ],
+  "pontos_importantes": [
+    "Uma proposição deve ser declarativa e ter um valor lógico definido (V ou F).",
+    "A negação de uma proposição tem sempre o valor oposto da original.",
+    "A conjunção (e) só é verdadeira quando ambas as proposições são verdadeiras.",
+    "A disjunção (ou) é verdadeira quando pelo menos uma das proposições é verdadeira.",
+    "O condicional (se... então) só é falso quando a primeira proposição é verdadeira e a segunda é falsa.",
+    "O bicondicional (se e somente se) é verdadeiro quando ambas as proposições têm o mesmo valor lógico."
+  ],
+  "formulas_regras": [
+    "Tabela-verdade da negação: p ~p; V F; F V",
+    "Tabela-verdade da conjunção: p q p∧q; V V V; V F F; F V F; F F F",
+    "Tabela-verdade da disjunção: p q p∨q; V V V; V F V; F V V; F F F",
+    "Tabela-verdade do condicional: p q p→q; V V V; V F F; F V V; F F V",
+    "Tabela-verdade do bicondicional: p q p↔q; V V V; V F F; F V F; F F V"
+  ],
+  "erros_comuns": [
+    "Confundir proposição com sentença aberta (frase com variável que não pode ser classificada como V ou F).",
+    "Esquecer que o condicional só é falso quando a primeira proposição é verdadeira e a segunda é falsa.",
+    "Não reconhecer que frases interrogativas ou imperativas não são proposições.",
+    "Confundir disjunção comum com disjunção exclusiva."
+  ],
+  "exercicios_sugeridos": [
+    "Classificar as seguintes frases como proposições ou não: '2 + 2 = 4', 'x + 3 = 5', 'Estude matemática', 'O número 13 é primo?'",
+    "Construir a negação das seguintes proposições: '5 > 3', '10 é par', '3 é divisor de 12'",
+    "Construir tabelas-verdade para as seguintes proposições compostas: p ∧ q, p ∨ q, p → q, p ↔ q",
+    "Determinar o valor lógico das seguintes proposições: 'Se 2 é par, então 3 é ímpar', '2 é par e 3 é ímpar', '2 é par ou 3 é ímpar'"
+  ],
+  "proximos_passos": [
+    "Estudar as leis de De Morgan e suas aplicações.",
+    "Aprofundar em argumentos válidos e formas válidos de raciocínio.",
+    "Estudar quantificadores universais e existenciais.",
+    "Aplicar a lógica matemática em circuitos lógicos e algoritmos."
+  ],
+  "perguntas_autoavaliacao": [
+    "O que diferencia uma proposição de uma sentença aberta?",
+    "Como determinar o valor lógico de uma proposição condicional?",
+    "Qual é a diferença entre disjunção comum e disjunção exclusiva?",
+    "Por que o condicional 'se p, então q' é considerado verdadeiro quando p é falso?",
+    "Como construir a negação de uma proposição composta usando os conectivos lógicos?"
+  ]
+}

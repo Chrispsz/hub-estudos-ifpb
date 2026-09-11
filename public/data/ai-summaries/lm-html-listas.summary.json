@@ -1,0 +1,59 @@
+{
+  "titulo": "Tipos de Listas em HTML",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "Este material aborda os principais tipos de listas em HTML: não ordenadas, ordenadas e de definição. Explica a estrutura correta de cada tipo, suas tags específicas e como organizam visualmente informações em páginas web.",
+  "conceitos_chave": [
+    {
+      "conceito": "Lista não ordenada",
+      "explicacao": "Lista onde a ordem dos itens não é relevante, marcada com círculos ou pontos na frente de cada item.",
+      "exemplo": "<ul><li>Item 1</li><li>Item 2</li></ul>"
+    },
+    {
+      "conceito": "Lista ordenada",
+      "explicacao": "Lista onde a ordem dos itens é importante, marcada com números ou sequência lógica.",
+      "exemplo": "<ol><li>Primeiro passo</li><li>Segundo passo</li></ol>"
+    },
+    {
+      "conceito": "Lista de definição",
+      "explicacao": "Lista usada para termos e suas descrições, funcionando como um glossário.",
+      "exemplo": "<dl><dt>Termo</dt><dd>Descrição do termo</dd></dl>"
+    }
+  ],
+  "pontos_importantes": [
+    "Todos os itens de uma lista devem estar dentro da tag de abertura e fechamento da respectiva lista",
+    "Listas separadas criam visualmente duas listas distintas",
+    "A ordem dos itens em listas ordenadas é significativa para o conteúdo",
+    "Em listas de definição, cada termo deve ter sua descrição correspondente"
+  ],
+  "formulas_regras": [
+    "<ul> para lista não ordenada",
+    "<ol> para lista ordenada",
+    "<li> para itens de lista",
+    "<dl> para lista de definição",
+    "<dt> para termos em lista de definição",
+    "<dd> para descrições em lista de definição"
+  ],
+  "erros_comuns": [
+    "Colocar itens de lista fora das tags <ul> ou <ol>",
+    "Misturar diferentes tipos de listas na mesma estrutura",
+    "Não fechar corretamente as tags de lista"
+  ],
+  "exercicios_sugeridos": [
+    "Criar uma lista não ordenada com suas bandas favoritas",
+    "Desenvolver uma lista ordenada com etapas de um processo",
+    "Construir uma lista de definição explicando termos técnicos de TI"
+  ],
+  "proximos_passos": [
+    "Estudar como estilizar listas com CSS",
+    "Aprender a criar menus de navegação usando listas",
+    "Explorar listas aninhadas em HTML"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual tag é usada para criar uma lista numerada?",
+    "Como você criaria um glossário de termos técnicos em HTML?",
+    "Qual é a diferença visual entre listas ordenadas e não ordenadas?",
+    "Por que é importante manter todos os itens de uma lista dentro das tags corretas?"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "titulo": "HTML: Tags e Elementos Básicos",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "Este material apresenta os conceitos fundamentais de HTML, focando em tags e elementos. Explica como as estruturas básicas de marcação funcionam para organizar e formatar conteúdo na web.",
+  "conceitos_chave": [
+    {
+      "conceito": "Tags",
+      "explicacao": "Símbolos que delimitam diferentes tipos de conteúdo em um documento HTML, informando ao navegador como exibir esses elementos.",
+      "exemplo": "<title> para definir o título da página"
+    },
+    {
+      "conceito": "Elementos",
+      "explicacao": "Combinação de uma tag de início, conteúdo e tag de fechamento que formam uma unidade de significado no documento HTML.",
+      "exemplo": "<title>Conteúdo do título</title>"
+    },
+    {
+      "conceito": "Elementos vazios",
+      "explicacao": "Elementos que não possuem conteúdo e não requerem tag de fechamento, ou podem usar uma forma auto-fechada.",
+      "exemplo": "<br> ou <br /> para quebra de linha"
+    }
+  ],
+  "pontos_importantes": [
+    "As tags são delimitadas por < >",
+    "A maioria das tags precisa de abertura e fechamento",
+    "Tags não são case-sensitive, mas o padrão é usar minúsculas",
+    "Elementos = tag início + conteúdo + tag fechamento"
+  ],
+  "formulas_regras": [
+    "<tag>conteúdo</tag>",
+    "<tag /> para elementos vazios"
+  ],
+  "erros_comuns": [
+    "Esquecer de fechar as tags",
+    "Usar maiúsculas inconsistente nas tags",
+    "Não entender a diferença entre tags e elementos"
+  ],
+  "exercicios_sugeridos": [
+    "Criar um documento HTML básico com diferentes níveis de títulos",
+    "Praticar a criação de parágrafos e elementos vazios",
+    "Reproduzir exemplos de elementos com e sem conteúdo"
+  ],
+  "proximos_passos": [
+    "Atributos e valores em HTML",
+    "Estrutura completa de um documento HTML",
+    "Formatação de texto e parágrafos"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença entre tag e elemento em HTML?",
+    "Por que é importante seguir um padrão de escrita das tags?",
+    "Quais são as características de um elemento vazio em HTML?"
+  ]
+}

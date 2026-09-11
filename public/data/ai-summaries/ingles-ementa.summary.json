@@ -1,0 +1,74 @@
+{
+  "titulo": "ingles-ementa.summary.json",
+  "disciplina": "Inglês Instrumental",
+  "tipo": "ementa",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "Esta disciplina visa desenvolver habilidades de leitura e compreensão de textos técnicos em inglês, com foco na área de informática e questões ambientais. Serão exploradas estratégias de leitura, cognatos, aspectos gramaticais e gêneros textuais específicos. O objetivo é capacitar o estudante a interpretar e utilizar o inglês como uma ferramenta instrumental para sua formação profissional.",
+  "conceitos_chave": [
+    {
+      "conceito": "Skimming",
+      "explicacao": "Estratégia de leitura rápida para obter a ideia geral de um texto.",
+      "exemplo": "Ler rapidamente o título, subtítulos e a primeira frase de cada parágrafo para entender o tema principal."
+    },
+    {
+      "conceito": "Scanning",
+      "explicacao": "Estratégia de leitura para encontrar informações específicas em um texto.",
+      "exemplo": "Procurar por datas, nomes ou números em um artigo técnico para localizar dados precisos."
+    },
+    {
+      "conceito": "Cognatos",
+      "explicacao": "Palavras em diferentes línguas que possuem grafia e significado semelhantes.",
+      "exemplo": "A palavra 'computer' em inglês é um cognato direto de 'computador' em português."
+    },
+    {
+      "conceito": "Falsos cognatos",
+      "explicacao": "Palavras que parecem semelhantes em duas línguas, mas possuem significados diferentes.",
+      "exemplo": "A palavra 'actually' em inglês significa 'na verdade', e não 'actualmente' como em português."
+    },
+    {
+      "conceito": "Gêneros textuais",
+      "explicacao": "Tipos de textos com características estruturais e de linguagem específicas.",
+      "exemplo": "Artigos de blog, manuais de usuário e relatórios técnicos são exemplos de gêneros textuais abordados na disciplina."
+    }
+  ],
+  "pontos_importantes": [
+    "A disciplina foca no uso do inglês como ferramenta para a área de tecnologia, com ênfase em textos de informática e questões ambientais.",
+    "A avaliação é contínua e baseada em 6 atividades ao longo do semestre, divididas em duas notas (N1 e N2).",
+    "O uso estratégico do dicionário e o reconhecimento de cognatos são habilidades fundamentais para a compreensão dos textos.",
+    "A metodologia inclui aulas expositivas, discussões em grupo e o uso de recursos como vídeos e textos da internet.",
+    "A média final (MF) é calculada pela média simples entre a primeira (N1) e a segunda (N2) nota do semestre."
+  ],
+  "formulas_regras": [
+    "Média Final (MF) = (N1 + N2) / 2",
+    "N1 = (A1 + A2 + A3) / 3",
+    "N2 = (B1 + B2 + B3) / 3",
+    "As atividades avaliativas consistem em leituras e produções escritas em inglês."
+  ],
+  "erros_comuns": [
+    "Confundir cognatos com falsos cognatos, levando a interpretações incorretas do texto.",
+    "Utilizar o dicionário de forma excessiva e indiscriminada, em vez de primeiro tentar inferir o significado do contexto.",
+    "Não aplicar as estratégias de leitura (skimming, scanning) de forma adequada, prejudicando a compreensão.",
+    "Focar apenas na tradução literal das palavras, sem considerar o sentido geral do texto ou do gênero textual."
+  ],
+  "exercicios_sugeridos": [
+    "Praticar a leitura de artigos técnicos em inglês sobre tecnologia, aplicando as estratégias de skimming e scanning.",
+    "Criar um glossário pessoal de cognatos e falsos cognatos comuns na área de TI.",
+    "Identificar e classificar diferentes gêneros textuais em sites de notícias ou blogs de tecnologia.",
+    "Traduzir pequenos parágrafos de manuais de software, focando na compreensão de termos técnicos e estruturas gramaticais.",
+    "Escrever resumos em inglês sobre artigos lidos, praticando a produção escrita e a compreensão do conteúdo."
+  ],
+  "proximos_passos": [
+    "Começar a se familiarizar com o vocabulário técnico da área de Análise e Desenvolvimento de Sistemas em inglês.",
+    "Praticar a leitura de textos curtos em inglês, aplicando as estratégias de skimming e scanning.",
+    "Consultar as bibliografias básicas recomendadas, como 'Inglês Instrumental para informática' e 'Basic English for Computing'.",
+    "Participar ativamente das discussões em sala de aula para esclarecer dúvidas e compartilhar interpretações.",
+    "Organizar um cronograma de estudos para revisar os conteúdos programáticos ao longo do semestre."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são as principais estratégias de leitura apresentadas na disciplina e como aplicá-las?",
+    "Como posso distinguir um cognato de um falso cognato? Dê exemplos.",
+    "Por que o inglês instrumental é considerado importante para um profissional de TI?",
+    "Quais são os critérios de avaliação da disciplina e como calcular a média final?",
+    "Como o conhecimento de questões ambientais se relaciona com o aprendizado de inglês instrumental na área de tecnologia?"
+  ]
+}

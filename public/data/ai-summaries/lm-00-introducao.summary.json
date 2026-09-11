@@ -1,0 +1,71 @@
+{
+  "titulo": "Introdução a Linguagens de Marcação",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 30,
+  "resumo_geral": "Linguagens de marcação são sistemas que usam códigos (tags) para descrever a estrutura e semântica de documentos, permitindo formatar e organizar informações. Elas evoluíram de simples formatação visual para representação de significado lógico, com padronização garantida pelo W3C para compatibilidade global. Essas linguagens são fundamentais para web, editores de texto e aplicativos que precisam estruturar conteúdo.",
+  "conceitos_chave": [
+    {
+      "conceito": "Linguagem de Marcação",
+      "explicacao": "Sistema que utiliza marcas (tags) para descrever a estrutura lógica ou semântica de um documento e fornecer instruções sobre como apresentar o conteúdo.",
+      "exemplo": "HTML, onde tags como <b> e </b> formatam texto em negrito."
+    },
+    {
+      "conceito": "Tag",
+      "explicacao": "Código que delimita um texto ou elemento, definindo seu formato ou significado dentro de uma linguagem de marcação.",
+      "exemplo": "No WhatsApp, texto entre *asteriscos* é exibido em negrito."
+    },
+    {
+      "conceito": "Semântica",
+      "explicacao": "Significado atribuído ao conteúdo por meio de marcações, indo além da formatação visual para传达 lógica e importância.",
+      "exemplo": "A tag <strong> indica grande importância, enquanto <b> apenas formata em negrito."
+    },
+    {
+      "conceito": "Padronização",
+      "explicacao": "Processo de estabelecimento de regras comuns para garantir compatibilidade entre diferentes sistemas e interpretadores.",
+      "exemplo": "O W3C define padrões como HTML, CSS e XML para garantir que browsers exibam conteúdo consistentemente."
+    },
+    {
+      "conceito": "W3C",
+      "explicacao": "World Wide Web Consortium, organização responsável por desenvolver e manter padrões para a web desde 1994.",
+      "exemplo": "O W3C criou as especificações de HTML5 que todos os browsers modernos seguem."
+    }
+  ],
+  "pontos_importantes": [
+    "Linguagens de marcação usam tags para delimitar e estruturar conteúdo",
+    "A evolução foi da formatação física (negrito, itálico) para semântica (importância, ênfase)",
+    "Padronização pelo W3C é essencial para compatibilidade global",
+    "Tags diferem do conteúdo propriamente dito",
+    "Exemplos incluem HTML, RSS e formatação em aplicativos como WhatsApp"
+  ],
+  "formulas_regras": [
+    "Sintaxe básica de tags: <nome_da_tag>conteúdo</nome_da_tag>",
+    "Tags autocontidas: <tag atributo=\"valor\"/>",
+    "Diferença entre formatação física (<b>) e semântica (<strong>)"
+  ],
+  "erros_comuns": [
+    "Confundir tags de formatação física com tags semânticas",
+    "Esquecer de fechar tags que exigem fechamento",
+    "Não compreender a importância da padronização",
+    "Não diferenciar conteúdo de marcação"
+  ],
+  "exercicios_sugeridos": [
+    "Criar um documento HTML simples usando diferentes tags de formatação",
+    "Analisar o código-fonte de uma página web para identificar tags",
+    "Praticar formatação de texto em aplicativos que usam marcação (Markdown, WhatsApp)",
+    "Criar um feed RSS básico com notícias fictícias"
+  ],
+  "proximos_passos": [
+    "Estudar em detalhes a linguagem HTML e suas principais tags",
+    "Aprender CSS para estilização de documentos marcados",
+    "Conhecer XML para dados estruturados",
+    "Explorar aplicações de linguagens de marcação em diferentes contextos"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença fundamental entre uma tag de formatação física e uma tag semântica?",
+    "Por que a padronização é importante em linguagens de marcação?",
+    "Como o W3C contribui para o desenvolvimento da web?",
+    "Dê três exemplos de linguagens de marcação e suas aplicações específicas",
+    "Como uma linguagem de marcação pode ser útil para Ciência da Informação?"
+  ]
+}

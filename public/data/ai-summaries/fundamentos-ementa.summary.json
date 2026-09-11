@@ -1,0 +1,69 @@
+{
+  "titulo": "fundamentos-ementa.summary.json",
+  "disciplina": "Fundamentos da Computação",
+  "tipo": "ementa",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "Esta disciplina apresenta os conceitos introdutórios e fundamentais da informática, incluindo a história dos computadores, lógica digital, arquitetura de computadores e representação de dados. O objetivo é fornecer uma base sólida sobre hardware, software e sistemas de informação, além de abordar questões como o lixo eletrônico. O conteúdo é desenvolvido através de aulas expositivas e atividades práticas.",
+  "conceitos_chave": [
+    {
+      "conceito": "Hardware",
+      "explicacao": "Componente física do computador, como processador, memória e periféricos.",
+      "exemplo": "O teclado, o monitor e a CPU são exemplos de hardware."
+    },
+    {
+      "conceito": "Software",
+      "explicacao": "Programas e sistemas operacionais que instruem o hardware a realizar tarefas.",
+      "exemplo": "Windows, Linux e um editor de texto são softwares."
+    },
+    {
+      "conceito": "Lógica Digital",
+      "explicacao": "Estudo de portas lógicas e circuitos digitais que formam a base do computador.",
+      "exemplo": "Portas AND, OR e NAND são fundamentais para processamento binário."
+    },
+    {
+      "conceito": "Representação Binária",
+      "explicacao": "Sistema de numeração base 2 usado por computadores para processar dados.",
+      "exemplo": "O número 5 em decimal é representado como 101 em binário."
+    }
+  ],
+  "pontos_importantes": [
+    "Entender a diferença entre hardware, software e peopleware.",
+    "Compreender a evolução histórica dos computadores.",
+    "Dominar conversões entre bases numéricas (binário, octal, hexadecimal).",
+    "Conhecer a arquitetura básica de um computador e seus componentes.",
+    "Entender o funcionamento das portas lógicas e sua aplicação em circuitos digitais."
+  ],
+  "formulas_regras": [
+    "Média Semestral (MS) = (Av1 + Av2 + Av3) / 3",
+    "Aprovação por média: MS ≥ 70",
+    "Reprovação por média: MS < 40",
+    "Avaliação Final (AF) para 40 ≤ MS < 70",
+    "Média Final (MF) = (6 * MS + 4 * AF) / 10",
+    "Aprovação final: MF ≥ 50"
+  ],
+  "erros_comuns": [
+    "Confundir as diferentes bases numéricas durante conversões.",
+    "Não entender a diferença entre software básico e aplicativo.",
+    "Desconsiderar a importância do lixo eletrônico como problema ambiental.",
+    "Dificuldade em visualizar como as portas lógicas funcionam na prática."
+  ],
+  "exercicios_sugeridos": [
+    "Converter números decimais para binário, octal e hexadecimal.",
+    "Resolver operações aritméticas usando apenas números binários.",
+    "Identificar os componentes principais de um computador e suas funções.",
+    "Pesquisar sobre o impacto do lixo eletrônico no meio ambiente."
+  ],
+  "proximos_passos": [
+    "Revisar os conceitos de lógica digital e portas lógicas.",
+    "Praticar conversões entre bases numéricas regularmente.",
+    "Participar ativamente das discussões no Google Classroom.",
+    "Consultar a bibliografia básica para aprofundar os conhecimentos."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual é a diferença entre hardware e software?",
+    "Como converter o número decimal 25 para binário?",
+    "Quais são os principais componentes de um computador?",
+    "O que são portas lógicas e por que são importantes?",
+    "Qual é a importância do lixo eletrônico na sociedade atual?"
+  ]
+}

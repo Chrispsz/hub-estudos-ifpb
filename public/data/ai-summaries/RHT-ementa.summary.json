@@ -1,0 +1,59 @@
+{
+  "titulo": "RHT-ementa.summary.json",
+  "disciplina": "Relações Humanas no Trabalho",
+  "tipo": "ementa",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "A disciplina Relações Humanas no Trabalho explora a evolução das relações interpessoais no ambiente profissional, abordando temas como ética, soft skills e gestão de conflitos. O objetivo é compreender os fatores que influenciam o comportamento no trabalho para melhorar o desempenho dos grupos. O conteúdo aborda desde o histórico das relações humanas até conceitos contemporâneos como a uberização do trabalho e a importância da comunicação e liderança.",
+  "conceitos_chave": [
+    {
+      "conceito": "Relações Humanas no Trabalho",
+      "explicacao": "Estudo das interações entre pessoas no ambiente profissional, considerando aspectos psicológicos, sociais e organizacionais.",
+      "exemplo": "Como a comunicação eficaz entre colegas de equipe pode melhorar a produtividade."
+    },
+    {
+      "conceito": "Soft Skills",
+      "explicacao": "Habilidades comportamentais e interpessoais que facilitam a interação e o trabalho em grupo.",
+      "exemplo": "Liderança, empatia e resolução de conflitos."
+    },
+    {
+      "conceito": "Ética no Trabalho",
+      "explicacao": "Princípios morais que regem o comportamento profissional e as relações interpessoais no ambiente de trabalho.",
+      "exemplo": "A importância da honestidade na comunicação com colegas e superiores."
+    },
+    {
+      "conceito": "Uberização do Trabalho",
+      "explicacao": "Novas formas de trabalho flexíveis e precarizadas, como o trabalho por aplicativos.",
+      "exemplo": "Entregadores de aplicativos que não têm vínculo empregatício tradicional."
+    }
+  ],
+  "pontos_importantes": [
+    "Compreender a evolução das formas de trabalho e seu impacto nas relações interpessoais.",
+    "Discutir como as relações interpessoais afetam o desempenho dos grupos de trabalho.",
+    "Aprender ferramentas para lidar com conflitos e emoções no ambiente laboral.",
+    "Entender os princípios éticos que devem reger as relações profissionais."
+  ],
+  "formulas_regras": [
+    "A avaliação é contínua e baseada em atividades formativas como estudos de casos, debates e seminários. Não há fórmulas de nota específicas, mas a participação nas atividades é essencial para a aprovação."
+  ],
+  "erros_comuns": [
+    "Desconsiderar a importância das soft skills em favor de apenas habilidades técnicas.",
+    "Não preparar adequadamente para os debates e seminários, o que pode afetar a nota.",
+    "Ignorar a discussão sobre ética e seus impactos no ambiente de trabalho."
+  ],
+  "exercicios_sugeridos": [
+    "Analisar um estudo de caso sobre conflito em equipe e propor soluções.",
+    "Debater um artigo sobre a uberização do trabalho e suas implicações sociais.",
+    "Elaborar um plano de comunicação para melhorar as relações interpessoais em um grupo de trabalho."
+  ],
+  "proximos_passos": [
+    "Revisar a bibliografia básica para aprofundar os conceitos.",
+    "Participar ativamente das aulas expositivas e dialogadas.",
+    "Preparar-se para as atividades práticas como debates e estudos de casos."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são os principais fatores que influenciam o comportamento humano no trabalho?",
+    "Como as relações interpessoais podem contribuir para o desempenho de um grupo?",
+    "Quais ferramentas podem ajudar a resolver conflitos no ambiente laboral?",
+    "Por que a ética é importante nas relações de trabalho?"
+  ]
+}

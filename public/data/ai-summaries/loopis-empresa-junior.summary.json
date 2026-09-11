@@ -1,0 +1,55 @@
+{
+  "titulo": "loopis-empresa-junior.summary.json",
+  "tipo": "documento_institucional",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "A Loopis Jr é uma empresa júnior de tecnologia do curso de Análise e Desenvolvimento de Sistemas do IFPB Campus Cajazeiras, fundada em 2017. Ela oferece serviços como desenvolvimento de software, consultoria e treinamentos, com o objetivo de proporcionar vivência profissional aos seus membros. A estrutura organizacional é composta por setores como Comercial, Projetos, Marketing e Gestão de Pessoas, e já desenvolveu projetos para clientes como o IFPB e a Faculdade Santa Maria.",
+  "conceitos_chave": [
+    {
+      "conceito": "Empresa Júnior",
+      "explicacao": "Organização sem fins lucrativos gerida por estudantes universitários, que oferece serviços reais para o mercado enquanto proporciona experiência profissional aos membros.",
+      "exemplo": "Loopis Jr, associada ao curso de Análise e Desenvolvimento de Sistemas do IFPB."
+    },
+    {
+      "conceito": "Leads",
+      "explicacao": "Potenciais clientes ou interessados em adquirir os serviços da empresa.",
+      "exemplo": "O setor Comercial da Loopis é responsável por captar e analisar os leads."
+    },
+    {
+      "conceito": "Consultor",
+      "explicacao": "Cargo efetivo de um membro da empresa júnior, após o período de experiência como Trainee.",
+      "exemplo": "João Batista, Victor Batista e José Wendell são exemplos de consultores na Loopis."
+    }
+  ],
+  "pontos_importantes": [
+    "Fundada em 2017, a Loopis Jr está vinculada ao curso de Análise e Desenvolvimento de Sistemas do IFPB Campus Cajazeiras.",
+    "Seus principais serviços são o desenvolvimento de aplicações (web, mobile, desktop), consultorias, treinamentos e criação de identidade visual.",
+    "A empresa possui uma estrutura organizacional dividida em setores: Presidência, Comercial, Projetos, Marketing e Gestão de Pessoas.",
+    "A missão da Loopis é oferecer soluções tecnológicas eficientes ao mesmo tempo em que desenvolve as habilidades técnicas e comportamentais dos seus membros.",
+    "Alguns projetos desenvolvidos incluem o Site LabMat para o IFPB, o aplicativo Fala FSM para a Faculdade Santa Maria e o CleftRR para profissionais da área de saúde."
+  ],
+  "formulas_regras": [
+    "Os cargos na empresa são divididos em Trainee (período de experiência), Consultor (cargo efetivo), Assessor (auxiliar de diretoria) e Diretor (gerente do setor).",
+    "A governança da empresa é responsabilidade da Presidência, que analisa, planeja e administra a interligação entre os setores.",
+    "O processo de entrada na empresa inicia com a participação no Processo Seletivo (PS), seguido do período de Trainee."
+  ],
+  "erros_comuns": [
+    "Confundir empresa júnior com uma empresa de estágio; a diferença é que na empresa júnior os membros gerenciam projetos reais para clientes externos.",
+    "Desconsiderar a importância da comunicação clara e assertiva com o cliente, um dos valores fundamentais da Loopis.",
+    "Não compreender que a gestão de projetos na Loopis envolve desde o levantamento de requisitos até a entrega final do produto."
+  ],
+  "exercicios_sugeridos": [
+    "Pesquisar sobre o modelo de empresas juniores no Brasil e como ele se diferencia de estágios e programas de trainee.",
+    "Analisar o site de um dos projetos desenvolvidos pela Loopis, como o Site LabMat, e identificar as funcionalidades descritas no material.",
+    "Elaborar um plano de comunicação para um projeto fictício, seguindo as diretrizes do setor de Marketing da Loopis."
+  ],
+  "proximos_passos": [
+    "Acessar as redes sociais da Loopis (@loopisjr, @loopisjr3893) para acompanhar os projetos e eventos futuros.",
+    "Participar de eventos como a Expo Negócios ou o Impulsiona para conhecer mais sobre a atuação da empresa.",
+    "Entrar em contato através do e-mail loopisjr@gmail.com para obter mais informações sobre como se tornar um membro."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são os principais serviços oferecidos pela Loopis Jr e como eles se relacionam com o curso de Análise e Desenvolvimento de Sistemas?",
+    "Qual é a diferença entre os cargos de Trainee, Consultor, Assessor e Diretor na estrutura da empresa?",
+    "Como a participação em uma empresa júnior pode contribuir para o desenvolvimento profissional de um estudante de tecnologia?"
+  ]
+}

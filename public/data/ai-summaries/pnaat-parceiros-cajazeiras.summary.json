@@ -1,0 +1,51 @@
+{
+  "titulo": "pnaat-parceiros-cajazeiras.summary.json",
+  "tipo": "documento_institucional",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "O PNAAT é um programa nacional de aceleração em tecnologia focado em IoT e IA, com etapas de capacitação EaD, um intensivo Maker e uma residência em empresas. O programa é executado em regiões específicas do Brasil e se direciona a alunos com base tecnológica, com bolsas remuneradas e imersões nacionais e internacionais.",
+  "conceitos_chave": [
+    {
+      "conceito": "PNAAT",
+      "explicacao": "Programa Nacional de Aprendizado Acelerado em Tecnologia, focado em capacitação em IoT e IA na borda.",
+      "exemplo": ""
+    },
+    {
+      "conceito": "Trilha de Fundamentos Edge AI",
+      "explicacao": "Conjunto de cursos EaD sobre Python, Sistemas Embarcados e Inteligência Artificial, necessário para avançar nas fases presenciais.",
+      "exemplo": "Fundamentos em Python (8h), Análise Preditiva de Dados (5h)"
+    },
+    {
+      "conceito": "Residência Colaborativa",
+      "explicacao": "Fase de 3 meses onde o aluno trabalha em uma empresa PME, aplicando os conhecimentos em projetos reais com foco em IoT e IA.",
+      "exemplo": "Bolsa de R$ 3.600/mês por 3 meses"
+    }
+  ],
+  "pontos_importantes": [
+    "O programa tem foco geográfico em cidades específicas do Nordeste e Norte do Brasil.",
+    "Para participar das fases presenciais (Maker e Residência), é obrigatório concluir a capacitação EaD.",
+    "A adesão de uma região ao ciclo seguinte é baseada na quantidade de alunos certificados.",
+    "O programa oferece bolsas remuneradas e KIT Maker para os alunos das fases presenciais."
+  ],
+  "formulas_regras": [
+    "Carga Horária EaD: 75h divididas em 4 trilhas.",
+    "Dedicação EaD: 1 a 2 horas por dia, 5x por semana.",
+    "Intensivo Maker: 2 meses, 4h/dia, bolsa de R$ 1.800/mês + KIT Maker.",
+    "Residência na Empresa: 3 meses, 4h/dia, bolsa de R$ 3.600/mês."
+  ],
+  "erros_comuns": [
+    "Acreditar que a capacitação EaD é opcional; na verdade, é um pré-requisito para as fases presenciais.",
+    "Não se dedicar ao tempo necessário (1-2h/dia) para concluir as trilhas EaD dentro do prazo."
+  ],
+  "exercicios_sugeridos": [],
+  "proximos_passos": [
+    "Verificar as datas de abertura da inscrição para a capacitação EaD.",
+    "Analisar as trilhas de cursos EaD e planejar o estudo.",
+    "Identificar empresas parceiras na sua região de interesse para a fase de residência."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são os pré-requisitos para participar do PNAAT?",
+    "Quais são as 4 etapas do programa e suas durações?",
+    "Qual é a diferença entre a Trilha de Fundamentos e as Trilhas de Sistemas Embarcados e Eletrônica Essenciais?",
+    "Como a adesão de uma região ao programa é mensurada para o próximo ciclo?"
+  ]
+}

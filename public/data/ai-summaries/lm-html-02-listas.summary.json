@@ -1,0 +1,74 @@
+{
+  "titulo": "HTML - Listas",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 30,
+  "resumo_geral": "Este material aborda os diferentes tipos de listas em HTML: não-ordenadas, ordenadas e de definição, explicando suas estruturas, elementos e aplicações práticas.",
+  "conceitos_chave": [
+    {
+      "conceito": "Listas não-ordenadas",
+      "explicacao": "Listas cuja ordem dos itens não é relevante, exibidas com marcadores como pontos, círculos ou quadrados.",
+      "exemplo": "<ul><li>Item 1</li><li>Item 2</li></ul>"
+    },
+    {
+      "conceito": "Listas ordenadas",
+      "explicacao": "Listas com itens que seguem uma sequência específica, exibidos com numeração, letras ou algarismos romanos.",
+      "exemplo": "<ol><li>Primeiro item</li><li>Segundo item</li></ol>"
+    },
+    {
+      "conceito": "Listas de definição",
+      "explicacao": "Listas usadas para exibir termos e suas respectivas definições.",
+      "exemplo": "<dt>Termo</dt><dd>Definição do termo</dd>"
+    },
+    {
+      "conceito": "Elemento <li>",
+      "explicacao": "Representa um item de lista, que deve estar contido em uma lista ordenada ou não-ordenada.",
+      "exemplo": "<li>Item da lista</li>"
+    },
+    {
+      "conceito": "Listas aninhadas",
+      "explicacao": "Técnica de incluir uma lista dentro de outra, útil para criar hierarquias ou subcategorias.",
+      "exemplo": "<ul><li>Item principal<ol><li>Subitem</li></ol></li></ul>"
+    }
+  ],
+  "pontos_importantes": [
+    "O elemento <ul> é usado para listas não-ordenadas",
+    "O elemento <ol> é usado para listas ordenadas",
+    "O elemento <li> define itens de lista",
+    "Listas de definição usam <dl>, <dt> e <dd>",
+    "É possível aninhar diferentes tipos de listas"
+  ],
+  "formulas_regras": [
+    "<ul> para listas não-ordenadas",
+    "<ol> para listas ordenadas",
+    "<li> para itens de lista",
+    "<dl> para lista de definição",
+    "<dt> para termos na lista de definição",
+    "<dd> para definições na lista de definição"
+  ],
+  "erros_comuns": [
+    "Esquecer de fecher tags de lista",
+    "Usar <li> fora de <ul> ou <ol>",
+    "Não aninhar corretamente listas complexas",
+    "Confundir os elementos de lista de definição"
+  ],
+  "exercicios_sugeridos": [
+    "Criar uma lista não-ordenada com disciplinas do curso",
+    "Desenvolver uma lista ordenada com etapas de um processo",
+    "Construir uma lista de definição para termos técnicos",
+    "Criar uma lista aninhada para categorias e subcategorias",
+    "Desenvolver um cardápio usando listas de definição"
+  ],
+  "proximos_passos": [
+    "Estudar tabelas em HTML",
+    "Aprofundar em formulários HTML",
+    "Explorar atributos e estilos de listas",
+    "Praticar combinação de listas com outros elementos HTML"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual elemento HTML devo usar para criar uma lista numerada?",
+    "Como criar uma lista de definição em HTML?",
+    "Qual a diferença entre listas ordenadas e não-ordenadas?",
+    "Como aninhar uma lista dentro de outra em HTML?"
+  ]
+}

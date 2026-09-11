@@ -1,0 +1,87 @@
+{
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 45,
+  "resumo_geral": "Este material apresenta os conceitos fundamentais da linguagem HTML, incluindo sua estrutura básica, elementos, tags, atributos e o uso específico de títulos e parágrafos. É um conteúdo introdutório essencial para quem deseja construir páginas web.",
+  "conceitos_chave": [
+    {
+      "conceito": "HTML",
+      "explicacao": "HyperText Markup Language (Linguagem de Marcação de Hipertexto), linguagem base da internet para estruturar conteúdo em páginas web.",
+      "exemplo": "<!DOCTYPE html><html><head><title>Página</title></head><body><h1>Título</h1><p>Parágrafo</p></body></html>"
+    },
+    {
+      "conceito": "Estrutura Básica",
+      "explicacao": "Estrutura fundamental de um documento HTML composta por DOCTYPE, head e body, que é quase imutável.",
+      "exemplo": "<!DOCTYPE html><html><head>...</head><body>...</body></html>"
+    },
+    {
+      "conceito": "Tags",
+      "explicacao": "Elementos de marcação que definem partes do documento, podendo ser de abertura/fechamento ou auto-fechamento.",
+      "exemplo": "<h1>Título</h1> (fechamento) <br> (auto-fechamento)"
+    },
+    {
+      "conceito": "Elementos",
+      "explicacao": "Combinação de tags e seu conteúdo, formando as estruturas lógicas do documento.",
+      "exemplo": "<p>Este é um parágrafo</p> é um elemento p"
+    },
+    {
+      "conceito": "Atributos",
+      "explicacao": "Informações adicionais fornecidas às tags para alterar seu comportamento ou fornecer metadados.",
+      "exemplo": "<img src=\"imagem.jpg\" alt=\"Descrição\">"
+    },
+    {
+      "conceito": "Títulos",
+      "explicacao": "Elementos que definem títulos e subtítulos em diferentes níveis de importância, de h1 a h6.",
+      "exemplo": "<h1>Título Principal</h1><h2>Subtítulo</h2>"
+    },
+    {
+      "conceito": "Parágrafos",
+      "explicacao": "Elemento que representa um bloco de texto separado verticalmente de outros blocos.",
+      "exemplo": "<p>Este é um parágrafo de texto.</p>"
+    }
+  ],
+  "pontos_importantes": [
+    "Sempre incluir <!DOCTYPE html> no início do documento",
+    "O conteúdo visível ao usuário deve estar dentro da tag <body>",
+    "A tag <head> contém informações não visíveis como metadados",
+    "Usar semanticamente os elementos corretos (h1 para título principal, p para parágrafos)",
+    "A estrutura básica é quase imutável e deve ser memorizada"
+  ],
+  "formulas_regras": [
+    "<!DOCTYPE html>",
+    "<html><head>...</head><body>...</body></html>",
+    "<tag atributo=\"valor\">Conteúdo</tag>",
+    "<tag atributo=\"valor\"> (para tags auto-fechadas)",
+    "<h1> a <h6> para títulos",
+    "<p> para parágrafos"
+  ],
+  "erros_comuns": [
+    "Esquecer de fechar tags que exigem fechamento",
+    "Não usar a estrutura básica correta",
+    "Colocar conteúdo visível dentro da tag <head>",
+    "Usar títulos apenas por estética (h1 para texto grande, h2 para texto menor)",
+    "Esquecer o DOCTYPE no início do documento"
+  ],
+  "exercicios_sugeridos": [
+    "Criar um documento HTML com a estrutura básica",
+    "Adicionar um título h1 e um parágrafo a uma página HTML",
+    "Criar uma página com múltiplos níveis de títulos (h1 a h6)",
+    "Adicionar atributos a elementos como alt em imagens",
+    "Criar uma página com uma estrutura de conteúdo mais complexa usando apenas títulos e parágrafos"
+  ],
+  "proximos_passos": [
+    "Estudar outros elementos HTML como listas, links e imagens",
+    "Aprender sobre formatação de texto com HTML",
+    "Introdução a CSS para estilização de páginas",
+    "Entender o modelo de caixa (box model) em CSS",
+    "Praticar a criação de páginas web completas"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual é a função da tag <!DOCTYPE html> e por que é importante?",
+    "Qual a diferença entre uma tag e um elemento em HTML?",
+    "Onde deve ser colocado o conteúdo que será visível para o usuário na página?",
+    "Quais são os 6 níveis de títulos disponíveis em HTML e qual a diferença entre eles?",
+    "Por que é importante usar semanticamente os elementos corretos em HTML?"
+  ]
+}

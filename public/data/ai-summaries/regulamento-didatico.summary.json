@@ -1,0 +1,55 @@
+{
+  "titulo": "regulamento-didatico.summary.json",
+  "tipo": "documento_institucional",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "O regulamento didático do curso de Análise e Desenvolvimento de Sistemas do IFPB estabelece as normas para aproveitamento de competências, matrícula, processos seletivos e fluxo administrativo. É fundamental para a vida acadêmica do aluno, definindo procedimentos como trancamento, justificativa de faltas e curricularização da extensão. O documento também destaca a importância do uso do SUAP e do e-mail da coordenação para comunicação oficial.",
+  "conceitos_chave": [
+    {
+      "conceito": "Aproveitamento de competências",
+      "explicacao": "Processo que permite ao aluno obter dispensa de disciplinas por meio da comprovação de conhecimentos prévios.",
+      "exemplo": "Resolução AR Nº 79/2021"
+    },
+    {
+      "conceito": "SUAP",
+      "explicacao": "Sistema Universitário de Atividades Acadêmicas e Administrativas, plataforma para trâmites acadêmicos.",
+      "exemplo": "Primeiro acesso e tutorial disponíveis no portal IFPB"
+    },
+    {
+      "conceito": "PSE",
+      "explicacao": "Processo Seletivo Específico para ingresso em cursos superiores do IFPB.",
+      "exemplo": "Resolução AR Nº 16/2022"
+    },
+    {
+      "conceito": "CLAI",
+      "explicacao": "Comissão de Acessibilidade e Inclusão, apoio a alunos com necessidades específicas.",
+      "exemplo": "Resolução AR Nº 57/2023"
+    }
+  ],
+  "pontos_importantes": [
+    "Utilizar SUAP ou e-mail da coordenação (cads.cz@ifpb.edu.br) para dúvidas e processos.",
+    "Proibições: WhatsApp para comunicação acadêmica.",
+    "Documentos essenciais: Regulamento Didático, Disciplinar e de Aproveitamento de Competências.",
+    "Criar e-mail acadêmico é obrigatório para acesso a serviços institucionais."
+  ],
+  "formulas_regras": [
+    "Matrícula: Segue resolução específica do Consuper (Resolução Nº 134).",
+    "Trancamento: Deve ser solicitado via SUAP ou e-mail da coordenação.",
+    "Justificativas de faltas: Devem ser formalizadas conforme o fluxo de processos eletrônicos (Resolução AR Nº 51/2022)."
+  ],
+  "erros_comuns": [
+    "Usar WhatsApp para dúvidas acadêmicas ou solicitações formais.",
+    "Não verificar documentos regulatórios antes de iniciar processos.",
+    "Esquecer de criar e-mail acadêmico, impedindo acesso a sistemas."
+  ],
+  "exercicios_sugeridos": [],
+  "proximos_passos": [
+    "Acessar os links dos regulamentos para consulta detalhada.",
+    "Criar e-mail acadêmico e configurar acesso ao SUAP.",
+    "Familiarizar-se com os fluxos de processos eletrônicos."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são os canais oficiais para comunicação com a coordenação?",
+    "Como solicitar o aproveitamento de competências?",
+    "Qual a importância da curricularização da extensão?"
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "titulo": "Estrutura Básica de HTML",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "HTML é a linguagem de marcação fundamental para criar páginas web, utilizando uma estrutura básica que inclui declaração do documento, elemento raiz, cabeçalho e corpo. O cabeçalho contém metadados e informações não visíveis, enquanto o corpo exibe o conteúdo visível para o usuário. Esta estrutura é essencial para qualquer página web e serve como base para aprender conceitos mais avançados.",
+  "conceitos_chave": [
+    {
+      "conceito": "HTML (HyperText Markup Language)",
+      "explicacao": "Linguagem de marcação de hipertexto usada para estruturar conteúdo na web",
+      "exemplo": "<!DOCTYPE html>"
+    },
+    {
+      "conceito": "Estrutura básica",
+      "explicacao": "Esqueleto mínimo de um documento HTML composto por declaração do documento, html, head e body",
+      "exemplo": "<!DOCTYPE html><html lang=\"pt-br\"><head><meta charset=\"utf-8\"/><title>Título</title></head><body></body></html>"
+    },
+    {
+      "conceito": "Tag DOCTYPE",
+      "explicacao": "Declaração que informa ao navegador que o documento é HTML, não sendo uma tag HTML em si",
+      "exemplo": "<!DOCTYPE html>"
+    },
+    {
+      "conceito": "Tag html",
+      "explicacao": "Elemento raiz que contém todo o conteúdo do documento HTML",
+      "exemplo": "<html lang=\"pt-br\"></html>"
+    },
+    {
+      "conceito": "Tag head",
+      "explicacao": "Contém metadados e informações que não são exibidas diretamente no conteúdo visível",
+      "exemplo": "<head><meta charset=\"utf-8\"/><title>Título da página</title></head>"
+    },
+    {
+      "conceito": "Tag body",
+      "explicacao": "Contém todo o conteúdo visível da página web que será exibido ao usuário",
+      "exemplo": "<body><h1>Título principal</h1><p>Conteúdo do parágrafo</p></body>"
+    },
+    {
+      "conceito": "Meta tag charset",
+      "explicacao": "Define o conjunto de caracteres do documento, permitindo a exibição de diferentes idiomas e símbolos",
+      "exemplo": "<meta charset=\"utf-8\"/>"
+    },
+    {
+      "conceito": "Tag title",
+      "explicacao": "Define o título do documento, geralmente exibido na aba do navegador",
+      "exemplo": "<title>Meu Site Pessoal</title>"
+    }
+  ],
+  "pontos_importantes": [
+    "Todos os documentos HTML são arquivos de texto simples com extensão .html",
+    "A estrutura básica HTML é composta por DOCTYPE, html, head e body",
+    "O cabeçalho (head) contém informações não visíveis ao usuário",
+    "O corpo (body) contém todo o conteúdo visível da página",
+    "A tag DOCTYPE não é uma tag HTML, mas uma instrução para o navegador",
+    "A tag html deve conter o atributo lang para indicar o idioma do documento",
+    "O charset UTF-8 permite exibir caracteres de qualquer idioma",
+    "O título definido na tag title é exibido na aba do navegador, mas não no conteúdo da página"
+  ],
+  "formulas_regras": [
+    "<!DOCTYPE html>",
+    "<html lang=\"código-do-idioma\">",
+    "<head> ... </head>",
+    "<body> ... </body>",
+    "<meta charset=\"utf-8\"/>",
+    "<title> ... </title>"
+  ],
+  "erros_comuns": [
+    "Esquecer de feitar tags corretamente",
+    "Colocar conteúdo visível dentro do head",
+    "Esquecer de definir o charset UTF-8",
+    "Não usar o DOCTYPE no início do documento",
+    "Esquecer de definir o idioma na tag html"
+  ],
+  "exercicios_sugeridos": [
+    "Criar um documento HTML básico com estrutura completa",
+    "Adicionar um título à página e verificar como aparece na aba do navegador",
+    "Experimentar diferentes caracteres usando charset UTF-8",
+    "Criar uma página com um título e um parágrafo no corpo"
+  ],
+  "proximos_passos": [
+    "Aprender sobre tags de títulos e parágrafos",
+    "Estudar outros elementos HTML básicos",
+    "Conhecer atributos HTML",
+    "Aprender sobre semântica em HTML"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual é a função da tag DOCTYPE em um documento HTML?",
+    "Qual a diferença entre o conteúdo do head e do body?",
+    "Por que é importante definir o charset UTF-8 em um documento HTML?",
+    "Onde deve ser colocado o conteúdo que será exibido para o usuário?"
+  ]
+}

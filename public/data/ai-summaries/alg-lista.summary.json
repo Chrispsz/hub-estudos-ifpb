@@ -1,0 +1,80 @@
+{
+  "titulo": "Exercícios de Comandos de Entrada e Saída",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "lista_exercicios",
+  "tempo_estudo_minutos": 120,
+  "resumo_geral": "Esta lista de exercícios aborda o básico da programação, focando em comandos de entrada e saída, variáveis, operações matemáticas e lógicas, além de conversões entre diferentes unidades de medida. Os problemas variam desde cálculos simples como médias até algoritmos mais complexos envolvendo estruturas de repetição e condicionais.",
+  "conceitos_chave": [
+    {
+      "conceito": "Variáveis e Tipos de Dados",
+      "explicacao": "Espaços na memória para armazenar valores, que podem ser de diferentes tipos como inteiros, reais, caracteres e strings.",
+      "exemplo": "int idade = 25; double preco = 19.90; char letra = 'A';"
+    },
+    {
+      "conceito": "Entrada e Saída de Dados",
+      "explicacao": "Operações para receber dados do usuário (entrada) e exibir resultados (saída), geralmente usando funções como scanf, printf, input e print.",
+      "exemplo": "printf('Digite um numero:'); scanf('%d', &numero);"
+    },
+    {
+      "conceito": "Operadores Aritméticos",
+      "explicacao": "Símbolos utilizados para realizar cálculos matemáticos como adição (+), subtração (-), multiplicação (*), divisão (/) e módulo (%).",
+      "exemplo": "soma = a + b; produto = x * y; resto = 10 % 3;"
+    },
+    {
+      "conceito": "Média Aritmética e Ponderada",
+      "explicacao": "Cálculo da média aritmética simples (soma dos valores dividida pela quantidade) e da média ponderada (soma dos valores multiplicados por seus pesos dividida pela soma dos pesos).",
+      "exemplo": "media = (n1 + n2 + n3) / 3; media_ponderada = (n1*p1 + n2*p2 + n3*p3) / (p1 + p2 + p3);"
+    },
+    {
+      "conceito": "Conversão de Unidades",
+      "explicacao": "Transformação de uma unidade de medida para outra, utilizando fórmulas de conversão específicas para cada caso.",
+      "exemplo": "cm = polegadas * 2.54; km = metros / 1000;"
+    }
+  ],
+  "pontos_importantes": [
+    "Declarar variáveis com tipos adequados aos dados que serão armazenados",
+    "Utilizar corretamente os formatadores de entrada e saída (%d, %f, %c, etc.)",
+    "Entender a ordem das operações matemáticas e usar parênteses quando necessário",
+    "Identificar corretamente as fórmulas matemáticas para cada cálculo solicitado",
+    "Lidar com diferentes tipos de dados inteiros e reais em operações matemáticas"
+  ],
+  "formulas_regras": [
+    "Média Aritmética: media = (n1 + n2 + n3) / 3",
+    "Média Ponderada: media = (n1*p1 + n2*p2 + n3*p3) / (p1 + p2 + p3)",
+    "Área do Quadrado: area = lado * lado",
+    "Perímetro do Quadrado: perimetro = 4 * lado",
+    "Área do Círculo: area = π * raio²",
+    "Conversão Celsius para Fahrenheit: F = (C * 9/5) + 32",
+    "Conversão Celsius para Kelvin: K = C + 273.15",
+    "Distância Euclidiana: d = √((x2-x1)² + (y2-y1)²)",
+    "Volume da Esfera: volume = (4/3) * π * raio³"
+  ],
+  "erros_comuns": [
+    "Esquecer de declarar variáveis antes de utilizá-las",
+    "Usar tipos de dados inadequados (ex: int para valores com casas decimais)",
+    "Confusão entre operadores de atribuição (=) e comparação (==)",
+    "Esquecer de usar parênteses para controlar a ordem das operações",
+    "Não inicializar variáveis antes de usá-las em cálculos"
+  ],
+  "exercicios_sugeridos": [
+    "Criar um programa que calcule o IMC (Índice de Massa Corporal)",
+    "Desenvolver um conversor de moedas com múltiplas opções",
+    "Elaborar um programa que resolva equações do segundo grau",
+    "Construir um sistema que verifica se um número é primo ou não",
+    "Desenvolver um programa que calcule o fatorial de um número"
+  ],
+  "proximos_passos": [
+    "Estruturas condicionais (if, else, switch)",
+    "Estruturas de repetição (for, while, do-while)",
+    "Vetores e matrizes",
+    "Funções e procedimentos",
+    "Algoritmos de ordenação e busca"
+  ],
+  "perguntas_autoavaliacao": [
+    "Consigo explicar a diferença entre variáveis inteiras e reais e quando usar cada uma?",
+    "Sou capaz de desenvolver um algoritmo para resolver qualquer problema desta lista sem consulta?",
+    "Compreendo como ocorrem as conversões entre diferentes unidades de medida e quais as fórmulas corretas para cada caso?",
+    "Consigo identificar e corrigir erros comuns em programas de entrada e saída de dados?",
+    "Estou preparado para avançar para estruturas de controle mais complexas como condicionais e laços de repetição?"
+  ]
+}

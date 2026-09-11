@@ -1,0 +1,50 @@
+{
+  "titulo": "Títulos e Parágrafos em HTML",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "Este material aborda os elementos básicos de HTML para estruturação de texto: títulos e parágrafos. Os títulos são usados para hierarquizar o conteúdo com seis níveis diferentes, enquanto os parágrafos organizam o texto em blocos separados.",
+  "conceitos_chave": [
+    {
+      "conceito": "Títulos em HTML",
+      "explicacao": "Elementos que representam títulos e subtítulos, com seis níveis hierárquicos (h1 a h6), onde h1 é o mais importante e maior, e h6 é o menos importante e menor.",
+      "exemplo": "<h1>Top 3 bandas de indie rock</h1>"
+    },
+    {
+      "conceito": "Parágrafos em HTML",
+      "explicacao": "Elemento que representa um bloco de texto, separado de outros blocos por espaços verticais e/ou recuo de primeira linha.",
+      "exemplo": "<p>Indie rock é um gênero musical surgido na década de 1980.</p>"
+    }
+  ],
+  "pontos_importantes": [
+    "As tags de títulos precisam de tag de fechamento correspondente",
+    "Os títulos vão de h1 a h6, sendo h1 o mais importante",
+    "Parágrafos são elementos de bloco, criando espaçamento vertical entre eles",
+    "É importante usar a estrutura correta de documento HTML com <!DOCTYPE html>, <html>, <head> e <body>"
+  ],
+  "formulas_regras": [
+    "<h1> até <h6> para títulos",
+    "<p> para parágrafos"
+  ],
+  "erros_comuns": [
+    "Esquecer de fechar as tags de títulos",
+    "Usar títulos apenas para estilizar texto sem considerar a hierarquia",
+    "Não usar parágrafos para separar blocos de texto"
+  ],
+  "exercicios_sugeridos": [
+    "Criar uma página HTML com diferentes níveis de títulos",
+    "Escrever um texto usando parágrafos e verificar como são exibidos no navegador",
+    "Experimentar a diferença entre parágrafos e quebras de linha"
+  ],
+  "proximos_passos": [
+    "Estudar listas em HTML",
+    "Aprender sobre atributos em HTML",
+    "Conhecer outros elementos de texto como ênfase e citações"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença entre h1 e h6?",
+    "Por que é importante fechar as tags de títulos?",
+    "Como os parágrafos são visualmente diferentes de texto sem parágrafos?",
+    "Qual a importância da estrutura básica de um documento HTML?"
+  ]
+}

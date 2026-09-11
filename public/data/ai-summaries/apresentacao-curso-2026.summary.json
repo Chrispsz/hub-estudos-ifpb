@@ -1,0 +1,56 @@
+{
+  "titulo": "apresentacao-curso-2026.summary.json",
+  "tipo": "documento_institucional",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "O curso de Análise e Desenvolvimento de Sistemas do IFPB é um dos melhores do país, com conceito 5 no ENADE. O curso forma profissionais com competências técnicas em desenvolvimento de software e socioemocionais como liderança e ética. O mercado de TI é promissor, com alta demanda e bons salários, e os alunos podem atuar em empresas nacionais, multinacionais ou empreender. A preparação para a carreira envolve foco, prática, trabalho em grupo e a construção de um portfólio no GitHub e LinkedIn.",
+  "conceitos_chave": [
+    {
+      "conceito": "Competências do Tecnólogo em ADS",
+      "explicacao": "Habilidades técnicas e profissionais definidas pelo INEP para o profissional de Análise e Desenvolvimento de Sistemas.",
+      "exemplo": "Analizar, projetar, documentar, especificar, testar, implantar e manter sistemas computacionais de informação."
+    },
+    {
+      "conceito": "ENADE",
+      "explicacao": "Exame Nacional de Desempenho de Estudantes que avalia a qualidade dos cursos de graduação no Brasil.",
+      "exemplo": "O curso de ADS do IFPB obteve conceito 5 no ENADE de 2021, ficando em 19º lugar no país."
+    },
+    {
+      "conceito": "Pilares da Aprendizagem",
+      "explicacao": "Três pilares fundamentais para o sucesso dos estudos no curso.",
+      "exemplo": "1) Foco, 2) Prática, 3) Grupo."
+    }
+  ],
+  "pontos_importantes": [
+    "O curso tem um histórico excelente no ENADE, com conceito 5 em várias edições.",
+    "O profissional de ADS precisa dominar raciocínio lógico, linguagens de programação e preocupar-se com a qualidade e segurança dos sistemas.",
+    "Competências socioemocionais como liderança, criatividade, resiliência e ética são fundamentais.",
+    "O mercado de TI brasileiro enfrenta uma crise de talentos, com muitas vagas e salários competitivos.",
+    "É importante construir um portfólio no GitHub e um perfil no LinkedIn desde o início do curso."
+  ],
+  "formulas_regras": [
+    "Técnica Pomodoro: Estude/codifique por 25 minutos e descanse por 5 minutos.",
+    "Princípio de melhoria contínua: 'Seja melhor do que ontem!'."
+  ],
+  "erros_comuns": [
+    "Comparar seu progresso com o dos outros alunos, em vez de focar na sua própria evolução.",
+    "Não interagir com os colegas de turma, perdendo a oportunidade de aprendizagem colaborativa.",
+    "Deixar de lado as competências socioemocionais em favor apenas das técnicas."
+  ],
+  "exercicios_sugeridos": [
+    "Criar uma conta no GitHub e fazer o upload de um projeto simples (ex: 'Olá, Mundo!').",
+    "Montar um perfil no LinkedIn e adicionar os professores e colegas de turma.",
+    "Participar ativamente dos grupos de WhatsApp e eventos do curso."
+  ],
+  "proximos_passos": [
+    "Acessar o Portal do Estudante para conhecer a matriz curricular e o Projeto Pedagógico do Curso (PPC).",
+    "Entrar em contato com os professores do 1º período para tirar dúvidas sobre as disciplinas.",
+    "Se inscrever nos grupos de comunicação da turma (WhatsApp e Instagram)."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são as 3 principais competências técnicas de um profissional de ADS?",
+    "Por que o conceito ENADE é importante para um estudante de graduação?",
+    "De que forma as competências socioemocionais podem impactar a carreira de um desenvolvedor de software?",
+    "Quais são os três pilares para uma boa preparação dos estudos, segundo o material?",
+    "Onde você pode encontrar informações oficiais sobre o curso de ADS do IFPB?"
+  ]
+}

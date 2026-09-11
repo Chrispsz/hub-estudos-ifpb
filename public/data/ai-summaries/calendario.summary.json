@@ -1,0 +1,70 @@
+{
+  "titulo": "Calendário Acadêmico IF Sertão-PB 2026",
+  "disciplina": "Calendário Acadêmico",
+  "tipo": "outro",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "O calendário acadêmico do IF Sertão-PB Campus Cajazeiras para 2026 detalha os períodos letivos, férias, feriados, eventos acadêmicos e prazos administrativos para cursos técnicos subsequentes e superiores. O ano está dividido em dois semestres letivos (2026.1 e 2026.2) com recessos em janeiro, fevereiro, junho, julho e dezembro.",
+  "conceitos_chave": [
+    {
+      "conceito": "Semestre Letivo",
+      "explicacao": "Período de ensino e aprendizagem com dias letivos definidos, dividido em dois semestres durante o ano.",
+      "exemplo": "2026.1 inicia em 02/03 e termina em 07/08 com 100 dias letivos."
+    },
+    {
+      "conceito": "Feriados",
+      "explicacao": "Dias não letivos comemorativos de caráter nacional, estadual ou municipal.",
+      "exemplo": "Confraternização Universal (01/01), Carnaval (16-17/02), Paixão de Cristo (03/04)."
+    },
+    {
+      "conceito": "Ponto Facultativo",
+      "explicacao": "Dia em que a frequência não é obrigatória, mas as atividades administrativas podem funcionar normalmente.",
+      "exemplo": "Cinzas (18/02), Corpus Christi (04/06)."
+    },
+    {
+      "conceito": "Sábado Letivo",
+      "explicacao": "Sábados programados como dias letivos, com aulas substituindo dias da semana úteis.",
+      "exemplo": "14/03 (ref. Sexta), 28/03 (ref. Segunda)."
+    },
+    {
+      "conceito": "Férias dos Docentes",
+      "explicacao": "Período de descanso para os professores, sem atividades letivas.",
+      "exemplo": "1ª etapa: 12-16/02, 2ª etapa: 22-30/06, 3ª etapa: 21-31/12."
+    }
+  ],
+  "pontos_importantes": [
+    "Início do semestre 2026.1: 02/03/2026",
+    "Término do semestre 2026.1: 07/08/2026 (100 dias letivos)",
+    "Início do semestre 2026.2: 24/08/2026",
+    "Período de férias em janeiro e fevereiro de 2026",
+    "Semana pedagógica: 24-26/03 (início do semestre) e 18-20/09 (fim do semestre)",
+    "Matrícula online: 26-28/03 (2026.1) e 19-21/09 (2026.2)",
+    "Prazo final para trancamento: 15/04 (2026.1) e 07/10 (2026.2)"
+  ],
+  "formulas_regras": [
+    "Semestre 2026.1: 100 dias letivos (02/03 a 07/08)",
+    "Período de ajustes de matrícula: 2 dias após início do semestre",
+    "Prazo para abertura de processo de colação de grau: 30 dias antes da cerimônia"
+  ],
+  "erros_comuns": [
+    "Confundir ponto facultativo com feriado (no facultativo as atividades podem ocorrer)",
+    "Esquecer que alguns sábados são letivos",
+    "Perder prazos para trancamento de matrícula ou colação de grau"
+  ],
+  "exercicios_sugeridos": [
+    "Marcar em um calendário pessoal todos os feriados e pontos facultativos",
+    "Criar um lembrete para os prazos importantes (matrícula, trancamento, colação de grau)",
+    "Verificar se há eventos acadêmicos relevantes para seu curso específico"
+  ],
+  "proximos_passos": [
+    "Consultar o calendário específico do seu curso",
+    "Verificar as datas de início e término para disciplinas específicas",
+    "Acompanhar o sistema SUAP para atualizações e prazos"
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são as datas de início e término dos semestres letivos de 2026?",
+    "Quais são os períodos de férias dos docentes em 2026?",
+    "Qual é a diferença entre feriado e ponto facultativo?",
+    "Quando ocorre a semana pedagógica do semestre 2026.1?",
+    "Qual o prazo para trancamento de matrícula no semestre 2026.1?"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "titulo": "LM-ementa.summary.json",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "ementa",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "Esta disciplina apresenta os conceitos fundamentais de linguagens de marcação e estilo para a construção de websites. Os alunos aprenderão a estruturar e formatar páginas web usando HTML e CSS, além de explorar padrões web e princípios de acessibilidade. O curso é prático, com foco na aplicação dessas tecnologias na criação de sites completos.",
+  "conceitos_chave": [
+    {
+      "conceito": "HTML",
+      "explicacao": "Linguagem de marcação para estruturar conteúdo na web",
+      "exemplo": "<h1>Título</h1>"
+    },
+    {
+      "conceito": "CSS",
+      "explicacao": "Linguagem de estilo para formatar e estilizar páginas HTML",
+      "exemplo": "body { background-color: lightblue; }"
+    },
+    {
+      "conceito": "Acessibilidade",
+      "explicacao": "Prática de tornar sites utilizáveis por todas as pessoas",
+      "exemplo": "Uso de atributos alt em imagens"
+    },
+    {
+      "conceito": "Box Model",
+      "explicacao": "Conceito CSS que descreve como elementos são renderizados",
+      "exemplo": "margin, border, padding, content"
+    }
+  ],
+  "pontos_importantes": [
+    "A disciplina tem carga horária total de 67h, sendo 30h teóricas e 37h práticas",
+    "A avaliação é composta por 3 atividades práticas: estrutura (45%), codificação visual (45%) e apresentação (10%)",
+    "Serão utilizados softwares como Visual Studio Code e Google Classroom",
+    "Os padrões web e acessibilidade são componentes essenciais do conteúdo"
+  ],
+  "formulas_regras": [
+    "Média Final (MF) = (45*A1 + 45*A2 + 10*A3)/100",
+    "A1: Estrutura do website",
+    "A2: Codificação visual do projeto",
+    "A3: Apresentação do projeto"
+  ],
+  "erros_comuns": [
+    "Esquecer de feitar tags HTML adequadamente",
+    "Não utilizar validação de formulários",
+    "Ignorar princípios de acessibilidade",
+    "Não testar layouts em diferentes dispositivos"
+  ],
+  "exercicios_sugeridos": [
+    "Criar uma página pessoal com HTML e CSS básico",
+    "Desenvolver um formulário de contato completo",
+    "Implementar um layout responsivo com Grid e Flexbox",
+    "Adicionar elementos multimídia a uma página web"
+  ],
+  "proximos_passos": [
+    "Familiarizar-se com o Visual Studio Code",
+    "Praticar estruturas HTML básicas",
+    "Estudar seletores e propriedades CSS",
+    "Começar a pensar em um tema para o projeto final"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual é a diferença entre HTML e CSS?",
+    "Como o Box Model influencia o layout de uma página?",
+    "Por que a acessibilidade é importante na web?",
+    "Quais são os principais elementos de um formulário HTML?"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "titulo": "caest-apoio-estudante.summary.json",
+  "tipo": "documento_institucional",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "A CAEST é o setor do IFSPB Campus Cajazeiras responsável por promover a permanência e o êxito acadêmico dos estudantes por meio de programas de assistência social, financeira e alimentação. Oferece suporte através de uma equipe multiprofissional, gerenciando editais como o IVS, PAPE e acesso ao refeitório, com foco em alunos em situação de vulnerabilidade socioeconômica. Os benefícios são regulamentados por critérios específicos, como renda familiar e desempenho escolar, e requerem a comprovação da situação do estudante.",
+  "conceitos_chave": [
+    {
+      "conceito": "CAEST",
+      "explicacao": "Coordenação de Apoio ao Estudante, setor do IFSPB que visa promover a permanência e o êxito dos estudantes.",
+      "exemplo": "Localização: Bloco 4A - Térreo, Campus Cajazeiras."
+    },
+    {
+      "conceito": "IVS",
+      "explicacao": "Índice de Vulnerabilidade Social, um indicador que detalha as condições de vida do estudante para análise de assistência.",
+      "exemplo": "Pontuação de 0 a 10, com validade de 2 anos."
+    },
+    {
+      "conceito": "PAPE",
+      "explicacao": "Programa de Apoio à Permanência do Estudante, um auxílio financeiro mensal para alunos em vulnerabilidade socioeconômica.",
+      "exemplo": "Valores entre R$ 100 e R$ 300, priorizando alunos da rede pública ou com renda familiar per capita de até um salário mínimo."
+    },
+    {
+      "conceito": "Programa de Alimentação",
+      "explicacao": "Programa que oferece acesso a refeições no restaurante estudantil do campus.",
+      "exemplo": "Voltado para estudantes de cursos presenciais com atividades no contraturno escolar."
+    }
+  ],
+  "pontos_importantes": [
+    "A CAEST é integrada à Política de Assistência Estudantil do IFSPB.",
+    "Os atendimentos são realizados por uma equipe multiprofissional (coordenadora, nutricionista, assistentes sociais, etc.).",
+    "O acesso ao refeitório deve ser solicitado exclusivamente por e-mail.",
+    "O IVS é o primeiro edital publicado no semestre e serve como base para outros benefícios.",
+    "O PAPE exige frequência mínima de 75% e bom desempenho escolar.",
+    "O atendimento presencial ocorre de segunda a sexta, das 07h às 17h."
+  ],
+  "formulas_regras": [
+    "IVS: Pontuação de 0 a 10, com validade de 2 anos.",
+    "PAPE: Valores de R$ 100 a R$ 300, priorizando renda familiar per capita de até um salário mínimo.",
+    "Frequência mínima obrigatória para PAPE: 75%.",
+    "Contato: caest.cz@ifpb.edu.br | Horário de atendimento: 07h às 17h (segunda a sexta)."
+  ],
+  "erros_comuns": [
+    "Solicitar acesso ao refeitório por outros meios que não o e-mail.",
+    "Não comprovar a documentação necessária para os editais de assistência.",
+    "Esquecer que o desempenho escolar é um requisito para o PAPE.",
+    "Não verificar a validade do IVS (2 anos) antes de solicitar outros benefícios."
+  ],
+  "exercicios_sugeridos": [],
+  "proximos_passos": [
+    "Acessar o site do IFSPB Campus Cajazeiras para verificar os editais vigentes.",
+    "Preparar a documentação necessária para solicitar o IVS.",
+    "Entrar em contato com a CAEST para esclarecer dúvidas específicas sobre os programas.",
+    "Manter a frequência e o desempenho escolar para garantir a elegibilidade ao PAPE."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são os objetivos principais da CAEST?",
+    "Quais são os documentos necessários para solicitar o IVS?",
+    "Qual é a renda familiar per capita máxima para ter prioridade no PAPE?",
+    "Como deve ser feita a solicitação para acesso ao refeitório?",
+    "Quais são os requisitos para manter o auxílio do PAPE?"
+  ]
+}

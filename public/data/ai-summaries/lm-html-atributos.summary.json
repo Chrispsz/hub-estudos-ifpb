@@ -1,0 +1,56 @@
+{
+  "titulo": "Atributos e Valores em HTML",
+  "disciplina": "Linguagens de Marcação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "Este material aborda o conceito de atributos e valores em HTML, explicando como eles fornecem informações adicionais sobre os elementos. São apresentados os atributos globais, que se aplicam a todos os elementos HTML, e os atributos data-, que permitem armazenar informações extras sem representação visual.",
+  "conceitos_chave": [
+    {
+      "conceito": "Atributos e Valores",
+      "explicacao": "Propriedades adicionais fornecidas nas tags de início de elementos HTML para fornecer mais informações sobre eles, como formatação ou comportamento específico.",
+      "exemplo": "<html lang=\"pt-br\">"
+    },
+    {
+      "conceito": "Atributos Globais",
+      "explicacao": "Atributos que podem ser usados em qualquer elemento HTML, como 'id' e 'class', que são comumente utilizados para estilização com CSS.",
+      "exemplo": "<div id=\"principal\" class=\"conteudo\">"
+    },
+    {
+      "conceito": "Atributos data-",
+      "explicacao": "Atributos personalizados que permitem armazenar informações extras em elementos HTML padrão, sem representação visual na página.",
+      "exemplo": "<li data-origem=\"reino-unido\">Arctic Monkeys</li>"
+    }
+  ],
+  "pontos_importantes": [
+    "Os valores de atributos devem ser preferencialmente declarados entre aspas duplas",
+    "Um elemento pode ter múltiplos atributos ou nenhum atributo",
+    "Os atributos globais se aplicam a todos os elementos HTML",
+    "Os atributos data- permitem armazenar informações extras sem afetar a visualização"
+  ],
+  "formulas_regras": [
+    "Sintaxe básica: <nome-atributo=\"valor\">",
+    "Atributos data-*: onde * pode ser qualquer nome personalizado"
+  ],
+  "erros_comuns": [
+    "Esquecer de colocar os valores dos atributos entre aspas",
+    "Usar atributos que não existem na especificação HTML",
+    "Não utilizar atributos data- para informações extras que não precisam de visualização"
+  ],
+  "exercicios_sugeridos": [
+    "Criar um documento HTML com elementos que utilizem diferentes tipos de atributos",
+    "Praticar o uso de atributos data- para organizar informações em uma lista",
+    "Experimentar aplicar estilos CSS usando atributos id e class"
+  ],
+  "proximos_passos": [
+    "Estudar os módulos de CSS para entender como os atributos são usados na estilização",
+    "Aprofundar no conhecimento de tags e elementos HTML",
+    "Aprender sobre títulos e parágrafos em HTML"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual é a função principal dos atributos em HTML?",
+    "Qual a diferença entre atributos globais e atributos data-?",
+    "Por que é importante usar aspas ao declarar valores de atributos?",
+    "Como você usaria atributos data- para organizar informações em uma lista de músicas?",
+    "Quais são os atributos mais comumente usados para estilização com CSS?"
+  ]
+}

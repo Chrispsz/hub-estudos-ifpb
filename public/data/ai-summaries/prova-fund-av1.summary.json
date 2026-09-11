@@ -1,0 +1,79 @@
+{
+  "titulo": "Prova Av1 - Fundamentos da Computação (Prof. André)",
+  "disciplina": "Fundamentos da Computação",
+  "tipo": "prova_real",
+  "tempo_estudo_minutos": 90,
+  "resumo_geral": "Primeira avaliação (Av1) de Fundamentos da Computação, aplicada pelo Prof. André Lira Rolim. Total de 9,5 pontos distribuídos em 5 questões discursivas. Conteúdo cobrado: história da computação (5 gerações), pioneiros da computação (Babbage, Ada Lovelace, Turing, Von Neumann), conversão entre bases numéricas (binário, octal, decimal, hexadecimal), aritmética binária (multiplicação e divisão) e operações com bases mistas. Esta prova é a base para saber o que cai nas próximas Av1s.",
+  "conceitos_chave": [
+    {
+      "conceito": "5 Gerações de Computadores",
+      "explicacao": "Cada geração marcada por características, problemas e dispositivos específicos que evoluíram ao longo do tempo (válvulas → transistores → circuitos integrados → microprocessadores → IA/quantum).",
+      "exemplo": "1ª geração: ENIAC (válvulas, calor, tamanho); 2ª: transistores; 3ª: CI; 4ª: microprocessadores; 5ª: IA"
+    },
+    {
+      "conceito": "Pioneiros da Computação",
+      "explicacao": "Babbage (máquina analítica), Ada Lovelace (primeira programadora), Alan Turing (máquina de Turing, criptografia WWII), Von Neumann (arquitetura de computadores).",
+      "exemplo": "Arquitetura de Von Neumann: CPU + memória + entrada/saída - base de todos os computadores modernos"
+    },
+    {
+      "conceito": "Conversão de Bases",
+      "explicacao": "Converter números entre binário (base 2), octal (base 8), decimal (base 10) e hexadecimal (base 16). Cada base tem dígitos próprios.",
+      "exemplo": "14(hex) = 1×16 + 4 = 20(dec) = 10100(bin). CAFA(hex) = 12×4096 + 10×256 + 15×16 + 10 = 51962(dec)"
+    },
+    {
+      "conceito": "Aritmética Binária",
+      "explicacao": "Realizar operações aritméticas (multiplicação e divisão) convertendo de decimal para binário primeiro.",
+      "exemplo": "174 × 13: converter ambos para binário, multiplicar como decimal binário, obter resultado"
+    },
+    {
+      "conceito": "Operações com Bases Mistas",
+      "explicacao": "Resolver problemas que envolvem múltiplas bases: converter tudo para uma base comum (geralmente decimal), operar, e converter o resultado final.",
+      "exemplo": "1710(base 8) ÷ (1111001(base 2) + 2(base 10)) → converter tudo p/ decimal → dividir → resultado em hex"
+    }
+  ],
+  "pontos_importantes": [
+    "Total da prova: 9,5 pontos (distribuídos: Q1=2,0; Q2=2,0; Q3=2,0; Q4=2,0; Q5=1,5)",
+    "Conversão de bases é o tópico mais cobrado (Q3, Q4, Q5 = 5,5 pontos de 9,5 = 58%)",
+    "Memorize as 5 gerações com: características, problemas e dispositivos",
+    "Sabendo a história dos 4 pioneiros (Babbage, Ada, Turing, Von Neumann) garante 2 pontos",
+    "Pratique muito conversão e aritmética - é a base de toda a disciplina",
+    "Questão 4 (bases mistas) é a mais complexa - exige conversão + operação + conversão final"
+  ],
+  "formulas_regras": [
+    "Hex → Decimal: dígito × 16^posição (da direita p/ esquerda, começando em 0)",
+    "Bin → Decimal: dígito × 2^posição",
+    "Octal → Decimal: dígito × 8^posição",
+    "Decimal → Bin: divisões sucessivas por 2, ler restos de baixo p/ cima",
+    "Decimal → Hex: divisões sucessivas por 16, ler restos de baixo p/ cima",
+    "Decimal → Octal: divisões sucessivas por 8",
+    "Para operações mistas: converta tudo para decimal, opere, converta para a base final"
+  ],
+  "erros_comuns": [
+    "Esquecer que hexadecimal vai de 0-9 e A-F (A=10, B=11, C=12, D=13, E=14, F=15)",
+    "Confundir posições na conversão (sempre da direita para esquerda, começando em 0)",
+    "Na divisão binária, esquecer do resto quando não é exata (ex: 200/3)",
+    "Não converter todas as bases para a mesma antes de operar"
+  ],
+  "exercicios_sugeridos": [
+    "Converta 255(dec) para binário, octal e hexadecimal",
+    "Converta 10101010(bin) para decimal, octal e hex",
+    "Calcule 145 × 11 em binário",
+    "Calcule 250 / 5 em binário",
+    "Resolva: 7F(hex) + 1101(bin) - 25(dec) = ? em hex",
+    "Liste as 5 gerações de computadores com 1 característica, 1 problema e 1 dispositivo de cada",
+    "Escreva 1 parágrafo sobre cada pioneiro: Babbage, Ada, Turing, Von Neumann"
+  ],
+  "proximos_passos": [
+    "Após dominar conversão de bases, estude representação de números negativos (complemento de 2)",
+    "Pratique operações aritméticas com binários até automatizar",
+    "Conecte com portas lógicas (próximo conteúdo da Av2)",
+    "Estude arquitetura de Von Neumann (cai em Av3)"
+  ],
+  "perguntas_autoavaliacao": [
+    "Consigo listar as 5 gerações de computadores com suas características principais?",
+    "Sei a contribuição de Babbage, Ada Lovelace, Alan Turing e Von Neumann para a computação?",
+    "Consigo converter qualquer número entre as 4 bases (bin, oct, dec, hex) sem erro?",
+    "Consigo realizar multiplicação e divisão em binário?",
+    "Consigo resolver problemas com bases mistas (converter, operar, converter)?"
+  ]
+}

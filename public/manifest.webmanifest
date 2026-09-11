@@ -1,0 +1,49 @@
+{
+  "name": "Hub de Estudos • IFPB ADS 2026.2",
+  "short_name": "Hub IFPB",
+  "description": "Hub de estudos do 2º período de ADS (IFPB Campus Cajazeiras, 2026.2) — cronograma inteligente, Pomodoro, flashcards, simulados e tutor IA.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c0c0c",
+  "theme_color": "#0c0c0c",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cronograma de hoje",
+      "short_name": "Cronograma",
+      "description": "Ver o plano de estudos de hoje",
+      "url": "/?tab=cronograma"
+    },
+    {
+      "name": "Flashcards para revisar",
+      "short_name": "Flashcards",
+      "description": "Revisão espaçada do dia",
+      "url": "/?tab=praticar"
+    }
+  ]
+}

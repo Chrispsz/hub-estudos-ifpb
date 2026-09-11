@@ -1,0 +1,70 @@
+{
+  "titulo": "alg-tipos-operadores",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "resumo_conceitual",
+  "tempo_estudo_minutos": 30,
+  "resumo_geral": "Este material aborda os tipos de variáveis fundamentais da linguagem C, incluindo inteiros, reais, caracteres e strings, e detalha os operadores aritméticos, relacionais e lógicos, com foco em sua precedência e tabelas da verdade para o controle de fluxo em programas.",
+  "conceitos_chave": [
+    {
+      "conceito": "Tipos de Variáveis",
+      "explicacao": "Classificação dos dados que uma variável pode armazenar na linguagem C, determinando o tipo de informação e o espaço de memória ocupado.",
+      "exemplo": "int idade (para números inteiros), float preco (para números reais), char letra (para um único caractere)"
+    },
+    {
+      "conceito": "Operadores Aritméticos",
+      "explicacao": "Símbolos utilizados para realizar cálculos matemáticos, como adição, subtração, multiplicação e divisão.",
+      "exemplo": "+ (adição), - (subtração), * (multiplicação), / (divisão)"
+    },
+    {
+      "conceito": "Precedência de Operadores",
+      "explicacao": "A ordem na qual as operações aritméticas são executadas em uma expressão, seguindo regras definidas para garantir um resultado correto.",
+      "exemplo": "Em 10 + 2 * 5, a multiplicação é feita primeiro (2 * 5 = 10), resultando em 10 + 10 = 20. Parênteses alteram a ordem: (10 + 2) * 5 = 60."
+    },
+    {
+      "conceito": "Operadores Relacionais",
+      "explicacao": "Símbolos usados para comparar dois valores, resultando em um valor booleano (verdadeiro ou falso), fundamental em estruturas de decisão.",
+      "exemplo": "== (igual a), != (diferente de), > (maior que), < (menor que)"
+    },
+    {
+      "conceito": "Operadores Lógicos",
+      "explicacao": "Operadores que combinam expressões relacionais para formar condições mais complexas, com base na lógica booleana.",
+      "exemplo": "&& (AND - E), || (OR - OU), ! (NOT - NÃO)"
+    }
+  ],
+  "pontos_importantes": [
+    "Multiplicação e divisão têm prioridade sobre adição e subtração.",
+    "Parênteses têm a maior precedência e podem aninhar-se para definir a ordem de cálculo.",
+    "Operadores relacionais sempre retornam 1 (verdadeiro) ou 0 (falso).",
+    "Strings em C são vetores de caracteres terminados por um caractere nulo ('\\0').",
+    "A tabela ASCII define a representação numérica de caracteres."
+  ],
+  "formulas_regras": [
+    "Precedência: () > * / > + -",
+    "Tabela da Verdade AND: 1 && 1 = 1; 1 && 0 = 0; 0 && 1 = 0; 0 && 0 = 0",
+    "Tabela da Verdade OR: 1 || 1 = 1; 1 || 0 = 1; 0 || 1 = 1; 0 || 0 = 0",
+    "Tabela da Verdade NOT: !1 = 0; !0 = 1"
+  ],
+  "erros_comuns": [
+    "Esquecer que a divisão de inteiros em C truncada (descarta a parte decimal).",
+    "Usar = (atribuição) em vez de == (comparação) em condições.",
+    "Não considerar a precedência de operadores, levando a resultados incorretos.",
+    "Esquecer que strings em C são vetores de caracteres e não um tipo primitivo."
+  ],
+  "exercicios_sugeridos": [
+    "Escreva um programa que declare variáveis de cada tipo e realize operações aritméticas.",
+    "Crie expressões aritméticas complexas e imprima os resultados para testar a precedência.",
+    "Desenvolva programas que usem operadores relacionais e lógicos para tomar decisões (if/else).",
+    "Converta um caractere para seu valor ASCII e vice-versa."
+  ],
+  "proximos_passos": [
+    "Estudar estruturas de controle de fluxo (if, else, switch, for, while).",
+    "Aprofundar no conceito de vetores e strings em C.",
+    "Praticar a resolução de problemas lógicos usando os conceitos aprendidos."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual é a diferença entre os tipos int e float?",
+    "Qual será o resultado da expressão 10 + 5 * 2?",
+    "Como você verifica se uma variável 'a' está no intervalo de 10 a 20 usando operadores lógicos?",
+    "O que o operador ! faz e qual seu efeito em uma expressão booleana?"
+  ]
+}

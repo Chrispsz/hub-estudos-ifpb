@@ -1,0 +1,59 @@
+{
+  "titulo": "regulamento-disciplinar.summary.json",
+  "tipo": "documento_institucional",
+  "tempo_estudo_minutos": 15,
+  "resumo_geral": "O Regulamento Disciplinar do IFPB estabelece o estatuto disciplinar para discentes de cursos superiores e técnicos, definindo direitos, deveres e medidas aplicáveis em casos de indisciplina. O documento institui o Conselho Disciplinar como órgão responsável por analisar processos e aplicar sanções, garantindo o direito à defesa do estudante. O objetivo é promover um ambiente educacional seguro, respeitoso e de qualidade, alinhado aos princípios de convivência e conduta acadêmica.",
+  "conceitos_chave": [
+    {
+      "conceito": "Conselho Disciplinar",
+      "explicacao": "Colegiado responsável por acompanhar e julgar processos disciplinares do corpo discente do IFPB, composto por representantes da coordenação, turma, COPED e CAEST.",
+      "exemplo": "Um discente que cometer uma falta disciplinar terá seu caso analisado pelo Conselho Disciplinar do respectivo campus."
+    },
+    {
+      "conceito": "Direitos do Discente",
+      "explicacao": "Privilégios garantidos ao estudante, como tratamento igualitário, direito à defesa, acesso a serviços de apoio e participação em atividades acadêmicas.",
+      "exemplo": "Um discente pode recorrer de uma medida disciplinar garantindo seu direito de ampla defesa."
+    },
+    {
+      "conceito": "Deveres do Discente",
+      "explicacao": "Obrigações do estudante, como cumprir os regulamentos, manter comportamento respeitoso e ser assíduo às aulas.",
+      "exemplo": "Faltar sem justificativa a aulas programadas configura descumprimento de dever."
+    },
+    {
+      "conceito": "Medidas Disciplinares",
+      "explicacao": "Sanções aplicadas ao discente em casos de indisciplina, como advertência ou suspensão.",
+      "exemplo": "Um estudante que perturbar a ordem em sala de aula pode receber uma advertência do Conselho Disciplinar."
+    }
+  ],
+  "pontos_importantes": [
+    "O corpo discente inclui todos os alunos matriculados nos cursos superiores e técnicos subsequentes do IFPB.",
+    "O Conselho Disciplinar pode funcionar de forma simplificada em casos urgentes, com a participação mínima de três membros.",
+    "O discente tem direito a ser ouvido durante o processo disciplinar e a recorrer das decisões.",
+    "A tolerância para atraso na primeira aula é de no máximo 10 minutos, sem tolerância para demais horários.",
+    "O discente deve ser respeitado em suas convicções e diferenças, sem preconceitos de qualquer natureza."
+  ],
+  "formulas_regras": [
+    "Prazo para interposição de recursos: 3 dias úteis após notificação da decisão.",
+    "Tolerância para atraso: 10 minutos apenas no primeiro horário de aula.",
+    "Composição do Conselho Disciplinar: Presidente (coordenação de turno), representante da COPED, representante da CAEST, representante da turma e representante da coordenação do curso."
+  ],
+  "erros_comuns": [
+    "Chegar atrasado em horários de aula além do primeiro horário, sem tolerância.",
+    "Desrespeitar colegas ou servidores, configurando desrespeito e indisciplina.",
+    "Não comparecer às convocações do Conselho Disciplinar, o que pode agravar a situação.",
+    "Ignorar os direitos e deveres estabelecidos no regulamento, resultando em medidas disciplinares."
+  ],
+  "exercicios_sugeridos": [],
+  "proximos_passos": [
+    "Leitura completa do regulamento para detalhamento das medidas disciplinares.",
+    "Consultar a resolução específica sobre o funcionamento do Conselho Disciplinar.",
+    "Familiarizar-se com os canais de comunicação para denúncia ou solicitação de apoio."
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são os principais direitos e deveres de um discente do IFPB?",
+    "Como é composto o Conselho Disciplinar e qual sua função?",
+    "Quais são as consequências de uma falta disciplinar?",
+    "Qual o prazo para recorrer de uma medida disciplinar?",
+    "Como o regulamento trata casos de discentes com necessidades específicas?"
+  ]
+}

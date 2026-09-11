@@ -1,0 +1,68 @@
+# 🎓 Hub de Estudos — IFPB ADS 2026.2
+
+App de estudos pessoal para o 2º período de **Análise e Desenvolvimento de Sistemas** no IFPB Campus Cajazeiras (2026.2) — construído em Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui.
+
+## ✨ O que tem dentro
+
+- **Dashboard** com semana atual do semestre, agenda acadêmica oficial e próximas avaliações **com data oficial** (política anti-estimativa: sem data divulgada = "data a confirmar", nunca um prazo inventado)
+- **7 disciplinas** com materiais, tópicos de estudo, progresso por item e PDFs integrados (visualizador com tutor IA embutido)
+- **Tutor IA** em PT-BR (`/api/tutor`) via OpenRouter com cadeia de modelos gratuitos + fallback — responde com base no contexto real do app (professor, datas oficiais, progresso do aluno)
+- **Flashcards** gerados por IA com revisão espaçada
+- **Pomodoro**, **exercícios interativos em C**, **mapa de tópicos** e **timeline do semestre**
+- PWA: instalável, com service worker e manifest
+
+## 🧠 Política de dados
+
+- Todo o progresso do aluno (materiais, tópicos, pomodoro, flashcards) fica **no navegador** (localStorage) — sem cadastro, sem servidor de dados.
+- O tutor só usa **datas oficiais** enviadas pelo front. Avaliações sem data divulgada nunca recebem prazo estimado.
+
+## 🚀 Rodando localmente
+
+```bash
+# 1. instale as dependências (npm, pnpm ou bun)
+bun install
+
+# 2. configure a chave do tutor
+echo 'OPENROUTER_API_KEY=sua_chave' > .env
+
+# 3. rode
+bun run dev
+```
+
+> A chave `OPENROUTER_API_KEY` é opcional para o app funcionar (o tutor tem fallback), mas obrigatória para os modelos gratuitos da OpenRouter.
+
+## ▲ Deploy na Vercel
+
+O projeto é 100% compatível com a Vercel — Next.js 16 App Router, sem banco em runtime, sem serviços externos além da OpenRouter:
+
+1. **Importe o repositório** em [vercel.com/new](https://vercel.com/new) (framework detectado: Next.js, build `next build`, nada para ajustar).
+2. **Adicione a variável de ambiente** em *Settings → Environment Variables*:
+
+   | Nome | Valor | Ambientes |
+   | --- | --- | --- |
+   | `OPENROUTER_API_KEY` | sua chave da [openrouter.ai/keys](https://openrouter.ai/keys) | Production, Preview, Development |
+
+3. **Deploy.** Pronto — o tutor responde pelos modelos free da OpenRouter.
+
+### Notas técnicas
+
+- `next.config.ts` usa `output: "standalone"` — a Vercel lida com isso nativamente.
+- `prisma/` + SQLite estão presentes como scaffold opcional; **nada no runtime os utiliza** e nenhuma configuração de banco é necessária.
+- Os PDFs das disciplinas e dados do curso são estáticos em `public/` e `src/data/`.
+
+## 🗂️ Estrutura principal
+
+```
+src/
+├── app/
+│   ├── page.tsx            # App principal (client-side)
+│   └── api/tutor/          # Tutor IA + flashcards (OpenRouter + fallback)
+├── components/hub/         # Dashboard, disciplinas, PDF viewer, tutor, pomodoro…
+├── data/course-data.ts     # Disciplinas, professores, avaliações com data oficial
+├── lib/                    # semester.ts (calendário), tutor-context.ts, progresso…
+└── public/pdfs/            # Materiais oficiais das disciplinas
+```
+
+---
+
+Feito com 💚 para a turma de ADS — IFPB Campus Cajazeiras.

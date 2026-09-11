@@ -1,0 +1,73 @@
+{
+  "titulo": "algoritmo-ementa.summary.json",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "ementa",
+  "tempo_estudo_minutos": 20,
+  "resumo_geral": "Esta disciplina introduce os fundamentos da programação de computadores, ensinando a construir algoritmos e desenvolver programas em linguagem C. Aborda desde conceitos básicos como tipos de dados e operadores, até estruturas de controle como condicionais e laços de repetição, além de modularização e recursividade. O objetivo é capacitar o aluno a resolver problemas de forma estruturada e lógica.",
+  "conceitos_chave": [
+    {
+      "conceito": "Algoritmo",
+      "explicacao": "Sequência finita de passos para resolver um problema.",
+      "exemplo": "Receita de bolo: 1) Misturar ingredientes, 2) Assar por 40 minutos."
+    },
+    {
+      "conceito": "Variável",
+      "explicacao": "Espaço na memória para armazenar dados que podem mudar durante a execução do programa.",
+      "exemplo": "int idade = 25;"
+    },
+    {
+      "conceito": "Estrutura Condicional",
+      "explicacao": "Comandos que executam blocos de código diferentes com base em condições.",
+      "exemplo": "if (idade >= 18) { printf('Maior de idade'); }"
+    },
+    {
+      "conceito": "Laço de Repetição",
+      "explicacao": "Estrutura que permite repetir um bloco de código várias vezes.",
+      "exemplo": "for (int i = 0; i < 10; i++) { printf('%d', i); }"
+    },
+    {
+      "conceito": "Função",
+      "explicacao": "Bloco de código reutilizável que executa uma tarefa específica.",
+      "exemplo": "int somar(int a, int b) { return a + b; }"
+    }
+  ],
+  "pontos_importantes": [
+    "A disciplina é ministrada em formato presencial, com aulas expositivas e dialogadas.",
+    "A avaliação é feita exclusivamente por três provas escritas, com média aritmética simples.",
+    "O pré-requisito é fundamental para garantir o conhecimento necessário para acompanhar o conteúdo.",
+    "A linguagem C será a principal ferramenta para implementar os algoritmos estudados.",
+    "A modularização e a recursividade são tópicos avançados que exigem prática constante."
+  ],
+  "formulas_regeras": [
+    "Média Final = (Nota1 + Nota2 + Nota3) / 3",
+    "A média deve ser igual ou superior a 60 para aprovação."
+  ],
+  "erros_comuns": [
+    "Esquecer de inicializar variáveis antes de usá-las.",
+    "Confusão entre operadores de atribuição (=) e comparação (==).",
+    "Laços de repetição que não terminam (loop infinito).",
+    "Não validar entradas do usuário, levando a comportamentos inesperados.",
+    "Não modularizar o código, tornando-o difícil de ler e manter."
+  ],
+  "exercicios_sugeridos": [
+    "Desenvolver algoritmos para calcular a média de notas de alunos.",
+    "Criar programas que simulem calculadoras simples (+, -, *, /).",
+    "Implementar estruturas condicionais para classificar números como positivo, negativo ou zero.",
+    "Exercícios de laços para imprimir padrões (ex: pirâmides de asteriscos).",
+    "Desenvolver funções para calcular fatoriais e sequências de Fibonacci."
+  ],
+  "proximos_passos": [
+    "Familiarizar-se com a sintaxe da linguagem C.",
+    "Praticar a escrita de algoritmos em pseudocódigo antes de codificar.",
+    "Participar ativamente das aulas e tirar dúvidas com o professor.",
+    "Utilizar o Google Classroom como ferramenta de apoio e comunicação.",
+    "Começar a resolver os exercícios sugeridos para fixar o conteúdo."
+  ],
+  "perguntas_autoavaliacao": [
+    "O que é um algoritmo e por que ele é fundamental na programação?",
+    "Quais são os tipos de dados básicos em C e como declará-los?",
+    "Qual a diferença entre um laço 'for' e um laço 'while'?",
+    "Como uma função pode simplificar a escrita de um programa complexo?",
+    "O que pode acontecer se um laço de repetição não tiver uma condição de saída?"
+  ]
+}
