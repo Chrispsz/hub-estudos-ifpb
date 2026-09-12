@@ -1,0 +1,173 @@
+INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ CAMPUS: CAJAZEIRAS SEMESTRE: 2026.2 CURSO: ADS
+
+ DISCIPLINA: MATEMÁTICA APLICADA À COMPUTAÇÃO PROFESSOR: EUDES FERREIRA
+
+ MATRIZES
+
+1- Construa as seguintes matrizes:
+ 1, =
+a) 𝐴 = ( )2×2 tal que =2+ + b) 𝐴 = ( )3×3 tal que ={
+ 0, ≠
+ 2 − , >
+ 1, + =4
+c) = ( )3×3 tal que ={ d) = ( )4×3 tal que ={ , =
+ 0, + ≠4
+ − 3, <
+2- A matriz seguinte representa as distâncias (em quilômetros) entre as cidades , e :
+ 0 15 27
+ = [15 0 46].
+ 27 46 0
+Cada elemento dessa matriz fornece a distância entre as cidades e , com { , } ⊂ {1, 2, 3}. Se a cidade
+ é representada pelo número 1, pelo número 2 e por 3:
+a) determine as distâncias entre e , entre e , e e .
+b) qual é a transposta da matriz D?
+ + 2 7
+3- Determine x, y e z reais que satisfaçam ( )=( ).
+ 4 − ² 1
+ 2
+ 2 3
+4- Determine x, y, z e t de modo que se tenha [ ]=[ ].
+ 4 5 2 5
+5- Determine os números reais , , , , e que tornam verdadeira a igualdade:
+ +3 +2 +1
+ [ ] = 03×2.
+ 5− 2
+6- Define-se distância entre duas matrizes 𝐴 = ( ) e = ( ) quadradas de mesma ordem n pela
+ 1 2
+fórmula (𝐴; ) = á | − |com , = 1,2,3, … , . Calcule a distância entre as matrizes ( )e
+ 3 4
+ 5 6
+( ).
+ 7 8
+7- Calcule a soma = ( )3×3 das matrizes 𝐴 = ( )3×3 e = ( )3×3 tais que = 2+ ²e =
+2 .
+8- Sejam as matrizes 𝐴 = ( )10×12 , em que = 2 − , e = ( )10×12, em que = + , Seja =
+𝐴 + em que em que = + .
+a) Obtenha os valores de 78 e 95 .
+b) Obtenha a fórmula que fornece o valor de um elemento genérico em função de e .
+ 1 5 7 2 4 6
+9- Dadas 𝐴 = [ ], = [ ] e = [0 −1 −5], calcule:
+ 3 9 11 8 10 12 1 4 7
+a) 𝐴 + + b) 𝐴 − + c) 𝐴 − − d) −𝐴 + −
+10- Determine e de modo que se tenha:
+ ³ 3 − ² −1 1 5 1
+ [ ]+[ ]+[ ]=[ ]
+ ² 4 2 ² 2 2 10 −1
+11- Resolva as seguintes equações matriciais:
+ 1 4 7 −1 2 11
+ 1
+ 1
+ 5 3 −1 −3
+a) − ( )=( ) b) ( 2 ) + ( 7 5 ) = − ( 2 − 1)
+ −2 5 −3 −3 4 1 0 2 3 7 3 6
+
+---
+
+ 1 1 3 4 1 1 0 6
+12- Calcule as matrizes 2𝐴, , (𝐴 + ) e − (2𝐴 − ] e B= [
+ ), sendo dadas 𝐴 = [ ].
+ 3 2 5 3 5 7 9 3
+13- Sejam 𝐴 e matrizes quaisquer do tipo × e e são números reais quaisquer. Mostre que o
+produto de um número por uma matriz apresenta as seguintes propriedades:
+a) ∙ ( ∙ 𝐴) = ( ∙ ) ∙ 𝐴 b) ∙ (𝐴 + ) = ∙ 𝐴 + ∙
+c) ( + ) ∙ 𝐴 = ∙ 𝐴 + ∙ 𝐴 d) 1 ∙ 𝐴 = 𝐴
+ 1 2 3 0
+14- Se ∙ [−2] + ∙ [ 3 ] + ∙ [2] = [0], determine os valores de , e .
+ −3 −1 1 0
+ 1 7 2 1 0 2
+15- Se 𝐴 = [ ], = [ ]e = [ ], determine em cada uma das equações abaixo:
+ 2 6 4 3 2 0
+ 1 1 1
+a) 3 + 𝐴 = − b) + 𝐴 = 2 ( − ) c) 2 ( − 𝐴 − ) = 3 ( − )
+16- Determine as matrizes e que satisfazem os sistemas abaixo:
+ + =𝐴
+a) { , sendo dadas 𝐴 = [1 4 7] e = [2 1 5];
+ − =
+ 1 2
+ 2 +3 =𝐴+
+b) { , em que 𝐴 = [3] e = [5].
+ 3 −4 =𝐴−
+ 9 0
+17- Calcule os seguintes produtos:
+ 0 1 4 7
+a) [ ][ ]
+ 1 0 2 3
+ 1
+b) [2] [3 1 1 2]
+ 3
+ −2 1 −2 3 2 −1
+c) [ ].[ ]
+ 0 3 −1 0 0 −4
+ 0 1 2 4 −1 1
+d) [ 1 1 3 ] [0 3 −2]
+ −3 −2 −7 2 1 3
+18- Considere as matrizes 𝐴 = ( )4×7, definida por = − , =( )7×9, definida por = e
+ =( ), = 𝐴 . Determine o elemento 23.
+ 1 1
+19- Se ∈ ℕ∗ e 𝐴 é uma matriz quadrada, definimos 𝐴 = ⏟
+ 𝐴 ∙ 𝐴 ∙ 𝐴 ∙ … ∙ 𝐴. Sendo 𝐴 = [ ] , determine:
+ 0 1
+a) 𝐴2 b) 𝐴3 c) 𝐴4 d) 𝐴25 e) 𝐴
+ 1 2 1 0
+20- Se 𝐴 = [ ], determine 𝐴2 + 2𝐴 − 11 ∙ , em que = [ ].
+ 4 −3 0 1
+21- Resolva as seguintes equações matriciais:
+ 1 1 1 1 0 0
+ 1 −3 0
+a) [ ]∙ =[ ] b) ∙ [0 1 1] = [1 1 0]
+ 2 5 −11
+ 0 0 1 2 1 1
+ 1 2 2 3 10
+22- Sabe-se que 𝐴 = [3 5], = ( ) é uma matriz diagonal ( = 0 se ≠ ) e 𝐴 = [6 12 25].
+ 2 3 4 9 20
+Determine os valores de , e .
+23-Calcule, em cada caso, as matrizes que comutam com 𝐴.
+ 1 0 0
+ 2 1
+a) 𝐴 = [ ] b) 𝐴 = [1 1 0]
+ 0 1
+ 0 1 1
+24- Prove que, se 𝐴 e são matrizes comutáveis, então valem as seguintes igualdades:
+a) (𝐴 + )2 = 𝐴2 + 2𝐴 + ² b) (𝐴 − )2 = 𝐴2 − 2𝐴 + ²
+c) (𝐴 + )3 = 𝐴3 + 3𝐴2 + 3𝐴 2 + 3 d) (𝐴 − )3 = 𝐴3 − 3𝐴2 + 3𝐴 2 − 3
+
+---
+
+25- Calcule todas as matrizes , quadradas de ordem 2, tais que 2 = 2 .
+26- Determine, em cada caso, a matriz :
+ 1 2 5] 1 2 0 0 1 1 1 4
+a) = [ b) + [ ]=[ ] c) 3 = [ ]−[ ]
+ −1 7 2 5 1 2 3 2 7 7 2
+ 1 2 −1 2 −1
+27- Sendo 𝐴 = [ ], = [ ] e 𝐴 a matriz transposta de 𝐴, detemrine o valor de 𝐴 ∙ .
+ 0 −1 2 1 0
+ 1 5
+28- Determine , , para que a matriz 𝐴 = [2 7 −4] seja simétrica.
+ −3
+ 0 −4 2
+29- Determine , , para que a matriz 𝐴 = [ 0 1 − ] seja antissimétrica.
+ 2 0
+30- Prove que, se 𝐴 e são matrizes simétricas de ordem , então 𝐴 + também é simétrica.
+31- Determine a inversa de cada matriz abaixo.
+ 1 1 0 1 9 5
+ 5 6 2 5
+a) 𝐴 = [ ] b) = [ ] c) = [1 0 1] d) = [3 1 2]
+ 4 5 1 3
+ 0 1 1 6 4 4
+ 1 2 2 −1
+32- Sejam 𝐴 = [ ]e = [ ] duas matrizes. Se é a inversa de 𝐴, calcule o valor de + .
+ 1 4
+ 1 2 13
+33- Resolva a equação matricial: [ ] ∙ = [ ].
+ 1 3 18
+34- Sendo 𝐴 e matrizes inversíveis de ordem , isole a partir de cada equação abaixo:
+ a) 𝐴 = b) (𝐴 )−1 = c) 𝐴 = 𝐴 d) (𝐴 ) = e) (𝐴 + ) =
+ 3 4 5 −2
+35- Dadas as matrizes 𝐴 = [ ]e = [ ], determine a matriz , tal que ( 𝐴)−1 = .
+ −2 1 0 3
+
+ BONS ESTUDOS!
+
+---

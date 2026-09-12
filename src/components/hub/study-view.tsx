@@ -62,6 +62,7 @@ import { DisciplineIcon } from '@/lib/discipline-icons';
 import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { buildHubContext } from '@/lib/tutor-context';
+import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
 
@@ -208,6 +209,27 @@ function buildWelcome(shortName: string): string {
   return `Olá! Sou o tutor IA de ${shortName}. 🤖\n\nConheço **seu progresso**, o **calendário do semestre** e os **materiais do Hub** — posso explicar o tópico atual, dar exemplos com código, lembrar as datas das provas ou responder o que você precisar. Toque em uma sugestão ou digite sua dúvida.`;
 }
 
+/** Indicador "Pensando" com cronômetro — modelos grátis podem levar até ~30s. */
+function ThinkingBubble() {
+  const [secs, setSecs] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setSecs((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex items-center gap-2" role="status" aria-live="polite">
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10">
+        <Loader2 className="size-4 animate-spin text-emerald-400" />
+      </div>
+      <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" />
+        Pensando...
+        <span className="tabular-nums text-xs opacity-70">{secs}s</span>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Componente ----------
 
 export function StudyView({
@@ -269,6 +291,8 @@ export function StudyView({
   ]);
   const [chatInput, setChatInput] = React.useState('');
   const [chatLoading, setChatLoading] = React.useState(false);
+  /** Texto da resposta em streaming (bubble viva). null = nada em transmissão. */
+  const [streamText, setStreamText] = React.useState<string | null>(null);
 
   // ----- Derivados -----
   const discipline = getDisciplineByCode(disciplineCode) ?? disciplines[0];
@@ -713,13 +737,47 @@ export function StudyView({
   React.useEffect(() => {
     setMessages([{ role: 'assistant', content: buildWelcome(disciplineShortName) }]);
     setChatLoading(false);
+    setStreamText(null);
   }, [disciplineShortName]);
+
+  // Memória: restaura a conversa salva da disciplina ao abrir o chat.
+  React.useEffect(() => {
+    if (!chatOpen) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/tutor/history?discipline=${encodeURIComponent(disciplineCode)}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          messages?: { role: 'user' | 'assistant'; content: string; model?: string }[];
+        };
+        const restored = data.messages;
+        if (alive && restored && restored.length > 0) {
+          setMessages((prev) => {
+            // já há conversa em andamento nesta disciplina → não duplica
+            if (prev.some((m) => m.role === 'user')) return prev;
+            return [
+              { role: 'assistant' as const, content: buildWelcome(disciplineShortName) },
+              ...restored,
+            ];
+          });
+        }
+      } catch {
+        // sem histórico (offline/db) — segue só com o welcome
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [chatOpen, disciplineCode]);
 
   // Auto-scroll do chat
   React.useEffect(() => {
     const el = messagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, chatLoading, chatOpen]);
+  }, [messages, chatLoading, chatOpen, streamText]);
 
   const sendQuestion = async (question: string) => {
     const q = question.trim();
@@ -728,45 +786,48 @@ export function StudyView({
     setMessages((prev) => [...prev, { role: 'user', content: q }]);
     setChatInput('');
     setChatLoading(true);
+    setStreamText(null);
     try {
-      const res = await fetch('/api/tutor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await streamTutorAnswer(
+        {
           question: q,
           discipline: discipline.name,
+          disciplineCode,
           topic: chatTopic,
           material: selectedMaterial?.title,
+          materialId: selectedMaterial?.id,
           history,
           hubContext: buildHubContext(disciplineCode, sp),
-        }),
-      });
-      const data = (await res.json().catch(() => null)) as {
-        answer?: string;
-        model?: string;
-        error?: string;
-      } | null;
-      if (!res.ok) {
-        throw new Error(data?.error || `Erro ${res.status} ao consultar o tutor`);
-      }
+        },
+        (_piece, full) => {
+          setChatLoading(false); // 1º delta chegou — troca o "Pensando..." pela resposta viva
+          setStreamText(full);
+        },
+      );
       setMessages((prev) => [
         ...prev,
-        {
-          role: 'assistant',
-          content: data?.answer ?? 'O tutor não retornou resposta.',
-          model: data?.model,
-        },
+        { role: 'assistant', content: result.answer, model: result.model },
       ]);
     } catch (err) {
+      // stream caiu no meio? mantém o parcial que o aluno já viu
+      const partial = err instanceof TutorStreamError ? err.partial : '';
+      if (partial.trim()) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: partial }]);
+      }
       toast.error(err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.');
     } finally {
       setChatLoading(false);
+      setStreamText(null);
     }
   };
 
   const clearChat = () => {
     setMessages([{ role: 'assistant', content: buildWelcome(disciplineShortName) }]);
     setChatInput('');
+    // apaga também a memória salva da disciplina (falha silenciosa é ok)
+    void fetch(`/api/tutor/history?discipline=${encodeURIComponent(disciplineCode)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
   };
 
   // ----- Render -----
@@ -1190,14 +1251,19 @@ export function StudyView({
               </div>
             ))}
 
-            {chatLoading && (
-              <div className="flex items-center gap-2">
+            {chatLoading && <ThinkingBubble />}
+
+            {streamText !== null && (
+              <div className="flex justify-start gap-2">
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10">
-                  <Loader2 className="size-4 animate-spin text-emerald-400" />
+                  <Bot className="size-4 text-emerald-400" />
                 </div>
-                <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Pensando...
+                <div className="max-w-[85%] rounded-xl bg-muted px-3 py-2 text-sm text-foreground">
+                  <TutorMarkdown content={streamText} />
+                  <span
+                    className="mt-1 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-emerald-400 align-middle"
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
             )}

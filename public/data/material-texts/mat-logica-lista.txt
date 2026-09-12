@@ -1,0 +1,94 @@
+INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ CAMPUS: CAJAZEIRAS SEMESTRE: 2026.2 CURSO: ADS
+
+ DISCIPLINA: MATEMÁTICA APLICADA À COMPUTAÇÃO PROFESSOR: EUDES FERREIRA
+
+ LÓGICA MATEMÁTICA
+
+1- Quais das sentenças abaixo são proposições? No caso das proposições, determine o seu valor lógico (V ou F).
+a) 5 ∙ 4 = 20 b) Fortaleza é a capital do Maranhão. c) 11 − 4 ∙ 2 d) O número 125 é um cubo perfeito.
+2- Sejam as proposições p: Pedro é rico e q: Renê é feliz. Traduzir para a linguagem corrente as seguintes proposições:
+a) q → p b) p ∨ ∼q c) q ↔ ∼p d) ∼p → q e) ∼∼p f) ∼p ∧ q → p
+3- Sejam as proposições p: Luciana é rica e q: Luciana é feliz. Traduzir para a linguagem simbólica as seguintes
+proposições:
+a) Luciana é pobre, mas é feliz.
+b) Luciana é rica ou infeliz.
+c) Luciana é pobre e infeliz.
+d) Luciana é pobre ou rica, mas é infeliz.
+4- Determine o valor lógico (V ou F) de cada uma das proposições abaixo:
+a) 3 + 2 = 7 e 5 + 5 = 10.
+b) Roma é a capital da França ou 45° = 1.
+c) Se 0 < 1, então √2 é irracional.
+d) 3 + 4 = 7 se, e somente se, 53 = 125.
+5- Admitindo que p e q são verdadeiras e r é falsa, determine o valor lógico (V ou F) de cada proposição abaixo.
+a) p → r e) p → (q → r)
+b) p ↔ q f) p → (q ∨ r)
+c) r → p g) ∼p ↔ ∼q
+d) (p ∨ r) ↔ q h) ∼p ↔ r
+6- Sendo a proposição p → (r ∨ s) falsa e a proposição (q ∧ ∼s) ↔ p verdadeira, classifique em verdadeira ou falsa as
+afirmações p, q, r e s.
+7- Considere as proposições:
+p: 3 + 2 = 6 q: >3 r: Cajazeiras é a capital da Paraíba.
+Determine o valor lógico (V ou F) das expressões abaixo:
+a) p → q b) ∼(p ∨ r) ∧ q c) ∼(q → p) ∧ p d) (r ↔ p) ∨ ∼q
+8- Construir as tabelas-verdade das seguintes proposições:
+a) ∼(p ∨ ∼q) b) p ∧ q → p ∨ q c) q ↔ ∼q ∧ p d) ∼p ∧ r → q ∨ ∼r
+9- Sabendo-se que ( ) = ( ) = e ( ) = ( ) = , determine o valor lógico (V ou F) de cada uma das seguintes
+proposições:
+a) ∧ ↔ ∧∼ b) ∼ ( ↔ ) → ( ↔ ) c) →∼ ↔( ∨ )∧
+10- Classifique as seguintes porposições em tautologia, contradição ou contigência.
+a) ∼p ∨ q → (p→ q) b) p ∨ ∼q → (p → ∼q) c) ∼p∧(p ∧ ∼q)
+11- Mostre que:
+a) ∧( ∨ )⇔ b) ⇒ ∧ ↔
+12- Diga qual é a negação das proposições abaixo:
+ 3
+a) (2, 3) = 1 ou (2,3) ≠ 6 b) 7 ≥ 1 e −3 ≥ −7
+
+---
+
+c) 22 = 4 → √4 = 2 d) (∀ )( > 2 → 3 > 32 )
+e) (∃ )(√ < 0) f) Todo número inteiro é primo.
+g) Existe um losango que não é quadrado. h) Todos os alunos são estudiosos.
+i) Nenhum homem é machista. j) Existe um número cuja raiz quadrada é zero.
+13- Se Carlos é executivo público, então Cláudio é eletricista e André médico. Se Márcia é enfermeira ou Carolina é
+nutricionista, então André não é médico. Constata-se que Márcia é enfermeira ou que Ana é advogada. Sabe-se, ainda, que
+Carlos é executivo público. Logo, é verdade que
+A) Ana é advogada. B) André não é médico. C) Márcia é enfermeira.
+D) Cláudio não é eletricista. E) Carolina é nutricionista.
+14- São verdadeiras as seguintes afirmações de Tiago:
+- Trabalho ou estudo. - Vou ao escritório ou não trabalho. - Vou ao curso ou não estudo.
+Certo dia, Tiago não foi ao curso.
+É correto concluir que, nesse dia, Tiago
+A) estudou e trabalhou. B) não estudou e não trabalhou. C) trabalhou e não foi ao escritório.
+D) foi ao escritório e trabalhou. E) não estudou e não foi ao escritório.
+15- Considere o seguinte argumento lógico:
+p1: ou Rafaela pega um táxi ou Cíntia não vai ao cinema de carro;
+p2: Rafaela compra pipoca se e somente se Cíntia também comprar;
+p3: Cíntia vai ao cinema de carro se e somente se tiver dinheiro para a gasolina; e,
+p4: ou Cíntia tem dinheiro para a gasolina ou compra pipoca.
+Sabendo‐se que Cíntia não tem dinheiro para a gasolina, conclui‐se que:
+A) Cíntia e Rafaela vão ao cinema de carro.
+B) Cíntia não pega um táxi, mas vai ao cinema de carro.
+C) Cíntia não vai ao cinema de carro, nem compra pipoca.
+D) Nem Rafaela pega um táxi, nem Cíntia vai ao cinema de carro.
+16- Em uma certa ilha, muito estranha diga-se de passagem, existiam apenas dois tipos de habitantes. Os cavalheiros, que
+sempre diziam a verdade e os velhacos, que sempre mentiam. Vejamos então as seguintes indagações:
+a) Uma pessoa proclamou: “Eu sou mentiroso!”. Esta pessoa é habitante desta ilha?
+b) Um habitante A, na presença de um habitante B, disse: “Ao menos um de nós é velhaco!”. A é velhaco ou é cavalheiro? e
+B?
+17- (OBMEP-2011). Adriano, Bruno, Carlos e Daniel participam de uma brincadeira na qual cada um é um tamanduá ou uma
+preguiça. Tamanduás sempre dizem a verdade e preguiças sempre mentem.
+ • Adriano diz: “Bruno é uma preguiça”.
+ • Bruno diz: “Carlos é um tamanduá”.
+ • Carlos diz: “Daniel e Adriano são diferentes tipos de animais”.
+ • Daniel diz: “Adriano é uma preguiça”.
+Quantos dos quatro amigos são tamanduás?
+A) 0 B) 1 C) 2 D) 3 E) 4.
+18- Há três suspeitos de um crime: o cozinheiro, a governanta e o mordomo. Sabe-se que o crime foi cometido por um ou
+mais deles, já que os mesmos podem ter agido individualmente ou não. Apurou-se que ou o mordomo é culpado ou a
+governanta é culpada, mas não ambos. Ademais, sabe-se que se o cozinheiro for inocente então a governanta é culpada. Se o
+mordomo não for inocente, quais são os culpados?
+ BONS ESTUDOS!
+
+---

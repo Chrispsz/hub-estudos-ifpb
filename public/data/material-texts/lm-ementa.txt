@@ -1,0 +1,139 @@
+MINISTÉRIO DA EDUCAÇÃO
+ SECRETARIA DE EDUCAÇÃO PROFISSIONAL E TECNOLÓGICA
+ INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ PLANO DE DISCIPLINA
+ IDENTIFICAÇÃO
+CAMPUS: Cajazeiras
+CURSO: Tecnologia em Análise e Desenvolvimento de Sistemas
+DISCIPLINA: Linguagens de Marcação CÓDIGO DA DISCIPLINA: TEC.1632
+
+PRÉ-REQUISITO:
+UNIDADE CURRICULAR:
+ SEMESTRE/ANO: 2026.1
+Obrigatória [X] Optativa [ ] Eletiva [ ]
+ CARGA HORÁRIA
+TEÓRICA: 30h/a PRÁTICA: 37h/a EaD¹: EXTENSÃO:
+CARGA HORÁRIA SEMANAL: 4
+CARGA HORÁRIA TOTAL: 67h/a
+DOCENTE RESPONSÁVEL: Diogo Dantas Moreira
+
+ EMENTA
+
+Linguagens de Marcação. Estruturação de Sites com o uso de Linguagens de Marcação. Formatação de Sites com o
+uso de Linguagem de Estilos. Padrões Web. Criação e validação de linguagens de marcação; Acessibilidade
+
+ OBJETIVOS DA DISCIPLINA/COMPONENTE CURRICULAR
+ (Geral e Específicos)
+
+Objetivo geral
+
+Apresentar conceitos de linguagens de marcação e de linguagens de estilo, aplicando-os na construção de sites.
+
+Objetivos específicos
+
+ Tornar o aluno apto a compreender as características de uma linguagem de marcação;
+ Tornar o aluno apto a estruturar sites com uso de linguagens de marcação;
+ Tornar o aluno apto a formatar e estilizar sites com uso de linguagem de estilo;
+ Tornar o aluno apto a definir um tipo ou esquema de documento descrito em linguagem de marcação.
+
+ CONTEÚDO PROGRAMATICO
+
+ Introdução a Linguagens de Marcação
+ Fundamentos
+ Aplicações
+ HTML
+ Estrutura de uma página HTML
+ Elementos básicos
+ Listas
+ Tabelas
+
+---
+
+ Formulários
+ Gráficos, vídeo e áudio
+ Metadados
+ ​Acessibilidade
+ CSS
+ Sintaxe e estrutura
+ Seletores
+ Box Model
+ Layouts com Grid e Flexbox
+ Media Queries
+ Transições, animações, transformações
+
+ METODOLOGIA DE ENSINO
+
+A aula se desenvolverá por meio de exposição dialogada, acrescidas sempre que possível, de períodos para debates sobre os
+conceitos apresentados e suas correlações com áreas afins, além de um exemplo prático para melhor assimilação dos conceitos
+apresentados.
+
+ RECURSOS DIDÁTICOS
+
+[x] Quadro
+[ ] Projetor
+[ ] Vídeos/DVDs
+[ ] Periódicos/Livros/Revistas/Links
+[ ] Equipamento de Som
+[x] Laboratório
+[x] Softwares
+[ ] Outros
+
+Softwares:
+
+ Visual Studio Code para produção de websites ao longo da disciplina;
+ Google Classroom para ter uma sala virtual como ferramenta de exposição dos materiais de aulas e atividades;
+
+ CRITÉRIOS DE AVALIAÇÃO
+
+A avaliação desta disciplina realizar-se-ão por meio de um projeto prático o qual está dividido em 3 atividades. A primeira
+atividade (A1) é a estrutura de um website com tema a escolha do aluno, a segunda atividade (A2) codificação visual do projeto
+e a terceira atividade (A3) explicação e apresentação do projeto desenvolvido para a turma. A pontuação seguirá os seguintes
+critérios:
+
+ A Média Final (MF) da disciplina será calculada por meio de uma média ponderada das atividades. Atividade 1
+ (A1) tem peso 45%. Atividade 2 (A2) tem peso 45%. Atividade 3 (A3) tem peso 10%.
+ A Média Final é calculado como segue: MF = (45*A1 + 45*A2 + 10*A3)/100.
+
+ ATIVIDADE DE EXTENSÃO⁴
+
+ BIBLIOGRAFIA5
+
+Bibliografía Básica:
+
+DEITEL, H. M.; DEITEL, P. J.; SADHU, P. XML. Porto Alegre: Bookman, 2003.
+FREEMAN, E.; FREEMAN, E. Use a cabeça! HTML com CSS e XHTML . São Paulo: Alta Books, 2008.
+LAWSON, B.; SHARP, R. Introdução ao HTML 5. São Paulo: Alta Books, 2011.
+
+Bibliografía complementar:
+
+HOGAN, B.P. HTML 5 e CSS 3: desenvolva hoje com o padrão de amanhã . Rio de Janeiro: Ciência Moderna, 2012.
+
+MEYER,E. A. Smashing CSS: técnicas profissionais para um layout moderno . Bookman, 2011;
+
+PILGRIM, M. Dive Into HTML5. Disponível em: <http://diveintohtml5.info/>. Acesso em: 14 out. 2013.
+
+SILVA, M. S. CSS3 : desenvolva aplicações web profissionais com uso dos poderosos recursos de estilização das
+
+---
+
+ CSS3. Novatec, 2011
+
+ TERUEL, E. C. HTML5: guia prático. Érica, 2014
+
+ OBSERVAÇÕES
+
+Documento assinado eletronicamente por:
+ Diogo Dantas Moreira, PROFESSOR ENS BASICO TECN TECNOLOGICO, em 02/03/2026 09:55:35.
+
+Este documento foi emi do pelo SUAP em 02/03/2026. Para comprovar sua auten cidade, faça a leitura do QRCode ao lado ou acesse h ps://suap.ifpb.edu.br/auten car-
+documento/ e forneça os dados abaixo:
+
+Código 842515
+Verificador: a5ac1322b6
+Código de Autenticação:
+
+ Rua José Antônio da Silva, 300, Jardim Oásis, CAJAZEIRAS / PB, CEP 58.900-000
+ http://ifpb.edu.br - (83) 3532-4100
+
+---

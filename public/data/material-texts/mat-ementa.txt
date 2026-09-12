@@ -1,0 +1,163 @@
+MINISTÉRIO DA EDUCAÇÃO
+ SECRETARIA DE EDUCAÇÃO PROFISSIONAL E TECNOLÓGICA
+ INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ PLANO DE DISCIPLINA
+ IDENTIFICAÇÃO
+CAMPUS: Cajazeiras
+CURSO: Análise e Desenvolvimento de Sistemas
+
+DISCIPLINA: Matemática Aplicada à Computação CÓDIGO DA DISCIPLINA: TEC.1984
+
+PRÉ-REQUISITO:
+UNIDADE CURRICULAR: Obrigatória [x] Optativa [ ] Eletiva [ ] SEMESTRE/ANO: 2026.1
+ CARGA HORÁRIA
+TEÓRICA: 67h PRÁTICA: EaD¹: EXTENSÃO:
+CARGA HORÁRIA SEMANAL: 4h
+CARGA HORÁRIA TOTAL: 67h
+DOCENTE RESPONSÁVEL: Antonio Eudes Ferreira
+
+ EMENTA
+
+Álgebra matricial. Lógica matemática. Teoria dos conjuntos. Relações e funções.
+
+ OBJETIVOS DA DISCIPLINA/COMPONENTE CURRICULAR
+ (Geral e Específicos)
+
+ Oferecer aos discentes noções básicas sobre Raciocínio Lógico;
+ Usar funções matemáticas na modelagem, resolução de problemas e geração de gráﬁcos do
+ cotidiano;
+ Resolver problemas geométricos, no plano e espaço, por meio de equações e gráficos;
+ Utilizar o estudo de matrizes e sistemas lineares na solução de problemas;
+ Aplicar os conteúdos apresentados na resolução de situações problemas.
+
+ CONTEÚDO PROGRAMATICO
+
+1. Álgebra Matricial
+1.1. Conceituação e representação de uma matriz
+1.2. Operações com matrizes
+1.3. Determinantes
+1.4. Sistema Linear
+
+---
+
+2. Lógica Matemática
+2.1. Fundamentos de Lógica;
+2.2. Proposições e Conectivos;
+2.3. Operações lógicas sobre proposições;
+2.4. Tabelas verdade de proposições compostas;
+2.5. Tautologias e Contradições;
+2.6. Equivalência lógica e Implicação lógica;
+2.7. Álgebra das proposições;
+2.8. Argumentos;
+2.9. Sentenças Abertas;
+2.10. Operações lógicas sobre sentenças abertas;
+2.11. Quantificadores.
+
+3. Conjuntos
+3.1. Conceitos
+3.2. Relações entre elementos e conjuntos
+3.3. Operações com conjuntos
+3.4. Conjuntos numéricos
+3.4.1. Propriedades
+3.4.2. Intervalos
+3.4.3. Operações
+
+4. Funções
+4.1. Definição
+4.2. Notação
+4.3. Gráfico
+4.4. Função composta
+4.5. Funções pares e ímpares
+4.6. Funções inversas
+4.7. Funções crescentes e decrescentes
+4.8. Função polinomial do 1º grau
+4.9. Função polinomial do 2º grau
+4.10. Função modular
+4.11. Função exponencial
+4.12. Função logarítmica
+4.13. Funções trigonométricas.
+
+ METODOLOGIA DE ENSINO
+
+O método básico utilizado é o de aulas expositivas com a resolução de exemplos de aplicabilidade da teoria
+apresentada previamente, estudos de casos e trabalhos individuais, com o auxílio do quadro branco e projetor
+digital. As aulas serão complementadas por exercícios e atividades extraclasse, a ﬁm de fortalecer o conteúdo
+da disciplina. Essas atividades serão desenvolvidas com acompanhamento dos monitores da disciplina, sob
+orientação do professor responsável, bem como, por meio da Plataforma Google Classroom. Podem ser
+utilizados softwares matemáticos para visualização e manipulação de propriedades geométricas e algébricas
+dos conceitos matemáticos e softwares específicos para a escrita de textos matemáticos.
+
+ RECURSOS DIDÁTICOS
+
+[x] Quadro
+
+---
+
+[x] Projetor
+[x] Vídeos/DVDs
+[x] Periódicos/Livros/Revistas/Links
+[ ] Equipamento de Som
+[ ] Laboratório
+[x] Softwares²
+[ ] Outros³
+
+ CRITÉRIOS DE AVALIAÇÃO
+ (Especificar quantas avaliações e formas de avaliação– avaliação escrita objetivo, subjetiva, trabalho, seminário, artigo, etc. -
+ para integralização da disciplina/componente curricular, incluindo a atividade de recuperação final.)
+
+Serão realizadas ao longo do semestre letivo 3 avaliações (avaliação escrita objetiva, subjetiva e trabalho) com
+ou sem consulta para veriﬁcação do domínio do conteúdo desenvolvido na disciplina, ﬁcando à critério do
+docente ministrante da disciplina a escolha dos instrumentos de avaliação e dimensionamento dos conteúdos
+para cada avaliação de acordo com o seu cronograma e evolução dos conteúdos programáticos durante o
+semestre letivo em curso.
+
+ ATIVIDADE DE EXTENSÃO⁴
+
+ BIBLIOGRAFIA5
+
+Bibliografía Básica:
+
+ BOLDRINI, Luis José e outros. Álgebra Linear 3 ed. São Paulo: Harba, 1896.
+ FILHO, Edgard A. Iniciação a lógica Matemática. São Paulo: Nobel, 2002.
+ IEZZI, G. Fundamentos de Matemática Elementar (Vols, 1, 2 e 3). 8. ed. São Paulo: Atual, 2004.
+
+Bibliografia Complementar:
+
+ CRUZ. Angela e MOURA, J.E.A. A lógica ba construção dos argumentos (Notas em Mat. Aplicada
+ 14). 1ª ed. Sao Carlos: SBMAC, 2004.
+ MACHADO, Nilson e ORTEGOSA, Maria. Lógica e Linguagem cotidiana. Belo Horizonte: Autentica,
+ 2005.
+ STEINBRUCH, Alfredo & WINTERLE, Paulo. Álgebra Linear. 2 ed. São Paulo: Mcgraw-Hill, 1987.
+ CORDEIRO, Danel. Um convite a matemática: Fundamentos Lógicos com Técnicas de
+ Demonstração, Notas Históricas e Curiosidades. 21. ed. Campina Grande: EDUFCG, 2007.
+ LIMA, Elon L, et al. A Matemática do Ensino Médio, Volumes 1, 2 e 3. Rio de Janeiro: Sociedade
+ Brasileira de Matemática, 2002.
+
+ OBSERVAÇÕES
+ (Acrescentar informais complementares ou explicativas caso o docente(s) considere importantes para a disciplina/componente
+ curricular)
+
+1 Para a oferta de disciplinas na modalidade à distância, integral ou parcial, desde que não ultrapassem os limites definidos em legislação.
+2 Nesse item o professor deve especificar quais softwares serão trabalhados em sala de aula.
+3 Nesse item o professor pode especificar outras formas de recursos utilizadas que não estejam citada.
+4 Nesse item deve ser detalhado o PROJETO e/ou PROGRAMA DE EXTENSÃO que será executado na disciplina. Observando as orientações do Art. 10, Incisos I, II, III,
+IV, V, VI, VII e VIII, da Instrução Normativa que trata da construção do Plano de Disciplina.
+5 Observar os mínimos de 3 (três) títulos para a bibliografia básica e 5 (cinco) para a bibliografia complementar.
+
+---
+
+Documento assinado eletronicamente por:
+ Antonio Eudes Ferreira, PROFESSOR ENS BASICO TECN TECNOLOGICO, em 11/02/2026 13:07:44.
+
+Este documento foi emi do pelo SUAP em 11/02/2026. Para comprovar sua auten cidade, faça a leitura do QRCode ao lado ou acesse h ps://suap.ifpb.edu.br/auten car-
+documento/ e forneça os dados abaixo:
+
+Código 834129
+Verificador: 01d7b35370
+Código de Autenticação:
+
+ Rua José Antônio da Silva, 300, Jardim Oásis, CAJAZEIRAS / PB, CEP 58.900-000
+ http://ifpb.edu.br - (83) 3532-4100
+
+---

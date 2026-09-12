@@ -1,0 +1,137 @@
+MINISTÉRIO DA EDUCAÇÃO
+ SECRETARIA DE EDUCAÇÃO PROFISSIONAL E TECNOLÓGICA
+ INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ PLANO DE DISCIPLINA
+ IDENTIFICAÇÃO
+CAMPUS: IFPB - Cajazeiras
+CURSO: Análise e Desenvolvimento de Sistemas
+
+DISCIPLINA: Inglês Instrumental CÓDIGO DA DISCIPLINA:
+
+PRÉ-REQUISITO: -
+UNIDADE CURRICULAR: Obrigatória [ X ] Optativa [ ] Eletiva [ ] SEMESTRE: 2026.1
+ CARGA HORÁRIA
+TEÓRICA: - PRÁTICA: - EaD¹: EXTENSÃO:
+CARGA HORÁRIA SEMANAL: 2
+CARGA HORÁRIA TOTAL: 33 h/a
+DOCENTE RESPONSÁVEL: Daniela Miguel de Souza Morais
+
+ EMENTA
+
+Conscientização do processo de leitura. Estratégias de leitura: skimming, scanning, prediction, selectivity. Uso do dicionário e a relação entre
+as palavras. Aspectos gramaticais. Reconhecimento e produção de gêneros textuais escritos em língua inglesa. Interpretação e compreensão
+de textos em língua inglesa, em especial de textos escritos em inglês relacionados à área de informática em diálogo com temáticas
+ambientais.
+
+ OBJETIVOS
+
+Objetivo geral
+
+ Compreender a importância do inglês instrumental para o desenvolvimento de
+ estratégias de leitura e compreensão de textos.
+
+Objetivos específicos:
+
+ Fazer uso das estratégias de leitura para auxiliar a compreensão de textos em
+ língua inglesa;
+ Reconhecer os principais cognatos e falsos cognatos para auxiliar na
+ compreensão de textos em língua inglesa;
+ Identificar diversos gêneros textuais extraídos de revistas, sites da Internet,
+ jornais e outras fontes;
+ Utilizar o dicionário como fonte de auxílio na compreensão de textos em língua
+ inglesa;
+ Compreender as relações léxico-gramaticais em diferentes gêneros textuais;
+ Utilizar o conhecimento de termos técnicos para ler e compreender textos em
+ língua inglesa.
+
+---
+
+ Refletir a respeito de questões ambientais ligadas à area da tecnologia da
+ informação e comunicação.
+
+ CONTEÚDO PROGRAMÁTICO
+
+ 1. Introdução à leitura e à compreensão de textos em Língua Inglesa Estratégias
+ de Leitura: Predição, Skimming, Scanning
+ 2. Cognatos e Falsos cognatos
+
+ 3. A prática da leitura e os gêneros textuais
+ 4. Aspectos gramaticais na compreensão de textos: grupos nominais
+
+ 5. Aspectos gramaticais na compreensão de textos: tempos verbais
+ 6. Uso do dicionário e a relação entre as palavras
+ 7. Glossário de termos técnicos
+
+ 8. Questões ambientais
+
+ METODOLOGIA DE ENSINO
+
+Aulas expositivas e dialogadas; discussões em grupos sobre os conteúdos abordados nos
+textos.
+
+ RECURSOS DIDÁTICOS
+
+ Apresentação de slides;
+ Vídeos extraídos do youtube;
+ Séries/filmes com foco em tecnologia
+ Google classroom;
+ TV
+ Computador;
+ Textos extraídos da internet.
+
+ CRITÉRIOS DE AVALIAÇÃO
+
+A avaliação será contínua e cumulativa, em uma escala de 0 (zero) a 10 (dez).
+
+Ao longo do semestre, serão realizadas 6 (seis) atividades avaliativas, sendo três para
+compor a primeira nota (N1) e três para a segunda nota (N2).
+
+As avaliações, no geral, constituem-se em:
+
+ Atividades de leitura e compreensão de textos em língua inglesa;
+ Atividades de produção escrita em língua inglesa.
+
+A Média Final (MF) da disciplina será calculada por meio da média aritmética entre a
+primeira avaliação (N1) e a segunda avaliação (N2):
+
+ N1= A1 + A2 + A3
+
+ N2= B1 + B2 + B3
+
+ BIBLIOGRAFIA4
+
+Básica
+GALLO, L.R. Inglês Instrumental para informática. Módulo I. 3.ed. São Paulo: Ícone, 2014. GLENDINNING, E; HOLMSTROM, B. Study reading : a
+course in reading skills for academic purposes. Cambridge University Press, 1992. GLENDINNING, E; McEWAN, J. Basic English for Computing.
+Oxford University Press, 2003
+
+---
+
+ Complementar
+
+ Collins dicionário escolar: inglês-português, português-inglês. 2.ed. São Paulo: Disal, 2010.
+
+ GREENALL, S.; PYE, D. Reading : 2. Cambridge University Press, 1991. Inglês + fácil: gramática. São Paulo, Larousse, 2006
+
+ MARINOTTO, D. Reading on info tech: inglês para informática. 2. ed. São Paulo: Novatec, 2008.
+
+ MURPHY, R. Essential grammar in use: a reference and practice book for elementary students of english. 2.ed. Cambridge University Press,
+ 1997.
+
+ OBSERVAÇÕES
+
+Documento assinado eletronicamente por:
+ Daniela Miguel de Souza Morais, PROFESSOR ENS BASICO TECN TECNOLOGICO, em 04/03/2026 11:29:05.
+
+Este documento foi emi do pelo SUAP em 04/03/2026. Para comprovar sua auten cidade, faça a leitura do QRCode ao lado ou acesse h ps://suap.ifpb.edu.br/auten car-
+documento/ e forneça os dados abaixo:
+
+Código 844433
+Verificador: 577eb78db4
+Código de Autenticação:
+
+ Rua José Antônio da Silva, 300, Jardim Oásis, CAJAZEIRAS / PB, CEP 58.900-000
+ http://ifpb.edu.br - (83) 3532-4100
+
+---

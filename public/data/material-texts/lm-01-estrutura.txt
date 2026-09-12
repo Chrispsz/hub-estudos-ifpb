@@ -1,0 +1,356 @@
+Curso Superior de Análise e Desenvolvimento de Sistemas
+ Linguagens de Marcação
+ Prof. MSc. Diogo D. Moreira
+
+HTML
+Estrutura básica, títulos e parágrafos
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● HTML significa em inglês: HyperText Markup Language. Em
+ português: Linguagem de Marcação de Hipertexto.
+ ○ Tem como objetivo descrever a estrutura de uma página web por meio de
+ uma linguagem de marcação
+
+ 2
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● Linguagem base da internet. Foi criada para ser de fácil
+ entendimento por seres humanos e também por máquinas,
+ como por exemplo o Google ou outros sistemas que percorrem
+ a internet capturando informação.
+
+ 3
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● Todos os documentos HTML são documentos de texto simples,
+ geralmente com a extensão .html.
+
+● A página principal, por convenção, é nomeada como index.html
+
+● Podem ser criados e editados a partir de qualquer editor de texto.
+
+● É interpretado por browsers, sejam eles em um computador,
+ smartphone, TV, videogames, etc.
+
+ 4
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● O documento HTML sempre inicia com o que chamamos de
+ estrutura básica. Esta estrutura é quase que imutável. Sempre será
+ dessa forma e você sempre começará seu HTML começando por esse
+ código.
+
+ 5
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+
+ 6
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● É possível compreender o documento em HTML de uma maneira
+ muito simples, através de uma divisão de blocos das tags
+ essenciais, conforme a seguinte estrutura:
+
+ ○ Definição do documento (doctype)
+ ○ Cabeça (head)
+ ○ Corpo (body)
+
+ 7
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+
+ 8
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Deﬁnição de documento
+● Importante: SEMPRE deve existir o doctype, que é este código
+ <!DOCTYPE html>.
+● O doctype não é uma tag HTML, mas uma instrução para o
+ navegador e outros programas que podem ler seu site, que o código
+ encontrado ali é um código HTML. Assim eles sabem o que fazer
+ para mostrar seu site da melhor forma possível.
+
+ 9
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+
+ 10
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HEAD
+● O HEAD contém informações que não são transpostas
+ visivelmente para o usuário/leitor do documento. São
+ dados implícitos, de uso e controle do documento:
+ vinculação com outros arquivos, aplicação de lógica de
+ programação de scripts e metadados. Na prática, todo o
+ conteúdo do cabeçalho ﬁca delimitado entre a abertura
+ e fechamento tag head.
+
+ 11
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+
+ 12
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+BODY
+● Trata-se do documento em si, ou seja, a informação legível para o
+ usuário/leitor do documento. É todo e qualquer texto que se deseja
+ apresentar, assim como toda e qualquer forma de mídia de saída
+ (imagens, sons, miniaplicativos embutidos, conteúdo multimídia,
+ etc).
+
+ 13
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+BODY
+● Além disso, toda a apresentação de entrada de dados (formulários)
+ também se aplica neste seção do documento. Na prática, o corpo
+ do documento é delimitado pelo par de tags <body> e </body>.
+
+ 14
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● Este é o preceito básico que deve estar muito bem claro para você:
+ onde as marcações se aplicam, e quais são os resultados deste
+ modelo.
+
+ 15
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● Por exemplo: se vocês deseja informar conteúdo textual para
+ saída legível ao usuário do seu sistema web, esta marcação
+ deverá obrigatoriamente estar no bloco do corpo da página
+ (body).
+● Ainda: para definir qual o tipo de codificação da página (uma
+ meta informação do documento), esta deve obrigatoriamente
+ estar marcada no cabeçalho do mesmo documento.
+
+ 16
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+HTML
+● Geralmente os editores como o Sublime Text ou Visual Studio Code
+ já tem atalhos para iniciar os documentos HTMLs com essa estrutura,
+ logo, você não precisa se preocupar em decorá-la, mas é bom que
+ faça.
+
+ 17
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Sintaxe e semântica
+● Quando falamos em semântica no HTML queremos dizer que o
+ código HTML está de acordo com o conteúdo que está sendo tratado.
+ Por exemplo, se estamos escrevendo um parágrafo, devemos indicar
+ isso no HTML, assim como um título deve ser inserido com o código
+ específico para títulos.
+
+ 18
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Sintaxe e semântica
+● Podemos entender HTML em 3 conceitos fundamentais: os
+ elementos, as tags e os atributos.
+
+ 19
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Tags
+● Tags são o conjunto de caracteres que formam um elemento, ou seja,
+ quando nos referenciamos à tag "p" estamos falando disso: <p>
+
+ 20
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Tags
+● Existem dois tipos de Tags: As que necessitam de fechamento e
+ as que não necessitam de fechamento.
+
+ 21
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Tags
+● Para as que necessitam de fechamento, utilizamos o sinal de menor (
+ < ), seguido do nome do elemento e o sinal de maior ( > ) para
+ abertura. Para fechamento, utilizamos o sinal de menor ( < ), seguido
+ de barra ( / ), nome do elemento e o sinal de maior ( > ).
+● Exemplo: <p></p>
+
+ 22
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Tags
+● Os elementos que não necessitam de fechamento, também
+ conhecidos como elementos vazios, somente utilizamos o sinal de
+ menor ( < ), seguido do nome do elemento e o sinal de maior ( > ).
+● Exemplo: <hr> ou <br>
+
+ 23
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Atributos
+● Atributos são informações que passamos na Tag para que ela se
+ comporte da maneira esperada. Existem atributos globais (que
+ funcionam em todas as Tags) e especíﬁcos (que são direcionados
+ para cada Tag, através de especificação)
+
+ 24
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Atributos
+● Os Atributos possuem nome e um valor, existem Atributos que você
+ vai usar praticamente sempre e existem outros que serão mais raros.
+ ○ Exemplo:
+
+ ○ <tag atributo="valor"></tag>
+
+ 25
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Elementos
+● Elementos são formados a partir de Tags e entre as Tags é que
+ está o conteúdo do Elemento.
+● Se quisermos exibir um parágrafo em um site utilizamos a Tag <p>
+ que semanticamente quer dizer que o conteúdo que se espera
+ nesse Elemento é um parágrafo.
+
+ 26
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Elementos
+● Em resumo, elementos são a junção das tags + conteúdo
+● Para melhor compreensão:
+ ○ <p> é uma tag
+ ○ <p>Parágrafo</p> é um elemento p
+
+ 27
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Títulos e parágrafos
+● Vamos começar a construir o corpo do nosso documento a partir de
+ dois tipos de elementos básicos
+
+ ○ Títulos
+ ○ Parágrafos
+
+ 28
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Títulos
+● Em HTML o título é exatamente o que parece: um título real ou
+ subtítulo, quando você coloca no texto a tag <h1> , o texto crescerá e
+ a dimensão das letras será de acordo com o número de cabeçalhos.
+
+ 29
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Títulos
+● Os títulos podem ter dimensões de 1 a 6, ond 1 é a maior dimensão e
+ 6 a menor.
+
+ ○ <h1>
+ ○ <h2>
+ ○ <h3>
+ ○ e assim até <h6>
+
+ 30
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Parágrafos
+● A tag <p> representa um parágrafo do texto. Parágrafos são,
+ geralmente representados, em mídia visual, como bloco de texto que
+ são separados dos blocos adjacente por espaços brancos
+ verticais e/ou recuo de primeira-linha.
+
+ ○ <p>Conteúdo do parágrafo</p>
+
+ 31
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Prática
+ A partir de uma estrutura básica, crie a seguinte estrutura
+ no corpo do documento (<body>):
+ ● Título de nível 1 (<h1>) com o nome de um
+ filme/anime/série de sua preferência
+ ● Um parágrafo (<p>) com a sinopse;
+ ● Título de nível 2 (<h2>) com o nome "Comentários";
+ ● Um ou mais parágrafos (<p>) com seus comentários
+ sobre a obra.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---

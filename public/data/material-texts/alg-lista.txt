@@ -1,0 +1,662 @@
+Instituto Federal de Educação, Ciência e Tecnologia da Paraíba -
+ Campus de Cajazeiras
+ Curso Superior de Tecnologia em Análise e Desenvolvimento
+ de Sistemas Disciplina: Algoritmos e Lógica de Programação
+ Professor: Fabio Gomes de Andrade
+
+ Lista de Exercícios
+
+Comandos de entrada e saída
+
+ 1. Escreva um programa que leia três números inteiros e calcule a sua média
+ aritmética.
+
+ 2. Escreva um programa que leia três números e seus respectivos pesos e calcule
+ a sua média ponderada.
+
+ 3. Escreva um programa que leia o valor do lado de um quadrado e calcule a sua
+ área e o seu perímetro.
+
+ 4. Escreva um programa que leia o número inteiro positivo e calcule o seu dobro, o
+ seu triplo, o seu quadrado, o seu cubo e a sua raiz quadrada.
+
+ 5. Escreva um programa que leia o valor do raio de uma circunferência e calcule a
+ sua área e o seu comprimento.
+
+ 6. Escreva um programa que leia um número inteiro e informe o seu antecessor e
+ o seu sucessor.
+
+ 7. Escreva um programa que leia o valor da base e da altura de um triângulo e
+ calcule a sua área.
+
+ 8. Escreva um programa que leia o valor de uma temperatura em Celsius e calcule
+ o seu valor correspondente em Fahrenheit e em Kelvin.
+
+ 9. Escreva um programa que leia o valor de uma distância percorrida em km e o
+ tempo gasto em horas e calcule a velocidade média em m/s.
+
+---
+
+10. Escreva um programa que leia o valor dos dois catetos de um triângulo
+ retângulo e calcule o valor da hipotenusa.
+
+11. Escreva um programa que leia um valor em real, a cotação atual do dólar e
+ calcule o valor informado pelo usuário em dólares.
+
+12. Escreva um programa que leia um valor em polegadas e o converta para
+ centímetros, considerando que uma polegada equivale a 2.54 cm.
+
+13. Escreva um programa que leia um valor em KB e calcule o seu valor
+ correspondente em bits, bytes, MB e GB.
+
+14. Escreva um programa que leia uma palavra e calcule o seu comprimento.
+
+15. Escreva um programa que leia uma palavra e um número inteiro k e identifique
+ a k ésima letra da palavra informada pelo usuário.
+
+16. Escreva um programa que leia uma letra minúscula e imprima a sua letra
+ maiúscula correspondente.
+
+17. Escreva um programa que leia a área de uma casa e o valor cobrado por um
+ arquiteto por cada metro quadrado de um projeto arquitetônico e calcule o
+ custo final do projeto.
+
+18. Escreva um programa que leia o valor do seno de um ângulo e calcule o valor
+ do seu cosseno.
+
+19. Escreva um programa que leia os valores de dois ângulos internos de um
+ triângulo e calcule o valor do terceiro ângulo.
+
+20. Em uma determinada cidade, cada m2 de um terreno está avaliado em R$
+ 300,00. Escreva um programa que leia o comprimento e a largura de um
+ terreno localizado nesta cidade e calcule o seu valor de mercado.
+
+21. Escreva um programa que leia o preço de produção de um determinado
+ produto e a margem de lucro desejada pelo fabricante e calcule qual deve ser
+
+---
+
+ o seu preço de venda.
+22. Escreva um programa que leia dois números inteiros a e b e determine o maior
+ múltiplo de a que é menor ou igual a b. Por exemplo, o maior múltiplo de 3
+ menor ou igual a 50 é 48.
+
+23. Escreva um programa que leia o valor do raio de uma esfera e determine o seu
+ volume.
+
+24. Escreva um programa que leia o termo inicial e a razão de uma progressão
+ aritmética e imprima os 5 primeiros termos desta progressão.
+
+25. Escreva um programa que leia um número inteiro N e imprima dos 10 primeiros
+ elementos da sua tabuada. A saída do programa deve seguir o formato abaixo,
+ que mostra os 5 primeiros elementos da tabuada do 2.
+
+ 1X2=2
+ 2X2=4
+ 3X2=6
+ 4X2=8
+ 5 X 2 = 10
+
+26. Escreva um programa que leia o peso e a altura dos atletas das quatro duplas
+ que vão participar de um torneio de vôlei de praia e calcule o peso e a altura
+ média de cada dupla e o peso e a altura média de todos os jogadores do
+ torneio.
+
+27. Escreva um programa que leia o comprimento e a largura de uma cisterna e a
+ quantidade de litros que o usuário deseja armazenar na mesma e determine
+ quantos metros ele deve encher a cisterna para obter a quantidade de litros
+ desejada.
+
+28. Uma loja oferece três formas de pagamento para os seus clientes. Caso a
+ compra seja paga à vista, a loja oferece um desconto de 10%. Caso a compra
+ seja paga em três parcelas no cartão de crédito, o cliente paga o preço original
+ (sem descontos, mas sem juros) da compra. Caso a compra seja paga em dez
+
+---
+
+ parcelas no cartão de crédito, a loja acrescenta uma taxa de juros de 20%
+ sobre o valor da compra. Todas as dez parcelas têm exatamente o mesmo
+ valor. Com base nessas informações, escreva um programa que leia o valor da
+ compra de um cliente e informe: o valor da compra se ela for paga à vista, o
+ valor de cada parcela se a compra for paga no cartão e em três parcelas (por
+ exemplo, 3 parcelas de R$ 50,00) e o valor de cada parcela se a compra for
+ paga com o cartão de crédito e em dez parcelas.
+
+29. Escreva um programa que leia o número total de questões existentes em uma
+ prova e o número de questões que um candidato acertou e determine o seu
+ percentual de acertos e o seu percentual de erros.
+
+30. Escreva um programa que leia os valores das coordenadas X e Y e dois pontos
+ P e Q e determine a distância entre estes dois pontos. A distância entre dois
+ pontos pode ser determinada através da distância euclidiana.
+ 2
+ 2
+
+ ()()
+ 12 distan cia = x − x + y − y
+ 12
+
+31. Em um determinado concurso público, para cada questão que um candidato
+ acerta ele ganha 5 pontos, para cada questão que ele erra ele perde 3 pontos
+ e para cada questão que ele deixa em branco ele não ganha e nem perde
+ pontos. Escreva um programa que leia o número de questões que um
+ candidato acertou, o número de questões que ele errou e o número de
+ questões que ele deixou em branco e determine a sua pontuação final.
+
+32. O carro de João consegue percorrer em média 14 km consumindo 1 litro de
+ combustível. Escreva um programa que leia o valor da distância que João vai
+ percorrer durante uma viagem e o preço atual de um litro de combustível e
+ calcule quanto ele deverá gastar com combustível durante a viagem.
+
+33. Escreva um programa que leia o nome e a quantidade de votos recebidos por
+ cada um dos três candidatos a prefeito de uma cidade e calcule o percentual
+ de votos recebidos por cada candidato. Para resolver esse programa,
+
+---
+
+ considere que não houve votos brancos e nem nulos.
+
+34. Escreva um programa que leia o dia do mês em que o cliente fez uma compra
+ e o prazo de entrega dado pelo vendedor e calcule o dia do mês (atual ou dos
+ meses seguintes) em que o cliente deve receber o produto. Para resolver este
+ programa, considere que cada mês tem exatamente 30 dias.
+35. Escreva um programa que leia o valor de uma distância em metros e calcule o
+ seu valor correspondente em quilômetros, hectômetros, decâmetros,
+ centímetros, decímetros e milímetros.
+
+36. Escreva um programa que leia dois números inteiros e os armazene em duas
+ variáveis a e b. Após a leitura, o programa deve permutar os valores
+ armazenados nas duas variáveis. O programa deve imprimir os valores das
+ duas variáveis antes e após a permutação.
+
+37. Escreva um programa que leia um número positivo entre 1 e 9999 e calcule o
+ valor da unidade de milhar, da centena, da dezena e da unidade.
+
+38. Escreva um programa que leia um valor em segundos e converta para a forma
+ X horas Y minutos e Z segundos. Por exemplo, o valor 3670 equivale a 1 hora
+ 1 minutos e 10 segundos.
+
+39. Escreva um programa que leia o tamanho de um arquivo em MB e a taxa de
+ transmissão da rede em KB/s e calcule o tempo aproximado necessário para a
+ transmissão do arquivo. A resposta deve ser dada através de uma mensagem
+ na forma X horas, Y minutos e Z segundos.
+
+40. Escreva um programa que leia o valor total que um cliente consumiu em um
+ restaurante e determine o valor final da sua conta, considerando que o
+ restaurante cobra uma taxa de serviço de 10 % e uma taxa de couvert artístico
+ de R$ 10,00.
+
+41. Escreva um programa que leia a quantidade de horas trabalhadas por um
+ funcionário de uma empresa durante um mês e o valor de cada hora
+ trabalhada e determine o seu pagamento. O programa deve considerar que a
+
+---
+
+ carga-horária mensal do funcionário é de 160 horas e que o valor de cada hora
+ extra corresponde ao valor da hora trabalhada acrescido de uma taxa de 50%.
+ Para resolver a questão, considere que a quantidade de horas trabalhadas
+ nunca será inferior a 160.
+
+42. Escreva um programa que leia o peso e a altura de uma pessoa e determine o
+ seu índice de massa corporal.
+43. Escreva um programa que leia o preço atual de uma ação e o seu preço
+ anterior e calcule a sua variação em termos percentuais. Por exemplo, se o
+ preço atual for R$ 10,00 e o preço anterior era R$ 5,00 a variação foi de 100%.
+
+44. Escreva um programa que leia individualmente os valores dos quatro dígitos de
+ um valor em binário e calcule o seu valor correspondente em decimal.
+
+45. Escreva um programa que leia os dois últimos valores da leitura de um medidor
+ de energia em KWh e calcule o valor da conta de energia, considerando que: o
+ preço de 1 KWh é R$ 0,35, o valor da ICMS corresponde à 17% do valor do
+ consumo e a taxa de iluminação pública é de R$ 15,00.
+
+46. Escreva um programa que leia um número inteiro entre 0 e 999 e calcule o seu
+ reverso. Você deve sempre considerar que o número lido tem três algarismos.
+ Desta forma, o reverso de 195 deve ser 591, o de 768 deve ser 867, de 3 deve
+ ser 300, o de 40 deve ser 40, o de 500 deve ser 5, e assim sucessivamente. O
+ programa deve armazenar o valor do reverso em uma variável antes de
+ exibi-lo para o usuário.
+
+47. Um banco está realizando uma grande promoção em seus financiamentos. Ele
+ financia qualquer valor em 5 prestações. O valor da primeira prestação
+ corresponde à 20% do valor do empréstimo. Os valores das demais
+ prestações correspondem ao valor da parcela anterior acrescido de uma taxa
+ de juros de 7%. Com base nestas informações, escreva um programa que leia
+ o valor a ser financiado por um cliente e calcule: o valor de cada prestação, o
+ valor total que o cliente vai pagar pelo empréstimo e o total de juros que o
+ cliente vai pagar pelo empréstimo.
+
+---
+
+48. Uma financeira está oferecendo uma nova modalidade de empréstimo para os
+ seus clientes. Nesta modalidade, o cliente pode pagar o valor financiado em
+ até 120 parcelas, todas as parcelas com o mesmo valor. O valor de cada
+ parcela corresponde ao valor do empréstimo dividido pelo número de parcelas,
+ mais uma taxa de 4% sobre o valor total financiado. Com base nestas
+ informações, escreva um programa que leia um valor a ser financiado pelo
+ cliente e o número de parcelas desejadas e calcule o valor de cada parcela e o
+ valor total que o cliente pagará pelo empréstimo.
+49. Uma revendedora de veículos resolveu fazer uma promoção em seus veículos.
+ Nesta revendedora, o preço de um veículo é calculado através do seu preço
+ de compra, mais uma taxa de 20% de IPI, 17% de ICMS e uma margem de
+ lucro de 20%. Nesta promoção, a revendedora resolveu tirar o valor do IPI.
+ Com base nestas informações, escreva um programa que leia o preço atual de
+ um veículo e calcule qual deve ser o seu preço na promoção.
+
+50. Ana chegou a um consultório médico para uma consulta de rotina. Neste
+ consultório, o médico atende os seus pacientes de acordo com a ordem em
+ que eles chegaram (cada paciente recebe uma senha com o número da sua
+ ordem de chegada) e cada consulta demora exatamente 25 minutos. Com
+ base nestas informações, escreva um programa que leia um número inteiro
+ correspondendo à hora e outro correspondendo aos minutos em que Ana
+ chegou ao consultório e o número da senha que ela recebeu e determine a
+ hora em que ela será atendida. Para isso, considere que ela chegou ao
+ consultório no exato momento em que o médico ia atender o paciente que
+ recebeu a senha 1.
+
+51. Carlos chegou ao aeroporto para fazer o check-in do seu vôo. Ao entrar na fila
+ de passageiros, ele percebeu que a empresa aérea tinha 5 guichês para fazer
+ o check-in dos passageiros, e que estes guichês eram numerados de 1 a 5.
+ Considerando que os guichês iam começar a realização dos check-ins no
+ exato momento em que Carlos entrou na fila, e que cada check-in é realizado
+ em exatamente 15 minutos, escreva um programa que leia um número inteiro
+ positivo que corresponde à posição de Carlos na fila e determine o número do
+ guichê no qual ele será atendido e o tempo que ele vai ter que esperar para
+
+---
+
+ ser atendido.
+
+52. Um provedor de internet oferece um plano promocional para os seus clientes.
+ Neste plano, ele paga uma mensalidade de R$ 80,00 e pode acessar até 100
+ GB de dados. Caso a quantidade de dados acessados seja superior a este
+ limite, ele deve pagar uma taxa adicional de R$ 5,00 por cada GB extra
+ acessado. Com base nestas informações, escreva um programa que leia a
+ quantidade de dados acessados pelo cliente durante um mês (em GB) e
+ calcule o valor da sua conta, considerando que esta quantidade nunca é
+ inferior a 100 GB.
+
+53. Escreva um programa que leia o mês e o ano em que um preso começará a
+ cumprir a sua pena e o tamanho da pena (em número de anos e número de
+ meses, por exemplo,
+ 18 anos e 5 meses) e determine o mês e o ano em que ele terminará de
+ cumprir a sua pena. Para resolver esta questão, considere que o ano será
+ sempre maior ou igual a 2000.
+
+54. Seu Joaquim é um motorista que viaja todos os dias de Cajazeiras para João
+ Pessoa para fazer entregas para empresa na qual trabalha. Durante o
+ percurso, ele para realizar entregas em Sousa, Patos, Campina Grande e João
+ Pessoa. Considerando que seu Joaquim gasta 50 minutos no percurso de
+ Cajazeiras para Sousa, 2 horas no percurso entre Sousa e Patos, 2 horas e 30
+ minutos no percurso entre Patos e Campina Grande e 2 horas no percurso
+ entre Campina Grande e João Pessoa, e que cada entrega demora
+ exatamente 20 minutos, escreva um programa que leia o horário em que seu
+ Joaquim saiu de Cajazeiras (horas e minutos) e calcule o horário em que ele
+ chegará em cada cidade do itinerário.
+
+55. Lázaro está muito feliz por ter enfim conseguido construir a sua casa própria.
+ Sabendo se que a construção durou 180 dias de trabalho, escreva um
+ programa que leia o número de pedreiros que trabalhavam na obra, o número
+ de ajudantes e o valor da diária do pedreiro e calcule quanto Lázaro gastou
+ com mão de obra. Para resolver este programa, considere que todos os
+ pedreiros e ajudantes trabalharam todos os dias da obra e que o valor da
+
+---
+
+ diária de cada ajudante corresponde à metade do valor da diária do pedreiro.
+
+ 56. A Cifra de César é um método de criptografia em que cada letra da mensagem
+ original é substituída por outra e a distância entre cada letra original e a sua
+ substituta na mensagem enviada é sempre a mesma. Por exemplo, se a letra a
+ da mensagem é substituída pela letra f na mensagem enviada, então a letra b
+ será substituída pelo g, o c pelo h, o d pelo i e assim sucessivamente, até que
+ a letra y será substituída pelo d e o z pela letra e. Com base nestas
+ informações, escreva um programa que leia um caractere representando uma
+ das letras da mensagem original, outro caractere representando a letra que vai
+ substituí-lo na nova mensagem, e um terceiro caractere representando outra
+ letra da mensagem original e determine a letra que vai substituí la na nova
+ mensagem.
+
+ 57. Escreva um programa que leia o valor de uma passagem em reais e em milhas
+ e, em seguida, leia o valor da passagem (em reais) que Caio deseja comprar e
+ calcule quantas milhas ele precisa juntar para que ele não precise pagar pela
+ passagem. Para resolver
+ este programa, considere que a proporção entre o valor da milha e o valor em
+ reais é a mesma para todos os vôos da companhia aérea.
+
+Desvios condicionais
+
+ 58. Escreva um programa que leia um número inteiro e verifique se ele é par ou
+ ímpar.
+
+ 59. Escreva um programa que leia dois números e determine se o segundo
+ número é menor, igual ou maior que o primeiro.
+
+ 60. Escreva um programa que leia o número de pessoas que vão participar de um
+ churrasco e calcule quantos quilos de carne devem ser comprados. Para isso,
+ considere que cada pessoa consome 250 g de carne.
+
+ 61. Escreva um programa que leia um número inteiro e determine o seu valor
+
+---
+
+ absoluto. O valor absoluto deve ser calculado sem o uso de qualquer função
+ oferecida pela linguagem.
+
+62. Escreva um programa que leia dois números inteiros M e N e verifique se N é
+ múltiplo de M.
+
+63. Escreva um programa que leia o número de gols marcados pelo time da casa e
+ o número de gols marcado pelo time visitante e verifique se o jogo foi vencido
+ pelo time da casa, pelo time visitante ou se terminou empatado.
+
+64. Escreva um programa que leia um número inteiro e verifique se ele é positivo,
+ negativo ou neutro.
+
+ 65. Escreva um programa que leia a idade de uma pessoa e verifique se ela é
+criança (0-12 anos), adolescente (13-17 anos), adulta (18-59) ou idosa (acima de
+ 60 anos).
+
+66. Escreva um programa que leia o número de pessoas que vão participar de um
+ churrasco e calcule quantos quilos de carne devem ser comprados. Para isso,
+ considere que cada pessoa consome 250 g de carne. A resposta do programa
+ deve ser um número inteiro.
+67. Escreva um programa que leia o valor de um ano e verifique se ele é ou não
+ bissexto. Um ano é bissexto se ele for divisível por quatrocentos ou se se ele
+ for divisível por 4 mas não for divisível por 100.
+
+68. Escreva um programa que leia o valor do salário bruto de um empregado e
+ calcule o seu salário líquido. Para calcular o valor do salário líquido, deve-se
+ primeiramente descontar uma taxa de 11%, correspondente ao valor da
+ contribuição previdenciária. Depois, do valor restante, deve-se descontar o
+ valor do imposto de renda, que varia de acordo com o valor do salário. O
+ percentual que deve ser descontado para o imposto de renda varia de acordo
+ com a tabela abaixo.
+
+ Salário Alíquota
+
+ até 1.903,98 Isento
+
+---
+
+ de 1.903,99 até 2.826,65 7,5%
+
+ de 2.826,66 até 3.751,05 15%
+
+ de 3.751,06 até 4.664,68 22,5%
+
+ a partir de 4.664,69 27,5%
+
+69. Escreva um programa que leia as coordenadas x e y de um ponto e verifique a
+ quantidade de quadrantes a que este ponto pertence.
+
+70. Escreva um programa que leia os valores dos três lados de um triângulo e o
+ classifique como equilátero, isósceles ou escaleno.
+
+71. Escreva um programa que leia três números inteiros distintos e identifique o
+ maior número lido.
+
+72. João resolveu poupar dinheiro para comprar um carro. Para isso, ele decidiu
+ que todo mês irá poupar 25% do seu salário, até conseguir juntar um bom
+ valor para ser dado como entrada. Com base nestas informações, escreva um
+ programa que receba como entrada o valor do salário atual de João e o valor
+ que ele deseja juntar como entrada e calcule quanto tempo ele terá que
+ trabalhar para conseguir juntar o valor desejado. A resposta deve ser dada na
+ forma x anos e y meses.
+73. Escreva um programa que leia três números inteiros distintos e identifique o
+ maior e o menor número lido.
+
+74. Escreva um programa que leia três números distintos e identifique o número
+ que não é nem o menor e nem o maior número.
+
+75. Escreva um programa que leia os valores dos três ângulos internos de um
+ triângulo e verifique se ele é um triângulo retângulo.
+
+76. Escreva um programa que leia as coordenadas x e y de um ponto e verifique a
+ qual quadrante esse ponto pertence. Você pode supor que o ponto digitado
+ pelo usuário pertence a apenas um quadrante.
+
+---
+
+77. Escreva um programa que leia as coordenadas x e y de um ponto e verifique
+ se esse ponto pertence à reta y = 2x +1.
+
+78. Alfredo tem um carro flex e sempre fica na dúvida se é melhor abastecê-lo com
+ álcool ou gasolina. Um dia um de seus amigos o ensinou a seguinte dica:
+ “Pegue o valor do preço da gasolina e multiplique por 0,7. Se o valor for menor
+ ou igual ao valor do preço do álcool, abasteça com gasolina. Caso contrário,
+ abasteça com álcool.” Com base nestas informações, escreva um programa
+ que leia o preço do litro da gasolina e do álcool e verifique se é melhor
+ abastecer com álcool ou com gasolina.
+
+79. Escreva um programa que leia os coeficientes a, b e c de uma equação do 2º
+ grau e verifique a quantidade de raízes reais da equação.
+
+80. Escreva um programa que leia os coeficientes a, b e c de uma equação do 2º
+ grau e calcule todas as suas raízes reais.
+
+81. Escreva um programa que leia os valores das coordenadas x e y do centro de
+ uma circunferência e o valor do seu raio e, a seguir, leia as coordenadas x e y
+ de um ponto e verifique se este ponto está localizado dentro da circunferência.
+ 2
+ 2
+
+ ()()
+ 12 distan cia = x − x + y − y1 2
+82. Escreva um programa que leia as três notas de um aluno e verifique se o
+ mesmo está aprovado por média, se fará prova final ou se está reprovado por
+ média. Caso o aluno tenha que fazer a prova final, o programa deve informar
+ quanto ele terá que tirar na prova. Você pode considerar que a média mínima
+ para a aprovação por média é 7 e que a média mínima para fazer a prova final
+ é 4. O cálculo da prova final é calculado através da fórmula abaixo.
+
+ ()
+ al
+ Pr MediaParci ovaFinal −
+ = 2
+ 25 3*
+
+---
+
+83. Escreva um programa que leia um número inteiro entre 1 e 10 e imprima o
+ número lido por extenso.
+
+84. Escreva um programa que leia o peso e a altura de uma pessoa e verifique se
+ ela está dentro da faixa de peso adequada, ou se está abaixo ou acima do
+ peso. Caso a pessoa esteja fora do peso adequado o programa deve informar
+ quantos Kg ela deve ganhar ou perder para ficar dentro da faixa adequada.
+ Para resolver este programa, considere que o IMC ideal para uma pessoa
+ deve estar entre 18 e 25.
+
+85. Escreva um programa que leia dois operandos inteiros e um operador (+, -, *, /)
+ e aplique o operador lido aos dois operandos, na ordem em que os mesmos
+ foram digitados.
+
+ 86. Escreva um programa que leia um caractere e verifique se o mesmo é uma
+letra maiúscula, uma letra minúscula, um numeral ou nenhum dos tipos anteriores.
+
+87. Escreva um programa que leia um caractere correspondente ao estado civil de
+ uma pessoa e imprima o estado civil informado por extenso. As opções para o
+ estado civil são: S (solteiro), C (casado), D (divorciado) e V (viúvo).
+
+88. Escreva um programa que leia um único número entre 10000 e 99999 referente
+ ao número de um deputado estadual e identifique o partido pelo qual ele está
+ concorrendo. O número do partido pode ser identificado pelos dois primeiros
+ algarismos do número do candidato. Por exemplo, um candidato com número
+ 13457 concorre pelo PT, que é o partido de número 13, enquanto um
+ candidato com número 45879 concorre pelo PSDB, que é o partido de número
+ 45. Nesse programa, considere
+ os seguintes números de partido: 13 (PT), 14 (PTB), 15 (PMDB), 25 (DEM), 45
+ (PSDB) e 65 ( CdoB).
+
+89. Escreva um programa que leia um número inteiro entre 1 e 999 e calcule o seu
+ valor correspondente em algarismos romanos.
+
+---
+
+90. Escreva um programa que leia um número inteiro entre 1 e 12 correspondente
+ a um mês do ano e verifique o trimestre a que este mês pertence.
+
+91. Escreva um programa que leia o valor de um mês e de um ano e verifique a
+ quantidade de dias do mês informado pelo usuário.
+
+92. Escreva um programa que leia um verbo regular no infinitivo (da 1ª, 2ª ou 3ª
+ conjugação) e imprima a sua conjugação no presente do modo indicativo.
+
+93. Escreva um programa em que leia um número inteiro entre 1000 e 9999 e
+ verifique se o número informado é ou não um palíndromo.
+
+94. Escreva um programa que leia um valor inteiro a ser sacado pelo usuário e
+ identifique quantas cédulas de cada tipo devem ser usadas para que o saque
+ seja efetuado. Você pode supor que o caixa tem cédulas de R$ 10,00, R$
+ 20,00, R$ 50,00 e R$ 100,00. O valor máximo de um saque é R$ 1000,00 e,
+ para cada saque, deve-se priorizar o uso das cédulas maiores.
+
+95. Escreva um programa que leia quatro números reais e verifique se eles
+ formam, na ordem em que foram digitados, uma progressão aritmética, uma
+ progressão geométrica, os dois tipos de progressão ou nenhum tipo de
+ progressão.
+
+96. Escreva um programa que leia cinco números inteiros e determine o segundo
+ maior número digitado pelo usuário e a ordem em que o mesmo foi digitado.
+
+97. Escreva um programa que leia as horas, os minutos e o fuso horário e converta
+ o horário lido para o fuso horário informado. O fuso horário deve ser informado
+ como um número inteiro. Caso o valor seja positivo, o programa deve
+ considerar que o fuso horário digitado é maior do que o atual. Caso o valor
+ seja negativo, o programa deve considerar que o fuso horário é menor do que
+ o atual. Caso o valor seja 0, o programa
+ deve considerar que o fuso horário é o mesmo do atual. A resposta do
+ programa deve ser dada no formato hh:mm hs. Por exemplo, se o horário lido
+
+---
+
+ foi 10 h e 30 min e o fuso horário for 4, a resposta do programa deve ser 14:30
+ hs. Por outro lado, se o horário lido foi 10 h e30 min e o fuso horário for -4, a
+ resposta do programa deve ser 06:30 hs. Se o horário lido for 22 h e 30 min e
+ o fuso-horário for 3, a resposta deve ser 01:30 hs. Se o horário lido for 2 h e 30
+ min e o fuso horário for -3, a resposta deve ser 23:30 hs. O horário referente à
+ meia-noite deve ser representado da forma 00:00 hs.
+
+Comandos de repetição
+
+ 98. Escreva um programa que imprima todos os números inteiros entre 1 e 100 em
+ ordem ascendente.
+
+ 99. Escreva um programa que imprima todos os números inteiros entre 1 e 100 em
+ ordem descendente.
+
+ 100. Escreva um programa que leia um número inteiro positivo N e imprima os N
+ primeiros números pares positivos.
+
+ 101. Escreva um programa que leia um número inteiro positivo N e imprima os N
+ primeiros números ímpares positivos.
+
+ 102. Escreva um programa que leia um número inteiro N e imprima todos os seus
+ divisores exatos.
+
+ 103. Escreva um programa que leia um número inteiro N e verifique se ele é um
+ número primo.
+
+ 104. Escreva um programa que leia um número inteiro N e verifique se ele é um
+ número perfeito. Um número é perfeito quando ele é igual à soma de todos os
+ seus divisores exatos exceto ele mesmo. Por exemplo, o número 6 (1+2+3) é
+ um número perfeito.
+
+ 105. Escreva um programa que leia dois números inteiros M e N e calcule a soma
+ de todos os números do intervalo [M, N].
+
+ 106. Escreva um programa que leia dois números inteiros M e N e calcule a média
+
+---
+
+ aritmética dos números do intervalo [M, N].
+107. Escreva um programa que leia dois números inteiros M e N e calcule a média
+ aritmética dos números primos do intervalo [M, N].
+
+108. Escreva um programa que leia 20 números entre 10000 e 99999 referentes
+ aos números dos deputados estaduais eleitos e identifique a quantidade de
+ candidatos que cada partido elegeu. O número do partido do deputado pode
+ ser identificado pelos dois primeiros algarismos do número do candidato. Por
+ exemplo, um candidato com número 13457 concorre pelo PT, que é o partido
+ de número 13, enquanto que um candidato com número 45879 concorre pelo
+ PSDB, que é o partido de número 45. Neste programa, considere os seguintes
+ números de partido: 13 (PT), 14 (PTB), 15 (PMDB), 25 (DEM), 45 (PSDB) e
+ 65( PCdoB).
+
+109. Escreva um programa que leia dois números inteiros M e N e um número
+ inteiro X e imprima todos os divisores exatos de X existentes no intervalo [M,
+ N].
+
+110. Escreva um programa que leia um número natural N e calcule o seu fatorial.
+
+111. Escreva um programa que leia o termo inicial e a razão de uma PA e um
+ número inteiro positivo N e imprima os N primeiros termos da progressão.
+
+112. Escreva um programa que leia um texto e, em seguida, leia dois caracteres x e
+ y e substitua, no texto informado, todas as ocorrências do caractere x pelo
+ caractere y. Por exemplo, se o texto informado foi “banana”, o caractere x for
+ “a” e o caractere y for “e”, o texto deve ser alterado para “benene”.
+
+113. Escreva um programa que leia um texto e verifique a quantidade de letras
+ maiúsculas, a quantidade de letras minúsculas, a quantidade de numerais e a
+ quantidade de demais caracteres.
+
+114. Escreva um programa que leia um texto e imprima o seu valor correspondente
+ em caixa alta. Por exemplo, se o texto informado foi “Eu amo programar”, o
+ programa deve imprimir o texto “EU AMO PROGRAMAR”.
+
+---
+
+115. Escreva um programa que leia um número inteiro N e imprima o enésimo
+ termo da série de Fibonacci. (1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...).
+116. Escreva um programa que leia dois números inteiros M e N e imprima todos os
+ números primos existentes no intervalo [M, N].
+
+117. Escreva um programa que leia dois números inteiros M e N e calcule o valor de
+ MN. A potenciação deve ser calculada através de um comando de repetição,
+ sem a utilização de qualquer função oferecida pela linguagem de
+ programação.
+
+118. Escreva um programa que leia o peso e a altura de um grupo de 20 pessoas e
+ calcule o percentual de pessoas abaixo do peso, o percentual de pessoas
+ acima do peso e o percentual de pessoas que estão dentro da faixa de peso
+ adequada.
+
+119. Escreva um programa que leia o nome, o sexo e a idade de um grupo de 20
+ pessoas e calcule o percentual de mulheres que tem entre 18 e 21 anos.
+
+120. Escreva um programa que leia 10 números inteiros e, para cada número lido,
+ calcule o seu fatorial.
+
+121. Escreva um programa que leia um número N e imprima os N primeiros
+ números primos positivos.
+
+122. Escreva um programa que leia um número inteiro N e imprima todos os termos
+ da série de Fibonacci que são menores ou iguais a N.
+
+123. Escreva um programa que leia um número inteiro positivo N e informe o
+ primeiro termo da série de Fibonacci que é maior do que N.
+
+124. Escreva um programa que leia dois números inteiros positivos M e N e
+ imprima todos os termos da série de Fibonacci que pertencem ao intervalo [M,
+ N].
+
+---
+
+125. Escreva um programa que leia um número inteiro positivo N e imprima a maior
+ quantidade possível de números inteiros positivos de forma que a soma de
+ todos os números impressos seja menor ou igual a N.
+
+126. Escreva um programa que leia o termo inicial e a razão de uma progressão
+ aritmética e um número inteiro N e imprima todos os termos da progressão
+ menores ou iguais a N (caso a razão seja positiva) ou todos os termos maiores
+ ou iguais a N (caso a razão seja negativa).
+127. Escreva um programa que leia um número inteiro N e verifique se ele pertence
+ à série de Fibonacci.
+
+128. Escreva um programa que leia dois números inteiros M e N e calcule os N
+ primeiros números primos maiores ou iguais a M.
+
+129. Escreva um programa que imprima os seis prim

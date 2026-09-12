@@ -1,0 +1,262 @@
+RECEPÇÃO SEMESTRE 2026.1
+ ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+---
+
+SEJAM BEM VINDOS!
+ ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+---
+
+ APRESENTAÇÃO DO CURSO
+
+Segundo o INEP na portaria 396 (Art. 6°), o tecnólogo em Análise
+e Desenvolvimento de Sistemas tem as seguintes competências:
+● analisa, projeta, documenta, especifica, testa, implanta e
+ mantém sistemas computacionais de informação .
+● gerenciar projetos de software;
+● avaliar, selecionar e utilizar ferramentas, metodologias e
+ tecnologias adequadas ao problema e ao contexto para a
+ produção de sistemas computacionais
+
+---
+
+APRESENTAÇÃO DO CURSO
+
+● identificar, analisar e modelar processos de
+ negócio, possibilitando ações empreendedoras;
+● Raciocínio lógico, emprego de linguagens de
+ programação de construção de projetos,
+● preocupação com a qualidade, usabilidade,
+ robustez, integridade e segurança de programas
+ computacionais são fundamentais à atuação deste
+ profissional.
+
+---
+
+APRESENTAÇÃO DO CURSO
+
+● Algumas Competências Socioemocionais e
+ Profissionais
+ ○ Aprimorar habilidades interpessoais, capacidade de interagir de maneira eficaz, respeitosa e colaborativa
+ com diferentes pessoas e grupos.
+
+ ○ Desenvolver potencial de liderança, atuando de forma proativa com capacidade de coordenação de equipes e
+ mediação de conflitos.
+
+ ○ Fortalecer a resiliência adaptando-se a mudanças, superando desafios.
+
+ ○ Atuar de forma criativa, crítica e sistêmica na análise, compreensão e resolução de problemas.
+
+ ○ Demonstrar postura ética e responsável: atuação pautada por princípios morais, compromisso profissional e
+ respeito às normas legais e institucionais.
+ ■ Respeitando a diversidade e contribuindo para o desenvolvimento sustentável.
+
+---
+
+APRESENTAÇÃO DO CURSO
+
+● Projeto Pedagógico do Curso (PPC)
+ ○ Fonte: https://estudante.ifpb.edu.br/cursos/12/
+ ○ Responde as seguintes perguntas
+
+---
+
+MATRIZ CURRICULAR - 2025
+
+---
+
+ENADE
+Exame Nacional de Desempenho de Estudantes
+2021 - Conceito 5 (19º lugar no país - 528 cursos avaliados)*
+2017 - Conceito 5 (3º lugar no país - 386 cursos avaliados)*
+2014 - Conceito 4 (40º lugar no país - 320 cursos avaliados)*
+2011 - Conceito 5 (2º lugar no país - 235 cursos avaliados)*
+2008 - Conceito 5 (1º lugar no país - 252 cursos avaliados)*
+*Todos os resultados levam em conta o conceito enade
+
+---
+
+APRESENTAÇÃO DOS PROFESSORES
+1º PERÍODO DE ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+ ANDRÉ LIRA ROLIM
+ Titulação: Mestre
+ Disciplina: Fundamentos da computação
+
+ FABIO GOMES DE ANDRADE
+ Titulação: Doutor
+ Disciplina: Algoritmos e Lógica de programação
+
+---
+
+APRESENTAÇÃO DOS PROFESSORES
+1º PERÍODO DE ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+ DIOGO DANTAS MOREIRA
+ Titulação: Mestre
+ Disciplina: Linguagens de marcação
+
+ Daniela Miguel de Souza Morais
+
+ Titulação: Mestre
+ Disciplina: Inglês Instrumental
+
+---
+
+APRESENTAÇÃO DOS PROFESSORES
+1º PERÍODO DE ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+ ANTÔNIO EUDES FERREIRA
+ Titulação: Mestre
+ Disciplina: Matemática Aplicada à Computação
+
+ FRANCISCO IGOR ARRAES ALVES ROCHA
+ Titulação: Mestre
+ Disciplina: Português Instrumental
+
+---
+
+APRESENTAÇÃO DOS PROFESSORES
+1º PERÍODO DE ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+ MARÍLIA AGUIAR RIBEIRO DO NASCIMENTO
+ Titulação: Mestre
+ Disciplina: Relações Humanas no Trabalho
+
+---
+
+E O MERCADO DE TRABALHO?
+
+ https://valor.globo.com/patrocinado/dino/noticia/2025/08/25/mercado-de-ti-brasileiro-enfrenta-crise-de-talentos-1.ghtml
+
+---
+
+ Onde MERCADO
+ DE TRABALHO?
+
+https://brasscom.org.br/pdfs/relatorio-de-
+regionalizacao-das-vagas-de-ti/
+
+---
+
+E O MERCADO DE TRABALHO?
+
+---
+
+ Maiores salários
+
+https://brasscom.org.br/pdfs/relatorio-de-
+regionalizacao-das-vagas-de-ti/
+
+---
+
+E O MERCADO DE TRABALHO?
+
+---
+
+E O MERCADO DE TRABALHO?
+
+ https://brasscom.org.br/setor-de-tic-busca-novos-talentos-para-acompanhar-crescimento/
+
+---
+
+E O MERCADO DE TRABALHO?
+
+ Fonte: BRASSCOM: BRI2-2025-001 - Monitor de Empregos e Salários (2025-08) v10
+
+---
+
+ONDE POSSO CHEGAR?
+
+ Empresas
+ nacionais e Empreendedor
+ multinacionais
+
+ Empresas Trabalho
+ locais remoto
+
+---
+
+ No Brasil
+ ● Cajazeiras, Campina Grande, João
+ Pessoa - PB
+ ● Recife - PE
+ ● Fortaleza - CE
+ ● Brasília - DF
+ ● São Paulo, Araraquara, Osasco - SP
+ ● Porto Alegre - RS
+ ● ...
+
+ No exterior
+ ● Portugal
+ ● Estados Unidos
+ ● Canadá
+
+ONDE NOSSOS EX-ALUNOS ESTÃO
+
+---
+
+ENSINO, PESQUISA, EXTENSÃO
+
+---
+
+ A PREPARAÇÃO DOS ESTUDOS
+
+ Se alinha em três pilares
+
+1° pilar: Foco 2° pilar: Prática 3°
+pilar: Grupo
+
+---
+
+TÉCNICAS DE APRENDIZADOS
+
+● Aprendizado é um processo
+● Controle a ansiedade
+● Interaja com outros alunos
+● Nunca se compare com outras pessoas.
+ ○ Seja melhor do que ontem!
+● Crie um cronograma de estudos
+ ○ Pomodoro. Codifica 25 min e descanse 5 min
+
+---
+
+● DDDDDD
+
+---
+
+OBTENDO RESULTADOS NA SUA CARREIRA
+
+● Coloca todos seus projetos no github
+ ○ https://github.com/
+● Faça seu no LinkedIn
+ ○ https://www.linkedin.com/
+● Ajude sempre o próximo
+
+---
+
+Eventos de ADS
+
+---
+
+Grupo Whatsapp
+
+---
+
+Grupo Whatsapp turma 2026.2
+
+---
+
+Instagram
+
+---
+
+ ● Portal do estudante:
+
+ MAIS https://estudante.ifpb.edu.br/cur
+ sos/12
+
+INFORMAÇÕES
+
+---

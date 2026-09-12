@@ -1,0 +1,83 @@
+04/09/2026, 17:04 Títulos e Parágrafos | Linguagens de Marcação
+
+ Linguagens de Marcação
+
+ HTML Copy
+
+ Títulos e Parágrafos
+ Vamos começar a construir o corpo do nosso documento a partir de dois
+ tipos de elementos básicos: títulos e parágrafos.
+
+ Títulos
+ Em HTML, o título é exatamente o que parece: um título real ou subtítulo,
+ quando você coloca no texto a tag <h1> , por exemplo, o texto ficará maior e
+ a dimensão das letras será de acordo com o número de cabeçalhos. Os
+ títulos podem ter dimensões de 1 a 6, onde 1 é a maior dimensão e 6 a
+ menor.
+
+ • <h1>
+ • <h2>
+ • <h3>
+ • e assim até <h6>
+ As tags de títulos precisam de fechamento. No exemplo abaixo, todo o texto
+ que está dentro de <h1> e </h1> sofrerá as alterações citadas
+ anteriormente
+
+ <h1>Top 3 bandas de indie rock</h1>
+🖌️
+ 1
+
+---
+
+04/09/2026, 17:04 Títulos e Parágrafos | Linguagens de Marcação
+
+ Parágrafos
+ A tag <p> representa um parágrafo do texto. Parágrafos são, geralmente
+ representados, em mídia visual, como bloco de texto que são separados dos
+ blocos adjacentes por espaços brancos verticais e/ou recuo de primeira-
+ linha.
+
+ Código Resultado
+
+ <p>Indie rock é um gênero musical surgido na década de 1980.
+ </p>
+ <p>É enraizado em gêneros como o rock alternativo, o pós-punk
+ e a new wave</p>
+
+ Explore o uso de parágrafos e quebras de linha, como falado na seção Tags e
+ elementos e veja a diferença entre os dois.
+
+ Ao final desse exemplo, nosso código inteiro está exatamente como indicado
+ abaixo e pode ser visualizado no Codesandbox .
+
+ <!DOCTYPE html>
+ <html lang="pt-br">
+ <head>
+ <meta charset="utf-8" />
+ <title>Diogo Moreira - Meu site pessoal sobre música</title>
+ </head>
+ <body>
+ <h1>Top 3 bandas de indie rock</h1>
+ <p>Indie rock é um gênero musical surgido na década de 1980.
+ </p>
+ <p>
+ É enraizado em gêneros como o rock alternativo, o pós-punk
+ e a new wave
+ </p>
+ </body>
+ </html>
+
+ 2
+
+---
+
+04/09/2026, 17:04 Títulos e Parágrafos | Linguagens de Marcação
+
+ Previous Next
+ Atributos e valores Listas
+
+ Last updated 6 years ago
+
+ 3
+
+---

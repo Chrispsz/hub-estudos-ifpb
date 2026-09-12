@@ -1,0 +1,26 @@
+1. Escreva um programa que leia um número inteiro e informe o seu antecessor e o seu
+ sucessor.
+
+2. Escreva um programa que leia o valor da base e da altura de um triângulo e calcule a sua
+ área.
+
+3. Escreva um programa que leia o valor de uma temperatura em Celsius e calcule o seu valor
+ correspondente em Fahrenheit e em Kelvin.
+
+4. Escreva um programa que leia o valor de uma distância percorrida em km e o tempo gasto
+ em horas e calcule a velocidade média em m/s.
+
+5. Escreva um programa que leia um valor em polegadas e o converta para centímetros,
+ considerando que uma polegada equivale a 2.54 cm.
+
+6. Escreva um programa que leia o valor do seno de um ângulo e calcule o valor absoluto do
+ cosseno.
+
+7. Em uma determinada cidade, cada m2 de um terreno está avaliado em R$ 300,00. Escreva
+ um programa que leia o comprimento e a largura de um terreno localizado nesta cidade e
+ calcule o seu valor de mercado.
+
+8. Escreva um programa que leia o termo inicial e a razão de uma progressão aritmética e
+ imprima os 5 primeiros termos desta progressão.
+
+---

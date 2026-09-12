@@ -1,0 +1,679 @@
+Algoritmos
+
+Prof. Dr. Fabio Gomes de Andrade
+ fabio@ifpb.edu.br
+
+---
+
+ Algoritmos
+• Informalmente, podemos definir um
+ algoritmo como uma sequência lógica e
+ finita de passos para a resolução de um
+ determinado problema;
+
+• O problema não é necessariamente
+ computacional;
+
+---
+
+ Algoritmos
+• Exemplo de um algoritmo para
+ substituição de uma lâmpada:
+ 1. Pegue uma escada;
+ 2. Suba na escada;
+ 3. Retire a lâmpada velha;
+ 4. Coloque a lâmpada nova;
+ 5. Desça da escada;
+ 6. Guarde a escada;
+
+---
+
+ Algoritmos
+• Exemplo de um algoritmo para
+ substituição de um pneu:
+ 1. Pegue o estepe, o macaco e a chave de rodas;
+ 2. Afrouxe os parafusos do pneu que vai ser trocado;
+ 3. Use o macaco para suspender o carro;
+ 4. Retire os parafusos do pneu que vai ser trocado;
+ 5. Remova o pneu;
+
+---
+
+ Algoritmos
+• Exemplo de um algoritmo para
+ substituição de um pneu (continuação):
+ 6. Coloque o estepe no lugar do pneu substituído;
+ 7. Coloque os parafusos;
+ 8. Desça o carro com o macaco;
+ 9. Aperte os parafusos com a chave de roda;
+ 10. Guarde o pneu que foi trocado, o macaco e a chave
+ de rodas;
+
+---
+
+ Algoritmos
+• Características importantes dos
+ algoritmos:
+ ▪ Algoritmos devem ser finitos;
+
+ ▪ Todas as suas instruções devem ser executadas em um
+ tempo finito;
+
+ ▪ As instruções devem ser claras e não ambíguas;
+
+---
+
+ Algoritmos
+• Podemos usar algoritmos para
+ descrever tarefas simples do nosso
+ cotidiano;
+ ▪ Exemplos: o processo de substituição de uma lâmpada,
+ um manual de instruções, uma receita, uma partitura
+ musical, o cálculo da média parcial da disciplina, etc;
+
+---
+
+ Algoritmos
+• Características:
+ ▪ Não pode haver dúvidas sobre a próxima instrução a
+ ser executada após o término da execução da
+ instrução atual;
+
+ ▪ Algoritmos devem ser corretos, embora, para alguns
+ problemas complexos, uma certa taxa de erros seja
+ tolerável;
+
+---
+
+ Algoritmos
+• Importante:
+ ▪ Normalmente, não existe um único algoritmo capaz de
+ resolver o problema que está sendo abordado;
+
+ ▪ Entretanto, alguns algoritmos podem ser mais
+ eficientes do que outros;
+
+---
+
+ Lógica
+• Diariamente, usamos o raciocínio para
+ desenvolver algoritmos para a
+ resolução de problemas;
+
+• A ciência do raciocínio é a lógica, que é
+ estudada desde a antiga Grécia;
+
+---
+
+ Lógica
+• Em nosso dia a dia, usamos o termo
+ lógica para nos referirmos a um
+ raciocínio que pode ser deduzido ou
+ induzido a partir de um ou mais
+ argumentos;
+
+---
+
+ Lógica
+• Exemplo:
+ ▪ Argumentos:
+ ✓ Todo homem é racional;
+ ✓ João é homem;
+
+ ▪ Conclusão:
+ ✓ João é racional;
+
+---
+
+ Lógica
+• Exemplo:
+ ▪ Argumentos:
+ ✓ Ontem não havia nuvens no céu e não choveu;
+ ✓ Hoje não há nuvens no céu;
+
+ ▪ Conclusão:
+ ✓ Hoje não vai chover;
+
+---
+
+ Problemas de lógica
+• Um senhor está em uma margem do rio
+ com três tipos de carga: uma raposa,
+ uma galinha e um saco de milho;
+
+• Ele precisa atravessar toda a carga para
+ a outra margem, mas o seu barco só o
+ permite atravessar com, no máximo
+ uma carga de cada vez;
+
+---
+
+ Problemas de lógica
+• Precisamos elaborar um algoritmo que
+ descreva como ele pode atravessar
+ toda a carga para a outra margem, sem
+ nunca deixar a raposa sozinha com a
+ galinha ou a galinha sozinha com o
+ milho;
+
+---
+
+ Problemas de lógica
+• Solução:
+ 1. Atravesse a galinha;
+ 2. Retorne sozinho;
+ 3. Atravesse a raposa;
+ 4. Retorne com a galinha;
+ 5. Atravesse o milho;
+ 6. Retorne sozinho;
+ 7. Atravesse com a galinha;
+
+---
+
+ Problemas de Lógica
+• Um homem precisa obter exatamente
+ quatro litros de água, mas só tem um
+ recipiente de três litros e outro de cinco
+ litros;
+
+• Precisamos de um algoritmo para
+ determinar como obter os quatro litros
+ de água;
+
+---
+
+ Problemas de Lógica
+• Solução:
+ 1. Encha o recipiente de cinco litros;
+ 2. Encha o recipiente de três litros com o conteúdo do
+ recipiente de cinco litros;
+ 3. Esvazie o recipiente de três litros;
+ 4. Transfira o conteúdo do recipiente de cinco litros
+ para o recipiente de três litros;
+ 5. Encha o recipiente de cinco litros;
+ 6. Complete o recipiente de três litros com o conteúdo
+ do recipiente de 5 litros;
+
+---
+
+ Problemas de Lógica
+• Identifique o próximo termo da
+ sequência:
+ 1, 4, 7, 10, 13, 16, 19, 22, ...
+ Resposta: 25
+
+• Identifique o próximo termo da
+ sequência:
+ 1, 4, 9, 16, 25, 36, 49, 64, 81, 100, ...
+ Resposta: 121
+
+---
+
+ Problemas de Lógica
+• Identifique o próximo termo da
+ sequência:
+ 1, 2, 6, 24, 120 ...
+ Resposta: 720
+
+• Identifique o próximo termo da
+ sequência:
+ 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...
+ Resposta: 89
+
+---
+
+ Elementos de Algoritmos
+• Normalmente, algoritmos processam
+ dados para produzir uma saída;
+
+• Os dados necessários para a execução
+ de um algoritmo são chamados de
+ entrada;
+
+• O resultado obtido após a sua execução
+ é chamado de saída;
+
+---
+
+ Elementos de Algoritmos
+• Representação gráfica do
+ funcionamento de um algoritmo:
+
+ Entrada Saída
+ Processamento
+
+---
+
+ Elementos de Algoritmos
+• Exemplo: Vamos escrever um algoritmo
+ para calcular a média parcial de um
+ aluno;
+
+• Neste caso, a média parcial é calculada
+ pela média aritmética das três provas;
+
+---
+
+ Elementos de Algoritmos
+• Quais seriam os dados de entrada?
+ ▪ As notas das três provas;
+
+• O que seria o processamento?
+ ▪ A aplicação da média aritmética para a obtenção da
+ média parcial;
+
+• Quais seriam os dados de saída?
+ ▪ O valor da média parcial do aluno;
+
+---
+
+Representação de Algoritmos
+• Algoritmos podem ser representados de
+ diversas formas:
+ ▪ Descrição Narrativa;
+
+ ▪ Fluxogramas;
+
+ ▪ Pseudocódigo;
+
+---
+
+Representação de Algoritmos
+• Descrição narrativa:
+ ▪ O algoritmo é descrito usando a linguagem natural;
+
+ ▪ É a forma de descrição que usamos para descrever os
+ exemplos vistos até agora;
+
+---
+
+Representação de Algoritmos
+• Exemplo de descrição narrativa:
+ 1. Receba o valor da primeira nota;
+ 2. Receba o valor da segunda nota;
+ 3. Receba o valor da terceira nota;
+ 4. Some as três notas;
+ 5. Divida o valor da soma por três;
+ 6. Informe o resultado obtido para o usuário;
+
+---
+
+Representação de Algoritmos
+• Vantagens da descrição narrativa:
+ ▪ A descrição é feita em uma linguagem compreendida
+ por outras pessoas;
+
+ ▪ Não é necessário aprender outra linguagem ou
+ ferramenta para a representação/entendimento do
+ algoritmo;
+
+---
+
+Representação de Algoritmos
+• Desvantagens da descrição narrativa:
+ ▪ A linguagem usada para a descrição normalmente tem
+ ambiguidades;
+
+ ▪ A descrição narrativa é informal;
+
+---
+
+Representação de Algoritmos
+• Fluxogramas:
+ ▪ O algoritmo é descrito por meio de símbolos gráficos;
+
+ ▪ Símbolos específicos são usados para descrever cada
+ tipo de ação que deve ser executada no algoritmo;
+
+ ▪ Também são conhecidos como diagramas de blocos;
+
+---
+
+Representação de Algoritmos
+• Fluxogramas:
+ ▪ Os principais símbolos para a descrição de fluxogramas
+ são:
+
+---
+
+Representação de Algoritmos
+• Exemplo de fluxograma:
+
+---
+
+Representação de Algoritmos
+• Vantagens dos fluxogramas:
+ ▪ São um padrão mundial para a representação de
+ algoritmos;
+
+ ▪ Facilitam a compreensão e o entendimento do
+ algoritmo;
+
+ ▪ Reduzem o problema da ambiguidade;
+
+---
+
+Representação de algoritmos
+• Desvantagens dos fluxogramas:
+ ▪ Direcionam pouca atenção aos dados;
+
+ ▪ Tornam-se ineficientes a medida em que o algoritmo
+ cresce;
+
+---
+
+Representação de algoritmos
+• Pseudocódigo:
+ ▪ O algoritmo é descrito usando uma linguagem parecida
+ com uma linguagem de programação;
+
+ ▪ A linguagem natural é usada para descrever algumas
+ instruções;
+
+---
+
+Representação de algoritmos
+• Exemplo de um pseudocódigo:
+
+---
+
+Representação de algoritmos
+• Vantagens do pseudocódigo:
+ ▪ Maior formalismo;
+
+ ▪ É mais fácil de ser implementado em uma linguagem
+ de programação;
+
+---
+
+Representação de algoritmos
+• Desvantagens do pseudocódigo:
+ ▪ Linguagem não padronizada;
+
+ ▪ Maior complexidade;
+
+---
+
+ Dicas importantes
+• Uso de comentários:
+ ▪ Algoritmos são comumente lidos por outras pessoas;
+
+ ▪ Os comentários ajudam o leitor a entender os
+ objetivos e o funcionamento do algoritmo;
+
+ ▪ A legibilidade torna o algoritmo mais fácil de ser
+ mantido e estendido;
+
+---
+
+ Dicas Importantes
+• Uso de comentários:
+
+---
+
+ Dicas Importantes
+• Nomes de variáveis:
+ ▪ Os nomes das variáveis também influenciam na
+ legibilidade do algoritmo;
+
+ ▪ Os nomes das variáveis devem expressar claramente o
+ significado do valor que a mesma irá armazenar;
+
+---
+
+ Dicas Importantes
+• Nomes de variáveis:
+ ▪ Exemplo de um algoritmo com péssimos nomes de
+ variáveis:
+
+---
+
+ Dicas Importantes
+• Indentação:
+ ▪ Use a indentação para destacar os blocos de instruções
+ do seu algoritmo;
+
+ ▪ A indentação dá uma maior organização ao programa
+ e aumenta a sua legibilidade;
+
+ ▪ Em algumas linguagens, é um item obrigatório para
+ definir os blocos do programa;
+
+---
+
+ Dicas Importantes
+• Indentação:
+
+---
+
+ Dicas Importantes
+• Divisão e conquista:
+ ▪ Muitas vezes precisamos desenvolver algoritmos para
+ resolver problemas complexos;
+
+ ▪ Nestes casos, podemos quebrar o problema em
+ subproblemas menores, de menor complexidade;
+
+ ▪ A resolução dos subproblemas nos leva à resolução do
+ todo;
+
+---
+
+ Programas de computador
+• Um programa de computador também é
+ um algoritmo;
+
+• Neste caso, cada instrução do algoritmo
+ é uma operação que o computador é
+ capaz de executar;
+ ▪ Ler um determinado valor, exibir um valor no
+ dispositivo de saída, fazer um teste lógico, fazer um
+ cálculo, etc;
+
+---
+
+ Programas de computador
+• Para que o computador possa executar
+ uma tarefa, precisamos dizer para ele,
+ em detalhes, cada instrução que deve
+ ser executada;
+
+---
+
+ Programas de computador
+• Mas, como passar instruções para o
+ computador, se ele só entende a
+ linguagem binária?
+
+---
+
+Linguagens de Programação
+• As linguagens de programação nos
+ permitem criar programas usando uma
+ linguagem parecida com a que usamos
+ em nosso dia a dia;
+
+---
+
+ Linguagens de Programação
+
+Ada Lovelace (1843)
+ • Escreveu o primeiro algoritmo
+ a ser usado em uma máquina;
+
+ • O algoritmo calculava os
+ números de Bernoulli e foi
+ usado na máquina analítica de
+ Charles Babbage;
+
+---
+
+ Linguagens de Programação
+Alan Turing (1936)
+ • Propôs a ideia de uma máquina
+ universal abstrata que poderia
+ ser programada para seguir
+ instruções;
+
+ • A máquina de Turing teve um
+ papel chave na segunda guerra
+ mundial;
+
+---
+
+ Linguagens de Programação
+
+Alan Turing (1936)
+ • A máquina de turing serviu
+ como base para o
+ desenvolvimento dos
+ computadores e linguagens
+ de programação;
+
+ • Turing é conhecido como o
+ “pai da computação”;
+
+---
+
+ Linguagens de Programação
+• Várias linguagens de programação
+ foram desenvolvidas:
+ C C++ Prolog Ada
+
+ Pascal FORTRAN Clipper Go
+
+ Java Object Pascal Algol Perl
+
+ Python Smalltalk Cobol Visual Basic
+
+• E muitas outras;
+
+---
+
+Linguagens de Programação
+• As linguagens de programação facilitam
+ a criação de programas;
+
+• Entretanto, os computadores continuam
+ entendendo apenas a sua linguagem de
+ máquina;
+
+---
+
+ Compiladores
+• Os compiladores traduzem o programa
+ da linguagem de programação para a
+ linguagem que o computador entende;
+
+• Com relação à forma como este
+ processo é realizado, as linguagens
+ podem ser compiladas ou
+ interpretadas;
+
+---
+
+ Compiladores
+• Funcionamento das linguagens
+ compiladas:
+
+ Linguagem de
+ Programação
+
+ Compilador
+
+ Linguagem de
+ Máquina
+
+---
+
+ Compiladores
+• Funcionamento das linguagens
+ interpretadas:
+ Linguagem de Linguagem
+ Compilador
+ Programação Intermediária
+
+ Interpretador
+
+ Linguagem de
+ Máquina
+
+---
+
+ Compiladores
+• Linguagens compiladas tem melhor
+ desempenho, mas perdem em
+ portabilidade;
+
+• Linguagens interpretadas tem
+ portabilidade, mas perdem em
+ desempenho;
+
+---
+
+ Compiladores
+• O programa na linguagem de
+ programação é chamado de código
+ fonte;
+
+• O programa na linguagem de máquina
+ ou na linguagem intermediária é
+ chamado de código objeto ou binário;
+
+---
+
+ Compiladores
+• Os compiladores atuais normalmente
+ são compostos por várias partes:
+ ▪ Editor de texto;
+ ▪ Depurador;
+ ▪ Help;
+ ▪ Linker;
+
+---
+
+ Compiladores
+• Editor de texto:
+ ▪ É o lugar onde digitamos o código fonte do nosso
+ programa;
+
+ ▪ Normalmente, oferecem recursos que tornam a escrita
+ do programa mais fácil e ágil para o programador;
+ ✓ Destaque de palavras-chaves, detecção de erros,
+ complementação automática de comandos;
+
+---
+
+ Compiladores
+• Depurador:
+ ▪ Ferramenta que nos permite executar o programa
+ passo a passo;
+
+ ▪ A cada passo, podemos observar os valores das
+ variáveis usados no programa;
+
+ ▪ Facilita a identificação de erros de lógica no programa;
+
+---
+
+ Compiladores
+• Help:
+ ▪ Ferramenta de ajuda que descreve as características
+ da linguagem de programação e da ferramenta em si;
+
+ ▪ Usamos o help para tirar dúvidas sobre a sintaxe da
+ linguagem ou sobre os recursos oferecidos pelo
+ compilador;
+
+---
+
+ Compilador
+• Linker:
+ ▪ Ferramenta que permite que um programa use outros
+ programas e rotinas;
+
+ ▪ O linker é responsável por organizar todos os recursos
+ usados por um programa em um único programa
+ executável;
+
+---

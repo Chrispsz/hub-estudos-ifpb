@@ -1,0 +1,137 @@
+MINISTÉRIO DA EDUCAÇÃO
+ SECRETARIA DE EDUCAÇÃO PROFISSIONAL E TECNOLÓGICA
+ INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ PLANO DE DISCIPLINA
+ IDENTIFICAÇÃO
+CAMPUS: CAJAZEIRAS
+
+CURSO: TECNOLOGIA EM ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+DISCIPLINA: ALGORITMOS E LÓGICA DE PROGRAMAÇÃO CÓDIGO DA DISCIPLINA: TEC.1687
+
+PRÉ-REQUISITO:
+UNIDADE CURRICULAR: Obrigatória [X] Optativa [ ] Eletiva [ ] PERÍODO: 2026.1
+ CARGA HORÁRIA
+TEÓRICA: 100 h PRÁTICA: EaD¹: 0
+CARGA HORÁRIA SEMANAL: 6 h
+CARGA HORÁRIA TOTAL: 100 h
+DOCENTE RESPONSÁVEL: Fabio Gomes de Andrade
+
+ EMENTA
+
+ Introdução à programação. Operações de entrada e saída. Operadores aritméticos, lógicos e
+ relacionais. Tipos de dados, variáveis e constantes. Desvios condicionais. Estruturas de repetição.
+ Vetores e matrizes. Modularização de programas. Recursividade.
+
+ OBJETIVOS
+
+ Geral
+
+ Oferecer ao aluno noções sobre a construção de algoritmos e programação de computadores.
+
+ Específicos
+
+ Apresentar a noção de algoritmos;
+ Apresentar a lógica de programação estruturada;
+ Aplicar os conceitos aprendidos e desenvolver algoritmos usando uma linguagem de
+ programação estruturada.
+
+ CONTEÚDO PROGRAMATICO
+
+Unidade 1: Noções de algoritmos e programação de computadores
+
+ Definição de algoritmos;
+
+---
+
+ Algoritmos como ferramenta para a resolução de problemas;
+ Notações de algoritmos;
+ Conceitos básicos de programação de computadores;
+ Introdução à linguagem C;
+ Comandos de entrada e saída de dados;
+ Comando de atribuição;
+ Tipos, variáveis e constantes;
+ Operadores aritméticos, lógicos e relacionais;
+
+Unidade 2: Desvios condicionais
+
+ O comando if;
+ O comando switch;
+
+Unidade 3: Comandos de repetição
+
+ O comando for;
+ O comando while;
+ O comando do-while;
+
+Unidade 4: Vetores
+
+ Vetores unidimensionais;
+ Vetores bidimensionais;
+
+Unidade 5: Modularização de programas
+
+ Funções;
+ Procedimentos;
+ Recursividade;
+
+ METODOLOGIA DE ENSINO
+
+ Aulas expositivas e dialogadas;
+
+ RECURSOS DIDÁTICOS
+
+[X] Quadro
+[X] Projetor
+[] Apostilas
+
+ CRITÉRIOS DE AVALIAÇÃO
+
+Os alunos serão avaliados por meio de três provas escritas. Para cada prova será atribuída uma nota
+entre 0 e 100. A média parcial da disciplina será calculada por meio da média aritmética das notas
+obtidas em cada uma das provas.
+
+ BIBLIOGRAFIA
+
+ Bibliografía Básica:
+
+ DAMAS, L. M. D.; Linguagem C. Editora LTC, 10ª Edição, 2006;
+ LOPES, A.; GARCIA, G. Introdução à programação: 500 algoritmos resolvidos. Campus,
+ 2002;
+ SCHILDT, H. C completo e total. Makron Books, 3ª edição, 1997.
+
+---
+
+ Bibliografia Complementar:
+
+ BECKER, C. G.; FARIA, E. C.; FARRER, H. Programação estruturada de computadores:
+ algoritmos estruturados. Rio de Janeiro: LTC, 2008;
+ CORMEN T.; LEISERSON, C. E.; RIVEST, R. L.; STEIN, C. Algoritmos: teoria e prática.
+ Campus, 2012;
+ MANZANO, J. A. N. G. Lógica estruturada para programação de computadores. Érica,
+ 2002;
+ MEDINA, M; FERTIG, C. Algoritmos e programação: teoria e prática. São Paulo: Novatec,
+ 2005;
+ SOUZA, M. A. F.; GOMES, M. M.; SOARES, M. V. CONCILIO, R. Algoritmos e lógica de
+ programação. Thomson Pioneira, 2005.
+
+ OBSERVAÇÕES
+
+ A disciplina será ministrada na modalidade presencial. A ferramenta Google Classroom será usada
+ como ferramenta de apoio para a comunicação com os alunos.
+
+Documento assinado eletronicamente por:
+ Fabio Gomes de Andrade, PROFESSOR ENS BASICO TECN TECNOLOGICO, em 26/02/2026 07:27:30.
+
+Este documento foi emi do pelo SUAP em 26/02/2026. Para comprovar sua auten cidade, faça a leitura do QRCode ao lado ou acesse h ps://suap.ifpb.edu.br/auten car-
+documento/ e forneça os dados abaixo:
+
+Código 840722
+Verificador: 6469579c5a
+Código de Autenticação:
+
+ Rua José Antônio da Silva, 300, Jardim Oásis, CAJAZEIRAS / PB, CEP 58.900-000
+ http://ifpb.edu.br - (83) 3532-4100
+
+---

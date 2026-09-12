@@ -20,6 +20,9 @@
 
 export const runtime = 'nodejs';
 
+import { db } from '@/lib/db';
+import { buildMaterialBlock, findMaterial } from '@/lib/material-retrieval';
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -67,11 +70,17 @@ interface HubContext {
 interface TutorRequestBody {
   question?: string;
   discipline?: string;
+  /** Código estável da disciplina (chave do histórico salvo). */
+  disciplineCode?: string;
   topic?: string;
   material?: string;
+  /** id do material no course-data — liga o retrieval ao PDF/resumo certos. */
+  materialId?: string;
   history?: ChatMessage[];
   /** 'flashcards' → a resposta deve ser um array JSON de {front, back}. */
   mode?: 'tutor' | 'flashcards';
+  /** true → resposta em SSE (eventos delta/final/error). Padrão: JSON. */
+  stream?: boolean;
   /** Dados do app (professor, datas, progresso) para respostas precisas. */
   hubContext?: HubContext;
 }
@@ -187,12 +196,14 @@ function buildSystemPrompt(
   topic: string,
   material?: string,
   hub?: HubContext,
+  materialBlock = '',
 ): string {
   return [
     `Você é o tutor IA do Hub de Estudos — o app de estudos de um aluno do 2º período de ADS no IFPB Campus Cajazeiras (ensino médio integrado ao superior), turma 2026.2. Você conversa em português brasileiro.`,
     `Disciplina atual: ${discipline}.`,
     topic ? `Tópico em estudo agora: "${topic}".` : '',
     material ? `Material aberto: "${material}".` : '',
+    materialBlock,
     buildHubBlock(hub),
     'COMO ESTRUTURAR AS RESPOSTAS (markdown):',
     '- Abra com a resposta direta à pergunta (1-2 frases). Depois explique com um exemplo.',
@@ -236,16 +247,24 @@ function buildSystemPrompt(
     .join('\n');
 }
 
-/** Chama um modelo da OpenRouter com timeout; retorna o conteúdo ou lança erro. */
+/** Chama um modelo da OpenRouter com timeout; retorna o conteúdo ou lança erro.
+ *  Com onDelta: usa stream:true e repassa cada pedaço conforme chega (SSE). */
 async function callOpenRouter(
   model: string,
   apiKey: string,
   systemPrompt: string,
   history: ChatMessage[],
   question: string,
+  onDelta?: (piece: string) => void,
 ): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // streaming: TTFT 22s e rearmamento 20s a cada delta (nunca congela)
+  const arm = (ms?: number) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), ms ?? MODEL_TIMEOUT_MS);
+  };
+  arm(onDelta ? 22_000 : MODEL_TIMEOUT_MS);
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -264,12 +283,19 @@ async function callOpenRouter(
           ...history,
           { role: 'user', content: question },
         ],
+        ...(onDelta ? { stream: true } : {}),
       }),
     });
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
       throw new Error(`HTTP ${res.status} ${detail.slice(0, 200)}`);
+    }
+
+    if (onDelta && res.body) {
+      const full = await consumeSSE(res, onDelta, (ms) => arm(ms));
+      if (!full.trim()) throw new Error('stream vazio');
+      return full.trim();
     }
 
     const data = (await res.json()) as {
@@ -282,8 +308,52 @@ async function callOpenRouter(
     if (!content || !content.trim()) throw new Error('resposta vazia');
     return content.trim();
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
+}
+
+/** Consome uma resposta SSE OpenAI-compatible, repassando deltas.
+ *  rearma o timeout de inatividade a cada chunk recebido. */
+async function consumeSSE(
+  res: Response,
+  onDelta: (piece: string) => void,
+  rearm: (ms?: number) => void,
+): Promise<string> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let full = '';
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    rearm(20_000); // inatividade no meio do stream → corta
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf('\n')) !== -1) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith('data:')) continue; // comentários/keepalive
+      const payload = line.slice(5).trim();
+      if (payload === '[DONE]') return full;
+      try {
+        const json = JSON.parse(payload) as {
+          choices?: { delta?: { content?: string } }[];
+          error?: { message?: string };
+        };
+        if (json.error?.message) throw new Error(json.error.message);
+        const piece = json.choices?.[0]?.delta?.content;
+        if (piece) {
+          full += piece;
+          onDelta(piece);
+        }
+      } catch (e) {
+        // JSON parcial entre chunks — ignora; erro de provider real propaga
+        if (e instanceof Error && e.message && !/JSON/i.test(e.message)) throw e;
+      }
+    }
+  }
+  return full;
 }
 
 /** Chama a API pública da Z.ai (OpenAI-compatible, api.z.ai/api/paas/v4). */
@@ -292,9 +362,15 @@ async function callZAIPublic(
   systemPrompt: string,
   history: ChatMessage[],
   question: string,
+  onDelta?: (piece: string) => void,
 ): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arm = (ms?: number) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), ms ?? MODEL_TIMEOUT_MS);
+  };
+  arm(onDelta ? 22_000 : MODEL_TIMEOUT_MS);
 
   try {
     const res = await fetch(`${ZAI_PUBLIC.baseUrl}/chat/completions`, {
@@ -311,12 +387,19 @@ async function callZAIPublic(
           ...history,
           { role: 'user', content: question },
         ],
+        ...(onDelta ? { stream: true } : {}),
       }),
     });
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
       throw new Error(`HTTP ${res.status} ${detail.slice(0, 200)}`);
+    }
+
+    if (onDelta && res.body) {
+      const full = await consumeSSE(res, onDelta, (ms) => arm(ms));
+      if (!full.trim()) throw new Error('stream vazio');
+      return full.trim();
     }
 
     const data = (await res.json()) as {
@@ -329,15 +412,17 @@ async function callZAIPublic(
     if (!content || !content.trim()) throw new Error('resposta vazia');
     return content.trim();
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 }
 
-/** Fallback final: SDK Z-AI — import dinâmico protegido p/ portabilidade (Vercel-safe). */
+/** Fallback final: SDK Z-AI — import dinâmico protegido p/ portabilidade (Vercel-safe).
+ *  Com onDelta tenta stream:true; se o backend não iterar, entrega inteiro — nunca quebra. */
 async function callZAI(
   systemPrompt: string,
   history: ChatMessage[],
   question: string,
+  onDelta?: (piece: string) => void,
 ): Promise<string> {
   // new Function impede o bundler de resolver o pacote no build — se não existir
   // no ambiente (ex.: deploy na Vercel), cai no catch e devolve '' sem erro.
@@ -345,15 +430,79 @@ async function callZAI(
   const mod = await dynamicImport();
   const ZAI = mod.default;
   const zai = await ZAI.create();
+  const messages = [
+    { role: 'assistant', content: systemPrompt },
+    ...history,
+    { role: 'user', content: question },
+  ];
+
+  if (!onDelta) {
+    const completion = await zai.chat.completions.create({
+      messages,
+      thinking: { type: 'disabled' },
+    });
+    return completion.choices[0]?.message?.content?.trim() ?? '';
+  }
+
+  // tentativa de streaming (o tipo é Promise<any> — testamos iterabilidade)
+  try {
+    const completion = await zai.chat.completions.create({
+      messages,
+      stream: true,
+      thinking: { type: 'disabled' },
+    });
+    if (completion && typeof completion[Symbol.asyncIterator] === 'function') {
+      let full = '';
+      for await (const chunk of completion) {
+        // Formato 1: delta OpenAI-like direto no chunk
+        const direct =
+          chunk?.choices?.[0]?.delta?.content ?? chunk?.choices?.[0]?.message?.content;
+        if (typeof direct === 'string' && direct) {
+          full += direct;
+          onDelta(direct);
+          continue;
+        }
+        // Formato 2 (sandbox): string SSE crua — "data: {json}\n\n"
+        const raw =
+          typeof chunk === 'string' ? chunk : chunk instanceof String ? String(chunk) : '';
+        if (!raw) continue;
+        for (const line of raw.split('\n')) {
+          const l = line.trim();
+          if (!l.startsWith('data:')) continue;
+          const payload = l.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const json = JSON.parse(payload) as {
+              choices?: { delta?: { content?: string }; message?: { content?: string } }[];
+            };
+            const piece =
+              json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? '';
+            if (piece) {
+              full += piece;
+              onDelta(piece);
+            }
+          } catch {
+            // linha parcial — ignora
+          }
+        }
+      }
+      if (!full.trim()) throw new Error('stream vazio');
+      return full.trim();
+    }
+  } catch (err) {
+    console.warn('[api/tutor] ZAI stream indisponível — usando resposta inteira:',
+      err instanceof Error ? err.message : err);
+  }
+
+  // caminho seguro: resposta completa em um único delta
   const completion = await zai.chat.completions.create({
-    messages: [
-      { role: 'assistant', content: systemPrompt },
-      ...history,
-      { role: 'user', content: question },
-    ],
+    messages,
     thinking: { type: 'disabled' },
   });
-  return completion.choices[0]?.message?.content?.trim() ?? '';
+  const full = completion.choices[0]?.message?.content?.trim() ?? '';
+  if (!full) throw new Error('resposta vazia');
+  onDelta(full);
+  return full;
 }
 
 /** Z-AI com retry + backoff — sob rajadas (429 Too many requests) tenta até 3x
@@ -363,13 +512,14 @@ async function callZAIRetry(
   systemPrompt: string,
   history: ChatMessage[],
   question: string,
+  onDelta?: (piece: string) => void,
 ): Promise<string> {
   const backoffMs = [0, 1200, 2500];
   let lastErr: unknown;
   for (const delay of backoffMs) {
     if (delay) await new Promise((r) => setTimeout(r, delay));
     try {
-      const answer = await callZAI(systemPrompt, history, question);
+      const answer = await callZAI(systemPrompt, history, question, onDelta);
       if (answer) return answer;
       lastErr = new Error('resposta vazia');
     } catch (err) {
@@ -446,14 +596,48 @@ function sanitizeLatex(input: string): string {
   return out;
 }
 
+/** Limites da memória por disciplina — economia de armazenamento. */
+const HISTORY_KEEP = 40;
+const MSG_CAP = 4000;
+
+/** Salva a dupla pergunta+resposta e poda o histórico (mantém as 40 mais novas). */
+async function saveTurn(discipline: string, question: string, answer: string, model: string): Promise<void> {
+  const key = discipline.slice(0, 40);
+  if (!key || key === 'geral') return;
+  await db.tutorMessage.createMany({
+    data: [
+      { discipline: key, role: 'user', content: question.slice(0, MSG_CAP) },
+      { discipline: key, role: 'assistant', content: answer.slice(0, MSG_CAP), model: model || null },
+    ],
+  });
+  const old = await db.tutorMessage.findMany({
+    where: { discipline: key },
+    orderBy: { createdAt: 'desc' },
+    skip: HISTORY_KEEP,
+    select: { id: true },
+  });
+  if (old.length) {
+    await db.tutorMessage.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
+  }
+}
+
+const SSE_HEADERS: Record<string, string> = {
+  'Content-Type': 'text/event-stream; charset=utf-8',
+  'Cache-Control': 'no-cache, no-transform',
+  Connection: 'keep-alive',
+  'X-Accel-Buffering': 'no',
+};
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as TutorRequestBody;
     const question = (body.question ?? '').trim();
     const discipline = (body.discipline ?? 'Estudos').trim();
+    const disciplineKey = (body.disciplineCode || discipline).slice(0, 40);
     const topic = (body.topic ?? '').trim();
     const material = body.material?.trim();
     const isFlashcardsMode = body.mode === 'flashcards';
+    const useStream = !isFlashcardsMode && body.stream === true;
 
     if (!question) {
       return Response.json({ error: 'Pergunta vazia.' }, { status: 400 });
@@ -485,9 +669,133 @@ export async function POST(req: Request) {
         ? body.hubContext
         : undefined;
 
+    // Conteúdo REAL do material aberto (resumo IA + trechos do PDF por relevância)
+    const materialEntry = !isFlashcardsMode
+      ? findMaterial(body.materialId || material)
+      : undefined;
+    const materialBlock = materialEntry ? await buildMaterialBlock(materialEntry, question) : '';
+
     const systemPrompt = isFlashcardsMode
       ? buildFlashcardsPrompt(discipline, topic || question)
-      : buildSystemPrompt(discipline, topic, material, hub);
+      : buildSystemPrompt(discipline, topic, material, hub, materialBlock);
+
+    // ---------- MODO STREAMING (SSE) — chat do tutor ----------
+    if (useStream) {
+      const apiKeyStream = process.env.OPENROUTER_API_KEY;
+      const zaiPubStream = ZAI_PUBLIC.key;
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const enc = new TextEncoder();
+          let closed = false;
+          const send = (obj: unknown) => {
+            if (closed) return;
+            try {
+              controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
+            } catch {
+              // client desconectou — o finally fecha
+            }
+          };
+
+          let answer = '';
+          let usedModel = '';
+          // orçamento total: função serverless na Vercel (hobby) tem limite ~60s
+          const deadline = Date.now() + 55_000;
+
+          try {
+            // 1º: cadeia OpenRouter em streaming
+            if (apiKeyStream) {
+              for (const model of MODEL_CHAIN.tutor) {
+                if (answer || Date.now() > deadline - 8_000) break;
+                const t0 = Date.now();
+                try {
+                  answer = await callOpenRouter(
+                    model,
+                    apiKeyStream,
+                    systemPrompt,
+                    history,
+                    question,
+                    (piece) => send({ t: 'delta', v: piece }),
+                  );
+                  usedModel = prettyModelName(model);
+                  console.log(`[api/tutor] ${model} (stream) → ${Date.now() - t0}ms`);
+                } catch (err) {
+                  console.warn(
+                    `[api/tutor] modelo ${model} falhou (stream) em ${Date.now() - t0}ms:`,
+                    err instanceof Error ? err.message : err,
+                  );
+                }
+              }
+            }
+
+            // 2º: API pública da Z.ai em streaming
+            if (!answer && zaiPubStream && Date.now() <= deadline - 8_000) {
+              const t0 = Date.now();
+              try {
+                answer = await callZAIPublic(
+                  zaiPubStream,
+                  systemPrompt,
+                  history,
+                  question,
+                  (piece) => send({ t: 'delta', v: piece }),
+                );
+                usedModel = `Z.ai (${ZAI_PUBLIC.model})`;
+                console.log(`[api/tutor] zai-public ${ZAI_PUBLIC.model} (stream) → ${Date.now() - t0}ms`);
+              } catch (err) {
+                console.warn(
+                  `[api/tutor] zai-public falhou (stream) em ${Date.now() - t0}ms:`,
+                  err instanceof Error ? err.message : err,
+                );
+              }
+            }
+
+            // 3º: fallback Z-AI do sandbox (stream se o SDK permitir)
+            if (!answer && Date.now() <= deadline - 8_000) {
+              try {
+                answer = await callZAIRetry(systemPrompt, history, question, (piece) =>
+                  send({ t: 'delta', v: piece }),
+                );
+                usedModel = 'Z-AI (fallback)';
+              } catch (err) {
+                console.error('[api/tutor] fallback ZAI falhou:', err instanceof Error ? err.message : err);
+              }
+            }
+
+            if (!answer) {
+              send({
+                t: 'error',
+                message:
+                  'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). Tente novamente em instantes.',
+              });
+              return;
+            }
+
+            // versão autoritativa sanitizada (LaTeX → texto legível)
+            answer = sanitizeLatex(answer);
+
+            // memória: salva a dupla pergunta+resposta (falha aqui não quebra a resposta)
+            try {
+              await saveTurn(disciplineKey, question, answer, usedModel);
+            } catch (err) {
+              console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
+            }
+
+            send({ t: 'final', answer, model: usedModel || undefined });
+          } catch (err) {
+            console.error('[api/tutor] stream erro:', err instanceof Error ? err.message : err);
+            send({ t: 'error', message: 'Falha ao consultar o tutor IA. Verifique sua conexão e tente de novo.' });
+          } finally {
+            closed = true;
+            try {
+              controller.close();
+            } catch {
+              // já fechado
+            }
+          }
+        },
+      });
+
+      return new Response(stream, { headers: SSE_HEADERS });
+    }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     const zaiPubKey = ZAI_PUBLIC.key;
@@ -550,6 +858,15 @@ export async function POST(req: Request) {
         },
         { status: 502 },
       );
+    }
+
+    // memória: salva a dupla pergunta+resposta (modo JSON — flashcards não persiste)
+    if (!isFlashcardsMode) {
+      try {
+        await saveTurn(disciplineKey, question, answer, usedModel);
+      } catch (err) {
+        console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
+      }
     }
 
     return Response.json({ answer, model: usedModel || undefined });

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
+import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { TutorMarkdown } from './tutor-markdown';
 
 interface ChatMessage {
@@ -26,6 +27,8 @@ interface TutorQuickPanelProps {
   disciplineCode?: string;
   /** Tópico/material aberto — o tutor conecta a resposta a ele. */
   materialTitle?: string;
+  /** id do material no course-data — liga o retrieval (resumo + trechos do PDF). */
+  materialId?: string;
   /** Perguntas prontas exibidas como chips antes da 1ª resposta. */
   suggestions?: string[];
   className?: string;
@@ -35,6 +38,7 @@ export function TutorQuickPanel({
   discipline,
   disciplineCode,
   materialTitle,
+  materialId,
   suggestions,
   className,
 }: TutorQuickPanelProps) {
@@ -42,6 +46,8 @@ export function TutorQuickPanel({
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  /** Resposta em streaming (painel efêmero — não persiste no banco). */
+  const [streamText, setStreamText] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const nextIdRef = React.useRef(0);
 
@@ -64,7 +70,7 @@ export function TutorQuickPanel({
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, streamText]);
 
   async function ask(question: string) {
     const q = question.trim();
@@ -72,31 +78,40 @@ export function TutorQuickPanel({
     setInput('');
     appendMessage({ role: 'user', content: q });
     setLoading(true);
+    setStreamText(null);
     try {
-      const res = await fetch('/api/tutor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await streamTutorAnswer(
+        {
           question: q,
           discipline,
+          disciplineCode,
           topic: materialTitle ?? discipline,
           material: materialTitle,
+          materialId,
           hubContext: buildHubContext(disciplineCode ?? '', sp),
-        }),
-      });
-      const data = (await res.json()) as { answer?: string; model?: string; error?: string };
-      if (!res.ok || !data.answer) throw new Error(data.error ?? 'Falha ao consultar o tutor.');
-      appendMessage({ role: 'assistant', content: data.answer, model: data.model });
+        },
+        (_piece, full) => {
+          setLoading(false);
+          setStreamText(full);
+        },
+      );
+      appendMessage({ role: 'assistant', content: result.answer, model: result.model });
     } catch (err) {
-      appendMessage({
-        role: 'assistant',
-        content:
-          err instanceof Error
-            ? `⚠️ ${err.message}`
-            : '⚠️ Não consegui responder agora. Tente novamente.',
-      });
+      const partial = err instanceof TutorStreamError ? err.partial : '';
+      if (partial.trim()) {
+        appendMessage({ role: 'assistant', content: partial });
+      } else {
+        appendMessage({
+          role: 'assistant',
+          content:
+            err instanceof Error
+              ? `⚠️ ${err.message}`
+              : '⚠️ Não consegui responder agora. Tente novamente.',
+        });
+      }
     } finally {
       setLoading(false);
+      setStreamText(null);
     }
   }
 
@@ -166,6 +181,21 @@ export function TutorQuickPanel({
         {loading && (
           <div aria-live="polite" className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" aria-hidden /> O tutor está pensando…
+          </div>
+        )}
+
+        {streamText !== null && (
+          <div className="flex gap-2">
+            <div className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <Bot className="size-3.5" />
+            </div>
+            <div className="max-w-[88%] rounded-xl bg-muted px-3 py-2">
+              <TutorMarkdown content={streamText} />
+              <span
+                className="mt-1 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-emerald-400 align-middle"
+                aria-hidden="true"
+              />
+            </div>
           </div>
         )}
       </div>

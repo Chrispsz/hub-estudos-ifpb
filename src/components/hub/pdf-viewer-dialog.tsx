@@ -178,6 +178,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 discipline={discipline?.name ?? material.disciplineCode}
                 disciplineCode={material.disciplineCode}
                 materialTitle={material.title}
+                materialId={material.id}
               />
             </div>
           )}

@@ -1,0 +1,230 @@
+Curso Superior de Análise e Desenvolvimento de Sistemas
+ Linguagens de Marcação
+ Prof. MSc. Diogo D. Moreira
+
+HTML
+Mídias
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Imagens
+● O elemento HTML <img> (or HTML Image Element) representa a
+ inserção de imagem no documento
+ ○ Estamos fazendo uma referência para uma imagem que deve existir
+ independentemente do documento HTML
+
+● Para uma melhor experiência, também utilizamos juntamente com os
+ elementos <ﬁgure> e <ﬁgcaption>.
+
+ 2
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Imagens
+● Exemplo de inserção de imagens utilizando <img>, que é um
+ elemento que não necessita de fechamento
+
+● Este elemento irá exibir a imagem no arquivo "gato.jpg" desde que
+ esse arquivo exista no mesmo diretório
+
+ <img src="gato.jpg" />
+
+ 3
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Imagens
+● Este elemento irá exibir a imagem que está definida no atributo src
+ desde que esse arquivo exista no mesmo diretório
+
+● O atributo alt mostra um texto alternativo caso não seja possível
+ exibir a imagem
+
+<img src="gato.jpg" alt="Um gato" />
+
+ 4
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Imagens
+● O tamanho da imagem pode ser definido com os atributos width
+ (largura) e height (altura). Definindo apenas um, a imagem é
+ redimensionada proporcionalmente
+
+<img src="gato.jpg" alt="Um gato"
+ width="300" />
+
+ 5
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Imagens + hyperlinks
+● O elemento <img> também pode ser usado com hyperlinks. Basta que
+ esteja envolvido em um elemento <a>
+
+<a href="https://youtube.com/watch?v=ILQTZCb7-Uw">
+ <img src="gato.jpg" alt="Um gato" />
+</a>
+
+ 6
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Imagens
+● O elemento <ﬁgure> serve para marcar uma unidade de conteúdo e
+ opcionalmente uma legenda para o conteúdo. Deve ser utilizado junto
+ com o elemento <ﬁgcaption>
+<figure>
+ <img src="gato.jpg" alt="Um gato" />
+ <figcaption>Um gato incrível</figcaption>
+</figure>
+
+ 7
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Prática
+ Crie um novo documento html, contendo no corpo os
+ seguintes elementos:
+ Um título h1 com o nome de uma série/filme favorito.
+ Busque imagens de 3 personagens e adicione os elementos
+ img para estas imagens no mesmo elemento figure. Em
+ seguida, coloque uma legenda
+ Crie um hyperlink que, ao clicar na imagem, vai para uma
+ página na web sobre a série/filme que você escolheu
+ Crie uma lista de definição abaixo do figure para descrever
+ os personagens, inserindo um pouco de sua história
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Áudio e Vídeo
+● HTML dá suporte a mídia embutida por meio dos elementos <audio>
+ e <video>, oferecendo a possibilidade de incorporar facilmente mídia
+ em documentos HTML.
+
+ 9
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Áudio e Vídeo
+● HTML dá suporte a mídia embutida por meio dos elementos <audio>
+ e <video>, oferecendo a possibilidade de incorporar facilmente mídia
+ em documentos HTML.
+● Cada elemento destes, tem dentro dele um elemento <source>, para
+ indicar qual arquivo de vídeo ou aúdio deve ser reproduzido.
+
+ 10
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Vídeo
+● Atributos disponíveis para o elemento <video>:
+ ○ controls - Exibe os controles do vídeo, tais como play, pause, volume e
+ exibição em tela cheia
+ ○ autoplay - Começa a reproduzir o vídeo assim que a página é carregada.
+ Atualmente só funciona em conjunto com muted
+ ○ muted - Inibe o som do vídeo
+ ○ poster - Define uma imagem fixa para ser exibida enquanto o vídeo não
+ começa
+ ○ loop - Coloca a reprodução em repetição
+ ○ width - Largura
+ ○ height - Altura
+ 11
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Vídeo
+● <video>
+● Ao usar apenas controls, o
+ vídeo aparece em pausa e com
+ os controles disponíveis para o
+ usuário. A cena mostrada é o início do vídeo
+
+<video controls>
+ <source src="bigbuckbunny.mp4">
+</video>
+ 12
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Vídeo
+● <video>
+
+● Ao usar poster, a cena
+ mostrada enquanto o vídeo
+ não é reproduzido é a imagem indicada
+
+<video controls poster="video_poster.jpg">
+ <source src="video.mp4">
+</video>
+
+ 13
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Aúdio
+
+● Atributos disponíveis para o elemento <audio>:
+ ○ controls - Exibe os controles do aúdio, tais como play, pause, volume
+ ○ autoplay - Começa a reproduzir o aúdio assim que a página é carregada.
+ Existe uma série de restrições quanto a esse uso
+ ○ muted - Inibe o som
+
+ 14
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Aúdio
+● <audio>
+
+● Ao usar controls, o tocador
+ de música é exibido
+
+<audio>
+ <source src="dttm.mp3">
+</audio>
+
+ 15
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Prática
+ Procure um vídeo de sua preferência e faça o download no
+ formato MP4
+ Crie um novo documento HTML, contendo um título para
+ seu vídeo no corpo
+ Em seguida, insira o vídeo selecionado num documento
+ HTML, seguido de um parágrafo descrevendo o mesmo
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Prática
+ Procure uma música no formato MP3 e baixe para o seu
+ computador.
+ Crie um novo documento HTML, contendo o título da música
+ no corpo
+ Em seguida, insira a música selecionada num documento
+ HTML, seguido da letra da música
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---

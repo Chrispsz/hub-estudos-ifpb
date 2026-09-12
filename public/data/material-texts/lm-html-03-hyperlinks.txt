@@ -1,0 +1,199 @@
+Curso Superior de Análise e Desenvolvimento de Sistemas
+ Linguagens de Marcação
+ Prof. MSc. Diogo D. Moreira
+
+HTML
+Hyperlinks
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Hyperlinks nos permitem vincular nossos documentos a
+ qualquer outro documento (ou outro recurso) que queremos,
+ também podemos vincular para partes específicas de
+ documentos
+
+ 2
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Todos os websites contém uma grande quantidade de links
+ para apontar, não apenas para várias notícias, mas também
+ diferentes áreas do site (funcionalidade de navegação), páginas
+ de login / registro (ferramentas do usuário) e muito mais.
+
+ 3
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+
+ 4
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Um hyperlink básico é criado envolvendo o texto (ou outro
+ conteúdo) que você quer transformar em um link dentro de um
+ elemento <a> , e dando-lhe um atributo "href" que conterá a
+ URL para o qual você deseja que o link aponte.
+
+ 5
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Exemplo:
+
+ 6
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Um URL ou Uniform Resource Locator é simplesmente um
+ texto que define onde algo está localizado na Web. Por
+ exemplo, a página do IFPB está localizada em
+ https://www.ifpb.edu.br.
+● Os URLs usam caminhos para encontrar arquivos. Os caminhos
+ especificam onde, no sistema de arquivos, o arquivo que você
+ está interessado está localizado.
+
+ 7
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+ Se estamos no mesmo diretório,
+ precisamos apenas especiﬁcar o
+ nome do arquivo ao qual desejamos
+ vincular
+
+ <p>
+ <a href="gato.jpg">
+ Link para uma foto de gato
+ </a>
+ </p>
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+ <p>
+ <a href="imagens/gato.jpg">
+ Link para uma foto de gato
+ </a>
+ </p>
+
+ Se estamos em um diretório "acima" do
+ arquivo ao qual desejamos vincular,
+ precisamos especiﬁcar o diretório e só
+ então o nome do arquivo
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+ Se estamos em um diretório "paralelo" ao do
+ arquivo ao qual desejamos vincular,
+ precisamos "subir" o nível do diretório,
+ especiﬁcar o diretório do arquivo e só então o
+ nome dele.
+ Subir o diretório é feito com dois pontos ".."
+
+ <p>
+ <a
+ href="../imagens/gato.jpg">
+ Link para uma foto de gato
+ </a>
+ </p>
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● A URL, que é valor de href pode apontar para arquivos HTML,
+ arquivos de texto, imagens, documentos de texto, arquivos
+ de vídeo e áudio e qualquer outra coisa que possa estar na
+ web.
+● Se o navegador da Web não sabe como exibir ou manipular o
+ arquivo, ele irá perguntar se você quer abrir o arquivo ou baixar
+ o arquivo.
+
+ 11
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● URLs absolutos
+ ○ Aponta para um local definido por sua localização absoluta na web, a
+ partir do nome do domínio.
+ ○ Exemplo: http://www.ifpb.edu.br
+● URLs relativos
+ ○ Aponta para um local relativo ao arquivo do qual você está vinculando
+ ○ Exemplo: contato.html
+ ○ Nesse exemplo, o navegador busca uma página contato.html que esteja
+ no mesmo diretório da página que está sendo exibida.
+
+ 12
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Quando você está criando um hyperlink para um recurso que
+ deve ser baixado em vez de aberto no navegador, você pode
+ usar o atributo de download para fornecer um nome de arquivo
+ padrão
+
+ 13
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+
+ 14
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Hyperlink
+● Quando queremos especificar onde uma hyperlink deve abrir,
+ como em uma nova aba, especificamos o atributo target.
+● Possíveis valores:
+ ○ _blank
+ ○ _self (padrão)
+ ○ framename (qualquer nome a sua escolha)
+
+ 15
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Prática
+ Crie uma estrutura de pastas
+ semelhante a da imagem,
+ adicionando conteúdo sobre
+ seu filme e série favoritos em
+ cada uma das páginas.
+ Cada uma das páginas dentro
+ de favoritos deve conter um
+ link para voltar para a página
+ inicial (index.html)
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---

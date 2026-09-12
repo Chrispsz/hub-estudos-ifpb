@@ -30,3 +30,15 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Memória do Tutor IA — conversas salvas por disciplina (leve: podadas em 40/disciplina)
+model TutorMessage {
+  id          String   @id @default(cuid())
+  discipline  String // código da disciplina (ex.: TEC.1687) — chave estável
+  role        String // 'user' | 'assistant'
+  content     String
+  model       String? // modelo que gerou a resposta (ex.: Nemotron 3 Super)
+  createdAt   DateTime @default(now())
+
+  @@index([discipline, createdAt])
+}

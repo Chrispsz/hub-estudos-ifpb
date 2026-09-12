@@ -1,0 +1,158 @@
+MINISTÉRIO DA EDUCAÇÃO
+ SECRETARIA DE EDUCAÇÃO PROFISSIONAL E TECNOLÓGICA
+ INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DA PARAÍBA
+
+ PLANO DE DISCIPLINA
+ IDENTIFICAÇÃO
+CAMPUS: IFPB - Cajazeiras
+CURSO: Análise e Desenvolvimento de Sistemas
+
+DISCIPLINA: Fundamentos da Computação. CÓDIGO DA DISCIPLINA: 53647
+
+PRÉ-REQUISITO: Sem pré-requisito
+UNIDADE CURRICULAR: Obrigatória [ X ] Optativa [ ] Eletiva [ ] SEMESTRE: 2026.1
+ CARGA HORÁRIA
+TEÓRICA: 67 h/a PRÁTICA: 0 h/a EaD: EXTENSÃO:
+CARGA HORÁRIA SEMANAL: 4
+CARGA HORÁRIA TOTAL: 67 h/a
+DOCENTE RESPONSÁVEL: André Lira Rolim
+
+ EMENTA
+
+Conceitos introdutórios e fundamentais de informática. História e evolução dos computadores. Lógica digital.
+Conversão de base. Operações aritméticas com números binários. Arquitetura e organização básica de
+computadores. Lixo eletrônico como uma ameaça ambiental e social.
+
+ OBJETIVOS
+
+Objetivo geral
+
+ Apresentar os princípios básicos e introdutórios da informática.
+
+Objetivos específicos:
+
+ Apresentar os conceitos de hardware, software e peopleware;
+ Mostrar a evolução do hardware e do software;
+ Apresentar a representação digital de dados e informação;
+ Apresentar as arquiteturas de computadores;
+ Apresentar o funcionamento das portas lógicas;
+ Apresentar as tecnologias e aplicações de computadores.
+
+ CONTEÚDO PROGRAMÁTICO
+
+ 1. Histórico e evolução dos computadores
+
+ 2. Definições de Software e Hardware
+
+---
+
+ 3. Arquitetura e organização de um computador
+
+ 4. Classificação de computadores
+
+ 5. Periféricos de entrada e saída
+
+ 6. Representação de dados
+
+ 6.1. Representação de números inteiros na base binária
+
+ 6.2. Representação de números inteiros na base octal
+
+ 6.3. Representação de números inteiros na base hexadecimal
+
+ 7. Operações Aritméticas com números binários
+
+ 8. Fundamentos de Sistemas de informação
+
+ 8.1. Software básico
+
+ 8.2. Software aplicativo
+
+ 8.3. Sistemas de apoio à decisão
+
+ 8.4. Sistemas especialistas modelos de negócio
+
+ 9. Portas Lógicas
+
+ METODOLOGIA DE ENSINO
+
+Aulas expositivas e dialogadas com auxílio de material visual (slides) e utilização do Quadro.
+
+ Para cada conteúdo do programa concluído será colocado atividades individuais e em grupo, para
+ consolidação do conteúdo ministrado.
+ Será utilizado o site google classroom para interações assíncronas e disponibilização de materiais.
+
+A aula se desenvolverá por meio de exposição dialogada, acrescidas sempre que possível, de períodos para
+debates sobre os conceitos apresentados e suas correlações com áreas afins.
+
+ RECURSOS DIDÁTICOS
+
+[ x] Quadro
+[x] Projetor
+[ ] Vídeos/DVDs
+[x ] Periódicos/Livros/Revistas/Links
+[ ] Equipamento de Som
+[ ] Laboratório
+[ X ] Softwares: google classroom
+[ ] Outros
+
+Foram utilizados os softwares para as seguintes finalidades:
+
+ google classroom para ter uma sala virtual como ferramenta de exposição dos materiais de aulas e
+ atividades.
+
+ CRITÉRIOS DE AVALIAÇÃO
+
+A Média Semestral (MS) será a média aritmética obtida através das notas correspondentes às avaliações Av1,
+Av2 e Av3. Por exemplo, calculamos a Média Semestral segundo a fórmula:
+
+---
+
+ ​ ​ MS = (Av1+Av2+Av3) / 3
+
+ Obterão a aprovação por média os alunos que atingirem a média igual ou superior a 70 (setenta pontos).
+ Será reprovado o discente que atingir Média Semestral inferior a 40 pontos.
+
+ Os discentes que atingirem média inferior a 70 pontos e maior ou igual que 40 pontos poderão realizar
+ uma Avaliação Final (AF). Esta avaliação valerá 100 pontos. A Nota Final do Semestre (MF) será a média
+ ponderada obtida pela fórmula:
+
+ MF = (6 *MS + 4*AF) / 10
+
+ Estará aprovado o discente que obtiver a Média Final maior ou igual a 50. Ou seja: MF ≥ 50.
+
+ BIBLIOGRAFIA
+
+ Bibliografia Básica:
+
+ MONTEIRO, M. A. Introdução à Organização de Computadores. LTC, 4ª edição, 2001;
+ IDOETA, I. V.; CAPUANO, F. G. Elementos de Eletrônica Digital. Érica, 34ª edição, 2002;
+ VELLOSO, F. C. Informática: Conceitos Básicos. Campus, 7ª edição, 2004.
+
+ Bibliografia Complementar:
+
+ BROOKSHEAR, J. GLENN. Ciência da Computação: uma visão abrangente.Bookman, 11ª edição
+ 2023;
+ FOROUZAN, B.; MOSHARRAF, F. Fundamentos da ciência da computação. Cengage Learning, 1ª
+ edição, 2011;
+ TANENBAUM, A. S. Organização Estruturada de Computadores. LTC, 4ª edição, 2001;
+ STALLINGS, W. Arquitetura e Organização de Computadores. Makron Books, 5ª edição, 2002;
+ MEIRELES, F. de S. Informática: Novas Aplicações com Microcomputadores. Makron Books,
+ 2ª edição,1994;
+
+ OBSERVAÇÕES
+
+Documento assinado eletronicamente por:
+ Andre Lira Rolim, PROFESSOR ENS BASICO TECN TECNOLOGICO, em 25/02/2026 17:08:15.
+
+Este documento foi emi do pelo SUAP em 25/02/2026. Para comprovar sua auten cidade, faça a leitura do QRCode ao lado ou acesse h ps://suap.ifpb.edu.br/auten car-
+documento/ e forneça os dados abaixo:
+
+Código 840623
+Verificador: 6aa0f1a956
+Código de Autenticação:
+
+ Rua José Antônio da Silva, 300, Jardim Oásis, CAJAZEIRAS / PB, CEP 58.900-000
+ http://ifpb.edu.br - (83) 3532-4100
+
+---

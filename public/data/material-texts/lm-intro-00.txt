@@ -1,0 +1,396 @@
+Curso Superior de Análise e Desenvolvimento de Sistemas
+ Linguagens de Marcação
+ Prof. MSc. Diogo D. Moreira
+
+Linguagens
+de Marcação
+Apresentação da disciplina
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Quem sou eu?
+
+● Diogo Moreira
+ ○ Graduado em Análise e Desenvolvimento de Sistemas (IFPB - Cajazeiras)
+ ○ Especialista em Engenharia de Software (Estácio iDez - João Pessoa)
+ ○ Mestre em Engenharia de Software (CESAR School - Recife)
+
+ ○ Pesquisador na área de Testes e Qualidade de Software
+ ○ Professor das disciplinas
+ Linguagens de Marcação (1º período),
+ Arquitetura e Padrões de Projeto de Software (5º período)
+ Programação para Web II (5º período)
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Quem são vocês?
+
+● Nome 👤
+● De onde vem
+● Experiência prévia com programação?
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Roteiro
+
+● O que são linguagens de marcação?
+● Padronização
+● Demonstração
+● Ferramentas / Recomendações
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Uma linguagem de marcação é “uma forma de descrever a
+ estrutura lógica ou semântica de um documento e fornecer
+ instruções a computadores sobre como apresentar o conteúdo de
+ um arquivo”.(Davies, 2004)
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Uma visão que interessa diretamente aos estudos da Ciência da
+ Informação: a possibilidade de descrever o conteúdo semântico
+ (significado) de um texto
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+● Diversos tipos de linguagem de
+ marcação, para usos e finalidades
+ específicas
+
+● Editores de texto, por exemplo, podem
+ manter marcas internas para controlar
+ diversos atributos de um texto, tais
+ como cor, tamanho, formatação, etc. É
+ isso que editores como o Microsoft
+ Word fazem.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+● Aplicativos como Whatsapp, por
+ exemplo, fazem uso de marcações para
+ formatar texto.
+ ○ Tudo que está entre * e * é
+ exibido como negrito
+ ○ O que está entre _ e _ é exibido
+ como itálico
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Como o próprio nome sugere, as Linguagens de Marcação têm como
+ característica principal criar marcas (vamos chamar de tags) para
+ delimitar um texto.
+● Uma marca é um código que envolve uma palavra ou um trecho
+ de um texto.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Por exemplo, em HTML, a linguagem padrão da web, um trecho
+ delimitado pelas marcas <b> e </b> aparecerá em negrito (bold),
+ um trecho delimitado pelas marcas <u> e </u> aparecerá sublinhado
+ (underline), e um trecho delimitado pelas marcas <i> e </i> será
+ apresentado em itálico
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Sendo assim:
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Num primeiro momento, essas marcas eram usadas apenas para
+ definir a forma como um texto seria apresentado. Mais tarde, com
+ a evolução das linguagens, tornou-se possível usar marcas para
+ fornecer significado ao texto.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● A diferença aqui é que: b define um estado físico, e strong define um estado lógico.
+ Pode ser que algum interpretador entenda strong de outra maneira que não seja
+ negrito.
+● Aqui, strong é usado para dizer que este texto deve ser tratado como “grande
+ importância”, como alertas, urgências, etc. Por outro lado, b sempre será interpretado
+ como negrito
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Todas as Linguagens de Marcação possuem um conjunto de
+ convenções utilizadas na definição de suas marcas, isto é, contêm
+ diversas marcas, cada qual com um significado próprio,
+ estipulado previamente.
+● Como exemplo anterior, em HTML a tag <b> é usada para delimitar
+ um texto que será apresentado em negrito.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Linguagens de Marcação
+
+● Cada marca (tag) possui uma função específica, seja simplesmente
+ para marcar um texto, seja para definir uma estrutura mais complexa
+ como, por exemplo, uma tabela, um formulário, etc.
+● Ao se delimitar um texto por marcas, é possível estabelecer um
+ conteúdo semântico que pode ser tratado e manipulado por
+ programas de computador.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+● Desde 1994 existe um comitê internacional chamado World Wide
+ Web Consortium (W3C), responsável por desenvolver e manter
+ padrões para a Web.
+● O W3C é dirigido por Tim Berners-Lee, o inventor da World Wide
+ Web. Dentre esses padrões encontram-se dezenas de linguagens de
+ marcação.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+● É necessária a existência da padronização para que as Linguagens de
+ Marcação possam ser compartilhadas e utilizadas mundialmente.
+● Para que um fabricante desenvolver um browser, por exemplo, é
+ necessário que ele reconheça (e crie código para isso) que a tag <b>
+ indica negrito, e assim por diante. Assim, todos os browsers mostram
+ páginas web de maneira semelhante.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+● Todas as LM devem ser capazes de diferenciar as tags (que compõem
+ a estrutura do documento) do texto propriamente dito (que constitui
+ o conteúdo do documento).
+● Assim, uma ferramenta como um browser, por exemplo, pode
+ identificar as marcas contidas e apresentar ao usuário somente o
+ conteúdo de texto do documento, sem as tags.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+● Um exemplo que podemos observar de linguagens de marcação são
+ os chamados feeds RSS, para assinatura de notícias, podcasts e etc.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+<item>
+ <title>Ataque que incendiou ônibus em João Pessoa foi planejado por facção para incriminar organização
+ rival, diz polícia</title>
+ <link>https:</g1.globo.com/pb/paraiba/noticia/2024/02/21/ataque-que-incendiou-onibus-em-joao-pessoa-foi-pla
+ nejado-por-faccao-para-incriminar-organizacao-rival-diz-policia.ghtml</link>
+ <description>
+ <![CDATA[ <img
+ src="https:</s2-g1.glbimg.com/ibZ1-7mBM91dc6dkGZDaDb_jiZ4=/i.s3.glbimg.com/v1/AUTH_59edd422c0c84a879bd3767
+ 0ae4f538a/internal_photos/bs/2023/8/K/BZcrAiRcA8IALhuPVS5w/onibus-1.jpg" <><br <> ]]>
+ De acordo com a polícia, o mandante do crime planejava expandir território da facção carioca na Região
+ Metropolitana de João Pessoa e ordenou roubos e homicídios, além de liderar o tráfico de drogas na cidade
+ de Bayeux.</description>
+ <media:content
+ url="https:</s2-g1.glbimg.com/ibZ1-7mBM91dc6dkGZDaDb_jiZ4=/i.s3.glbimg.com/v1/AUTH_59edd422c0c84a879bd37670
+ ae4f538a/internal_photos/bs/2023/8/K/BZcrAiRcA8IALhuPVS5w/onibus-1.jpg" medium="image"<>
+ <category>G1</category>
+ <pubDate>Wed, 21 Feb 2024 22:27:08 -0000</pubDate>
+</item>
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+<item>
+ <title>Ataque que incendiou ônibus em João Pessoa foi planejado por facção para incriminar organização
+ rival, diz polícia</title>
+ <link>https:</g1.globo.com/pb/paraiba/noticia/2024/02/21/ataque-que-incendiou-onibus-em-joao-pessoa-foi-pla
+ nejado-por-faccao-para-incriminar-organizacao-rival-diz-policia.ghtml</link>
+ <description>
+ <![CDATA[ <img
+ src="https:</s2-g1.glbimg.com/ibZ1-7mBM91dc6dkGZDaDb_jiZ4=/i.s3.glbimg.com/v1/AUTH_59edd422c0c84a879bd3767
+ 0ae4f538a/internal_photos/bs/2023/8/K/BZcrAiRcA8IALhuPVS5w/onibus-1.jpg" <><br <> ]]>
+ De acordo com a polícia, o mandante do crime planejava expandir território da facção carioca na Região
+ Metropolitana de João Pessoa e ordenou roubos e homicídios, além de liderar o tráfico de drogas na cidade
+ de Bayeux.</description>
+ <media:content
+ url="https:</s2-g1.glbimg.com/ibZ1-7mBM91dc6dkGZDaDb_jiZ4=/i.s3.glbimg.com/v1/AUTH_59edd422c0c84a879bd37670
+ ae4f538a/internal_photos/bs/2023/8/K/BZcrAiRcA8IALhuPVS5w/onibus-1.jpg" medium="image"<>
+ <category>G1</category>
+ <pubDate>Wed, 21 Feb 2024 22:27:08 -0000</pubDate>
+</item>
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Padronização
+
+<item>
+ <title>Ataque que incendiou ônibus em João Pessoa foi planejado por facção para incriminar organização
+ rival, diz polícia</title>
+ <link>https:</g1.globo.com/pb/paraiba/noticia/2024/02/21/ataque-que-incendiou-onibus-em-joao-pessoa-foi-pla
+ nejado-por-faccao-para-incriminar-organizacao-rival-diz-policia.ghtml</link>
+ <description>
+ <![CDATA[ <img
+ src="https:</s2-g1.glbimg.com/ibZ1-7mBM91dc6dkGZDaDb_jiZ4=/i.s3.glbimg.com/v1/AUTH_59edd422c0c84a879bd3767
+ 0ae4f538a/internal_photos/bs/2023/8/K/BZcrAiRcA8IALhuPVS5w/onibus-1.jpg" <><br <> ]]>
+ De acordo com a polícia, o mandante do crime planejava expandir território da facção carioca na Região
+ Metropolitana de João Pessoa e ordenou roubos e homicídios, além de liderar o tráfico de drogas na cidade
+ de Bayeux.</description>
+ <media:content
+ url="https:</s2-g1.glbimg.com/ibZ1-7mBM91dc6dkGZDaDb_jiZ4=/i.s3.glbimg.com/v1/AUTH_59edd422c0c84a879bd37670
+ ae4f538a/internal_photos/bs/2023/8/K/BZcrAiRcA8IALhuPVS5w/onibus-1.jpg" medium="image"<>
+ <category>G1</category>
+ <pubDate>Wed, 21 Feb 2024 22:27:08 -0000</pubDate>
+</item>
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Demonstração
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Considerações ﬁnais
+
+● A Ciência da Informação encontra um importante suporte nas LM.
+ Sem elas, talvez o seu campo de atuação fosse mais limitado, visto o
+ grande número de oportunidades que elas proporcionam.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Considerações ﬁnais
+
+● Os mecanismos de busca estão cada vez mais eficientes, no entanto
+ há muito a evoluir.
+● Espera-se que, num futuro próximo, seja possível fazer pesquisas
+ como: “quais bibliotecas do Brasil possuem o livro X do autor Y
+ disponível para retirada hoje?”. Isso só é possível por meio de
+ linguagens padronizadas, como as linguagens de marcação.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Considerações ﬁnais
+
+● Num mundo preocupado com a inclusão digital, nosso esforço deve
+ se concentrar em desenvolver interfaces de comunicação
+ universais que sejam disponíveis a todos as comunidades,
+ independentemente da linguagem.
+● As Linguagens de Marcação são uma importante ferramenta para
+ auxiliar esse processo.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Ferramentas
+ Material para Estudos
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Ferramentas
+
+● Editor de código
+ ○ Visual Studio Code (o que eu uso!)
+ ○ Sublime Text
+● Editor de código via browser
+ ○ Salva seu trabalho automaticamente e permite que você compartilhe com outras
+ pessoas para edição colaborativa.
+ ■ replit.com.
+ ■ stackblitz.com
+ ■ codesandbox
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Material de estudo
+
+● Slides da disciplina
+● Material de consulta
+ ○ https://diogomoreira.gitbook.io/linguagens-de-marcacao
+● MDN Web Docs
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+ Avaliações
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---
+
+Avaliações
+
+● Um projeto individual em 3 fases.
+● Um projeto em grupo que será desenvolvido durante toda a
+ disciplina, dividido em 3 fases.
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+---

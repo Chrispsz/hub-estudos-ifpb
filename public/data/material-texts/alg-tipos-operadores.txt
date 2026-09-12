@@ -1,0 +1,93 @@
+Tipos de Variáveis e
+Operadores da Linguagem C
+
+ Prof. Dr. Fabio Gomes de Andrade
+ fabio@ifpb.edu.br
+
+---
+
+ Tipos de Variáveis
+• Números inteiros:
+
+---
+
+ Tipos de Variáveis
+• Números reais:
+
+---
+
+ Tipos de Variáveis
+• Caracteres:
+
+---
+
+ Tipos de Variáveis
+• Exemplos de caracteres especiais:
+
+---
+
+ Tipos de Variáveis
+• Exemplos de caracteres na tabela
+ ASCII:
+
+---
+
+ Tipos de Variáveis
+• Strings:
+
+---
+
+Operadores Aritméticos
+
+---
+
+ Operadores Aritméticos
+• Precedência de operadores:
+ ▪ As operações de multiplicação e divisão têm prioridade
+ sobre as operações de adição e subtração;
+
+ ▪ No caso de duas operações com a mesma prioridade,
+ será resolvida primeiro a operação que estiver mais a
+ esquerda;
+
+---
+
+ Operadores Aritméticos
+• Precedência de operadores:
+ ▪ Entretanto, operações definidas entre parênteses têm
+ prioridade, não importa qual o tipo da operação;
+
+ ▪ No caso de operações aninhadas, a resolução começa
+ sempre pelas expressões mais internas;
+
+---
+
+ Operadores Aritméticos
+• Exemplos:
+
+---
+
+Operadores Relacionais
+
+---
+
+ Operadores Lógicos
+• A linguagem C oferece três operadores
+ lógicos:
+
+---
+
+ Operadores Lógicos
+• Tabela da verdade do operador OR:
+
+---
+
+ Operadores Lógicos
+• Tabela da verdade do operador AND:
+
+---
+
+ Operadores Lógicos
+• Tabela da verdade do operador NOT:
+
+---
