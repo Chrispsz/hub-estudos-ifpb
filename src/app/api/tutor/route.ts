@@ -22,6 +22,7 @@ export const runtime = 'nodejs';
 
 import { db } from '@/lib/db';
 import { buildMaterialBlock, findMaterial } from '@/lib/material-retrieval';
+import { sanitizeLatex } from '@/lib/sanitize-latex';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -551,50 +552,6 @@ export async function GET() {
  * Modelos free costumam escapar para \[...\]/\begin{matrix} em perguntas de matemática;
  * o sanitizador garante que o aluno sempre leia a fórmula, independente do modelo.
  */
-function sanitizeLatex(input: string): string {
-  let out = input;
-
-  // Matrizes: \begin{bmatrix} a & b \\ c & d \end{bmatrix} → [ a b / c d ]
-  out = out.replace(
-    /\\begin\{(?:b|p|v)?matrix\}([\s\S]*?)\\end\{(?:b|p|v)?matrix\}/g,
-    (_m, body: string) => {
-      const rows = body
-        .split(/\\\\/)
-        .map((r) => r.split('&').map((c) => c.trim()).filter(Boolean).join(' '))
-        .filter(Boolean);
-      return `[ ${rows.join(' / ')} ]`;
-    },
-  );
-
-  // \frac{a}{b} → (a)/(b)  ·  \sqrt{x} → √(x)
-  out = out.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
-  out = out.replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
-
-  // Símbolos comuns → unicode legível
-  const symbols: Record<string, string> = {
-    '\\cdot': '·', '\\times': '×', '\\div': '÷',
-    '\\geq': '≥', '\\ge': '≥', '\\leq': '≤', '\\le': '≤',
-    '\\neq': '≠', '\\ne': '≠', '\\pm': '±', '\\approx': '≈',
-    '\\rightarrow': '→', '\\to': '→', '\\leftrightarrow': '↔',
-    '\\infty': '∞', '\\sum': 'Σ',
-  };
-  for (const [latex, unicode] of Object.entries(symbols)) {
-    out = out.split(latex).join(unicode);
-  }
-
-  // \text{...}/\mathrm{...}/\mathbf{...} → conteúdo
-  out = out.replace(/\\(?:text|mathrm|mathbf|mathit)\{([^{}]*)\}/g, '$1');
-
-  // Blocos $$...$$ e $...$ (pares) → conteúdo
-  out = out.replace(/\$\$([\s\S]*?)\$\$/g, '$1');
-  out = out.replace(/\$([^$\n]+)\$/g, '$1');
-
-  // Delimitadores display/inline \[ \] \( \)
-  out = out.split('\\[').join('').split('\\]').join('');
-  out = out.split('\\(').join('').split('\\)').join('');
-
-  return out;
-}
 
 /** Limites da memória por disciplina — economia de armazenamento. */
 const HISTORY_KEEP = 40;

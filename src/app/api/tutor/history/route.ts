@@ -3,6 +3,7 @@
 //  DELETE ?discipline=TEC.1687 → apaga a conversa da disciplina ("Nova conversa")
 
 import { db } from '@/lib/db';
+import { sanitizeLatex } from '@/lib/sanitize-latex';
 
 export const runtime = 'nodejs';
 
@@ -27,9 +28,11 @@ export async function GET(req: Request) {
       select: { role: true, content: true, model: true, createdAt: true },
     });
     // devolve em ordem cronológica (mais antiga primeiro)
+    // sanitizeLatex na leitura = auto-cura: mensagens antigas salvas com LaTeX
+    // vazado passam a renderizar limpo sem precisar migrar o banco
     const messages = rows.reverse().map((r) => ({
       role: r.role === 'user' ? 'user' : 'assistant',
-      content: r.content,
+      content: r.role === 'assistant' ? sanitizeLatex(r.content) : r.content,
       model: r.model ?? undefined,
     }));
     return Response.json({ messages });
