@@ -37,8 +37,10 @@ export async function GET(req: Request) {
     }));
     return Response.json({ messages });
   } catch (err) {
+    // Sem banco (ex.: Vercel sem DATABASE_URL) → conversa vazia em vez de 500:
+    // o chat abre só com o welcome e o tutor continua 100% utilizável.
     console.error('[api/tutor/history] GET:', err instanceof Error ? err.message : err);
-    return Response.json({ error: 'Falha ao carregar o histórico.' }, { status: 500 });
+    return Response.json({ messages: [] });
   }
 }
 
@@ -51,7 +53,8 @@ export async function DELETE(req: Request) {
     const del = await db.tutorMessage.deleteMany({ where: { discipline } });
     return Response.json({ deleted: del.count });
   } catch (err) {
+    // Sem banco → "nada a limpar" (a UI apenas reseta a conversa local).
     console.error('[api/tutor/history] DELETE:', err instanceof Error ? err.message : err);
-    return Response.json({ error: 'Falha ao limpar o histórico.' }, { status: 500 });
+    return Response.json({ deleted: 0 });
   }
 }
