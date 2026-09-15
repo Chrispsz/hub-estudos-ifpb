@@ -1,0 +1,77 @@
+{
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)",
+  "disciplina": "Relações Humanas no Trabalho",
+  "tipo": "pdf",
+  "tempo_estudo_minutos": 60,
+  "resumo_geral": "Artigo científico enviado pela profa. Marília como base da Proposta de Atividade I (postado no Classroom em 15/09). Vilarinho, Paschoal e Demo (Revista do Serviço Público, 72(1), 2021) estudam o teletrabalho no Serpro — pioneiro no setor público brasileiro — ouvindo chefias, teletrabalhadores e colegas, e comparando usuários vs. não usuários em três variáveis: contexto de trabalho, bem-estar e desempenho profissional. Conclusão central: teletrabalhadores avaliam tudo de forma mais positiva, mas dificuldades técnicas e isolamento social são desafios reais. Conecta diretamente com a Unidade II da ementa (Modalidades de Trabalho Flexíveis).",
+  "conceitos_chave": [
+    {
+      "conceito": "Teletrabalho (definição do artigo)",
+      "explicacao": "Forma de organização do trabalho em que as atividades são desenvolvidas parcial ou totalmente fora do local convencional da empresa, com auxílio de ferramentas e serviços de telecomunicação (Konradt; Schmook; Malecke, 2000). Estudos empíricos existem desde os anos 1980."
+    },
+    {
+      "conceito": "Arranjos flexíveis ≠ trabalho flexível",
+      "explicacao": "Arranjos flexíveis modificam local, tempo e organização do trabalho. Trabalho flexível/arranjos de empregos (Cappelli, 1995) se baseia em forças de mercado: subcontratação, trabalho temporário, contratação de grupos. Não confunda na atividade!"
+    },
+    {
+      "conceito": "Contexto de trabalho (3 dimensões)",
+      "explicacao": "Ferreira (2017): condições de trabalho (equipamentos, ambiente físico) + organização do trabalho (metas, regras, divisão do trabalho, tempo) + relações socioprofissionais (chefes-subordinados, colegas, usuários)."
+    },
+    {
+      "conceito": "Bem-estar no trabalho = afetos",
+      "explicacao": "Paschoal e Tamayo (2008): percepção de realização pessoal + humores/emoções no trabalho. Medido por afeto positivo (alegre, tranquilo) e afeto negativo (irritado, deprimido) — escala 1 a 10 nos últimos 6 meses."
+    },
+    {
+      "conceito": "Desempenho profissional autoavaliado (4 dimensões)",
+      "explicacao": "Coelho Jr. et al. (2010): regulação (contribui para a missão da organização), esforço (grau de esforço/ajustamento), execução/monitoramento (foco no processo) e autogerenciamento (administrar a própria execução)."
+    },
+    {
+      "conceito": "Infoproletariado / ciberproletariado",
+      "explicacao": "Antunes e Braga (2009): trabalhadores com tecnologia de ponta e 'suposta autonomia', mas sobrecarregados por excesso de trabalho e cobrança, com individualização e isolamento excessivo — o lado obscuro do trabalho virtual."
+    },
+    {
+      "conceito": "Histórico do Serpro (pioneiro)",
+      "explicacao": "Projeto-Lar (1985, disquetes levados à empresa por falta de comunicação on-line), abandonado, repensado em 1997, piloto efetivo em 2005, normativo revisado em 2012 após a Lei 12.551/2011. ~100 teletrabalhadores regulares antes da pandemia."
+    },
+    {
+      "conceito": "Método da pesquisa",
+      "explicacao": "Estudo de caso único, descritivo e explicativo, recorte transversal, quali+quanti. Questões abertas analisadas com Iramuteq (Classificação Hierárquica Descendente); questões fechadas com estatística descritiva, ANOVA e Testes de Mann-Whitney. Amostra: 45 teletrabalhadores, 62 colegas, 23 chefias."
+    },
+    {
+      "conceito": "Amparo legal do teletrabalho no Brasil",
+      "explicacao": "Lei 12.551/2011 alterou o art. 6º da CLT: sem distinção entre trabalho presencial e a distância. Também: Portarias TCU 139/2009 e 99/2010, Resolução CNJ 227/2015, PL 2723/15."
+    }
+  ],
+  "pontos_importantes": [
+    "Amostra: 45 teletrabalhadores + 62 colegas + 23 chefias responderam (de 102/204/48 enviados); respondentes com longa experiência (a maioria, 21–40 anos de empresa); na comparação estatística: 56 teletrabalhadores vs. 45 colegas após exclusão de outliers",
+    "Pontos POSITIVOS por ator — chefias: melhoria na qualidade de vida (59,2% do discurso), flexibilidade (25,4%), autonomia (15,2%); colegas: facilidade de deslocamento e economia (35,4%), condições/organização (25,3%), qualidade de vida (24,1%); teletrabalhadores: aumento da produtividade (34,4%), qualidade de vida/deslocamento (32,8%), condições/organização (32,8%)",
+    "Pontos NEGATIVOS por ator — chefias: dificuldades técnicas (35,9%, ex.: firewall bloqueando acesso), interação com a equipe (18,9%); colegas: perda de convívio (29,6%), exclusão dos teletrabalhadores (17,3%); teletrabalhadores: preconceito e desconfiança de chefes/colegas (21,7%, ex.: ligações para verificar se está em casa) e dificuldades técnicas (21,7%)",
+    "Comparação (Tabela 1): teletrabalhadores superam colegas em TODAS as variáveis com significância — condições de trabalho (9,59 vs. 8,23), organização (7,44 vs. 6,38), relações (8,71 vs. 8,09), regulação (9,42 vs. 8,75), esforço (7,75 vs. 7,25), execução (8,86 vs. 7,83), autogerenciamento (9,42 vs. 8,61), afeto positivo (8,00 vs. 6,16) e MENOS afeto negativo (2,01 vs. 3,88)",
+    "Regras do programa do Serpro: anuência da chefia + parecer de ergonomia do engenheiro de segurança + ressarcimento da banda larga + equipamento fornecido pela empresa (exceto mobiliário); ~100 teletrabalhadores regulares antes da pandemia",
+    "Explicação dos resultados: autonomia e controle sobre o próprio trabalho (Van den Heuvel et al., 2010; Fogaça; Coelho Jr., 2015; Karasek, 1979) protegem do estresse e explicam desempenho e bem-estar maiores",
+    "Cultura organizacional importa (Lewis, 2013): onde interações presenciais são muito valorizadas (ex.: cultura francesa), o teletrabalho enfrenta mais barreiras — a simples introdução do arranjo não garante resultados (Peters et al., 2014)",
+    "Limitações: caráter transversal (sem causalidade nem generalização); dados coletados ANTES da pandemia (momento atípico); opiniões dos autores não representam a posição oficial do Serpro"
+  ],
+  "erros_comuns": [
+    "Afirmar causalidade: o estudo é transversal — mostra ASSOCIAÇÃO (teletrabalho com melhores avaliações), não causa; os autores são explícitos sobre isso",
+    "Interpretar as porcentagens dos quadros como % de respondentes: representam o quanto cada classe temática representa DO DISCORSO TOTAL produzido pelo grupo",
+    "Achar que os dados foram coletados durante a pandemia: foram coletados antes; a Covid-19 só motivou a publicação e aparece como contexto de discussão",
+    "Concluir que 'funcionamento está perfeito': os achados indicam o contrário — os negativos (técnicas, isolamento, gestão) são desafios que se transformam com o tempo",
+    "Confundir arranjos flexíveis de trabalho com trabalho flexível/arranjos de empregos (subcontratação, temporário) — conceitos distintos (Cappelli, 1995)"
+  ],
+  "exercicios_sugeridos": [
+    "Proposta de Atividade I (profa. Marília): ler o artigo completo e preparar a atividade solicitada no Classroom — baseie-se nos dados dos Quadros 1–6 e na Tabela 1, citando as porcentagens exatas",
+    "Monte um quadro comparativo próprio: 2 pontos positivos e 2 negativos por ator (chefias, colegas, teletrabalhadores) — note como a ótica muda com o papel na organização",
+    "Relacione o artigo com a Unidade II da ementa (Modalidades de Trabalho Flexíveis): o que o caso Serpro ilustra sobre equilíbrio trabalho-vida e gestão por resultados vs. por horário?",
+    "Debate: 'trabalho não é por resultado e sim por carga horária' (fala de respondente). Conecte com a uberização e a precarização também previstas na Unidade II",
+    "Avalie criticamente o método: por que ouvir chefes, colegas E teletrabalhadores (múltiplas fontes) fortalece o estudo? Que viés existe numa autoavaliação de desempenho?",
+    "Pense no futuro profissional de TI: quais das dificuldades técnicas relatadas (firewall, VPN, compartilhamento de tela) você já enfrentou ou pode enfrentar em trabalho remoto?"
+  ],
+  "perguntas_autoavaliação": [
+    "Qual a definição de teletrabalho usada pelo artigo e em que década surgem os estudos empíricos sobre o tema?",
+    "Quais as 4 dimensões do desempenho profissional autoavaliado e as 3 dimensões do contexto de trabalho?",
+    "Teletrabalhadores avaliaram melhor TODAS as variáveis? Cite ao menos dois números da Tabela 1 (médias) para sustentar sua resposta.",
+    "Por que o estudo não permite concluir que o teletrabalho CAUSA maior bem-estar? O que os autores propõem para pesquisas futuras?",
+    "Como a cultura organizacional (Lewis, 2013) pode explicar o preconceito relatado pelos teletrabalhadores do Serpro?"
+  ]
+}

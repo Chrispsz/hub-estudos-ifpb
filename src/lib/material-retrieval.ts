@@ -18,9 +18,9 @@ const TEXTS_DIR = 'public/data/material-texts';
 
 /** Orçamentos de tamanho (chars) — protege a latência dos modelos free. */
 const SUMMARY_BUDGET = 2600;
-const EXCERPTS_BUDGET = 3200;
+const EXCERPTS_BUDGET = 4200;
 const CHUNK_SIZE = 1400;
-const MAX_CHUNKS = 3;
+const MAX_CHUNKS = 4;
 
 // ---------- caches ----------
 const summaryCache = new Map<string, string>();
@@ -53,11 +53,6 @@ export function keywordsOf(question: string): string[] {
 }
 
 // ---------- chunks ----------
-interface Chunk {
-  text: string;
-  score: number;
-}
-
 function chunkText(text: string): string[] {
   const paragraphs = text.split(/\n\n+/);
   const chunks: string[] = [];
@@ -197,20 +192,31 @@ export async function buildMaterialBlock(material: Material, question: string): 
   if (text) {
     const kws = keywordsOf(question);
     const chunks = chunkText(text);
-    const scored: Chunk[] = chunks.map((c, i) => ({
-      text: c,
-      score: scoreChunk(c, kws, normalize(c)) + (i === 0 ? 4 : 0), // intro leve
-    }));
-    scored.sort((a, b) => b.score - a.score);
-    const picked: string[] = [];
+    const scores = chunks.map((c, i) => scoreChunk(c, kws, normalize(c)) + (i === 0 ? 4 : 0));
+    // top-N por relevância própria
+    const ranked = scores
+      .map((s, i) => ({ s, i }))
+      .filter((x) => x.s > 4)
+      .sort((a, b) => b.s - a.s);
+    // EXPANSÃO DE VIZINHOS: tabelas no PDF viram um "parágrafo" de linhas que é
+    // fatiado em chunks sem keywords — mas o parágrafo que APRESENTA a tabela
+    // pontua alto (ex.: "O Quadro 1 apresenta os pontos negativos... (35,90%)").
+    // Puxar o vizinho imediato de cada trecho escolhido junta o contexto real.
+    const chosen = new Set<number>();
     let used = 0;
-    for (const c of scored) {
-      if (picked.length >= MAX_CHUNKS || used >= EXCERPTS_BUDGET) break;
-      if (c.score <= 4 && picked.length > 0) break; // só relevância real após o 1º
-      picked.push(c.text);
-      used += c.text.length;
+    for (const { i } of ranked) {
+      if (chosen.size >= MAX_CHUNKS || used >= EXCERPTS_BUDGET) break;
+      for (const j of [i, i + 1, i - 1]) {
+        if (j < 0 || j >= chunks.length || chosen.has(j)) continue;
+        const len = chunks[j].length;
+        if (used + len > EXCERPTS_BUDGET && chosen.size > 0) continue;
+        chosen.add(j);
+        used += len;
+      }
+      if (used >= EXCERPTS_BUDGET) break;
     }
-    if (picked.length) {
+    if (chosen.size) {
+      const picked = [...chosen].sort((a, b) => a - b).map((i) => chunks[i]);
       parts.push(
         `== TRECHOS DO PDF ORIGINAL (mais relevantes à pergunta) ==\n${picked.join('\n\n[...]\n\n')}`,
       );

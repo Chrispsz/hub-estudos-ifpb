@@ -1,0 +1,1077 @@
+Teletrabalho na atualidade: quais
+são os impactos no desempenho
+profissional, bem-estar e contexto de
+trabalho?
+
+Karina Pereira Bastos Vilarinho
+Serviço Federal de Processamento de Dados, Brasília - DF, Brasil
+
+Tatiane Paschoal
+Universidade de Brasília, Brasília - DF, Brasil
+
+Gisela Demo
+Universidade de Brasília - Brasília - DF, Brasil
+
+A partir da pandemia imposta pelo novo coronavírus, o teletrabalho mostrou-se uma alternativa
+de arranjo de trabalho promissora e desejável em tempos de isolamento social, de forma que tem
+recebido atenção cada vez mais prioritária nas agendas de pesquisas em gestão de pessoas no setor
+público. O Serviço Federal de Processamento de Dados (Serpro) foi um dos pioneiros na utilização
+do teletrabalho no Brasil e, portanto, foi escolhido como lócus do estudo. Esta pesquisa levantou os
+pontos positivos e negativos do teletrabalho no Serpro, sob a ótica de chefes, teletrabalhadores e
+colegas de teletrabalhadores, e comparou empiricamente usuários e não usuários do teletrabalho
+quanto ao desempenho profissional, contexto de trabalho e bem-estar no trabalho. Utilizaram-se
+questionários e conduziram-se a análises textuais, análises de variância e Testes de Mann-Whitney.
+Entre os pontos positivos do teletrabalho, destacam-se o aumento da produtividade e melhorias na
+qualidade de vida do teletrabalhador. Entre os pontos negativos, destacam-se dificuldades técnicas
+e de convívio social. Quanto à comparação, os teletrabalhadores percebem mais positivamente
+seu contexto de trabalho, seu desempenho profissional e seu bem-estar no trabalho. Este estudo
+apresenta um diagnóstico que pode prover aos gestores públicos um olhar mais reflexivo no que
+tange à adoção e subsequente implantação do teletrabalho.
+Palavras-chave: arranjos flexíveis de trabalho, home office, teletrabalho
+
+ DOI: https://doi.org/10.21874/rsp.v72.i1.4938 | E- ISSN: 2357-8017
+ [Submetido em: 08 de agosto de 2020. Aprovado em: 15 de outubro de 2020.]
+
+ 
+ 
+
+Teleworking nowadays: what are the impacts on professional performance, well-being
+and work context?
+From the pandemic imposed by the new coronavirus, teleworking proved to be a promising
+and desirable work arrangement alternative in times of social isolation, so that it has received
+increasingly priority attention in human resources management research agendas in the public
+sector. Federal Data Processing Service (Serpro) was one of the pioneers in adopting teleworking in
+Brazil and, therefore, it was the locus of this study. This study explored the positive and negative
+sides of teleworking in Serpro from the point of view of managers, teleworkers and colleagues
+and also compared teleworkers and no teleworkers with regard to the professional performance,
+work context and work well-being. The research method included questionnaires and textual
+analysis, analysis of variance and Mann-Whitney tests. About the positive sides of teleworking, the
+most relevant points were productivity increase and quality of life increase. About negative sides,
+technical difficulties and social interaction limitations can be pointed out. Results also showed that
+teleworkers have more positive perceptions about work context, professional performance and
+work well-being. This study provides a reflective look on adopting and implementing teleworking
+for public managers.
+Keywords: flexible work arrangements, home office, teleworking
+
+Teletrabajo en la actualidad: ¿cuáles son los impactos en el desempeño profesional, en
+el bienestar y en el contexto laboral?
+A partir de la pandemia impuesta por el nuevo coronavirus, el teletrabajo demostró ser una
+alternativa de trabajo prometedora y deseable en tiempos de aislamiento social, por lo que ha
+recibido una atención cada vez más prioritaria en las agendas de investigación en gestión de
+personas en el sector público. El Servicio Federal de Procesamiento de Datos (Serpro) fue uno
+de los pioneros en la adopción del teletrabajo en Brasil y, por lo tanto, fue elegido como el lugar
+del estudio. Esta investigación exploró puntos positivos y negativos del teletrabajo en Serpro desde
+el punto de vista de jefes, teletrabajadores y compañeros de trabajo y comparó teletrabajadores
+y no teletrabajadores en cuanto al desempeño profesional, al contexto laboral y al bienestar
+laboral. Se utilizaron cuestionarios y se condujeron análisis textuales, análisis de variancia y tests
+de Mann-Whitney. Sobre los puntos positivos, se destacan el aumento de la productividad y de la
+calidad de vida. Sobre los puntos negativos, se destacan las dificultades técnicas y las limitaciones
+en la interacción social. Los teletrabajadores tienen percepciones más positivas del contexto
+laboral, desempeño profesional y bienestar laboral. El estudio presenta un diagnóstico que puede
+conceder a los gestores públicos una mirada crítica y reflexiva acerca de la adopción y utilización
+del teletrabajo.
+Palabras-clave: formas flexibles de trabajo, home office, teletrabajo
+
+ 
+ 
+
+1 Introdução
+
+ A natureza do trabalho humano e o perfil esperado do trabalhador vêm se alterando
+rapidamente nas últimas duas décadas, acompanhando a introdução e o desenvolvimento
+de novas tecnologias de produção e gestão. Formas tradicionais de organização do trabalho
+estão cedendo lugar a modelos e arranjos mais flexíveis, especialmente em tempos de
+mudanças nas organizações, aceleradas por crises, como a pandemia do novo coronavírus
+ou Covid-19. É o caso do teletrabalho (Belzunegui; Erro; Pastor, 2014; Caillier, 2013;
+Carnevale; Hatak, 2020; Konradt; Schmook; Malecke, 2000).
+
+ Essas mudanças e tendências influenciam expectativas e práticas de gestão também
+na esfera pública, cujas organizações, além de lidarem com demandas por eficiência,
+transparência, inovação e adaptação comuns às empresas privadas, devem primar por um
+melhor atendimento ao cidadão, incentivando a cidadania e contribuindo para uma maior
+credibilidade dos serviços públicos em geral, o que significará uma representação mais
+efetiva do Estado (Demo; Pessôa, 2015). Organizações públicas ao redor do mundo têm
+implantado arranjos flexíveis que modificam os tradicionais locais e horários de trabalho,
+como forma de alcançar um melhor equilíbrio entre demandas da organização e do
+trabalhador, além de potencializar o desempenho individual e a efetividade organizacional
+(Andrade; Oliveira; Pantoja, 2019; Caillier, 2013, Donnelly; Johns, 2020).
+
+ Segundo dados divulgados pela Sociedade Brasileira de Teletrabalho e Teleatividades
+(Sobratt, 2018), 45% de uma amostra de empresas pesquisadas já adotavam regularmente
+o teletrabalho em 2018 e 15% planejavam implantá-lo. Essa não é uma forma nova
+de organização do trabalho, e artigos com revisão sistemática de pesquisas sobre seu
+funcionamento, impactos, pontos positivos e negativos podem ser encontrados desde o
+início da década de 2000 (Konradt et al., 2000). Atualmente, já se discutem e se avaliam
+outros arranjos flexíveis, como o smart working, que não envolve apenas onde se trabalha,
+mas como e quando se trabalha (Massimo, 2017).
+
+ Ainda assim, as discussões sobre aplicações e implicações do teletrabalho ganharam
+novo fôlego no Brasil devido ao cenário de combate à Covid-19. Governantes estaduais
+publicaram decretos que regulamentam a adoção e o uso do teletrabalho durante a
+
+ 
+ 
+
+pandemia. Por exemplo, o Decreto nº 40.546, de 20 de março de 2020, no Distrito Federal;
+Decreto nº 64.648, de 27 de junho de 2017, o qual tornou-se obrigatório para grupos de
+risco, em março de 2020; e o Decreto 47.006, de 27 de março de 2020, no Rio de Janeiro.
+Também foram propostas pelo Ministério da Economia novas regras de teletrabalho
+na administração pública federal. De um dia para o outro, profissionais e organizações
+dos diferentes setores precisaram adotar o teletrabalho para continuar o atendimento
+a usuários e clientes. O teletrabalho funciona? O que é necessário para isso? Como afeta
+desempenho e bem-estar no trabalho? Tais questões foram retomadas tanto no meio
+acadêmico quanto empresarial.
+
+ O presente artigo apresenta um estudo conduzido no Serviço Federal de
+Processamento de Dados (Serpro) sobre impactos e pontos negativos e positivos do
+teletrabalho. Cabe salientar que os dados não foram coletados no contexto da pandemia,
+que tem suas peculiaridades e caracteriza-se como um momento atípico. O artigo traça
+uma fotografia do uso do teletrabalho em uma organização pioneira no setor público
+brasileiro, a adotá-lo de forma abrangente e estruturada.
+
+ Nos últimos anos, a tendência à introdução do teletrabalho no setor público
+brasileiro tem se consolidado por meio de esforços instrumentais e legais, tais como as
+Portarias nº 139/2009 e nº 99/2010 do TCU, que autorizam servidores a desempenharem
+certas atividades fora do órgão ; a recente Resolução nº 227/2015 do Conselho Nacional
+de Justiça, que disciplina o teletrabalho de servidores no âmbito do Poder Judiciário;
+a aprovação do Projeto de Lei nº 2723/15, que autoriza os órgãos públicos federais a
+instituir o sistema de trabalho remoto ; e o próprio Sistema Eletrônico de Informações
+(SEI), um sistema de gestão de processos e documentos eletrônicos.
+
+ Muitos são os benefícios do teletrabalho apontados na literatura (Belzunegui;
+Erro; Pasto, 2014; Caillier, 2013; Groen et al., 2018; Rocha; Amador, 2018; Tahavori,
+2014). Por outro lado, os mesmos estudos revelam possíveis efeitos indesejáveis. As
+tecnologias de informação e comunicação e os arranjos inovadores de trabalho precisam
+ser bem usados e compreendidos, de forma que não apenas permitam um aumento
+de produtividade, mas também não comprometam o bem-estar e o desempenho dos
+profissionais (Silva, 2011).
+
+ 
+ 
+
+ Foram levantadas as questões: quais são os pontos positivos e negativos do
+teletrabalho em uma empresa pública com quase três décadas de experiência com o
+arranjo? Quais são os principais impactos do teletrabalho na referida organização? Tais
+questões inspiraram os objetivos da presente pesquisa, quais sejam, levantar os pontos
+positivos e negativos do teletrabalho no Serpro, sob a ótica de chefes, teletrabalhadores
+e colegas de teletrabalhadores, e comparar usuários e não usuários do teletrabalho
+no Serpro quanto ao desempenho profissional, contexto de trabalho e bem-estar no
+trabalho. Trata-se de um estudo de caso único, descritivo e explicativo, que adotou recorte
+transversal, abordagem qualitativa e quantitativa, além de amostragem que permitiu uma
+variedade de fonte de dados e a testagem de relações entre as variáveis propostas.
+
+ A análise do teletrabalho e seus impactos em atitudes e comportamentos no trabalho
+nos diferentes contextos organizacionais, incluindo indicadores diversos e múltiplas fontes
+de informação, consiste em uma lacuna na literatura (Andrade; Oliveira; Pantoja, 2019;
+Kim; Lee, 2020), aprofundada pela crise socioeconômica trazida pela Covid-19. O presente
+trabalho contribui para preencher essa lacuna. Ademais, os resultados deste estudo
+compõem um diagnóstico que pode prover aos gestores públicos um olhar mais reflexivo
+no que tange à adoção e subsequente implantação do teletrabalho.
+
+2 Referencial Teórico
+
+2.1 Teletrabalho
+
+ Antes de conceituar o teletrabalho, é necessário fazer uma ressalva: arranjos
+flexíveis de trabalho são diferentes de trabalho flexível ou arranjos de empregos.
+Esses se configuram como arranjos baseados em forças do mercado para gerenciar os
+trabalhadores e englobam outros tipos de relações, como subcontratação, trabalho
+temporário e contratações de grupos de trabalho (Cappelli, 1995).
+
+ A expressão arranjos flexíveis de trabalho envolve as mudanças organizacionais
+estratégicas, as quais ganham conotação especial em tempos de crises, que apontam
+para novas formas de trabalho flexível, sustentadas pelas tecnologias de informação e
+
+ 
+ 
+
+comunicação e por elementos como tempo, local e organização funcional (Donnelly;
+Johns, 2020; Rosenfiel; Alves, 2011). O teletrabalho pode ser definido como uma forma
+de organização de trabalho por meio da qual as atividades podem ser desenvolvidas parcial
+ou completamente fora do local de trabalho convencional da empresa, com o auxílio de
+ferramentas e serviços de telecomunicação (Konradt; Schmook; Malecke, 2000). Embora
+seja entendido como nova tecnologia por muitos profissionais e organizações, estudos
+empíricos sobre o teletrabalho são desenvolvidos desde a década de 1980 (Konradt;
+Schmook; Malecke, 2000).
+
+ No contexto do setor privado brasileiro, existe amparo legal para o teletrabalho
+desde 2011, quando a Lei nº 12.551 alterou o artigo 6º da Consolidação das Leis do Trabalho
+(CLT) com a determinação de que não pode haver distinção entre o trabalho realizado
+nas dependências da empresa ou aquele realizado a distância, desde que caracterizada
+a relação de emprego, tornando iguais tanto o trabalhador interno da empresa quanto
+o teletrabalhador. Apesar disso, não há uma regulamentação fechada sobre o uso do
+teletrabalho, o que permite que cada empresa crie seu próprio programa e desenvolva
+práticas que melhor atendam a suas necessidades e de seus trabalhadores.
+
+ Consoante com esses achados, estudos internacionais têm apontado inúmeros
+benefícios do teletrabalho. Por exemplo, há dados sobre benefícios como usar roupas
+mais informais para trabalhar, redução do tempo de deslocamento entre casa e trabalho,
+mais tempo para a família, maior controle sobre o trabalho, ambiente de trabalho mais
+confortável, melhor organização das tarefas, mais motivação para trabalhar, aumento de
+produtividade, menos dias de afastamento por motivos de saúde, diminuição de custos
+com deslocamento e menor distração no desenvolvimento das atividades (Tahavori, 2014).
+Caillier (2013) aponta como benefícios a possibilidade de absorver pessoas portadoras de
+necessidades especiais ao quadro de colaboradores, a redução da poluição decorrente da
+melhora no trânsito, a redução de acidentes de trânsito e a redução de custos associados à
+manutenção de infraestrutura das cidades e das organizações. Belzunegui, Erro e Pastor
+(2014), por sua vez, apontam benefícios como aumento de autonomia do trabalhador,
+possibilidade de participação em diferentes projetos, diminuição da necessidade de
+supervisão constante e enriquecimento de redes de trabalho.
+
+ 
+ 
+
+ No contexto brasileiro, pesquisa conduzida no próprio Serpro e na Receita Federal
+evidenciou vantagens do teletrabalho como a melhoria da qualidade de vida, maior
+equilíbrio na relação trabalho e família, maior produtividade, flexibilidade, redução de
+custo e tempo de deslocamento (Filardi; Castro; Zanini, 2020). Pesquisa com estagiários
+de uma multinacional revelou vantagens como a relação positiva entre teletrabalho e
+atividades acadêmicas, a flexibilidade e o amadurecimento profissional como resultado do
+estabelecimento autônomo de metas individuais de trabalho (Aderaldo, I. L.; Aderaldo,
+C. V. L.; Lima, 2017).
+
+ Embora benefícios sejam identificados, os estudos também têm sido consistentes
+em apontar problemas comuns associados à implantação do teletrabalho. Antunes e Braga
+(2009) já discutiam um lado obscuro da introdução e uso intensivo de novas tecnologias
+de informação e comunicação. Segundo os referidos autores, embora os novos arranjos de
+trabalho sejam considerados dinâmicos, as condições de trabalho podem ser tão precárias
+quanto aquelas existentes no século 19. Infoproletariado ou ciberproletariado foram
+termos usados para descrever trabalhadores que utilizam tecnologia de ponta, desfrutam
+de privilégios como uma suposta autonomia, mas vivem sobrecarregados por excesso de
+trabalho e cobrança, e uma individualização e isolamento excessivo.
+
+ Estudos de campo diversos apontam aspectos negativos do teletrabalho, tais como:
+suporte técnico insuficiente por parte da organização; velocidade de internet e problemas
+com softwares; problemas com questões de regulamentação legal do teletrabalho;
+dificuldades de interação e comunicação entre membros do grupo e teletrabalhador;
+isolamento social do teletrabalhador; sobrecarga de trabalho e falta de tempo de descanso
+e recuperação, pois os trabalhadores tendem a estender sua jornada quando não há um
+controle social ou tecnológico dos horários de trabalho (Grant; Wallace; Spurgeon;
+2013; Konradt; Schmook; Malecke, 2000; Lewis, 2013; Tahavori, 2014).
+
+ No Brasil, Barros e Silva (2010) destacam a falta de visibilidade do teletrabalhador
+e a dificuldade relatada por líderes no acompanhamento do desempenho de seus
+subordinados, retomando questões de controle e avaliação dos teletrabalhadores. A
+questão do gerenciamento de profissionais que não podem ser vistos todo o tempo foi
+também levantada por Groen et al. (2018), não exatamente como uma desvantagem,
+mas como um desafio para os gestores. Filardi, Castro e Zanini (2020) indicam a falta de
+
+ 
+ 
+
+comunicação, perda de vínculo com a empresa, problemas psicológicos, infraestrutura e
+controle do teletrabalhador. Aderaldo, Aderaldo e Lima (2017) verificaram a sobrecarga de
+horas de trabalho, a dificuldade de desvincular a vida pessoal do trabalho e os problemas
+com a visibilidade. Rocha e Amador (2018), por sua vez, ressaltam que existe uma série de
+riscos envolvidos, principalmente em relação à individualização do trabalho, a qual pode
+acarretar o isolamento social, profissional e político dos trabalhadores.
+
+ Em estudo desenvolvido por Peters et al. (2014), verificou-se que é necessário
+distinguir entre as práticas oficialmente implementadas na organização e como os
+empregados as percebem. A simples introdução de novas formas de trabalho pode não
+alcançar os resultados desejados quando não considera uma cultura organizacional
+compatível que dê suporte a elas. Lewis (2013) também aponta a importância de questões
+culturais para a funcionalidade e a efetividade do teletrabalho, argumentando que na
+cultura francesa, por exemplo, em que as interações e comunicações cara a cara são muito
+valorizadas, o teletrabalho encontra mais barreiras para se estabelecer.
+
+ Com base nos estudos apontados, é possível depreender que o funcionamento
+e os impactos do teletrabalho não são ponto pacífico e que variáveis organizacionais
+e pessoais podem ajudar a compreender e discutir o fenômeno. Lewis (2013) ressalta
+a necessidade de estudar e analisar o teletrabalho a partir de diferentes perspectivas,
+abordando diferentes tipos de variáveis ou indicadores e captando as percepções dos
+diferentes envolvidos no processo, como os supervisores de teletrabalhadores, os colegas
+de teletrabalhadores e os próprios teletrabalhadores. As experiências com os arranjos
+podem ser distintas, e sua ampla compreensão na organização requer informações das
+múltiplas fontes.
+
+ Portanto, analisar o teletrabalho nos diferentes contextos organizacionais consiste
+em uma tarefa atual e relevante no campo da gestão, constituindo uma lacuna na literatura.
+Andrade, Oliveira e Pantoja (2019) verificaram que, apesar da crescente propagação do
+teletrabalho dentro das instituições públicas, poucos estudos tratam sobre o tema, que
+carece de aprofundamento nas reflexões teóricas e na testagem de modelos empíricos.
+Outrossim, Kim e Lee (2020) destacam a necessidade e relevância de evidências empíricas
+de como programas que visam coordenar demandas pessoais e profissionais, onde se
+inclui o teletrabalho, afetam atitudes e comportamentos no trabalho. Vale ressaltar
+
+ 
+ 
+
+que as pesquisas sobre teletrabalho costumam focar nos próprios teletrabalhadores
+ou na comparação de teletrabalhadores e colegas não teletrabalhadores, ignorando as
+percepções e experiências de chefes e supervisores. Os supervisores no contexto do
+teletrabalho têm sido um tema amplamente negligenciado (Seejeen; Cho, 2020).
+
+ A presente pesquisa abordou as percepções de trabalhadores em esquema de
+teletrabalho, de chefes e de colegas não usuários do teletrabalho, buscando traçar uma
+visão mais abrangente do fenômeno no Serpro, a partir de múltiplas fontes. Além disso,
+não se deteve a analisar dados descritivos das percepções sobre vantagens e desvantagens,
+mas testou empiricamente impactos do teletrabalho em variáveis fundamentais para a
+efetividade organizacional, a saber, o contexto de trabalho, o bem-estar no trabalho e o
+desempenho profissional.
+
+2.2 Contexto de trabalho
+
+ O contexto de trabalho consiste no lócus material, organizacional e social onde se
+opera a atividade de trabalho (Ferreira, 2017). Mais especificamente, descreve como as
+atividades, as tarefas e os papéis são estruturados, desempenhados e modificados, bem
+como o impacto desses elementos nos resultados organizacionais, grupais e individuais
+(Grant; Parker, 2009).
+
+ No presente estudo, foram consideradas as dimensões do contexto referentes à
+organização do trabalho, às condições de trabalho e às relações socioprofissionais, em
+função da relevância que têm apresentado em estudos anteriores sobre pontos positivos
+e negativos e impactos do teletrabalho (Aderaldo; Aderaldo; Lima, 2017; Barros; Silva,
+2010; Belzunegui; Erro; Pastor, 2014; Caillier, 2013; Filardi; Castro; Zanini, 2020;
+Konradt; Schmook; Malecke, 2000; Lewis, 2013; Tahavori, 2014).
+
+ Segundo Ferreira (2017), as condições de trabalho abrangem os equipamentos
+arquitetônicos, o ambiente físico, os instrumentos, tecnologias e matérias primas
+presentes na organização. A organização do trabalho envolve elementos como divisão
+hierárquica, técnica e social do trabalho; metas e objetivos estabelecidos pela organização;
+natureza, conteúdo, procedimentos e regras para desenvolvimento das tarefas; tempo e
+processo de trabalho. As relações socioprofissionais abrangem as relações entre chefes e
+
+ 
+ 
+
+subordinados, entre colegas da organização, e entre membros internos da organização e
+usuários dos serviços/produtos oferecidos pela organização. Foram exploradas possíveis
+relações do teletrabalho com as condições de trabalho, as relações socioprofissionais
+e a organização do trabalho, a partir da comparação das percepções de usuários e não
+usuários do arranjo.
+
+2.3 Bem-estar no trabalho
+
+ O movimento teórico dos Estudos Organizacionais Positivos tem se destacado
+como uma corrente de investigação orientada para melhorar as organizações, usando suas
+forças internas, tendo como pressupostos a saúde e a qualidade de vida, em oposição à
+doença (Cunha; Rego; Lopes, 2013).
+
+ Nesse contexto, a importância do bem-estar do trabalhador para o funcionamento
+dos indivíduos e das organizações é consistente na literatura e não se embasa apenas
+em modelos teóricos, mas em dados de pesquisas de campo (Agapito; Filho; Siqueira,
+2015; Fogaça; Coelho Jr., 2015; Warr, 2007). Além disso, o bem-estar no trabalho pode
+ser considerado um indicador da saúde mental nesse importante contexto da vida dos
+indivíduos (Ferreira, 2017; Warr, 2007).
+
+ Enquanto pesquisas sobre bem-estar geral revelam que variáveis do próprio
+indivíduo são os principais preditores do fenômeno (Calvo et al., 2015), pesquisas sobre
+bem-estar no contexto de trabalho revelam que variáveis do trabalho e da organização são
+os principais antecedentes (Neiva; Macambira; Ribeiro, 2020; Paschoal; Alvaro; Porto,
+2015). O teletrabalho, como arranjo que modifica a organização, as tecnologias e as relações
+do trabalho, pode ter efeitos diretos e indiretos no bem-estar do trabalhador (Grant;
+Wallace; Spurgeon, 2013), de sorte que compreendê-los é uma tarefa fundamental para
+uma melhor gestão do arranjo.
+
+ Neste estudo, o bem-estar no trabalho é compreendido como a percepção de
+realização pessoal e os humores e emoções vivenciados no trabalho, de forma que o
+afeto positivo seja mais frequente e intenso que o afeto negativo (Paschoal; Tamayo,
+2008). Embora o conceito de bem-estar no trabalho possa englobar diferentes dimensões
+cognitivas e afetivas, são os afetos, entendidos como emoções e humores, que consistem
+
+ 
+ 
+
+na sua dimensão central e explicam a maior parte da variância do fenômeno (Demo;
+Paschoal, 2016; Paschoal; Tamayo, 2008; Warr, 2007). Assim, o afeto no trabalho foi
+utilizado para abordar o bem-estar do trabalhador. Foram exploradas possíveis relações
+do teletrabalho com o bem-estar no trabalho, a partir da comparação das percepções de
+usuários e não usuários do arranjo.
+
+2.4 Desempenho profissional
+
+ Muitas variáveis pessoais, do trabalho e da organização podem influenciar o
+desempenho de um trabalhador (Coelho Jr.; Borges-Andrade, 2011; Fogaça; Coelho
+Jr., 2015; Oliveira et al. 2019; Vreuls; Joia, 2012). O desempenho pode ser considerado
+um construto de natureza multideterminada, condicionado a um conjunto de fatores
+relacionados ao contexto de trabalho, como condições sociais, culturais e relativas ao
+posto de trabalho do indivíduo (Coelho Jr.; Borges-Andrade, 2011).
+
+ Na presente pesquisa, o desempenho profissional foi abordado a partir da
+autoavaliação. Segundo Coelho Jr. et al. (2010), apesar de uma possível parcialidade
+decorrente da desejabilidade social, medidas de autoavaliação de desempenho podem
+ser amplamente utilizadas em pesquisas empíricas e apresentam correlações significativas
+com medidas objetivas de desempenho.
+
+ As dimensões que estruturam o desempenho profissional, sob a perspectiva da
+autoavaliação, são: regulação, ou seja, a avaliação do indivíduo sobre o quanto ele percebe
+que seu trabalho contribui para o alcance da missão e estratégia da organização; esforço,
+que consiste na percepção do grau de esforço e ajustamento para alcançar os resultados
+de trabalho esperados; execução e monitoramento, que abordam o foco no processo de
+trabalho e desenvolvimento de tarefas e ações; e autogerenciamento, que contempla
+a eficiência do desempenho, mais especificamente da capacidade de administrar a
+execução de seu trabalho (Coelho Jr. et al., 2010). Foram exploradas possíveis relações
+do teletrabalho com o desempenho profissional, a partir da comparação das percepções
+de usuários e não usuários do arranjo.
+
+ 
+ 
+
+3 Método
+
+3.1 Caracterização da pesquisa
+
+ Este artigo apresenta um estudo de caso único, de natureza descritiva e explicativa,
+que levantou e analisou as percepções de chefes, colegas e teletrabalhadores no Serpro
+sobre o teletrabalho por meio de questionários com questões abertas e fechadas. O Serpro
+foi escolhido por ter sido pioneiro no setor público brasileiro a adotar o teletrabalho e
+por apresentar quase três décadas de iniciativas e mais de uma década de experiência
+contínua e estruturada com o arranjo.
+
+3.2 Organização
+
+ No Serpro, o teletrabalho surgiu em 1985 com a implantação do Projeto-Lar,
+descrito na revista da empresa “Tema” como “primeira experiência em manter um
+empregado trabalhando em casa, com o apoio de um micro e comunicando-se com a
+empresa por teleprocessamento” (Magalhães, 1985, p. 23). Naquela época, ainda não
+havia toda a tecnologia necessária para o teletrabalho, uma vez que, sem a comunicação
+on-line da máquina do trabalhador com a empresa, todas as informações deveriam ser
+gravadas em disquetes e levadas à empresa. Assim, o projeto acabou sendo abandonado
+para voltar a ser repensado em 1997, com o estudo da viabilidade das tecnologias. Na
+ocasião, ainda havia uma grande dificuldade no provimento do serviço de internet
+nas casas dos empregados. O projeto-piloto do teletrabalho foi iniciado efetivamente,
+então, em 2005.
+
+ Com as novas tecnologias, a facilidade cada vez maior da integração da casa e
+escritório, bem como o retorno positivo das chefias e empregados envolvidos com o projeto,
+o teletrabalho manteve-se como modalidade de trabalho e estimulou a continuidade do
+programa, cujo normativo foi revisto em 2012 para abarcar as alterações legais impostas
+pela Lei nº 12.551/2011. As principais características desse programa são a anuência
+da chefia, o parecer positivo do engenheiro de segurança que atesta a ergonomia do
+ambiente de trabalho, o compromisso do Serpro no ressarcimento do serviço de banda-
+larga e o fornecimento do equipamento tecnológico necessário, excetuando-se mobiliário.
+
+ 
+ 
+
+Segundo os dados mais atuais, antes do contexto da pandemia, existiam em torno de 100
+teletrabalhadores regulares na empresa.
+
+3.3 Amostra e instrumentos
+
+ O público-alvo do estudo englobou os atuais empregados cadastrados na modalidade
+teletrabalho, suas chefias respectivas e os colegas diretos desses teletrabalhadores.
+Como colegas, foram considerados aqueles que exerciam as mesmas atividades que
+os teletrabalhadores, que trabalhavam diretamente com eles, mas não utilizavam o
+teletrabalho. Além dos teletrabalhadores, foram compostas amostras de colegas e de
+chefes de teletrabalhadores, que desenvolvem suas atividades presencialmente nas
+dependências do Serpro, já antecipando que a taxa de retorno aos instrumentos aplicados
+não seria de 100%. As atividades de trabalho são variadas, como desenvolvimento de
+sistemas, comunicação social e atividades da universidade corporativa do Serpro.
+
+ Dos 102 questionários enviados aos teletrabalhadores, 45 foram devolvidos
+respondidos. Em relação aos colegas, dos 204 enviados, 62 foram devolvidos. Quanto aos
+chefes, dos 48 enviados, retornaram 23 questionários respondidos.
+
+ Do total de respondentes, 65 eram homens. Em relação ao tempo de serviço, 60
+empregados tinham de 21 a 40 anos de empresa; apenas 17 empregados tinham até cinco
+anos de empresa. Quanto à idade, 51 respondentes tinham entre 51 e 60 anos, entre
+eles 25 teletrabalhadores. Ainda sobre a idade, seis pessoas indicaram ter mais de 60
+anos, quatro deles teletrabalhadores. Os respondentes de todos os grupos, portanto, são
+pessoas com considerável experiência profissional e conhecimento da organização.
+
+ Para a coleta de dados, foram utilizadas questões abertas elaboradas para
+este estudo e medidas já validadas de bem-estar no trabalho (Demo; Paschoal, 2016;
+Paschoal; Tamayo, 2008), desempenho no trabalho (Coelho Jr. et al., 2010) e contexto
+de trabalho (Ferreira, 2011). Para responder ao primeiro objetivo, que consistia em
+comparar percepções de chefes, colegas e teletrabalhadores quanto a pontos positivos e
+negativos do teletrabalho no Serpro, foram propostas as seguintes questões abertas: 1)
+na sua opinião, quais são os pontos fortes associados ao teletrabalho no Serpro?; 2) na
+sua opinião, quais são os pontos fracos associados ao teletrabalho no Serpro? Todos os
+participantes deveriam responder.
+
+ 
+ 
+
+ Para atender ao segundo objetivo, ou seja, comparar percepções de
+teletrabalhadores e colegas de teletrabalhadores, foram aplicadas as medidas
+anteriormente mencionadas aos teletrabalhadores e aos colegas de teletrabalhadores.
+Da escala de bem-estar no trabalho, foram utilizados os 9 itens de afeto positivo, como
+alegre e tranquilo, e os 12 itens de afeto negativo, como irritado e deprimido. A escala de
+resposta variava de 1 (nem um pouco) a 10 (extremamente), com a instrução “nos últimos
+seis meses, meu trabalho tem me deixado...”. A medida de desempenho profissional
+foi composta por 29 itens, como “meu trabalho é importante para o desempenho do
+Serpro” e “posso executar meu trabalho sem pressão”, distribuídos nos fatores de
+regulação, esforço, execução/monitoramento e autogerenciamento, e que deveriam ser
+respondidos de acordo com uma escala de 10 pontos (1= discordo totalmente e 10=
+concordo totalmente). Por fim, a medida de contexto continha 13 itens, como “divisão
+das tarefas é justa”, “posso trabalhar sem pressão” e “há confiança entre os colegas”,
+distribuídos nos fatores de condições de trabalho, organização do trabalho e relações
+socioprofissionais. A escala de resposta era a mesma da medida de desempenho. Os
+índices de confiabilidade das medidas variam de 0,60 a 0,93.
+
+3.4 Procedimentos de coleta e análise dos dados
+
+ Os questionários foram disponibilizados em ambiente virtual do Google Drive, cujo
+link foi encaminhado através de e-mail corporativo para todos aqueles que se enquadravam
+no perfil de respondente.
+
+ Em relação às questões abertas, utilizou-se o software Iramuteq, que permite
+identificar as informações essenciais dos textos e, a partir da quantificação das frequências,
+acessar as estruturas significantes mais fortes do material (Camargo; Justo, 2013).
+Conforme os autores, realizou-se a categorização das respostas por meio da classificação
+hierárquica descendente (CHD), que propõe a classificação dos segmentos de texto em
+função de seus respectivos vocabulários. Cada classe identificada apresenta vocabulários
+semelhantes entre si e diferentes dos segmentos de texto das outras classes (Camargo;
+Justo, 2013). Quanto às questões fechadas, primeiramente foram conduzidas análises
+estatísticas descritivas. Para comparação dos grupos (teletrabalhadores e colegas), foram
+conduzidas análises de variância e Testes de Mann-Whitney.
+
+ 
+ 
+
+4 Análise e discussão dos resultados
+
+ O Quadro 1 apresenta os resultados sobre os pontos negativos do teletrabalho no
+Serpro, de acordo com as chefias. Na primeira coluna, encontram-se as classes temáticas
+e o quanto elas representam do discurso. Observa-se que as dificuldades técnicas foram
+as protagonistas dos pontos negativos levantados pelas chefias. É importante notar que
+a porcentagem expressa não é de respondentes que mencionaram o conteúdo, mas o
+quanto a referida classe representa de todo o discurso produzido. Na segunda coluna,
+encontram-se exemplos de falas dos respondentes, que ilustram e detalham o conteúdo
+da classe.
+
+Quadro 1 | Pontos negativos do teletrabalho sob a ótica das chefias
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...muitas vezes o firewall bloqueia o acesso ao trabalho
+ “aplicação”, gerando desgaste muito grande e stress ainda
+ maior para liberar o acesso... está prejudicando a execução dos
+Dificuldades técnicas
+ trabalhos.”
+(35,90%)
+ “...acesso do empregado a determinados sistemas que são
+ bloqueados, o trâmite de liberação é moroso e muitas vezes
+ termina no limbo, não é atendido.”
+ “...diminuição da visibilidade perante o restante da equipe,
+Dificuldade de interação com a dependência de ferramentas e tecnologias diferentes da
+equipe estação de trabalho comum.”
+(18,90%) “...perda das conversas entre a equipe onde algumas
+ informações são divulgadas”
+ “...falta de acompanhamento sistemático acerca da adaptação
+Acompanhamento de novos
+ do empregado e chefias; para mudanças de maior impacto nas
+usuários
+ equipes, temos utilizado um acompanhamento por parte do
+(15,10%)
+ serviço social.”
+ “...oportunidade para melhorias, flexibilização horário, medição
+ por resultados.”
+Sugestões de melhoria
+ “Serpro pode investir mais na seleção.”
+(15,10%)
+ “Melhor suporte tecnológico para acompanhamento do horário
+ trabalhado.”
+
+ 
+ 
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...adaptação da gestão frente à quebra de paradigma do
+ teletrabalho, carência de meios de comunicação mais interativos
+ que possibilitem videoconferências para reuniões imediatas
+ com teletrabalhador e equipe presencial, teletrabalho é uma
+Dificuldades de gestão proposta mais flexível, porém segue as mesmas regras do
+(15,10%) trabalho presencial.”
+ “impossibilidade de registro de ponto dificulta a gestão da
+ jornada de trabalho do empregado, por limitações de acesso
+ remoto a algumas ferramentas, o teletrabalhador da área de
+ produção não utiliza toda a sua potencialidade”
+Fonte: elaborado pelas autoras.
+
+ O Quadro 2 apresenta os pontos negativos do teletrabalho no Serpro, segundo os
+colegas dos teletrabalhadores. O conteúdo se organizou em torno de seis categorias, com
+a questão do convívio com colegas representando a maior fatia do discurso.
+
+Quadro 2 | Pontos negativos do teletrabalho sob a ótica dos colegas (pares)
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...falta de humanidade, isto é, convivência diária entre as
+Convívio com os colegas
+ pessoas.”
+(29,60%)
+ “...distancia-se dos verdadeiros colegas.”
+ “...muitas vezes esses funcionários são esquecidos para
+ participação em trabalhos que envolvem reuniões presenciais e
+Exclusão dos sua participação por audioconferência é, muitas vezes, precária.”
+teletrabalhadores “...devido à nossa cultura se perde a identidade funcional, uma
+(17,30%) vez que os teletrabalhadores não são vistos com frequência na
+ empresa e vão sendo esquecidos devido ao não contato visual e
+ diário.”
+Interferência família- “...as atividades cotidianas da residência do teletrabalhador
+trabalho e prejuízos para o podem influenciar de forma negativa a concentração deste”
+desenvolvimento profissional “...não separação da vida profissional da vida pessoal, menos
+(16,10%) oportunidades de promoção e ascensão na carreira profissional,
+ aumentos de custos com equipes e telecomunicações.”
+Sem pontos negativos
+ “...não identifico pontos fracos”
+(12,30%)
+
+ 
+ 
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “... teria que ir para a empresa exclusivamente para bater o ponto
+Dificuldade de comunicação e tentar conseguir uma sala de reunião para ficar lá sozinha,
+imediata com a equipe ligando para minha equipe, que está em outros estados.”
+(12,30%) “...atrapalha o tratamento de situações imprevistas em função da
+ limitação de canais imediatos de comunicação.”
+ “...benefício não é concedido baseado no fator distância, que
+Critérios para seleção dos
+ é o fator mais importante, não existindo um critério claro que
+trabalhadores
+ identifique por que um funcionário recebe o benefício e outro
+(12,30%)
+ não.”
+Fonte: elaborado pelas autoras.
+
+ O Quadro 3 apresenta os resultados sobre os pontos negativos do teletrabalho no
+Serpro, sob a ótica os teletrabalhadores. Preconceito, desconfiança e dificuldades técnicas
+representaram as maiores fatias do discurso.
+
+Quadro 3 | pontos negativos do teletrabalho sob a ótica dos teletrabalhadores
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...chefias que ligam de tempos em tempos para verificar se a
+ pessoa está no ambiente do trabalho sem qualquer assunto,
+Preconceito e desconfiança deveria existir uma campanha mais acirrada da empresa sobre o
+de chefes e colegas que é e o que fazem as pessoas em contrato de teletrabalho.”
+(21,70%) “...preconceito de alguns com relação aos teletrabalhadores,
+ ex: você está trabalhando? você está fisicamente na regional do
+ Serpro?”
+ “...rede não suporta os aplicativos software livre, impede uma
+ impressão adequada, ramal passa a maior parte do tempo sem
+ acesso.”
+ “...não consigo utilizar o recurso de compartilhamento de tela,
+ acesso restrito a algumas aplicações intranet, qualidade da
+Dificuldades técnicas
+ telefonia IP ainda é deficiente.”
+(21,70%)
+ “...há alguns problemas de software e hardware que
+ encontramos sempre, dificuldade de pessoas para resolver
+ imediatamente, não temos uma pessoa específica a recorrer,
+ quando há algum problema, sempre ficam empurrando para
+ outra área e demora.”
+ “...perda da convivência diária com colegas, perda de algumas
+Convívio com os colegas
+ informações e detalhes que são repassadas oralmente ao grupo.”
+(19,30%)
+ “...distanciamento no convívio com colegas de trabalho.”
+
+ 
+ 
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...o principal é a falta de liberação de acesso a alguns sistemas
+ por questões de políticas de segurança que não fazem sentido,
+Dificuldades de gestão
+ razões aparentemente mais subjetivas do que técnicas.”
+(19,30%)
+ “...trabalho não é por resultado e sim por carga horária, não
+ permite a compensação de horas.”
+Apoio da empresa “...pouco apoio da empresa, falta de melhores mecanismos de
+(18,10%) comunicação.”
+Fonte: elaborado pelas autoras.
+
+ E quais são os pontos positivos do teletrabalho no Serpro, a partir da percepção dos
+diferentes atores organizacionais? O Quadro 4 descreve os pontos positivos, segundo as
+chefias, e a melhoria na qualidade de vida desponta como a classe mais representativa do
+discurso.
+
+Quadro 4 | pontos positivos do teletrabalho sob a ótica das chefias
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...promoção da qualidade de vida do trabalhador, diminuição das
+ despesas, do desgaste físico e psicológico com os deslocamentos,
+ aumento do tempo disponível para dedicação a atividades
+ pessoais.”
+ “...maior satisfação do empregado, motivação em função da
+ distância casa x trabalho, no teletrabalho há melhor gestão do
+ horário de trabalho, os resultados são entregues com maior
+Melhoria na qualidade de
+ qualidade, há menor interferência externa na execução das
+vida
+ demandas.”
+(59,20%)
+ “melhoria da qualidade de vida de uma forma geral, diminuição
+ do stress do trânsito, do deslocamento ao trabalho, aumento do
+ foco no trabalho, pois em casa conseguimos isolar o ambiente
+ de trabalho de conversas paralelas, ruídos e outras situações que
+ atrapalham sua concentração .”
+ “...qualidade de vida e bem-estar, além de economia e o
+ resultado positivo para a nossa organização.”
+Flexibilidade “...flexibilidade e conforto”
+(25,40%) “...maior flexibilidade de trabalho, maior foco no resultado.”
+
+ 
+ 
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...retenção de talentos e experiências na empresa, autonomia
+ das chefias imediatas no deferimento da solicitação do
+Autonomia das chefias e empregado...”
+subordinados “... desoneração dos controles ortodoxos de acompanhamento
+(15,20%) das atividades, o nível de relacionamento transcende o
+ modelo chefia x subordinado, alcançando um estado de
+ comprometimento, cumplicidade entre os envolvidos...”
+Fonte: elaborado pelas autoras.
+
+ O Quadro 5 apresenta os resultados sobre os pontos positivos do teletrabalho no
+Serpro, sob a ótica os colegas. A facilidade de deslocamento e a economia com gastos
+pessoais despontaram com a maior fatia do discurso.
+
+Quadro 5 | Pontos positivos do teletrabalho sob a ótica dos colegas (pares)
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+
+ “...principalmente nas grandes metrópoles, o empregado
+ gasta tempo demais para seus trajetos entre casa x trabalho, o
+ que resulta num stress do trânsito e prejudica o desempenho
+Facilidade de deslocamento profissional...”
+e economia com gastos “...economia com despesas com transportes em geral e com
+pessoais vestuário e alimentação, a possibilidade de não ter stress do
+(35,40%) trânsito e perda de tempo com o deslocamento.”
+ “...economia de tempo, saúde e dinheiro ao evitar o
+ deslocamento em cidades grandes, cada vez mais complexas,
+ perigosas e lotadas.”
+
+ “...flexibilidade de horário de trabalho para tarefas que podem ser
+ executadas de forma individual, é quando estamos mais relaxados
+Condições e organização do
+ em casa que temos boas ideias que afetam nosso trabalho.”
+trabalho
+ “...uma melhor organização das atividades a serem executadas,
+(25,30%)
+ torna quase que obrigatória a gestão por resultados e não por
+ horário.”
+ “...favorece o empregado em relação à qualidade de vida.”
+ “... maior qualidade de vida, mais conforto por estar em casa,
+Melhoria na qualidade de
+ mais disponibilidade para a equipe, mais produtividade porque
+vida
+ o empregado está mais descansado, possibilidade de poder se
+(24,10%)
+ mudar para outras cidades, por exemplo cidades menores e mais
+ calmas, não necessitando morar em uma capital.”
+
+ 
+ 
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...economia para a empresa, melhor distribuição de espaço físico,
+ melhor produtividade, funcionário se sente motivado.”
+ “...redução dos níveis de hierarquia intermediária, possibilitando
+Economia para a empresa
+ a conservação de pessoal mais qualificado, oferecendo melhores
+(15,20%)
+ vantagens de localização, trabalho em tempo real com pessoas de
+ qualquer parte do mundo, possibilidade de contratação de mão
+ de obra mais barata.”
+Fonte: elaborado pelas autoras.
+
+ Por fim, o Quadro 6 apresenta os resultados sobre os pontos positivos do teletrabalho
+no Serpro, na visão dos próprios teletrabalhadores. Apenas três classes equilibraram o
+conteúdo das respostas, com destaque para o aumento da produtividade.
+
+Quadro 6 | Pontos positivos do teletrabalho sob a ótica dos teletrabalhadores
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...último relatório de produtividade que me foi enviado teve
+ números impressionantes, pois acabei sendo responsável por
+ 50% da produtividade da nossa área.”
+ “...mais foco nas minhas atividades, de forma a ter um
+Aumento da p desempenho melhor e com melhor qualidade mesmo com
+rodutividade alguma doença que possivelmente ficaria em casa, posso
+(34,40%) trabalhar e realizar minhas tarefas diárias.”
+ “...aumentou minha motivação em realizar as atividades,
+ melhorou minha produtividade, não necessito me deslocar para
+ enfrentar um tr ânsito lento e congestionado, evito as más
+ condições climatéricas, tenho mais segurança evitando assaltos.”
+ “...eliminação do stress do trânsito, aumento da qualidade de
+ vida, maior tempo para a família.”
+ “...aumento da produtividade individual, eliminação de stress
+Melhoria na qualidade do trânsito, tranquilidade e zero ruído, o que me permite
+de vida e facilidade de concentração total no trabalho, melhora na qualidade de vida,
+deslocamento pois o tempo que perdia em deslocamento tenho utilizado para
+(32,80%) praticar exercícios, caminhada.”
+ “...ganho do tempo gasto no deslocamento para a empresa, fim
+ do stress do trânsito, provocando atraso no cumprimento do
+ horário, aumento da qualidade de vida.”
+
+ 
+ 
+
+Classe temática
+ Exemplos de falas dos respondentes
+(% representatividade)
+ “...consigo administrar muito melhor meu tempo.”
+ “...possibilidade de realização de tarefas em ambiente
+Condições e o rganização harmonioso e adequado...”
+do trabalho “...conforto, poder trabalhar com mais tranquilidade.”
+(32,80%) “...possibilidade de executar as tarefas no tempo e no prazo
+ acordado, com uma maior tranquilidade, a concentração é
+ melhor nessas condições de trabalho.”
+Fonte: elaborado pelas autoras.
+
+ Quanto à comparação de teletrabalhadores e colegas em relação ao contexto
+de trabalho, desempenho profissional e bem-estar no trabalho, alguns cuidados foram
+tomados antes das análises propriamente ditas. Após a exclusão dos sete outliers
+univariados e multivariados encontrados, foi obtido um total de 56 respondentes
+teletrabalhadores e 45 respondentes não teletrabalhadores. Inicialmente, como
+os grupos de teletrabalhadores e colegas tinham tamanhos equilibrados, todas
+as variáveis seriam submetidas a testes paramétricos. Contudo, para as variáveis
+condições de trabalho, regulação e afeto negativo, o teste Levene e o teste Kolmogorov-
+Smirnov indicaram não haver normalidade e igualdade de variância entre os grupos
+comparados. Assim, nesses casos, foi conduzido o teste não paramétrico de Mann-
+Whitney (Field, 2009). Para os outros casos, foram realizadas análises multivariadas de
+variância (Manova) para detectar eventuais diferenças. Após as Manovas, o estudo foi
+complementado por Anovas separadas por variável dependente. A Tabela 1 apresenta
+os resultados encontrados.
+
+Tabela 1 | Comparações entre trabalhadores e colegas (pares)
+ IC Estatísticaª
+ Média DP p
+ (95%) (gl)
+ Geral 8,85 1,45 U=2.118.000 <0,001
+ Condições de
+ Telet. 9,59 1,09 [9,21-9,79]
+ trabalho
+ Coleg. 8,23 1,44 [7,88-8,57]
+Dimen- Geral 6,89 1,84 F(1,100)=7,811 <0,001
+ Organização do
+sões de Telet. 7,44 1,54 [6,92-7,97]
+ trabalho
+contexto Coleg. 6,38 1,96 [5,91-6,85]
+ Geral 8,38 1,48 F(1,100)=3,921 <0,05
+ Relações de
+ Telet. 8,71 1,47 [8,279,14]
+ trabalho
+ Coleg. 8,09 1,46 [7,70-8,48]
+
+ 
+ 
+
+ IC Estatísticaª
+ Média DP p
+ (95%) (gl)
+ Geral 9,06 0,944 U=1.862.500 <0,001
+ Regulação Telet. 9,42 0,83 [9,16-9,68]
+ Coleg. 8,75 0,93 [8,51-8,99]
+ Geral 7,44 1,43 F(1,100)=3,980 <0,05
+Dimen- Esforço Telet. 7,75 1,30 [7,34-8,16]
+sões de Coleg. 7,25 1,50 [6,88-7,62]
+desem- Geral 8,24 1,52 F(1,100)=15,10 <0,001
+penho Execução/
+ Telet. 8,86 1,22 [8,45-9,26]
+ Monitoramento
+ Coleg. 7,83 1,52 [7,46-8,19]
+ Geral 8,96 1,06 F(1,100)=17,727 <0,001
+ Autogerencia-
+ Telet. 9,42 0,90 [9,13-9,71]
+ mento
+ Coleg. 8,61 1,04 [8,34-8,87]
+ Geral 7,04 2,34 F(1,100)=15,946 <0,001
+ Afeto positivo Telet. 8,00 1,92 [7,36-8,64]
+Dimen-
+ Coleg. 6,16 2,33 [5,61-6,77]
+sões de
+ Geral 3,04 2,06 U=568,00 <0,001
+afeto
+ Afeto negativo Telet. 2,01 1,20 [1,46-2,56]
+ Coleg. 3,88 2,24 [3,38-4,37]
+Fonte: elaborado pelas autoras.
+
+ Os resultados revelam que houve diferenças significativas entre teletrabalhadores e
+colegas para todas as variáveis abordadas: contexto de trabalho, bem-estar e desempenho
+profissional. As percepções dos teletrabalhadores foram mais positivas que as percepções
+dos colegas não teletrabalhadores para todas as variáveis pesquisadas.
+
+ Quando comparados com colegas que possuem os mesmos cargos e desenvolvem
+as mesmas atividades, os teletrabalhadores apresentam desempenho profissional e
+bem-estar no trabalho mais elevados, além de avaliações mais positivas das relações
+socioprofissionais, condições e organização do trabalho. Esses resultados sustentam
+achados e teorias de estudos anteriores sobre os benefícios do teletrabalho (Aderaldo, I.
+L.; Aderaldo, C. V. L.; Lima , 2017; Belzunegui; Erro; Pastor, 2014; Caillier, 2013;
+Tahavori, 2014). Assim, no Serpro, o teletrabalho está associado a melhores avaliações de
+contexto, de bem-estar e de desempenho.
+
+ Como explicar essas diferenças? O arranjo de teletrabalho modifica aspectos
+importantes da organização do trabalho. Espera-se uma maior autonomia e controle do
+próprio executor sobre suas tarefas, com um monitoramento menos acirrado e foco na
+
+ 
+ 
+
+entrega de resultados (Aderaldo; Aderaldo; Lima, 2017; Groen et al., 2018; Konradt;
+Schmook; Malecke, 2000; Rosenfield; Alves, 2011). A partir de dados levantados com
+mais de 20 mil trabalhadores holandeses, Van den Heuvel et al. (2010) constataram
+que, entre os principais antecedentes do desempenho profissional, está a autonomia
+no trabalho. No Brasil, Fogaça e Coelho Jr. (2015) verificaram que a autonomia é uma
+variável de alta importância para variabilidade observada no desempenho profissional,
+pois quando ela está presente, as decisões podem ser tomadas imediatamente, sem que
+o funcionário tenha que recorrer a um superior hierárquico. As atividades, portanto,
+podem ser cumpridas em tempo hábil e os objetivos alcançados mais rapidamente. É
+possível inferir que justamente essa liberdade, controle e rapidez na organização das
+tarefas e resolução de problemas, presentes no teletrabalho, afetam positivamente a
+percepção do teletrabalhador.
+
+ Em relação ao bem-estar, variáveis como controle e autonomia são clássicas nos
+modelos explicativos do fenômeno. Nos estudos sobre estresse, autonomia e controle no
+trabalho têm assumido um papel central nas respostas funcionais do indivíduo (Karasek,
+1979; Slemp; Kern; Vella-Bodrick, 2015). Conforme os referidos autores, um alto nível
+de controle no trabalho protege o indivíduo de efeitos negativos das demandas, já que
+possibilita a tomada de decisões, a resolução de dificuldades e o enfrentamento de desafios.
+
+ Conforme os relatos dos participantes da pesquisa, além dos aspectos da
+organização do trabalho, entre os pontos positivos apontados pelos respondentes, estão
+as melhorias nas condições de trabalho, expressas pelo conforto da casa do trabalhador e
+adequação de aspectos físicos do ambiente. O teletrabalho também afeta questões mais
+práticas da rotina do empregado, como a possibilidade de evitar o trânsito intenso de
+grandes cidades, a economia de tempo de deslocamento entre a casa e a organização e
+de gastos com roupas e alimentação. Essas variáveis afetam diretamente o bem-estar e a
+qualidade de vida geral.
+
+ Sobre as relações socioprofissionais, embora todos os atores organizacionais
+participantes da pesquisa tenham indicado uma preocupação com a invisibilidade
+do teletrabalhador, com o isolamento social e com as limitações na comunicação, a
+possibilidade de trabalhar sem interrupções de colegas e o distanciamento de conflitos
+comuns ao convívio social nos grupos podem ajudar a explicar a percepção mais positiva
+por parte dos teletrabalhadores.
+
+ 
+ 
+
+ É possível afirmar, portanto, que o teletrabalho envolve apenas benefícios e
+resultados positivos para os trabalhadores? Embora muitos pontos positivos tenham sido
+apontados de forma consistente pelos respondentes, ainda há espaço para melhorias.
+Por exemplo, as dificuldades técnicas representaram grande parte do discurso de
+chefes e usuários do teletrabalho sobre os pontos negativos do arranjo, indicando que
+aspectos básicos de infraestrutura tecnológica ainda carecem de aprimoramento. Nesse
+sentido, conforme as tecnologias de informação e comunicação se desenvolvem, novas
+necessidades vão surgindo, e atualizações vão sendo demandadas. A organização deve
+estar preparada e atenta para responder e atendê-las.
+
+ Também esteve presente em todos os grupos a percepção de problemas relativos
+à interação e ao convívio social do teletrabalhador. Trata-se de um desafio que pode
+ser minimizado com o suporte tecnológico adequado e com práticas como reuniões
+presenciais ou outros eventos periódicos com teletrabalhadores. Nesse sentido, a cultura
+organizacional e a própria cultura local podem ajudar a explicar a avaliação negativa
+quanto ao afastamento físico do teletrabalhador e a importância atribuída pelas pessoas
+a essa configuração (Lewis, 2013). O isolamento e o excesso de individualidade são
+tópicos comumente resgatados em estudos que envolvem novas tecnologias (Antunes;
+Braga, 2009) e convidam pesquisadores e gestores a repensarem e discutirem os novos
+arranjos de trabalho.
+
+ Embora seja verificada uma compatibilidade entre as percepções de chefes,
+colegas e teletrabalhadores, algumas especificidades foram constatadas. Por exemplo,
+os teletrabalhadores apontam preconceito e resistência por parte de colegas e chefias,
+o que pode estar relacionado justamente com uma cultura local e organizacional
+que valoriza as relações e comunicações cara a cara (Lewis, 2013), mas também com
+resistências frente a um arranjo e uma forma de organização do trabalho com os quais
+as pessoas não estão acostumadas. Quando se pensa em contextos de isolamento social
+trazido por crises e pandemias, como o da Covid-19, o teletrabalho pode passar de
+alternativa à única opção viável.
+
+ As tradicionais formas de organização do trabalho, baseadas, por exemplo, em
+princípios tayloristas, pressupõem um monitoramento constante e um controle do trabalho
+a partir da presença física do empregado e do cumprimento de horários na organização
+
+ 
+ 
+
+(Alves, 2011; Barros; Silva, 2010; Ferreira, 2017). Por outro lado, o teletrabalho exige
+a superação desses princípios rumo a uma gestão mais autônoma das atividades e a um
+possível maior equilíbrio entre demandas da vida pessoal e profissional (Groen, 2018;
+Kim; Lee, 2020).
+
+ As chefias respaldam esse cenário quando apontam os problemas com a preparação
+e a adaptação dos envolvidos com o teletrabalho. Além disso, destacam a necessidade de
+adaptação constante da gestão frente à quebra de paradigmas resultante do teletrabalho
+e outras questões mais formais e normativas da organização, como a impossibilidade de
+registro de ponto, o que dificulta a gestão da jornada de trabalho do empregado. Diante de
+vantagens e desafios, toda a organização precisa estar envolvida, informada e preparada
+para um arranjo como o teletrabalho, uma vez que a cultura organizacional em si precisa
+ser repensada. Em suma, a participação coletiva de gestores, teletrabalhadores e colegas
+necessariamente deve ser estimulada para o planejamento e gestão do teletrabalho.
+
+5 Contribuições, limitações e novos estudos
+
+ O estudo e a compreensão do teletrabalho consistem em um tema cada vez mais
+relevante no campo da administração, no Brasil e no mundo, vis-à-vis a perspectiva de
+novas e cada vez mais frequentes pandemias. Nesse sentido, este estudo veio contribuir
+com as pesquisas de gestão de pessoas, ao lançar luz nos pontos positivos e negativos
+da implementação do teletrabalho. Ao mesclar métodos qualitativos e quantitativos,
+realizando a tão propalada triangulação metodológica, o estudo somou também por
+permitir uma melhor compreensão do fenômeno, para além de sua simples mensuração.
+
+ Enquanto implicações práticas, os resultados por ora coligidos compõem um
+diagnóstico que pode inspirar gestores públicos quando da adoção deste arranjo de
+trabalho, que traduz uma realidade progressivamente mais possível e necessária nas
+organizações. Como limitações, pode-se citar o caráter transversal do estudo, o qual
+permitiu retratar um panorama pontual do teletrabalho no Serpro, o que impossibilita
+quaisquer inferências de relações causais ou de generalização dos resultados.
+
+ 
+ 
+
+ Nesse sentido, novas pesquisas podem coletar dados em diferentes momentos
+para que o tema possa ser analisado em caráter longitudinal, em base contínua.
+Ademais, estudos futuros também podem comparar os achados do contexto do Serpro
+com aqueles de outras organizações. Outros tipos de indicadores para comparação dos
+grupos, como indicadores objetivos de desempenho profissional, devem ser considerados
+no delineamento das pesquisas. Aspectos mais formais e normativos dos modelos de
+gestão adotados pelas organizações também podem ser incluídos na discussão do tema.
+Os autores ressaltam que as opiniões expressas neste texto refletem exclusivamente o
+entendimento dos autores e não correspondem, necessariamente, à posição do Serpro
+sobre os assuntos tratados.
+
+6 Considerações finais
+
+ Embora o teletrabalho seja uma forma de organização do trabalho com algumas
+décadas de existência no mercado, ainda se trata de um arranjo pouco discutido e utilizado
+pelas organizações brasileiras, especialmente no setor público. Dessa forma, espera-se
+que o presente estudo contribua para encorajar e sustentar a discussão de pesquisadores
+e gestores sobre a implantação do teletrabalho nas organizações brasileiras, independente
+do setor em que estejam inseridas, oferecendo pistas e perspectivas sobre benefícios,
+desafios e possibilidades.
+
+ Se, por um lado, a literatura aponta aspectos negativos de arranjos como o
+teletrabalho, os resultados encontrados sustentam a relação positiva do teletrabalho com
+a percepção do contexto, o bem-estar e o desempenho dos empregados. Foi possível
+oferecer um retrato do arranjo na organização investigada a partir da ótica de diferentes
+atores organizacionais.
+
+ É possível afirmar que, depois de vários anos de experiência com o arranjo, seu
+funcionamento está perfeito? Os achados indicam que não. Por outro lado, muitas são as
+vantagens verificadas. Os pontos negativos podem ser compreendidos como desafios a
+serem superados. As demandas e necessidades dos grupos de trabalho e da organização
+vão se modificando ao longo do tempo e os desafios, portanto, vão se transformando. Por
+
+ 
+ 
+
+conseguinte, novas formas de organização e de relações de trabalho devem estar sempre
+presentes nas pautas dos gestores.
