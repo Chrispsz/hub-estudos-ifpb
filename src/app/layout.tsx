@@ -86,7 +86,9 @@ export default function RootLayout({
         >
           {children}
           <PwaRegister />
-          <Toaster position="top-right" richColors closeButton />
+          {/* visibleToasts=2: evita pilha de notificações cobrindo a tela;
+              as demais ficam em fila e aparecem conforme as visíveis somem. */}
+          <Toaster position="top-right" richColors closeButton visibleToasts={2} />
         </ThemeProvider>
       </body>
     </html>

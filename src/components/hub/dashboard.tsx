@@ -8,6 +8,8 @@ import {
   Check,
   CheckCircle2,
   Clock3,
+  Cpu,
+  ExternalLink,
   FileText,
   Flame,
   Lightbulb,
@@ -378,6 +380,46 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
           })}
         </div>
       </section>
+
+      {/* Lembrete PNAAT (FIT Tecnologia) — apenas o lembrete/link de estudo;
+          o progresso das trilhas NÃO é acompanhado aqui (plataforma oficial é a FIT). */}
+      <Card className="flex flex-col gap-3 rounded-xl border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-50 via-card to-amber-50 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5 dark:from-rose-950/40 dark:via-card dark:to-amber-950/30">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+            <Cpu className="size-4.5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight">
+              Lembrete: trilhas PNAAT (IoT &amp; Edge AI)
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              O progresso é acompanhado na plataforma oficial FIT — aqui você só recebe o
+              lembrete de estudar lá. Quer aviso na sua agenda? Adicione um bloco
+              &quot;PNAAT&quot; no Cronograma.
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="h-11 bg-rose-600 text-white hover:bg-rose-700 sm:h-8"
+          >
+            <a
+              href="https://fit-tecnologia.org.br/ava/local/customcourses/index.php"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLink className="size-3.5" /> Abrir plataforma
+            </a>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="h-11 sm:h-8">
+            <a href="/pdfs/PNAAT-Meus-cursos.pdf" target="_blank" rel="noreferrer">
+              <FileText className="size-3.5" /> Ver PDF
+            </a>
+          </Button>
+        </div>
+      </Card>
 
       {/* Recentes + dica do dia */}
       <div className="grid gap-5 lg:grid-cols-2">

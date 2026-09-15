@@ -839,100 +839,6 @@ export const materials: Material[] = [
     summaryFile: 'ing-vocabulario.summary.json', pages: 11, source: 'user_upload' },
 ];
 
-// PNAAT - Programa Nacional - Programa Nacional de Aprendizagem (FIT Tecnologia)
-export interface PnaatModule {
-  id: string;
-  trail: string;
-  title: string;
-  durationHours: number;
-  professor: string;
-  progress: number; // 0-100
-  status: 'nao_iniciado' | 'em_andamento' | 'concluido';
-}
-
-export interface PnaatTrail {
-  id: string;
-  title: string;
-  totalModules: number;
-  modules: PnaatModule[];
-}
-
-export const pnaatInfo = {
-  nome: 'PNAAT - Programa Nacional de Aprendizagem',
-  instituicao: 'FIT Tecnologia',
-  tema: 'IoT e Edge AI',
-  platformUrl: 'https://fit-tecnologia.org.br/ava/local/customcourses/index.php',
-  pdfPath: '/pdfs/PNAAT-Meus-cursos.pdf',
-  objetivo: 'Concluir todas as trilhas no prazo para concorrer a bolsa de estudos.',
-  usuario: 'Christovão Pereira Silva',
-};
-
-export const pnaatTrails: PnaatTrail[] = [
-  {
-    id: 'fundamentos-iot-edge',
-    title: 'Trilha de Fundamentos em IoT e Edge AI',
-    totalModules: 5,
-    modules: [
-      { id: 'pnaat-hub', trail: 'Fundamentos', title: '0. Hub de Aprendizagem PNAAT',
-        durationHours: 1, professor: 'Lucas Mattos', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-python', trail: 'Fundamentos', title: '1. Fundamentos em Python',
-        durationHours: 8, professor: 'Jane Piantoni', progress: 28, status: 'em_andamento' },
-      { id: 'pnaat-mod-2', trail: 'Fundamentos', title: '2. (Módulo 2)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-mod-3', trail: 'Fundamentos', title: '3. (Módulo 3)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-mod-4', trail: 'Fundamentos', title: '4. (Módulo 4)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-    ],
-  },
-  {
-    id: 'eletronica',
-    title: 'Trilha de Eletrônica',
-    totalModules: 2,
-    modules: [
-      { id: 'pnaat-ele-1', trail: 'Eletrônica', title: 'Módulo 1 (Eletrônica)',
-        durationHours: 6, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-ele-2', trail: 'Eletrônica', title: 'Módulo 2 (Eletrônica)',
-        durationHours: 6, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-    ],
-  },
-  {
-    id: 'sistemas-embarcados',
-    title: 'Trilha de Sistemas Embarcados',
-    totalModules: 2,
-    modules: [
-      { id: 'pnaat-emb-1', trail: 'Sistemas Embarcados', title: 'Módulo 1 (Sistemas Embarcados)',
-        durationHours: 6, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-emb-2', trail: 'Sistemas Embarcados', title: 'Módulo 2 (Sistemas Embarcados)',
-        durationHours: 6, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-    ],
-  },
-  {
-    id: 'edge-ai',
-    title: 'Trilha de Edge AI',
-    totalModules: 4,
-    modules: [
-      { id: 'pnaat-ai-1', trail: 'Edge AI', title: 'Módulo 1 (Edge AI)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-ai-2', trail: 'Edge AI', title: 'Módulo 2 (Edge AI)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-ai-3', trail: 'Edge AI', title: 'Módulo 3 (Edge AI)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-      { id: 'pnaat-ai-4', trail: 'Edge AI', title: 'Módulo 4 (Edge AI)',
-        durationHours: 8, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-    ],
-  },
-  {
-    id: 'webinar',
-    title: 'Webinar',
-    totalModules: 1,
-    modules: [
-      { id: 'pnaat-webinar', trail: 'Webinar', title: 'Webinar PNAAT',
-        durationHours: 2, professor: 'A definir', progress: 0, status: 'nao_iniciado' },
-    ],
-  },
-];
-
 export interface CalendarEvent {
   date: string; // ISO format YYYY-MM-DD
   dateLabel: string;
@@ -981,35 +887,6 @@ export const studyStrategy: StudyStrategy = {
     'Descanse 1 dia na semana para evitar burnout',
   ],
 };
-
-export interface ScheduleBlock {
-  day: number;
-  startHour: number;
-  startMinute: number;
-  durationMin: number;
-  disciplineCode: string | 'revisao' | 'descanso' | 'pnaat';
-  activity: string;
-  title: string;
-}
-
-export const recommendedSchedule: ScheduleBlock[] = [
-  { day: 1, startHour: 19, startMinute: 0, durationMin: 100, disciplineCode: 'TEC.1687', activity: 'estudo', title: 'Algoritmos - Teoria + Prática' },
-  { day: 1, startHour: 20, startMinute: 45, durationMin: 50, disciplineCode: 'TEC.1632', activity: 'estudo', title: 'Linguagem de Marcação - HTML' },
-  { day: 2, startHour: 19, startMinute: 0, durationMin: 100, disciplineCode: 'TEC.1984', activity: 'estudo', title: 'Matemática - Lógica e Funções' },
-  { day: 2, startHour: 20, startMinute: 45, durationMin: 50, disciplineCode: 'TEC.1687', activity: 'exercicios', title: 'Algoritmos - Lista de Exercícios' },
-  { day: 3, startHour: 19, startMinute: 0, durationMin: 100, disciplineCode: 'TEC.1632', activity: 'projeto', title: 'Linguagem de Marcação - Projeto' },
-  { day: 3, startHour: 20, startMinute: 45, durationMin: 50, disciplineCode: '53647', activity: 'estudo', title: 'Fundamentos da Computação' },
-  { day: 4, startHour: 19, startMinute: 0, durationMin: 75, disciplineCode: 'TEC.1984', activity: 'exercicios', title: 'Matemática - Exercícios' },
-  { day: 4, startHour: 20, startMinute: 30, durationMin: 50, disciplineCode: 'ING.001', activity: 'estudo', title: 'Inglês Instrumental - Leitura' },
-  { day: 4, startHour: 21, startMinute: 30, durationMin: 30, disciplineCode: 'PORT.001', activity: 'estudo', title: 'Português Instrumental' },
-  { day: 5, startHour: 19, startMinute: 0, durationMin: 75, disciplineCode: 'TEC.0953', activity: 'estudo', title: 'RHT - Leitura e Resumos' },
-  { day: 5, startHour: 20, startMinute: 30, durationMin: 75, disciplineCode: 'TEC.1687', activity: 'exercicios', title: 'Algoritmos - Revisão de C' },
-  { day: 5, startHour: 22, startMinute: 0, durationMin: 30, disciplineCode: 'pnaat', activity: 'estudo', title: 'PNAAT - Trilha IoT' },
-  { day: 6, startHour: 9, startMinute: 0, durationMin: 120, disciplineCode: 'revisao', activity: 'revisao', title: 'Revisão Geral da Semana' },
-  { day: 6, startHour: 11, startMinute: 30, durationMin: 90, disciplineCode: 'TEC.1632', activity: 'projeto', title: 'Linguagem de Marcação - Projeto Prático' },
-  { day: 6, startHour: 14, startMinute: 0, durationMin: 60, disciplineCode: 'TEC.1984', activity: 'exercicios', title: 'Matemática - Lista de Exercícios' },
-  { day: 6, startHour: 15, startMinute: 30, durationMin: 60, disciplineCode: 'pnaat', activity: 'estudo', title: 'PNAAT - Módulos da semana' },
-];
 
 export interface EvaluationPeriod {
   disciplineCode: string;

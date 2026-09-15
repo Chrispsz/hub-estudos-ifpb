@@ -15,7 +15,6 @@ import {
   TrendingUp,
   Zap,
   Download,
-  GraduationCap,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -61,7 +60,6 @@ const PAGES: {
   { value: 'practice', label: 'Praticar', icon: <Dumbbell />, shortcut: '4' },
   { value: 'schedule', label: 'Cronograma', icon: <CalendarDays />, shortcut: '5' },
   { value: 'progress', label: 'Progresso', icon: <TrendingUp />, shortcut: '6' },
-  { value: 'pnaat', label: 'PNAAT', icon: <GraduationCap />, shortcut: '7' },
   { value: 'settings', label: 'Configurações', icon: <Settings />, shortcut: '8' },
 ];
 

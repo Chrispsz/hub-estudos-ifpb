@@ -20,7 +20,6 @@ export type TabKey =
   | 'practice'
   | 'schedule'
   | 'progress'
-  | 'pnaat'
   | 'settings';
 
 export interface NavItem {

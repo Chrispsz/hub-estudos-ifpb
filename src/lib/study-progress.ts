@@ -24,11 +24,6 @@ export interface DisciplineProgress {
   lastStudiedAt?: string;
 }
 
-export interface PnaatProgress {
-  progress: number; // 0-100
-  lastAccessedAt?: string;
-}
-
 export interface PomodoroSession {
   date: string; // yyyy-mm-dd
   startedAt: string;
@@ -214,7 +209,6 @@ export interface StudyProgress {
   completedMaterials: string[];
   materialProgress: { [materialId: string]: MaterialProgress };
   disciplineProgress: { [disciplineCode: string]: DisciplineProgress };
-  pnaatProgress: { [moduleId: string]: PnaatProgress };
   pomodoroSessions: PomodoroSession[];
   pomodoroState: PomodoroState | null;
   studyBlocks: CustomStudyBlock[];
@@ -246,7 +240,6 @@ export const defaultProgress: StudyProgress = {
   completedMaterials: [],
   materialProgress: {},
   disciplineProgress: {},
-  pnaatProgress: {},
   pomodoroSessions: [],
   pomodoroState: null,
   simuladoRuns: [],
@@ -512,22 +505,6 @@ export function useStudyProgress() {
   const updatePomodoroState = React.useCallback(
     (state: PomodoroState | null) => {
       setProgress((prev) => ({ ...prev, pomodoroState: state }));
-    },
-    [setProgress],
-  );
-
-  const updatePnaatProgress = React.useCallback(
-    (moduleId: string, value: number) => {
-      setProgress((prev) => ({
-        ...prev,
-        pnaatProgress: {
-          ...prev.pnaatProgress,
-          [moduleId]: {
-            progress: Math.max(0, Math.min(100, Math.round(value))),
-            lastAccessedAt: new Date().toISOString(),
-          },
-        },
-      }));
     },
     [setProgress],
   );
@@ -986,7 +963,6 @@ export function useStudyProgress() {
       unmarkCompleted,
       addPomodoroSession,
       updatePomodoroState,
-      updatePnaatProgress,
       addStudyBlock,
       removeStudyBlock,
       toggleScheduleBlockDone,
@@ -1031,7 +1007,6 @@ export function useStudyProgress() {
       unmarkCompleted,
       addPomodoroSession,
       updatePomodoroState,
-      updatePnaatProgress,
       addStudyBlock,
       removeStudyBlock,
       toggleScheduleBlockDone,

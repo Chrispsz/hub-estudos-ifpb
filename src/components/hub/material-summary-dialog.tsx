@@ -86,7 +86,24 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
   const [summary, setSummary] = React.useState<AiSummary | null>(null);
   const [available, setAvailable] = React.useState<boolean | null>(null);
   const [message, setMessage] = React.useState<string>('');
+
+  // Drill-down PDF: em vez de empilhar o viewer SOBRE este diálogo (telas
+  // sobrepostas), este diálogo se oculta enquanto o PDF está aberto e volta
+  // ao fechar — sempre UMA tela por vez. O material é capturado em estado
+  // local para sobreviver caso o pai limpe a referência externa.
   const [pdfOpen, setPdfOpen] = React.useState(false);
+  const [pdfMaterial, setPdfMaterial] = React.useState<Material | null>(null);
+
+  const openPdf = React.useCallback(() => {
+    if (!material) return;
+    setPdfMaterial(material);
+    setPdfOpen(true);
+  }, [material]);
+
+  const closePdf = React.useCallback(() => {
+    setPdfOpen(false);
+    setPdfMaterial(null);
+  }, []);
 
   const discipline: Discipline | undefined = material
     ? getDisciplineByCode(material.disciplineCode)
@@ -180,7 +197,7 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
   }, [material, loadSummary]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open && !pdfOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl gap-0 p-0 sm:max-w-3xl">
         <div className={cn('border-b p-5 sm:p-6', color.bgSoft, color.borderAll)}>
           <DialogHeader className="text-left">
@@ -269,7 +286,7 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 size="sm"
                 variant="secondary"
                 className={touchBtn}
-                onClick={() => setPdfOpen(true)}
+                onClick={openPdf}
               >
                 <ExternalLink className="size-3.5" aria-hidden /> Abrir PDF
               </Button>
@@ -313,11 +330,13 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
         )}
       </DialogContent>
 
-      {material && (
+      {pdfMaterial && (
         <PdfViewerDialog
-          material={material}
+          material={pdfMaterial}
           open={pdfOpen}
-          onOpenChange={setPdfOpen}
+          onOpenChange={(o) => {
+            if (!o) closePdf();
+          }}
         />
       )}
     </Dialog>

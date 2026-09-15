@@ -4,6 +4,7 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   PlayCircle,
+  Building2,
   CheckCircle2,
   ExternalLink,
   FileText,
@@ -127,6 +128,13 @@ export function MaterialsList() {
     [],
   );
 
+  // Materiais sem disciplina real (ex.: código 'PNAAT' — documentos
+  // institucionais do curso). Sem este grupo, eles ficam inacessíveis na UI.
+  const institutionalMaterials = React.useMemo(
+    () => materials.filter((m) => !DISCIPLINE_BY_CODE.has(m.disciplineCode)),
+    [],
+  );
+
   const notViewedCount = React.useMemo(
     () =>
       materials.filter((m) => !recentIds.has(m.id) && !completedIds.has(m.id)).length,
@@ -225,9 +233,12 @@ export function MaterialsList() {
         <TabsContent value="all" className="space-y-3 outline-none">
           <Accordion
             type="multiple"
-            defaultValue={byDiscipline
-              .filter((g) => g.items.length > 0)
-              .map((g) => g.discipline.code)}
+            defaultValue={[
+              ...byDiscipline
+                .filter((g) => g.items.length > 0)
+                .map((g) => g.discipline.code),
+              ...(institutionalMaterials.length > 0 ? ['institucional'] : []),
+            ]}
             className="w-full"
           >
             {byDiscipline.map(({ discipline, items }) => {
@@ -296,6 +307,65 @@ export function MaterialsList() {
                 </AccordionItem>
               );
             })}
+
+            {/* Grupo institucional: documentos sem disciplina real
+                (calendário, regulamentos, PNAAT, etc.) */}
+            {institutionalMaterials.length > 0 && (
+              <AccordionItem
+                value="institucional"
+                className="rounded-xl border border-border bg-card px-4 shadow-sm first:rounded-t-xl last:rounded-b-xl [&:not(:last-child)]:border-b"
+              >
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex w-full items-center gap-3 pr-2 text-left">
+                    <div
+                      className={cn(
+                        'grid size-9 shrink-0 place-items-center rounded-md',
+                        'bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300',
+                      )}
+                    >
+                      <Building2 className="size-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold">Institucional (IFPB)</p>
+                      <p className="text-xs text-muted-foreground">
+                        {institutionalMaterials.length}{' '}
+                        {institutionalMaterials.length === 1
+                          ? 'material'
+                          : 'materiais'}{' '}
+                        • calendário, regulamentos e documentos oficiais
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300"
+                    >
+                      {institutionalMaterials.length}
+                    </Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="grid gap-2 pb-2 pt-1">
+                    {institutionalMaterials.map((m) => {
+                      const status: MaterialStatus = completedIds.has(m.id)
+                        ? 'completed'
+                        : recentIds.has(m.id)
+                          ? 'recent'
+                          : 'notViewed';
+                      return (
+                        <MaterialRow
+                          key={m.id}
+                          material={m}
+                          status={status}
+                          onOpen={handleOpen}
+                          onOpenPdf={handleOpenPdf}
+                          onWatch={handleWatch}
+                        />
+                      );
+                    })}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            )}
           </Accordion>
         </TabsContent>
       </Tabs>

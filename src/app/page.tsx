@@ -22,7 +22,6 @@ import { LibraryView } from '@/components/hub/library-view';
 import { PracticeView } from '@/components/hub/practice-view';
 import { ScheduleView } from '@/components/hub/schedule-view';
 import { ProgressView } from '@/components/hub/progress-view';
-import { PnaatView } from '@/components/hub/pnaat-view';
 import { SettingsView } from '@/components/hub/settings-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
@@ -35,7 +34,6 @@ const VALID_TABS: TabKey[] = [
   'practice',
   'schedule',
   'progress',
-  'pnaat',
   'settings',
 ];
 
@@ -147,7 +145,6 @@ export default function Page() {
       shortLabel: 'Progresso',
       icon: <TrendingUp className="size-4" />,
     },
-    { value: 'pnaat', label: 'PNAAT', shortLabel: 'PNAAT', icon: <BookOpen className="size-4" /> },
     {
       value: 'settings',
       label: 'Configurações',
@@ -183,8 +180,6 @@ export default function Page() {
         return <ScheduleView />;
       case 'progress':
         return <ProgressView />;
-      case 'pnaat':
-        return <PnaatView />;
       case 'settings':
         return <SettingsView />;
       default:

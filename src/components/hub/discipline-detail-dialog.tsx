@@ -102,6 +102,12 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
   const [videoFor, setVideoFor] = React.useState<Material | null>(null);
   const [tab, setTab] = React.useState(initialTab ?? 'overview');
 
+  // Drill-down: enquanto um sub-diálogo (resumo IA / PDF / vídeo) está aberto,
+  // este diálogo se OCULTA em vez de ficar empilhado por baixo — evita telas
+  // sobrepostas. Ao fechar o sub-diálogo, esta tela volta intacta (mesma aba,
+  // mesmo scroll), porque o estado do pai (discipline/open) não é alterado.
+  const subOpen = !!summaryFor || !!pdfFor || !!videoFor;
+
   React.useEffect(() => {
     if (open && initialTab) setTab(initialTab);
   }, [open, initialTab]);
@@ -126,7 +132,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open && !subOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl gap-0 p-0 sm:max-w-4xl">
           <div
             className={cn(
