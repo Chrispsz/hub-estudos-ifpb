@@ -27,6 +27,7 @@ import { ProgressView } from '@/components/hub/progress-view';
 import { SettingsView } from '@/components/hub/settings-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
+import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 
 const VALID_TABS: TabKey[] = [
@@ -64,6 +65,26 @@ export default function Page() {
   // Parâmetros para a aba "Estudar" (dashboard → "iniciar estudo de hoje")
   const [studyDiscipline, setStudyDiscipline] = React.useState<string | undefined>(undefined);
   const [studyMaterial, setStudyMaterial] = React.useState<string | undefined>(undefined);
+
+  // Parâmetros para a aba "Método" (evento hub:open-method — CTAs em resumos,
+  // "estudar hoje", simulados). Nonce força remount para re-aplicar a pré-config.
+  const [methodParams, setMethodParams] = React.useState<OpenMethodDetail>({});
+  const [methodNonce, setMethodNonce] = React.useState(0);
+  React.useEffect(() => {
+    function onOpenMethod(e: Event) {
+      const detail = (e as CustomEvent<OpenMethodDetail>).detail ?? {};
+      setMethodParams(detail);
+      setMethodNonce((n) => n + 1);
+      setActiveState('method');
+      if (typeof window !== 'undefined') {
+        const newUrl = `${window.location.pathname}${window.location.search}#method`;
+        window.history.pushState({ tab: 'method' }, '', newUrl);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    window.addEventListener(OPEN_METHOD_EVENT, onOpenMethod);
+    return () => window.removeEventListener(OPEN_METHOD_EVENT, onOpenMethod);
+  }, []);
 
   const setActive = React.useCallback((k: TabKey) => {
     setActiveState(k);
@@ -187,7 +208,15 @@ export default function Page() {
       case 'practice':
         return <PracticeView />;
       case 'method':
-        return <MethodView onOpenStudy={goStudy} />;
+        return (
+          <MethodView
+            key={methodNonce}
+            onOpenStudy={goStudy}
+            initialDiscipline={methodParams.disciplineCode}
+            initialMaterial={methodParams.materialId}
+            initialTopic={methodParams.topic}
+          />
+        );
       case 'schedule':
         return <ScheduleView />;
       case 'progress':

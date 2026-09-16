@@ -52,6 +52,7 @@ import {
   type FlashcardGrade,
 } from '@/lib/study-progress';
 import { cn } from '@/lib/utils';
+import { openMethod, OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
 
 // ---------- Tipos locais ----------
 
@@ -181,9 +182,18 @@ function makeCard(
 
 interface MethodViewProps {
   onOpenStudy?: (disciplineCode?: string, materialId?: string) => void;
+  /** Pré-configuração da sessão (via evento hub:open-method ou dashboard). */
+  initialDiscipline?: string;
+  initialMaterial?: string;
+  initialTopic?: string;
 }
 
-export function MethodView({ onOpenStudy }: MethodViewProps) {
+export function MethodView({
+  onOpenStudy,
+  initialDiscipline,
+  initialMaterial,
+  initialTopic,
+}: MethodViewProps) {
   const sp = useStudyProgress();
 
   // ----- Sessão -----
@@ -237,6 +247,47 @@ export function MethodView({ onOpenStudy }: MethodViewProps) {
     () => listAllTopicsOfDiscipline(disciplineCode).slice(0, 8),
     [disciplineCode],
   );
+
+  // Pré-configuração da sessão (componente é re-montado com key quando o
+  // evento hub:open-method dispara — aplica disciplinas/material/tema).
+  React.useEffect(() => {
+    if (initialDiscipline) setDisciplineCode(initialDiscipline);
+    if (initialMaterial) setMaterialId(initialMaterial);
+    if (initialTopic) setTopic(initialTopic);
+  }, [initialDiscipline, initialMaterial, initialTopic]);
+
+  // Sugestão inteligente de disciplina (só no cliente, se nada foi pré-setado):
+  // 1º mais flashcards vencidos → 2º menos estudada recentemente → fallback.
+  const [smartDiscipline, setSmartDiscipline] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (initialDiscipline) {
+      setSmartDiscipline(initialDiscipline);
+      return;
+    }
+    const dueByDisc = new Map<string, number>();
+    for (const c of sp.flashcardsDue) {
+      dueByDisc.set(c.disciplineCode, (dueByDisc.get(c.disciplineCode) ?? 0) + 1);
+    }
+    const bestDue = [...dueByDisc.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (bestDue && bestDue[1] > 0) {
+      setSmartDiscipline(bestDue[0]);
+      return;
+    }
+    const entries = Object.entries(sp.progress.disciplineProgress);
+    const studied = entries.filter(([, v]) => v.studiedMinutes > 0);
+    if (studied.length >= disciplines.length && studied.length > 0) {
+      // todas já estudadas → a menos recente
+      studied.sort(
+        (a, b) =>
+          new Date(a[1].lastStudiedAt ?? 0).getTime() - new Date(b[1].lastStudiedAt ?? 0).getTime(),
+      );
+      setSmartDiscipline(studied[0][0]);
+    } else {
+      // ainda há disciplinas virgens → primeira delas (ordem do curso)
+      const virgin = disciplines.find((d) => !sp.progress.disciplineProgress[d.code]);
+      setSmartDiscipline(virgin?.code ?? 'TEC.1687');
+    }
+  }, [initialDiscipline]);
 
   // Timer
   React.useEffect(() => {
@@ -447,6 +498,10 @@ export function MethodView({ onOpenStudy }: MethodViewProps) {
   const currentCard = queue[reviewIdx];
   const pretestAnswered = Object.values(pretestAttempts).filter((a) => a.trim()).length;
 
+  // Adesão à rotina semanal ideal (3-5 sessões guiadas/semana)
+  const weeklyTarget = 4;
+  const weekAdherence = Math.min(100, Math.round((sp.methodStats.weekSessions / weeklyTarget) * 100));
+
   // ---------- Render ----------
 
   return (
@@ -581,7 +636,13 @@ export function MethodView({ onOpenStudy }: MethodViewProps) {
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="mtd-disc">Disciplina</Label>
-                  <Select value={disciplineCode} onValueChange={setDisciplineCode}>
+                  <Select
+                    value={smartDiscipline ?? disciplineCode}
+                    onValueChange={(v) => {
+                      setDisciplineCode(v);
+                      setSmartDiscipline(v); // mantém o Select consistente após escolha manual
+                    }}
+                  >
                     <SelectTrigger id="mtd-disc" aria-label="Disciplina da sessão">
                       <SelectValue placeholder="Escolha" />
                     </SelectTrigger>
@@ -593,6 +654,11 @@ export function MethodView({ onOpenStudy }: MethodViewProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  {smartDiscipline && smartDiscipline === disciplineCode && !initialDiscipline && (
+                    <p className="text-xs text-teal-600 dark:text-teal-400">
+                      ✨ Sugerida pelo Hub (revisões vencidas / menos estudada).
+                    </p>
+                  )}
                   {dueForDisc.length > 0 && (
                     <p className="text-xs text-teal-600 dark:text-teal-400">
                       🃏 {dueForDisc.length} flashcard(s) vencido(s) nesta disciplina —
@@ -1232,6 +1298,79 @@ export function MethodView({ onOpenStudy }: MethodViewProps) {
           </div>
         </Card>
       )}
+
+      {/* Rotina semanal ideal + adesão */}
+      <Card className="rounded-2xl border-l-4 border-l-teal-500 p-5 shadow-sm">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Timer className="size-4 text-teal-500" /> Rotina semanal ideal — adesão{' '}
+          <span className="text-teal-600 dark:text-teal-400">{weekAdherence}%</span>
+        </h3>
+        <Progress value={weekAdherence} className="mt-2.5 h-2" />
+        <ul className="mt-3 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">
+          <li className="flex items-start gap-1.5">
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+            3–5 sessões guiadas por semana (você fez {sp.methodStats.weekSessions})
+          </li>
+          <li className="flex items-start gap-1.5">
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+            Flashcards vencidos revisados no mesmo dia ({sp.flashcardStats.due} esperando)
+          </li>
+          <li className="flex items-start gap-1.5">
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+            1 simulado por semana para calibrar o que revisar
+          </li>
+          <li className="flex items-start gap-1.5">
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+            Sessões curtas e diárias vencem maratonas (espaçamento)
+          </li>
+        </ul>
+      </Card>
+
+      {/* Guia de aproveitamento máximo */}
+      <Card className="rounded-2xl p-5 shadow-sm">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Target className="size-4 text-emerald-500" /> Guia de aproveitamento máximo
+        </h3>
+        <ol className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+          {[
+            ['Pré-teste sem consultar nada', 'Errar aqui é o objetivo — prepara o cérebro para absorver.'],
+            ['Foco = uma fonte só', 'Material aberto, celular longe. 25 min de foco real valem 2h rachadas.'],
+            ['Nota honesta nos flashcards', 'O algoritmo de espaçamento só funciona se você for sincero(a).'],
+            ['Feynman sem olhar o material', 'A lacuna que aparece é exatamente o que você deve estudar a seguir.'],
+            ['Kaizen: 1 melhoria pequena', 'Concreta e executável na próxima sessão — não “estudar mais”.'],
+            ['Use os resumos IA', 'Abra o resumo do material antes do foco e gere flashcards dele.'],
+          ].map(([t, d], i) => (
+            <li key={t} className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-sm font-medium">
+                {i + 1}. {t}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{d}</p>
+            </li>
+          ))}
+        </ol>
+      </Card>
+
+      {/* Base científica */}
+      <Card className="rounded-2xl border-l-4 border-l-violet-400 p-5 shadow-sm">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Brain className="size-4 text-violet-500" /> Base científica do Protocolo
+        </h3>
+        <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+          {[
+            ['Roediger & Karpicke (2006)', 'Testar a memória fixa mais que reler (efeito de testagem).'],
+            ['Kornell, Hays & Bjork (2009)', 'Tentar responder antes de estudar melhora o aprendizado (pré-teste).'],
+            ['Cepeda et al. (2006)', 'Espaçar as revisões no tempo multiplica a retenção de longo prazo.'],
+            ['Dunlosky et al. (2013)', 'Prática de testagem + prática distribuída = utilidade “alta”.'],
+            ['Chi et al. (1994)', 'Auto-explicação (Feynman) revela e corrige lacunas de entendimento.'],
+            ['Imai (1986) — Kaizen', 'Melhorias contínuas de 1% compostam ganhos exponenciais.'],
+          ].map(([ref, d]) => (
+            <div key={ref} className="rounded-lg bg-muted/30 p-2.5">
+              <p className="font-medium text-foreground">{ref}</p>
+              <p className="mt-0.5 text-muted-foreground">{d}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

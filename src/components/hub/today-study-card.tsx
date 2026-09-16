@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
+import { openMethod } from '@/lib/hub-events';
 import { todayDayOfWeek, getDayLabel } from './clock-widget';
 import {
   generateSmartSchedule,
@@ -115,32 +116,51 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
               Dia de descanso! Use para revisar ou adiantar conteúdo. 🌱
             </p>
             {onStartStudy && (
-              <Button
-                onClick={() => onStartStudy()}
-                variant="outline"
-                className="bg-card text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
-              >
-                <Play className="size-3.5" /> Estudar algo livre
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => onStartStudy()}
+                  variant="outline"
+                  className="bg-card text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                >
+                  <Play className="size-3.5" /> Estudar algo livre
+                </Button>
+                <Button
+                  onClick={() => openMethod({})}
+                  variant="outline"
+                  className="border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:hover:bg-teal-900/50"
+                >
+                  🎯 Sessão guiada
+                </Button>
+              </div>
             )}
           </div>
         ) : (
           <>
-            {/* Botão grande: Iniciar estudo de hoje */}
+            {/* Botão grande: Iniciar estudo de hoje + alternativa guiada */}
             {firstPendingBlock && onStartStudy && (
-              <Button
-                onClick={() => onStartStudy(firstDisc?.code, undefined)}
-                size="lg"
-                className={cn(
-                  'mb-3 h-12 w-full text-base font-semibold shadow-md',
-                  'bg-emerald-600 text-white hover:bg-emerald-700',
-                )}
-              >
-                <Play className="size-4" /> Iniciar estudo de hoje
-                {firstDisc && (
-                  <span className="ml-1 text-emerald-50">• {firstDisc.shortName}</span>
-                )}
-              </Button>
+              <div className="mb-3 space-y-2">
+                <Button
+                  onClick={() => onStartStudy(firstDisc?.code, undefined)}
+                  size="lg"
+                  className={cn(
+                    'h-12 w-full text-base font-semibold shadow-md',
+                    'bg-emerald-600 text-white hover:bg-emerald-700',
+                  )}
+                >
+                  <Play className="size-4" /> Iniciar estudo de hoje
+                  {firstDisc && (
+                    <span className="ml-1 text-emerald-50">• {firstDisc.shortName}</span>
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => openMethod({ disciplineCode: firstDisc?.code })}
+                  className="w-full rounded-lg border border-teal-200 bg-teal-50/60 px-3 py-2 text-xs font-medium text-teal-800 transition-colors hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300 dark:hover:bg-teal-900/40"
+                >
+                  🎯 ou rode uma Sessão guiada do Protocolo HUB
+                  {firstDisc ? ` com ${firstDisc.shortName}` : ''} →
+                </button>
+              </div>
             )}
 
             {/* Progresso do dia */}

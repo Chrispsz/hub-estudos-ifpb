@@ -48,6 +48,7 @@ import { disciplines, getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
+import { openMethod } from '@/lib/hub-events';
 import {
   exercises,
   pickRandomExercises,
@@ -319,6 +320,7 @@ export function SimuladoView({
             skippedCount={skippedCount}
             pct={pct}
             elapsed={elapsed}
+            onOpenChange={onOpenChange}
             onRetryMissed={() => {
               const missed = questions.filter((q, i) => results[i].solved !== true);
               // reinicia com apenas as questões erradas/puladas
@@ -680,6 +682,7 @@ function ResultsScreen({
   elapsed,
   onRetryMissed,
   onNew,
+  onOpenChange,
 }: {
   questions: Exercise[];
   results: QuestionResult[];
@@ -690,6 +693,7 @@ function ResultsScreen({
   elapsed: number;
   onRetryMissed: () => void;
   onNew: () => void;
+  onOpenChange: (v: boolean) => void;
 }) {
   const missedList = questions.filter((q, i) => results[i].solved !== true);
   const hasMissed = missedList.length > 0;
@@ -757,7 +761,26 @@ function ResultsScreen({
 
       {hasMissed && (
         <div className="px-6 pb-2">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              // disciplina com mais erros + 1º tópico perdido → sessão guiada de revisão
+              const byDisc = new Map<string, number>();
+              for (const q of missedList) {
+                byDisc.set(q.disciplineCode, (byDisc.get(q.disciplineCode) ?? 0) + 1);
+              }
+              const worst = [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+              onOpenChange(false);
+              openMethod({
+                disciplineCode: worst,
+                topic: `Revisão de erros do simulado: ${missedList[0].topic}`,
+              });
+            }}
+            className="w-full rounded-lg border border-violet-300 bg-violet-50/70 px-3 py-2.5 text-xs font-medium text-violet-800 transition-colors hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-900/40"
+          >
+            🎯 Fechar o ciclo: revisar esses erros com uma Sessão guiada do Protocolo HUB →
+          </button>
+          <p className="mb-2 mt-3 text-xs font-medium text-muted-foreground">
             Para revisar depois ({missedList.length}):
           </p>
           <div className="space-y-1.5">
