@@ -78,8 +78,8 @@ interface TutorRequestBody {
   /** id do material no course-data — liga o retrieval ao PDF/resumo certos. */
   materialId?: string;
   history?: ChatMessage[];
-  /** 'flashcards' → a resposta deve ser um array JSON de {front, back}. */
-  mode?: 'tutor' | 'flashcards';
+  /** 'flashcards' → array JSON de {front, back}. 'feynman' → avaliação estruturada da técnica Feynman. */
+  mode?: 'tutor' | 'flashcards' | 'feynman';
   /** true → resposta em SSE (eventos delta/final/error). Padrão: JSON. */
   stream?: boolean;
   /** Dados do app (professor, datas, progresso) para respostas precisas. */
@@ -100,7 +100,7 @@ const ZAI_PUBLIC = {
  * Cadeia de modelos free — ordem otimizada por modo (testada em 10/09/2026):
  * tutor → qualidade didática em PT-BR | flashcards → saída JSON confiável.
  */
-const MODEL_CHAIN: Record<'tutor' | 'flashcards', string[]> = {
+const MODEL_CHAIN: Record<'tutor' | 'flashcards' | 'feynman', string[]> = {
   tutor: [
     'nvidia/nemotron-3-super-120b-a12b:free',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
@@ -111,6 +111,13 @@ const MODEL_CHAIN: Record<'tutor' | 'flashcards', string[]> = {
     'nex-agi/nex-n2.5-pro:free',
     'inclusionai/ling-3.0-flash-sante:free',
     'nvidia/nemotron-3-super-120b-a12b:free',
+    'openrouter/free',
+  ],
+  // avaliação Feynman: precisa de rigor + markdown estruturado
+  feynman: [
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'nex-agi/nex-n2.5-pro:free',
+    'inclusionai/ling-3.0-flash-sante:free',
     'openrouter/free',
   ],
 };
@@ -140,6 +147,31 @@ function buildFlashcardsPrompt(discipline: string, topic: string): string {
     '- Cubra conceitos-chave do tema, priorizando o que costuma cair em avaliação.',
     '- Se não souber o tema, gere cartões sobre os fundamentos mais importantes da disciplina.',
     'Exemplo de formato: [{"front":"O que é uma variável?","back":"Um nome que referencia um valor na memória, podendo ser reatribuído."}]',
+  ].join('\n');
+}
+
+function buildFeynmanPrompt(discipline: string, topic: string): string {
+  return [
+    'Você é um avaliador especialista da Técnica Feynman: o aluno tentou explicar um tema com as próprias palavras, como se ensinasse uma criança de 10 anos.',
+    `Disciplina: ${discipline}. Tema da explicação: ${topic || '(não especificado — infira pelo texto do aluno)'}.`,
+    'Sua tarefa: avaliar a explicação do aluno com rigor, honestidade e encorajamento — o que está certo, o que falta e o que está errado.',
+    'Se um trecho de material oficial do curso for fornecido abaixo, use-o como fonte da verdade para corrigir imprecisões.',
+    '',
+    'Responda em português brasileiro, em markdown, EXATAMENTE nesta estrutura:',
+    '## 🎯 Pontuação: X/100',
+    '(uma linha justificando a nota)',
+    '## ✅ O que você acertou',
+    '- (itens concretos; se nada, escreva "Nada ainda — mas vamos construir juntos.")',
+    '## ⚠️ Lacunas detectadas',
+    '- (conceitos importantes do tema que faltaram na explicação)',
+    '## 🔧 Correções necessárias',
+    '- (erros técnicos ou imprecisões, com a versão correta)',
+    '## 💬 Sua ideia em uma frase',
+    '(reescreva a ideia central do aluno de forma precisa e simples)',
+    '## 🚀 Próximo passo',
+    '(1 ação específica e pequena para a próxima sessão)',
+    '',
+    'Regras: direto (máx. ~300 palavras); trate o aluno por "você"; não invente conteúdo fora do material e do conhecimento da disciplina; pontuação realista (20-45 = confusa, 50-70 = razoável com lacunas, 75-90 = boa, 90+ = excelente).',
   ].join('\n');
 }
 
@@ -595,7 +627,8 @@ export async function POST(req: Request) {
     const topic = (body.topic ?? '').trim();
     const material = body.material?.trim();
     const isFlashcardsMode = body.mode === 'flashcards';
-    const useStream = !isFlashcardsMode && body.stream === true;
+    const isFeynmanMode = body.mode === 'feynman';
+    const useStream = !isFlashcardsMode && !isFeynmanMode && body.stream === true;
 
     if (!question) {
       return Response.json({ error: 'Pergunta vazia.' }, { status: 400 });
@@ -608,7 +641,7 @@ export async function POST(req: Request) {
     }
 
     const history: ChatMessage[] =
-      !isFlashcardsMode && Array.isArray(body.history)
+      !isFlashcardsMode && !isFeynmanMode && Array.isArray(body.history)
         ? body.history
             .filter(
               (m): m is ChatMessage =>
@@ -623,7 +656,7 @@ export async function POST(req: Request) {
 
     // Sanitiza o contexto do Hub (o front manda; aqui só confiamos em campos tipados)
     const hub =
-      !isFlashcardsMode && body.hubContext && typeof body.hubContext === 'object'
+      !isFlashcardsMode && !isFeynmanMode && body.hubContext && typeof body.hubContext === 'object'
         ? body.hubContext
         : undefined;
 
@@ -635,7 +668,12 @@ export async function POST(req: Request) {
 
     const systemPrompt = isFlashcardsMode
       ? buildFlashcardsPrompt(discipline, topic || question)
-      : buildSystemPrompt(discipline, topic, material, hub, materialBlock);
+      : isFeynmanMode
+        ? buildFeynmanPrompt(discipline, topic || question) +
+          (materialBlock
+            ? `\n\n=== TRECHO OFICIAL DO MATERIAL (fonte da verdade) ===\n${materialBlock}\n=== FIM DO TRECHO ===`
+            : '')
+        : buildSystemPrompt(discipline, topic, material, hub, materialBlock);
 
     // ---------- MODO STREAMING (SSE) — chat do tutor ----------
     if (useStream) {
@@ -762,7 +800,7 @@ export async function POST(req: Request) {
 
     // 1º: cadeia de modelos free da OpenRouter
     if (apiKey) {
-      for (const model of MODEL_CHAIN[isFlashcardsMode ? 'flashcards' : 'tutor']) {
+      for (const model of MODEL_CHAIN[isFlashcardsMode ? 'flashcards' : isFeynmanMode ? 'feynman' : 'tutor']) {
         const t0 = Date.now();
         try {
           answer = await callOpenRouter(model, apiKey, systemPrompt, history, question);
@@ -818,8 +856,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // memória: salva a dupla pergunta+resposta (modo JSON — flashcards não persiste)
-    if (!isFlashcardsMode) {
+    // memória: salva a dupla pergunta+resposta (JSON — flashcards e feynman não persistem)
+    if (!isFlashcardsMode && !isFeynmanMode) {
       try {
         await saveTurn(disciplineKey, question, answer, usedModel);
       } catch (err) {

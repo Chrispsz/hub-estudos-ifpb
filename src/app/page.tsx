@@ -8,6 +8,7 @@ import {
   Dumbbell,
   LayoutDashboard,
   Settings,
+  Target,
   TrendingUp,
   Zap,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ import { Dashboard } from '@/components/hub/dashboard';
 import { StudyView } from '@/components/hub/study-view';
 import { LibraryView } from '@/components/hub/library-view';
 import { PracticeView } from '@/components/hub/practice-view';
+import { MethodView } from '@/components/hub/method-view';
 import { ScheduleView } from '@/components/hub/schedule-view';
 import { ProgressView } from '@/components/hub/progress-view';
 import { SettingsView } from '@/components/hub/settings-view';
@@ -32,6 +34,7 @@ const VALID_TABS: TabKey[] = [
   'study',
   'library',
   'practice',
+  'method',
   'schedule',
   'progress',
   'settings',
@@ -134,6 +137,12 @@ export default function Page() {
         'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300',
     },
     {
+      value: 'method',
+      label: 'Método',
+      shortLabel: 'Método',
+      icon: <Target className="size-4" />,
+    },
+    {
       value: 'schedule',
       label: 'Cronograma',
       shortLabel: 'Cronograma',
@@ -168,6 +177,7 @@ export default function Page() {
             onOpenSchedule={() => setActive('schedule')}
             onOpenLibrary={() => setActive('library')}
             onOpenPractice={() => setActive('practice')}
+            onOpenMethod={() => setActive('method')}
           />
         );
       case 'study':
@@ -176,6 +186,8 @@ export default function Page() {
         return <LibraryView />;
       case 'practice':
         return <PracticeView />;
+      case 'method':
+        return <MethodView onOpenStudy={goStudy} />;
       case 'schedule':
         return <ScheduleView />;
       case 'progress':

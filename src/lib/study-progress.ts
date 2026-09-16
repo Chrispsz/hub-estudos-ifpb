@@ -204,6 +204,34 @@ export interface SimuladoRun {
   filters?: { discipline?: string; difficulty?: string; durationMin?: number };
 }
 
+// ---------- Protocolo HUB (sessão guiada + Kaizen) ----------
+
+/** Registro de uma sessão guiada completa do Protocolo HUB. */
+export interface FocusSessionLog {
+  id: string;
+  date: string; // yyyy-mm-dd
+  startedAt: string; // ISO
+  endedAt: string; // ISO
+  disciplineCode: string;
+  topic: string;
+  focusMinutes: number;
+  pretestQuestions: number;
+  flashcardsReviewed: number;
+  flashcardsCorrect: number;
+  /** Nota 0-100 dada pelo tutor IA na técnica Feynman. */
+  feynmanScore?: number;
+  kaizenNote?: string;
+}
+
+/** Registro Kaizen (método japonês): 1 melhoria de 1% por sessão/dia. */
+export interface KaizenEntry {
+  id: string;
+  date: string; // yyyy-mm-dd
+  createdAt: string; // ISO
+  text: string;
+  disciplineCode?: string;
+}
+
 export interface StudyProgress {
   recentMaterials: RecentMaterial[];
   completedMaterials: string[];
@@ -223,6 +251,8 @@ export interface StudyProgress {
   customEvaluations: CustomEvaluation[];
   flashcards: Flashcard[];
   simuladoRuns: SimuladoRun[];
+  focusSessions: FocusSessionLog[];
+  kaizenEntries: KaizenEntry[];
 }
 
 const defaultDayAvailability: StudyPreferences['days'] = {
@@ -273,6 +303,8 @@ export const defaultProgress: StudyProgress = {
   realGrades: {},
   customEvaluations: [],
   flashcards: [],
+  focusSessions: [],
+  kaizenEntries: [],
 };
 
 /**
@@ -300,6 +332,8 @@ export function mergeWithDefaults(partial: Partial<StudyProgress> | null | unkno
     },
     pomodoroState: p.pomodoroState ?? null,
     flashcards: Array.isArray(p.flashcards) ? p.flashcards : [],
+    focusSessions: Array.isArray(p.focusSessions) ? p.focusSessions : [],
+    kaizenEntries: Array.isArray(p.kaizenEntries) ? p.kaizenEntries : [],
   };
 }
 
@@ -466,6 +500,74 @@ export function useStudyProgress() {
           },
         };
       });
+    },
+    [setProgress],
+  );
+
+  // ----- Protocolo HUB (sessão guiada + Kaizen) -----
+
+  const addFocusSession = React.useCallback(
+    (session: Omit<FocusSessionLog, 'id' | 'date' | 'endedAt'>) => {
+      setProgress((prev) => {
+        const endedAt = new Date().toISOString();
+        const date = endedAt.slice(0, 10);
+        const full: FocusSessionLog = {
+          ...session,
+          id: `fs-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          date,
+          endedAt,
+        };
+        const disc = prev.disciplineProgress[session.disciplineCode] ?? {
+          studiedMinutes: 0,
+          materialsCompleted: 0,
+        };
+        return {
+          ...prev,
+          focusSessions: [...(Array.isArray(prev.focusSessions) ? prev.focusSessions : []), full],
+          disciplineProgress: {
+            ...prev.disciplineProgress,
+            [session.disciplineCode]: {
+              ...disc,
+              studiedMinutes: disc.studiedMinutes + session.focusMinutes,
+              lastStudiedAt: endedAt,
+            },
+          },
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  const addKaizenEntry = React.useCallback(
+    (text: string, disciplineCode?: string) => {
+      const clean = text.trim();
+      if (!clean) return;
+      const now = new Date();
+      setProgress((prev) => ({
+        ...prev,
+        kaizenEntries: [
+          ...(Array.isArray(prev.kaizenEntries) ? prev.kaizenEntries : []),
+          {
+            id: `kz-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            date: now.toISOString().slice(0, 10),
+            createdAt: now.toISOString(),
+            text: clean.slice(0, 500),
+            disciplineCode,
+          },
+        ],
+      }));
+    },
+    [setProgress],
+  );
+
+  const removeKaizenEntry = React.useCallback(
+    (id: string) => {
+      setProgress((prev) => ({
+        ...prev,
+        kaizenEntries: (Array.isArray(prev.kaizenEntries) ? prev.kaizenEntries : []).filter(
+          (k) => k.id !== id,
+        ),
+      }));
     },
     [setProgress],
   );
@@ -952,6 +1054,56 @@ export function useStudyProgress() {
     };
   }, [allFlashcards, flashcardsDue]);
 
+  // ----- Selectors do Protocolo HUB -----
+
+  const allFocusSessions = React.useMemo(
+    () => (Array.isArray(progress.focusSessions) ? progress.focusSessions : []),
+    [progress.focusSessions],
+  );
+
+  /** Streak do Protocolo: dias consecutivos (até hoje) com ≥1 sessão guiada. */
+  const methodStreak = React.useMemo(() => {
+    const days = new Set(allFocusSessions.map((s) => s.date));
+    if (days.size === 0) return 0;
+    const today = new Date();
+    const key = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let streak = 0;
+    const cursor = new Date(today);
+    if (!days.has(key(cursor))) {
+      cursor.setDate(cursor.getDate() - 1); // permite streak vivo mesmo sem sessão hoje
+    }
+    while (days.has(key(cursor))) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }, [allFocusSessions]);
+
+  const methodStats = React.useMemo(() => {
+    const now = Date.now();
+    const today = now && new Date(now).toISOString().slice(0, 10);
+    const weekAgo = now - 7 * 86_400_000;
+    const scored = allFocusSessions.filter((s) => typeof s.feynmanScore === 'number');
+    return {
+      totalSessions: allFocusSessions.length,
+      totalMinutes: allFocusSessions.reduce((acc, s) => acc + s.focusMinutes, 0),
+      sessionsToday: allFocusSessions.filter((s) => s.date === today).length,
+      weekSessions: allFocusSessions.filter(
+        (s) => new Date(s.endedAt).getTime() >= weekAgo,
+      ).length,
+      avgFeynman: scored.length
+        ? Math.round(
+            scored.reduce((acc, s) => acc + (s.feynmanScore ?? 0), 0) / scored.length,
+          )
+        : null,
+      bestFeynman: scored.length
+        ? Math.max(...scored.map((s) => s.feynmanScore ?? 0))
+        : null,
+      kaizenCount: Array.isArray(progress.kaizenEntries) ? progress.kaizenEntries.length : 0,
+    };
+  }, [allFocusSessions, progress.kaizenEntries]);
+
   return React.useMemo(
     () => ({
       progress,
@@ -984,6 +1136,9 @@ export function useStudyProgress() {
       addFlashcards,
       removeFlashcard,
       gradeFlashcard,
+      addFocusSession,
+      addKaizenEntry,
+      removeKaizenEntry,
       // selectors
       sessionsToday,
       minutesToday,
@@ -998,6 +1153,9 @@ export function useStudyProgress() {
       allFlashcards,
       flashcardsDue,
       flashcardStats,
+      allFocusSessions,
+      methodStreak,
+      methodStats,
     }),
     [
       progress,
@@ -1028,6 +1186,9 @@ export function useStudyProgress() {
       addFlashcards,
       removeFlashcard,
       gradeFlashcard,
+      addFocusSession,
+      addKaizenEntry,
+      removeKaizenEntry,
       sessionsToday,
       minutesToday,
       sessionsLast7d,
@@ -1041,6 +1202,9 @@ export function useStudyProgress() {
       allFlashcards,
       flashcardsDue,
       flashcardStats,
+      allFocusSessions,
+      methodStreak,
+      methodStats,
     ],
   );
 }

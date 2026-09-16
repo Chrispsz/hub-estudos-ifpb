@@ -18,6 +18,7 @@ export type TabKey =
   | 'study'
   | 'library'
   | 'practice'
+  | 'method'
   | 'schedule'
   | 'progress'
   | 'settings';

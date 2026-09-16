@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Zap,
   Download,
+  Target,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -58,6 +59,7 @@ const PAGES: {
   { value: 'study', label: 'Estudar (Pomodoro + IA)', icon: <Zap />, shortcut: '2' },
   { value: 'library', label: 'Biblioteca', icon: <BookOpen />, shortcut: '3' },
   { value: 'practice', label: 'Praticar', icon: <Dumbbell />, shortcut: '4' },
+  { value: 'method', label: 'Método (Sessão Guiada)', icon: <Target />, shortcut: '7' },
   { value: 'schedule', label: 'Cronograma', icon: <CalendarDays />, shortcut: '5' },
   { value: 'progress', label: 'Progresso', icon: <TrendingUp />, shortcut: '6' },
   { value: 'settings', label: 'Configurações', icon: <Settings />, shortcut: '8' },
