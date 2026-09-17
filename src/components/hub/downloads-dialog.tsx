@@ -3,14 +3,11 @@
 import * as React from 'react';
 import {
   Archive,
-  DatabaseBackup,
   Download,
-  FileJson,
   FileText,
   Loader2,
   Package,
   Sparkles,
-  Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -37,7 +34,6 @@ import {
   downloadSummariesZip,
   downloadPdf,
 } from '@/lib/download-utils';
-import { exportProgressJSON, importProgressJSON, useStudyProgress } from '@/lib/study-progress';
 import { cn } from '@/lib/utils';
 
 const typeLabel: Record<Material['type'], string> = {
@@ -68,10 +64,8 @@ interface DownloadsDialogProps {
 }
 
 export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
-  const sp = useStudyProgress();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState(0);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   async function withProgress(key: string, fn: () => Promise<void>) {
     setBusy(key);
@@ -87,96 +81,19 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
     }
   }
 
-  function handleExport() {
-    try {
-      const json = exportProgressJSON(sp.progress);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `hub-estudos-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Backup exportado com sucesso!');
-    } catch (e) {
-      toast.error('Erro ao exportar: ' + (e as Error).message);
-    }
-  }
-
-  function handleImportFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const imported = importProgressJSON(String(reader.result));
-      if (!imported) {
-        toast.error('Arquivo inválido — não parece um backup do Hub de Estudos.');
-        return;
-      }
-      sp.replaceProgress(imported);
-      toast.success('Progresso restaurado com sucesso!');
-      onOpenChange(false);
-    };
-    reader.onerror = () => toast.error('Não foi possível ler o arquivo.');
-    reader.readAsText(file);
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
-            Downloads &amp; backup
+            Downloads
           </DialogTitle>
           <DialogDescription>
-            Baixe PDFs e resumos em ZIP (gerado no navegador) e exporte/importe seu progresso
-            em JSON.
+            Baixe PDFs e resumos IA em ZIP, gerados no seu navegador. Para exportar/importar o
+            progresso, use <span className="font-medium">Configurações → Backup do progresso</span>.
           </DialogDescription>
         </DialogHeader>
-
-        {/* Backup do progresso */}
-        <section className="space-y-3">
-          <h3 className="flex items-center gap-2 text-sm font-semibold">
-            <DatabaseBackup className="size-4 text-teal-500" /> Backup do progresso
-          </h3>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              variant="outline"
-              className="h-11 justify-start sm:h-9"
-              onClick={handleExport}
-            >
-              <FileJson className="size-4 text-emerald-600 dark:text-emerald-400" />
-              Exportar progresso (JSON)
-            </Button>
-            <Button
-              variant="outline"
-              className="h-11 justify-start sm:h-9"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="size-4 text-amber-600 dark:text-amber-400" />
-              Importar progresso (JSON)
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              aria-label="Arquivo de backup JSON"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImportFile(f);
-                e.target.value = '';
-              }}
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Inclui sessões Pomodoro, tópicos concluídos, notas, preferências e cronograma.
-            Importar substitui o estado atual.
-          </p>
-        </section>
-
-        <Separator />
 
         {/* ZIPs rápidos */}
         <section className="grid gap-3 sm:grid-cols-2">

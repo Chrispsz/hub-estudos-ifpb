@@ -839,21 +839,26 @@ export function MethodView({
                 </div>
               )}
 
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-between">
-                <Button
-                  variant="ghost"
-                  onClick={() => goPhase('focus')}
-                  className="gap-1.5 text-muted-foreground"
-                >
-                  <SkipForward className="size-4" /> Pular pré-teste
-                </Button>
-                <Button
-                  onClick={() => goPhase('focus')}
-                  className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={pretest.length > 0 && pretestAnswered === 0}
-                >
-                  Feito — agora estudar <ChevronRight className="size-4" />
-                </Button>
+              {/* Um único CTA: enquanto nenhuma tentativa foi registrada, permite pular;
+                  depois de responder (ou sem pré-teste), avança para o foco. */}
+              <div className="mt-5 flex justify-center sm:justify-end">
+                {pretest.length > 0 && pretestAnswered === 0 ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => goPhase('focus')}
+                    className="gap-1.5 text-muted-foreground"
+                  >
+                    <SkipForward className="size-4" /> Pular pré-teste
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => goPhase('focus')}
+                    className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    {pretest.length > 0 ? 'Feito — agora estudar' : 'Começar a estudar'}{' '}
+                    <ChevronRight className="size-4" />
+                  </Button>
+                )}
               </div>
             </Card>
           )}
@@ -1062,7 +1067,8 @@ export function MethodView({
                 </div>
               )}
 
-              {queue.length > 0 && (
+              {/* Saída manual — só durante a fila (no fim existe o botão principal) */}
+              {currentCard && (
                 <button
                   type="button"
                   onClick={() => goPhase('feynman')}
@@ -1127,13 +1133,17 @@ export function MethodView({
               )}
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
-                <Button
-                  variant="ghost"
-                  onClick={() => goPhase('kaizen')}
-                  className="gap-1.5 text-muted-foreground"
-                >
-                  <SkipForward className="size-4" /> Pular avaliação
-                </Button>
+                {/* Depois do feedback da IA, o botão principal já leva ao Kaizen —
+                    o "Pular" viraria duplicata, então some. */}
+                {!feynmanFeedback && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => goPhase('kaizen')}
+                    className="gap-1.5 text-muted-foreground"
+                  >
+                    <SkipForward className="size-4" /> Pular avaliação
+                  </Button>
+                )}
                 <Button
                   onClick={feynmanFeedback ? () => goPhase('kaizen') : submitFeynman}
                   disabled={feynmanLoading || (!feynmanFeedback && feynmanText.trim().length < 40)}

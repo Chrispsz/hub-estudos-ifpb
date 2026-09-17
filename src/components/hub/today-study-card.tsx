@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   CalendarCheck,
   Clock4,
+  Flame,
   Play,
   RotateCcw,
   Settings2,
@@ -130,6 +131,11 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
                   className="border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:hover:bg-teal-900/50"
                 >
                   🎯 Sessão guiada
+                  {sp.methodStreak > 0 && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-300">
+                      <Flame className="size-3" /> {sp.methodStreak}d
+                    </span>
+                  )}
                 </Button>
               </div>
             )}
@@ -157,8 +163,20 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
                   onClick={() => openMethod({ disciplineCode: firstDisc?.code })}
                   className="w-full rounded-lg border border-teal-200 bg-teal-50/60 px-3 py-2 text-xs font-medium text-teal-800 transition-colors hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300 dark:hover:bg-teal-900/40"
                 >
-                  🎯 ou rode uma Sessão guiada do Protocolo HUB
-                  {firstDisc ? ` com ${firstDisc.shortName}` : ''} →
+                  <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+                    <span>
+                      🎯 ou rode uma Sessão guiada do Protocolo HUB
+                      {firstDisc ? ` com ${firstDisc.shortName}` : ''} →
+                    </span>
+                    {sp.methodStreak > 0 && (
+                      <Badge
+                        variant="outline"
+                        className="gap-0.5 border-orange-200 bg-orange-50 px-1.5 py-0 text-[10px] text-orange-700 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300"
+                      >
+                        <Flame className="size-3" /> {sp.methodStreak}d
+                      </Badge>
+                    )}
+                  </span>
                 </button>
               </div>
             )}

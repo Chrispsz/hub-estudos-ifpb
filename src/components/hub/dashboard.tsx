@@ -55,13 +55,12 @@ interface Props {
   onOpenSchedule?: () => void;
   onOpenLibrary?: () => void;
   onOpenPractice?: () => void;
-  onOpenMethod?: () => void;
 }
 
 /** Percentual de tópicos concluídos para considerar a disciplina "em dia". */
 const ON_TRACK_PCT = 50;
 
-export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice, onOpenMethod }: Props) {
+export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice }: Props) {
   const sp = useStudyProgress();
   const [selected, setSelected] = React.useState<Discipline | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -175,48 +174,11 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
         </Card>
       </motion.section>
 
-      {/* "O que estudar hoje" (card central V3) */}
+      {/* "O que estudar hoje" (card central V3) — inclui o CTA do Protocolo HUB */}
       <TodayStudyCard
         onStartStudy={onStartStudy}
         onOpenSettings={onOpenSchedule}
       />
-
-      {/* Protocolo HUB — sessão guiada (método completo em 1 clique) */}
-      {onOpenMethod && (
-        <motion.section
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.04 }}
-        >
-          <Card className="flex flex-row flex-wrap items-center gap-3 rounded-xl border-l-4 border-l-emerald-600 bg-gradient-to-r from-emerald-50/70 via-card to-teal-50/70 p-4 shadow-sm dark:from-emerald-950/30 dark:via-card dark:to-teal-950/30">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Target className="size-4" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
-                Protocolo HUB — sessão guiada
-                {sp.methodStreak > 0 && (
-                  <Badge variant="outline" className="gap-0.5 border-orange-200 bg-orange-50 text-[10px] text-orange-700 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300">
-                    <Flame className="size-3" /> {sp.methodStreak}d
-                  </Badge>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Pré-teste → foco → recuperação ativa → Feynman → Kaizen: o ciclo completo
-                das técnicas mais eficientes em uma sessão só.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={onOpenMethod}
-              className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
-              aria-label="Abrir sessão guiada do Protocolo HUB"
-            >
-              Iniciar <ChevronRight className="size-4" />
-            </Button>
-          </Card>
-        </motion.section>
-      )}
 
       {/* Chamada de revisão espaçada — só aparece quando há flashcards vencidos */}
       {sp.flashcardStats.due > 0 && (

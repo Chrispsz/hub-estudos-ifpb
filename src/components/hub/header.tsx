@@ -10,7 +10,7 @@ import { DownloadsDialog } from './downloads-dialog';
 import { PaletteTriggerButton } from './command-palette';
 import { getNextEvaluation } from '@/lib/semester';
 
-export function Header() {
+export function Header({ activeTab }: { activeTab?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [nextEval, setNextEval] = React.useState<ReturnType<typeof getNextEvaluation>>(null);
@@ -44,7 +44,8 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-2 lg:gap-3 shrink-0">
           <PaletteTriggerButton />
-          {nextEval && (
+          {/* O hero do Dashboard já mostra a próxima avaliação — evita duplicar a informação */}
+          {nextEval && activeTab !== 'dashboard' && (
             <Badge
               variant="outline"
               className="hidden border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300 lg:inline-flex"
@@ -56,8 +57,8 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Downloads e backup"
-            title="Downloads e backup"
+            aria-label="Downloads de materiais"
+            title="Downloads de materiais"
             className="size-11 shrink-0 rounded-full sm:size-9"
             onClick={() => setDownloadsOpen(true)}
           >

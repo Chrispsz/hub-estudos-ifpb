@@ -241,7 +241,7 @@ export function CommandPalette({ onNavigate }: Props) {
               <CommandShortcut>↵ Estudar</CommandShortcut>
             </CommandItem>
             <CommandItem
-              value="acao downloads backup exportar importar"
+              value="acao downloads zip pdf resumos materiais"
               onSelect={() =>
                 run(() => {
                   setDownloadsOpen(true);
@@ -250,7 +250,7 @@ export function CommandPalette({ onNavigate }: Props) {
               className="gap-2.5"
             >
               <Download className="shrink-0 text-amber-500" />
-              <span>Downloads e backup</span>
+              <span>Downloads de materiais (ZIP)</span>
             </CommandItem>
             {mounted && (
               <CommandItem

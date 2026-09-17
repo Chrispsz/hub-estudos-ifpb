@@ -460,21 +460,10 @@ export function FlashcardsView() {
           <div>
             <p className="text-sm font-medium">Nenhum cartão por aqui ainda</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Crie cartões manuais ou peça ao tutor IA para gerar um baralho sobre um tema.
+              Use os botões <span className="font-medium">＋ Novo cartão</span> ou{' '}
+              <span className="font-medium">✨ Gerar com IA</span> no topo da página para criar o
+              primeiro.
             </p>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-              <Plus className="size-3.5" /> Criar cartão
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300"
-              onClick={() => setGenerateOpen(true)}
-            >
-              <Sparkles className="size-3.5" /> Gerar com IA
-            </Button>
           </div>
         </Card>
       ) : (

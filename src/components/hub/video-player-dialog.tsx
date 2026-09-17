@@ -179,11 +179,15 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-          <Button variant="outline" size="sm" asChild className={touchBtn}>
-            <a href={material.externalUrl} target="_blank" rel="noreferrer">
-              <ExternalLink className="size-3.5" aria-hidden /> Nova aba
-            </a>
-          </Button>
+          {/* "Nova aba" só quando o vídeo está embutido — no fallback o card
+              de cima já tem o botão grande de abrir externamente. */}
+          {parsed?.canEmbed && (
+            <Button variant="outline" size="sm" asChild className={touchBtn}>
+              <a href={material.externalUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-3.5" aria-hidden /> Nova aba
+              </a>
+            </Button>
+          )}
           <Button
             size="sm"
             variant={isCompleted ? 'outline' : 'default'}
