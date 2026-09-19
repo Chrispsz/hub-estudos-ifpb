@@ -16,6 +16,7 @@ import {
   ListChecks,
   Scale,
   Sparkles,
+  SquareCode,
 } from 'lucide-react';
 import {
   Dialog,
@@ -78,6 +79,7 @@ const typeLabel: Record<Material['type'], string> = {
   pdf: 'PDF',
   image: 'Imagem',
   calendar: 'Calendário',
+  exemplo: 'Exemplo de código',
 };
 
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
@@ -437,6 +439,10 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                   {m.type === 'image' ? (
                                     <>
                                       <ImageIcon className="size-3.5" /> Ver
+                                    </>
+                                  ) : m.pdfPath?.endsWith('.html') ? (
+                                    <>
+                                      <SquareCode className="size-3.5" /> Abrir exemplo
                                     </>
                                   ) : (
                                     <>

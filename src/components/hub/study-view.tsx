@@ -131,6 +131,7 @@ const MATERIAL_TYPE_LABEL: Record<Material['type'], string> = {
   pdf: 'PDF',
   image: 'Imagem',
   calendar: 'Calendário',
+  exemplo: 'Exemplo de código',
 };
 
 const CHAT_SUGGESTIONS = [

@@ -19,3 +19,18 @@ export function openMethod(detail: OpenMethodDetail = {}): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent<OpenMethodDetail>(OPEN_METHOD_EVENT, { detail }));
 }
+
+export const OPEN_SIMULADO_EVENT = 'hub:open-simulado';
+
+export interface OpenSimuladoDetail {
+  /** Código da disciplina para pré-selecionar. */
+  disciplineCode?: string;
+  /** Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10). */
+  preset?: 'math_exam';
+}
+
+/** Dispara a troca para a aba Praticar com o Simulado Pro já configurado. */
+export function openSimulado(detail: OpenSimuladoDetail = {}): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<OpenSimuladoDetail>(OPEN_SIMULADO_EVENT, { detail }));
+}

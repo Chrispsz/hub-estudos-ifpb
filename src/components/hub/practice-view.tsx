@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,9 @@ import {
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
+import { useLocalStorage } from '@/lib/use-local-storage';
+import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
+import { openSimulado, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
 import {
   exercises,
@@ -41,7 +45,7 @@ import {
   getExerciseStats,
   type Exercise,
 } from '@/lib/exercise-extractor';
-import { SimuladoView } from '@/components/hub/simulado-view';
+import { SimuladoView, type SimuladoConfig } from '@/components/hub/simulado-view';
 
 const difficultyColor: Record<Exercise['difficulty'], string> = {
   facil: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
@@ -60,14 +64,22 @@ const sourceLabel: Record<Exercise['source'], string> = {
   prova_real: 'Prova Real',
   gerado_topico: 'Por Tópico',
   ia_sugerido: 'IA',
+  material_professor: 'Material do Prof.',
 };
 
 type PracticeMode = 'exercicios' | 'flashcards';
 
 // Estático (depende só do acervo fixo) — computado UMA vez por módulo, não por render.
 const EXERCISE_STATS = getExerciseStats();
+// Alinhamento material-first (estado da turma) — acervo é estático, calcula 1×.
+const ALIGN_STATS = getAlignmentStats();
 
-export function PracticeView() {
+export function PracticeView({
+  simuladoReq,
+}: {
+  /** Pedido externo p/ abrir o Simulado pré-configurado (ex.: prova de Matemática). */
+  simuladoReq?: { detail: OpenSimuladoDetail; nonce: number };
+} = {}) {
   const sp = useStudyProgress();
   const [mode, setMode] = React.useState<PracticeMode>('exercicios');
   const dueCount = sp.flashcardStats.due;
@@ -106,7 +118,7 @@ export function PracticeView() {
       </div>
 
       <TabsContent value="exercicios" className="mt-0">
-        <ExercisesPanel />
+        <ExercisesPanel simuladoReq={simuladoReq} />
       </TabsContent>
       <TabsContent value="flashcards" className="mt-0">
         <FlashcardsView />
@@ -115,11 +127,39 @@ export function PracticeView() {
   );
 }
 
-function ExercisesPanel() {
+const MATH_EXAM_PRESET = {
+  discipline: 'TEC.1984',
+  difficulty: 'all' as const,
+  quantity: 10,
+  durationMin: 60,
+  aligned: true,
+};
+
+function ExercisesPanel({
+  simuladoReq,
+}: {
+  simuladoReq?: { detail: OpenSimuladoDetail; nonce: number };
+} = {}) {
   const sp = useStudyProgress();
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [filterTopic, setFilterTopic] = React.useState<string>('all');
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
+  // PADRÃO MATERIAL-FIRST: por padrão só aparece o que já foi dado em sala.
+  // Persistido — o aluno escolhe se quer se adiantar.
+  const [onlyAligned, setOnlyAligned] = useLocalStorage<boolean>('hub:praticar:soEmSala', true);
+  // Pré-config do simulado (preset da prova vindo do card do Painel).
+  const [simuladoInitialConfig, setSimuladoInitialConfig] = React.useState<
+    Partial<SimuladoConfig> | undefined
+  >(undefined);
+
+  // Pedido externo (card "Foco: Prova de Matemática") → abre já configurado.
+  React.useEffect(() => {
+    if (!simuladoReq || simuladoReq.nonce === 0) return;
+    if (simuladoReq.detail.preset === 'math_exam') {
+      setSimuladoInitialConfig(MATH_EXAM_PRESET);
+    }
+    setSimuladoOpen(true);
+  }, [simuladoReq?.nonce]);
 
   const filteredExercises = React.useMemo(() => {
     let list = exercises;
@@ -129,8 +169,11 @@ function ExercisesPanel() {
     if (filterTopic !== 'all') {
       list = list.filter((e) => e.topic === filterTopic);
     }
+    if (onlyAligned) {
+      list = list.filter((e) => getExerciseStage(e) === 'em_sala');
+    }
     return list;
-  }, [filterDiscipline, filterTopic]);
+  }, [filterDiscipline, filterTopic, onlyAligned]);
 
   // Tópicos disponíveis com base na disciplina selecionada
   const availableTopics = React.useMemo(() => {
@@ -148,9 +191,40 @@ function ExercisesPanel() {
 
   return (
     <div className="space-y-4">
+      {/* Banner material-first: estado da turma */}
+      <Card className="rounded-xl border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent p-3.5 shadow-sm">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+              <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+              No ritmo da turma
+              <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400">
+                {ALIGN_STATS.emSala} em sala
+              </Badge>
+              <Badge variant="outline" className="border-border text-[10px] text-muted-foreground">
+                {ALIGN_STATS.adiantado} futuros
+              </Badge>
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              O acervo se alinha automaticamente aos materiais reais enviados:
+              exercícios de tópicos ainda não dados em aula ficam de fora até a
+              aula acontecer (padrão material-first).
+            </p>
+          </div>
+          <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <Switch
+              checked={!onlyAligned}
+              onCheckedChange={(v) => setOnlyAligned(!v)}
+              aria-label="Mostrar conteúdos futuros"
+            />
+            Mostrar futuros
+          </label>
+        </div>
+      </Card>
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {stats.total} exercícios disponíveis. Marque como tentou, resolveu ou precisou de ajuda.
+          {filteredExercises.length} de {ALIGN_STATS.total} exercícios no filtro atual. Marque como tentou, resolveu ou precisou de ajuda.
         </p>
         <Button
           size="sm"
@@ -241,7 +315,20 @@ function ExercisesPanel() {
         {filteredExercises.length === 0 ? (
           <Card className="flex flex-col items-center gap-2 rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
             <RotateCcw className="size-6 text-muted-foreground/50" aria-hidden />
-            Nenhum exercício com esses filtros. Ajuste a seleção acima.
+            {onlyAligned ? (
+              <>
+                Tudo aqui já está no ritmo da turma com esses filtros.
+                <button
+                  type="button"
+                  onClick={() => setOnlyAligned(false)}
+                  className="text-xs font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
+                >
+                  Ver também os conteúdos futuros ({ALIGN_STATS.adiantado})
+                </button>
+              </>
+            ) : (
+              <>Nenhum exercício com esses filtros. Ajuste a seleção acima.</>
+            )}
           </Card>
         ) : (
           filteredExercises.map((ex, i) => (
@@ -251,7 +338,11 @@ function ExercisesPanel() {
       </div>
 
       {/* Simulado Pro (prova com cronômetro) */}
-      <SimuladoView open={simuladoOpen} onOpenChange={setSimuladoOpen} />
+      <SimuladoView
+        open={simuladoOpen}
+        onOpenChange={setSimuladoOpen}
+        initialConfig={simuladoInitialConfig}
+      />
     </div>
   );
 }
@@ -261,6 +352,9 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
   const progress = sp.progress.exerciseProgress[exercise.id];
   const disc = getDisciplineByCode(exercise.disciplineCode);
   const color = getColorClasses(disc?.color ?? 'slate');
+  // Material-first: marca o que ainda não foi dado em aula (visível só com
+  // "Mostrar futuros" ligado).
+  const stage = getExerciseStage(exercise);
 
   return (
     <motion.div
@@ -290,6 +384,15 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
           <Badge variant="outline" className="border-border text-[10px] text-muted-foreground">
             {sourceLabel[exercise.source]}
           </Badge>
+          {stage === 'adiantado' && (
+            <Badge
+              variant="outline"
+              className="border-sky-500/40 bg-sky-500/10 text-[10px] text-sky-600 dark:text-sky-400"
+              title="Tópico ainda não dado em aula — no ritmo da turma este exercício fica oculto"
+            >
+              futuro
+            </Badge>
+          )}
           {progress?.solved && (
             <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
               <CheckCircle2 className="size-2.5" /> Resolvido

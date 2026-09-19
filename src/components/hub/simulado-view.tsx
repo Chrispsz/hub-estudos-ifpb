@@ -44,11 +44,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
 import { disciplines, getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { openMethod } from '@/lib/hub-events';
+import { getExerciseStage } from '@/lib/curriculum-state';
 import {
   exercises,
   pickRandomExercises,
@@ -57,11 +59,12 @@ import {
 
 type DifficultyFilter = 'all' | Exercise['difficulty'];
 
-interface SimuladoConfig {
+export interface SimuladoConfig {
   discipline: string; // 'all' | code
   difficulty: DifficultyFilter;
   quantity: number;
   durationMin: number; // 0 = sem tempo
+  aligned: boolean; // PADRÃO MATERIAL-FIRST: só o que já foi dado em sala
 }
 
 interface QuestionResult {
@@ -75,6 +78,7 @@ const DURATION_OPTIONS = [
   { value: 15, label: '15 minutos' },
   { value: 30, label: '30 minutos' },
   { value: 45, label: '45 minutos' },
+  { value: 60, label: '60 minutos (prova)' },
 ];
 
 const QUANTITY_OPTIONS = [5, 10, 15];
@@ -88,9 +92,12 @@ function fmtClock(totalSec: number): string {
 export function SimuladoView({
   open,
   onOpenChange,
+  initialConfig,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Pré-config externa (ex.: preset da prova de Matemática do card do Painel). */
+  initialConfig?: Partial<SimuladoConfig>;
 }) {
   const [phase, setPhase] = React.useState<Phase>('setup');
   const [config, setConfig] = React.useState<SimuladoConfig>({
@@ -98,6 +105,7 @@ export function SimuladoView({
     difficulty: 'all',
     quantity: 5,
     durationMin: 15,
+    aligned: true, // no ritmo da turma por padrão
   });
   const [questions, setQuestions] = React.useState<Exercise[]>([]);
   const [idx, setIdx] = React.useState(0);
@@ -106,7 +114,7 @@ export function SimuladoView({
   const [remaining, setRemaining] = React.useState(0);
   const [elapsed, setElapsed] = React.useState(0);
 
-  // Reset quando abre o diálogo
+  // Reset quando abre o diálogo (e aplica pré-config externa, se houver)
   React.useEffect(() => {
     if (open) {
       setPhase('setup');
@@ -116,8 +124,11 @@ export function SimuladoView({
       setResults([]);
       setRemaining(0);
       setElapsed(0);
+      if (initialConfig && Object.keys(initialConfig).length > 0) {
+        setConfig((c) => ({ ...c, ...initialConfig }));
+      }
     }
-  }, [open]);
+  }, [open, initialConfig]);
 
   // Cronômetro (contagem regressiva ou progressiva)
   React.useEffect(() => {
@@ -151,8 +162,11 @@ export function SimuladoView({
     if (config.difficulty !== 'all') {
       list = list.filter((e) => e.difficulty === config.difficulty);
     }
+    if (config.aligned) {
+      list = list.filter((e) => getExerciseStage(e) === 'em_sala');
+    }
     return list;
-  }, [config.discipline, config.difficulty]);
+  }, [config.discipline, config.difficulty, config.aligned]);
 
   function start(cfg: SimuladoConfig = config) {
     // Sorteio com seed diferente a cada tentativa (evita repetir o mesmo conjunto)
@@ -454,6 +468,22 @@ function SetupScreen({
             </SelectContent>
           </Select>
         </div>
+
+        {/* PADRÃO MATERIAL-FIRST: só o que já foi dado em sala */}
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 sm:col-span-2">
+          <div className="min-w-0">
+            <p className="text-xs font-medium">No ritmo da turma</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              Sorteia só questões de tópicos já dados em aula (alinhado aos
+              materiais reais). Desligue para incluir conteúdos futuros.
+            </p>
+          </div>
+          <Switch
+            checked={config.aligned}
+            onCheckedChange={(v) => setConfig({ ...config, aligned: v })}
+            aria-label="Sortear somente conteúdos já dados em sala"
+          />
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
@@ -635,11 +665,11 @@ function ExamScreen({
               <Button variant="outline" size="sm" onClick={() => onNavigate(idx + 1)} className="h-11 sm:h-8">
                 Próxima <ArrowRight className="size-3.5" />
               </Button>
-            ) : (
-              <Button size="sm" variant="ghost" onClick={onFinish} className="h-11 sm:h-8">
-                <Flag className="size-3.5" /> Encerrar
-              </Button>
-            )}
+            ) : null}
+            {/* Encerrar sempre disponível — aluno pode parar antes do fim */}
+            <Button size="sm" variant="ghost" onClick={onFinish} className="h-11 sm:h-8">
+              <Flag className="size-3.5" /> Encerrar
+            </Button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-2">

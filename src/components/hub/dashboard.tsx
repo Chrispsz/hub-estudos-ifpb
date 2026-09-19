@@ -41,6 +41,7 @@ import { MaterialSummaryDialog } from './material-summary-dialog';
 import type { Discipline, Material } from '@/data/course-data';
 import { studyStrategy } from '@/data/course-data';
 import { TodayStudyCard } from './today-study-card';
+import { ExamPrepCard } from './exam-prep-card';
 import { SemesterProjection } from './semester-projection';
 import {
   daysUntilDate,
@@ -173,6 +174,9 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
           </div>
         </Card>
       </motion.section>
+
+      {/* FOCO: Prova de Matemática (Av1, 01/10) — plano 12 dias material-first */}
+      <ExamPrepCard />
 
       {/* "O que estudar hoje" (card central V3) — inclui o CTA do Protocolo HUB */}
       <TodayStudyCard
@@ -422,16 +426,17 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
         </div>
       </Card>
 
-      {/* Recentes + dica do dia */}
+      {/* Recentes + dica do dia — min-w-0 evita que textos nowrap (truncate)
+          das linhas da agenda forcem o track do grid a estourar no mobile */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="space-y-3">
+        <section className="min-w-0 space-y-3">
           <h3 className="flex items-center gap-2 text-base font-semibold">
             <CalendarCheck className="size-4 text-teal-500" /> Agenda acadêmica oficial
           </h3>
           <AcademicAgenda />
         </section>
 
-        <section className="space-y-3">
+        <section className="min-w-0 space-y-3">
           <h3 className="flex items-center gap-2 text-base font-semibold">
             <FileText className="size-4 text-teal-500" /> Recentes
           </h3>

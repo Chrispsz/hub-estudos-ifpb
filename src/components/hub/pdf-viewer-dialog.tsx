@@ -49,6 +49,7 @@ const TYPE_LABEL: Record<Material['type'], string> = {
   pdf: 'PDF',
   image: 'Imagem',
   calendar: 'Calendário',
+  exemplo: 'Exemplo de código',
 };
 
 export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
@@ -68,6 +69,8 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
     : undefined;
   const color = getColorClasses(discipline?.color ?? 'slate');
   const isImage = material?.type === 'image';
+  // Arquivos de exemplo (.html) não são PDF — rótulo do botão de download honesto.
+  const isHtmlFile = material?.pdfPath?.endsWith('.html') ?? false;
 
   React.useEffect(() => {
     if (open && material) {
@@ -140,7 +143,8 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
               toast.success('Download iniciado');
             }}
           >
-            <Download className="size-3.5" /> {isImage ? 'Baixar imagem' : 'Baixar PDF'}
+            <Download className="size-3.5" />{' '}
+            {isImage ? 'Baixar imagem' : isHtmlFile ? 'Baixar HTML' : 'Baixar PDF'}
           </Button>
           <Button
             size="sm"

@@ -1,0 +1,75 @@
+1. Escreva um programa que leia o valor total que um cliente consumiu em um restaurante e
+   determine o valor final da sua conta, considerando que o restaurante cobra uma taxa de
+   serviço de 10 % e uma taxa de couvert artístico de R$ 10,00.
+
+
+2. Escreva um programa que leia um número inteiro N e imprima dos 10 primeiros elementos
+   da sua tabuada. A saída do programa deve seguir o formato abaixo, que mostra os 5
+   primeiros elementos da tabuada do 2.
+
+
+                                       1X2=2
+                                       2X2=4
+                                       3X2=6
+                                       4X2=8
+                                       5 X 2 = 10
+
+
+3. Escreva um programa que leia o número total de questões existentes em uma prova e o
+   número de questões que um candidato acertou e determine o seu percentual de acertos e
+   o seu percentual de erros.
+
+
+4. Escreva um programa que leia os valores das coordenadas X e Y e dois pontos P e Q e
+   determine a distância entre estes dois pontos. A distância entre dois pontos pode ser
+   determinada através da distância euclidiana.
+
+    dis tan cia =   (x1 − x2 )2 + ( y1 − y2 )2
+
+5. Escreva um programa que leia o nome e a quantidade de votos recebidos por cada um dos
+   três candidatos a prefeito de uma cidade e calcule o percentual de votos recebidos por cada
+   candidato. Para resolver esse programa, considere que não houve votos brancos e nem
+   nulos.
+
+
+6. Escreva um programa que leia o tamanho de um arquivo em MB e a taxa de transmissão da
+   rede em KB/s e calcule o tempo aproximado necessário para a transmissão do arquivo. A
+   resposta deve ser dada através de uma mensagem na forma X horas, Y minutos e Z
+   segundos. Para resolver essa questão, considere que o tamanho do arquivo e a taxa de
+   transmissão são números inteiros e que 1 MB = 1024 KB. O tamanho do arquivo e a taxa de
+   download devem ser lidos como números inteiros.
+
+
+7. Escreva um programa que leia a quantidade de horas trabalhadas por um funcionário de
+   uma empresa durante um mês e o valor de cada hora trabalhada e determine o seu
+   pagamento. O programa deve considerar que a carga-horária mensal do funcionário é de
+   160 horas e que o valor de cada hora extra corresponde ao valor da hora trabalhada
+   acrescido de uma taxa de 50%. Para resolver a questão, considere que a quantidade de
+   horas trabalhadas nunca será inferior a 160.
+
+
+8. Escreva um programa que leia os dois últimos valores da leitura de um medidor de energia
+   em KWh e calcule o valor da conta de energia, considerando que: o preço de 1 KWh é R$
+   0,35, o valor da ICMS corresponde à 17% do valor do consumo e a taxa de iluminação pública
+   é de R$ 15,00.
+
+
+9. Um banco está realizando uma grande promoção em seus financiamentos. Ele financia
+   qualquer valor em 5 prestações. O valor da primeira prestação corresponde à 20% do valor
+   do empréstimo. Os valores das demais prestações correspondem ao valor da parcela
+   anterior acrescido de uma taxa de juros de 7%. Com base nestas informações, escreva um
+   programa que leia o valor a ser financiado por um cliente e calcule: o valor de cada
+   prestação, o valor total que o cliente vai pagar pelo empréstimo e o total de juros que o
+   cliente vai pagar pelo empréstimo.
+
+
+
+10. Carlos chegou ao aeroporto para fazer o check-in do seu vôo. Ao entrar na fila de
+   passageiros, ele percebeu que a empresa aérea tinha 5 guichês para fazer o check-in dos
+   passageiros, e que estes guichês eram numerados de 1 a 5. Considerando que os guichês
+   iam começar a realização dos check-ins no exato momento em que Carlos entrou na fila, e
+   que cada check-in é realizado em exatamente 15 minutos, escreva um programa que leia
+   um número inteiro positivo que corresponde à posição de Carlos na fila e determine o
+   número do guichê no qual ele será atendido e o tempo que ele vai ter que esperar para ser
+   atendido.
+

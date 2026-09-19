@@ -46,6 +46,7 @@ const typeLabel: Record<Material['type'], string> = {
   pdf: 'PDF',
   image: 'Imagem',
   calendar: 'Calendário',
+  exemplo: 'Exemplo',
 };
 
 // Dados imutáveis — listas e contagens derivadas calculadas uma única vez.

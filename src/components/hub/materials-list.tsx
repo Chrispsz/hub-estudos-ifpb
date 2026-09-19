@@ -10,6 +10,7 @@ import {
   FileText,
   History,
   ImageIcon,
+  SquareCode,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -55,6 +56,7 @@ const typeLabel: Record<Material['type'], string> = {
   pdf: 'PDF',
   image: 'Imagem',
   calendar: 'Calendário',
+  exemplo: 'Exemplo de código',
 };
 
 type MaterialStatus = 'notViewed' | 'recent' | 'completed';
@@ -480,6 +482,10 @@ const MaterialRow = React.memo(function MaterialRow({
             {material.type === 'image' ? (
               <>
                 <ImageIcon className="size-3.5" /> Ver
+              </>
+            ) : material.pdfPath?.endsWith('.html') ? (
+              <>
+                <SquareCode className="size-3.5" /> Exemplo
               </>
             ) : (
               <>

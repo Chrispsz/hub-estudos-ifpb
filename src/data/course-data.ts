@@ -66,7 +66,7 @@ export interface Material {
   id: string;
   disciplineCode: string;
   title: string;
-  type: 'slides' | 'lista_exercicios' | 'web_page' | 'introducao' | 'ementa' | 'video' | 'pdf' | 'image' | 'calendar';
+  type: 'slides' | 'lista_exercicios' | 'web_page' | 'introducao' | 'ementa' | 'video' | 'pdf' | 'image' | 'calendar' | 'exemplo';
   // PDF público (servido de /pdfs/) - opcional
   pdfPath?: string;
   // Resumo IA em /data/ai-summaries/
@@ -74,6 +74,11 @@ export interface Material {
   pages?: number;
   source: 'user_upload' | 'ifpb_site' | 'pnaat' | 'external';
   externalUrl?: string;
+  // PADRÃO MATERIAL-FIRST: unidades do conteudoProgramatico que ESTE material
+  // comprova terem sido dadas em aula. É isto que alimenta o alinhamento de
+  // Praticar/Simulado (src/lib/curriculum-state.ts). Só materiais de aula real
+  // recebem a anotação — ementas, calendários e apoio NÃO contam.
+  topicosCobertos?: string[];
 }
 
 export interface CourseInfo {
@@ -220,10 +225,11 @@ export const disciplines: Discipline[] = [
       'MEDINA, M; FERTIG, C. Algoritmos e programação: teoria e prática. Novatec, 2005.',
       'SOUZA, M. A. F. et al. Algoritmos e lógica de programação. Thomson Pioneira, 2005.',
     ],
-    materiaisUsuario: 4,
+    materiaisUsuario: 5,
     dicasEstudo: [
       'Pratique TODOS os dias - programação se aprende programando',
       'Resolva as "Questões da Semana" do Classroom toda semana — elas são o treino oficial do prof. Fábio',
+      'Monitoria da disciplina (monitor Everton): Tira-Dúvidas toda SEGUNDA, 19h–21h, e Resolução de Questões toda QUARTA, 19h–21h — tudo no servidor da monitoria no Discord (link na Biblioteca)',
       'Faça a Lista de Exercícios completa antes da primeira prova',
       'Compile e execute cada exemplo no computador',
       'Use o depurador (debugger) para entender o fluxo do programa',
@@ -301,9 +307,10 @@ export const disciplines: Discipline[] = [
       'SILVA, M. S. CSS3. Novatec, 2011.',
       'TERUEL, E. C. HTML5: guia prático. Érica, 2014.',
     ],
-    materiaisUsuario: 10,
+    materiaisUsuario: 12,
     dicasEstudo: [
       'Construa um site pessoal desde a primeira semana',
+      'Aula 06 (Formulários): abra o index.html de exemplo na Biblioteca, compare com os slides e faça a prática do pedido de pizza (Praticar)',
       'Use o VS Code com extensão Live Server para preview',
       'Valide seu HTML no W3C Validator',
       'Pratique Flexbox e Grid fazendo layouts reais',
@@ -317,10 +324,11 @@ export const disciplines: Discipline[] = [
       '4. Estude Listas (02 - Listas)',
       '5. Estude Hyperlinks e URLs (03 — elemento <a>, caminhos, target, download)',
       '6. Estude Mídias (04 — img, figure/figcaption, audio e video)',
-      '7. Comece o projeto A1 imediatamente (estrutura HTML)',
-      '8. Depois do HTML, estude CSS (seletores, box model)',
-      '9. Faça o A2 (CSS) - use Flexbox/Grid',
-      '10. Prepare a apresentação A3 com antecedência',
+      '7. Estude Formulários (06 — form/action/method, input, select, textarea, botões e checáveis) e pratique: o formulário da pizza está no Praticar',
+      '8. Comece o projeto A1 imediatamente (estrutura HTML) — o capítulo Formulários da apostila cobre a página de contato (dica do Formspree)',
+      '9. Depois do HTML, estude CSS (seletores, box model)',
+      '10. Faça o A2 (CSS) - use Flexbox/Grid',
+      '11. Prepare a apresentação A3 com antecedência',
     ],
     // POLÍTICA ANTI-ESTIMATIVA: A1/A2/A3 sem data oficial ficam em evaluationPeriods
     // como "A definir" — nada de semana estimada em lugar nenhum.
@@ -386,6 +394,7 @@ export const disciplines: Discipline[] = [
     ],
     materiaisUsuario: 4,
     dicasEstudo: [
+      'PROVA 01/10: siga o plano de 12 dias no card "Foco: Prova de Matemática" do Painel',
       'Monte tabelas-verdade para TODOS os exercícios de lógica',
       'Pratique conversões e operações com matrizes sem calculadora',
       'Faça mapas mentais conectando Lógica → Conjuntos → Funções',
@@ -622,6 +631,7 @@ export const disciplines: Discipline[] = [
       'Pratique skimming (ideia geral) e scanning (info específica)',
       'Cuidado com falsos cognatos (ex: actual ≠ atual, pretend ≠ pretender)',
       'Use filmes/séries com legenda em inglês para imersão',
+      'Assista ao vídeo indicado pelo prof. Fernando (16/09): "15 partes do corpo que também são VERBOS" — anote os 15 pares substantivo/verbo no seu glossário (Biblioteca)'
     ],
     prioridade: 'media',
     ordemEstudo: [
@@ -700,74 +710,162 @@ export const materials: Material[] = [
   // Matemática Aplicada à Computação
   { id: 'mat-logica-slides', disciplineCode: 'TEC.1984', title: 'Noções de Lógica - Slides (47 páginas)',
     type: 'slides', pdfPath: '/pdfs/mat-logica-slides.pdf',
-    summaryFile: 'mat-logica-slides.summary.json', pages: 47, source: 'user_upload' },
+    summaryFile: 'mat-logica-slides.summary.json', pages: 47, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['2. Lógica Matemática'],
+  },
   { id: 'mat-logica-lista', disciplineCode: 'TEC.1984', title: 'Lógica Matemática - Lista de Exercícios',
     type: 'lista_exercicios', pdfPath: '/pdfs/mat-logica-lista.pdf',
-    summaryFile: 'mat-logica-lista.summary.json', pages: 2, source: 'user_upload' },
+    summaryFile: 'mat-logica-lista.summary.json', pages: 2, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['2. Lógica Matemática'],
+  },
   { id: 'mat-ementa', disciplineCode: 'TEC.1984', title: 'Plano de Disciplina - Matemática',
     type: 'ementa', pdfPath: '/data/ementas/ementa-matematica.pdf',
     summaryFile: 'matematica-ementa.summary.json', source: 'ifpb_site' },
   // Algoritmos
   { id: 'alg-lista', disciplineCode: 'TEC.1687', title: 'Lista de Exercícios de Programação (43 páginas)',
     type: 'lista_exercicios', pdfPath: '/pdfs/alg-lista-exercicios.pdf',
-    summaryFile: 'alg-lista.summary.json', pages: 43, source: 'user_upload' },
+    summaryFile: 'alg-lista.summary.json', pages: 43, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 2: Desvios condicionais', 'Unidade 3: Comandos de repetição'],
+  },
   { id: 'alg-questoes-semana1', disciplineCode: 'TEC.1687', title: 'Questões da Semana 1 (Classroom, 09/09)',
     type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana1.pdf',
-    summaryFile: 'alg-questoes-semana1.summary.json', pages: 1, source: 'user_upload' },
+    summaryFile: 'alg-questoes-semana1.summary.json', pages: 1, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação'],
+  },
   { id: 'alg-videoaulas', disciplineCode: 'TEC.1687', title: 'Videoaulas (Google Drive)',
     type: 'video', summaryFile: '', source: 'external',
-    externalUrl: 'https://drive.google.com/drive/folders/1QFBEca75o9E-Vd65rDdg2wktqasDzHIx' },
+    externalUrl: 'https://drive.google.com/drive/folders/1QFBEca75o9E-Vd65rDdg2wktqasDzHIx',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 2: Desvios condicionais', 'Unidade 3: Comandos de repetição'],
+  },
+  { id: 'alg-questoes-semana2', disciplineCode: 'TEC.1687', title: 'Questões da Semana 2 (Classroom, 17/09)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana2.pdf',
+    summaryFile: 'alg-questoes-semana2.summary.json', pages: 2, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 3: Comandos de repetição'],
+  },
+  { id: 'alg-monitoria-discord', disciplineCode: 'TEC.1687', title: 'Monitoria — Servidor no Discord (Everton)',
+    type: 'web_page', summaryFile: 'alg-monitoria-discord.summary.json', source: 'external',
+    externalUrl: 'https://discord.gg/XyTmDhE5Dt' },
   { id: 'alg-ementa', disciplineCode: 'TEC.1687', title: 'Plano de Disciplina - Algoritmos',
     type: 'ementa', pdfPath: '/data/ementas/ementa-algoritmos.pdf',
     summaryFile: 'algoritmo-ementa.summary.json', source: 'ifpb_site' },
   // Linguagem de Marcação
   { id: 'lm-intro-00', disciplineCode: 'TEC.1632', title: 'Introdução a Linguagens de Marcação',
     type: 'introducao', pdfPath: '/pdfs/lm-00-introducao.pdf',
-    summaryFile: 'lm-00-introducao.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-00-introducao.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Introdução a Linguagens de Marcação'],
+  },
   { id: 'lm-01-estrutura', disciplineCode: 'TEC.1632', title: 'HTML - Estrutura básica, elementos, atributos, títulos e parágrafos (32 slides)',
     type: 'slides', pdfPath: '/pdfs/lm-html-01-estrutura.pdf',
-    summaryFile: 'lm-html-01-estrutura.summary.json', pages: 32, source: 'user_upload' },
+    summaryFile: 'lm-html-01-estrutura.summary.json', pages: 32, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-intro-html', disciplineCode: 'TEC.1632', title: 'Introdução a HTML (web)',
     type: 'web_page', pdfPath: '/pdfs/lm-html-introducao.pdf',
-    summaryFile: 'lm-html-introducao.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-html-introducao.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-tags', disciplineCode: 'TEC.1632', title: 'Tags e elementos (web)',
     type: 'web_page', pdfPath: '/pdfs/lm-html-tags.pdf',
-    summaryFile: 'lm-html-tags.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-html-tags.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-atributos', disciplineCode: 'TEC.1632', title: 'Atributos e valores (web)',
     type: 'web_page', pdfPath: '/pdfs/lm-html-atributos.pdf',
-    summaryFile: 'lm-html-atributos.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-html-atributos.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-titulos', disciplineCode: 'TEC.1632', title: 'Títulos e Parágrafos (web)',
     type: 'web_page', pdfPath: '/pdfs/lm-html-titulos-paragrafos.pdf',
-    summaryFile: 'lm-html-titulos.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-html-titulos.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-listas-slides', disciplineCode: 'TEC.1632', title: 'Listas - Slides',
     type: 'slides', pdfPath: '/pdfs/lm-html-02-listas.pdf',
-    summaryFile: 'lm-html-02-listas.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-html-02-listas.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-listas-web', disciplineCode: 'TEC.1632', title: 'Listas (web)',
     type: 'web_page', pdfPath: '/pdfs/lm-html-listas.pdf',
-    summaryFile: 'lm-html-listas.summary.json', source: 'user_upload' },
+    summaryFile: 'lm-html-listas.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   // NOVOS MATERIAIS — LM (aulas 03 e 04, enviadas pelo usuário em 11/09)
   { id: 'lm-html-03-hyperlinks', disciplineCode: 'TEC.1632', title: 'HTML - Hyperlinks (16 slides)',
     type: 'slides', pdfPath: '/pdfs/lm-html-03-hyperlinks.pdf',
-    summaryFile: 'lm-html-03-hyperlinks.summary.json', pages: 16, source: 'user_upload' },
+    summaryFile: 'lm-html-03-hyperlinks.summary.json', pages: 16, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-html-04-midias', disciplineCode: 'TEC.1632', title: 'HTML - Mídias: Imagens, Áudio e Vídeo (17 slides)',
     type: 'slides', pdfPath: '/pdfs/lm-html-04-midias.pdf',
-    summaryFile: 'lm-html-04-midias.summary.json', pages: 17, source: 'user_upload' },
+    summaryFile: 'lm-html-04-midias.summary.json', pages: 17, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   // Apostila digital da disciplina (gitbook do Prof. Diogo) — complemento das aulas
   { id: 'lm-web-hyperlinks', disciplineCode: 'TEC.1632', title: 'Hyperlinks (web — apostila da disciplina)',
     type: 'web_page', summaryFile: 'lm-gitbook-hyperlinks.summary.json', source: 'external',
-    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/hyperlinks' },
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/hyperlinks',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-web-urls', disciplineCode: 'TEC.1632', title: 'URLs (web — apostila da disciplina)',
     type: 'web_page', summaryFile: 'lm-gitbook-urls.summary.json', source: 'external',
-    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/urls' },
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/urls',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-web-imagens', disciplineCode: 'TEC.1632', title: 'Imagens (web — apostila da disciplina)',
     type: 'web_page', summaryFile: 'lm-gitbook-imagens.summary.json', source: 'external',
-    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/imagens' },
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/imagens',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-web-audio', disciplineCode: 'TEC.1632', title: 'Áudio (web — apostila da disciplina)',
     type: 'web_page', summaryFile: 'lm-gitbook-audio.summary.json', source: 'external',
-    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/audio' },
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/audio',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-web-video', disciplineCode: 'TEC.1632', title: 'Vídeo (web — apostila da disciplina)',
     type: 'web_page', summaryFile: 'lm-gitbook-video.summary.json', source: 'external',
-    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/video' },
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/video',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
+  // NOVOS MATERIAIS — LM aula 06 (enviados pelo usuário em 19/09)
+  { id: 'lm-html-06-formularios', disciplineCode: 'TEC.1632', title: 'HTML - Formulários (20 slides)',
+    type: 'slides', pdfPath: '/pdfs/lm-html-06-formularios.pdf',
+    summaryFile: 'lm-html-06-formularios.summary.json', pages: 20, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
+  { id: 'lm-exemplo-formularios', disciplineCode: 'TEC.1632', title: 'Exemplo de Formulário da aula (index.html — renderiza ao vivo)',
+    type: 'exemplo', pdfPath: '/pdfs/lm-exemplo-formularios.html',
+    summaryFile: 'lm-exemplo-formularios.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
+  { id: 'lm-web-formularios', disciplineCode: 'TEC.1632', title: 'Formulários (web — apostila da disciplina)',
+    type: 'web_page', summaryFile: 'lm-gitbook-formularios.summary.json', source: 'external',
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/formularios',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-ementa', disciplineCode: 'TEC.1632', title: 'Plano de Disciplina - Linguagens de Marcação',
     type: 'ementa', pdfPath: '/data/ementas/ementa-linguagens-marcacao.pdf',
     summaryFile: 'LM-ementa.summary.json', source: 'ifpb_site' },
@@ -778,7 +876,10 @@ export const materials: Material[] = [
   { id: 'rht-teletrabalho-serpro', disciplineCode: 'TEC.0953',
     title: 'Artigo: Teletrabalho no Serpro (RSP, 2021) — Proposta de Atividade I',
     type: 'pdf', pdfPath: '/pdfs/rht-teletrabalho-serpro.pdf',
-    summaryFile: 'rht-teletrabalho-serpro.summary.json', pages: 30, source: 'user_upload' },
+    summaryFile: 'rht-teletrabalho-serpro.summary.json', pages: 30, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['II. Trabalho humano no Brasil'],
+  },
   { id: 'fund-ementa', disciplineCode: '53647', title: 'Plano de Disciplina - Fundamentos',
     type: 'ementa', pdfPath: '/data/ementas/ementa-fundamentos.pdf',
     summaryFile: 'fundamentos-ementa.summary.json', source: 'ifpb_site' },
@@ -792,7 +893,10 @@ export const materials: Material[] = [
   // Provas reais (fotos enviadas pelo usuário)
   { id: 'prova-fund-av1', disciplineCode: '53647', title: 'Prova Av1 - Fundamentos da Computação (Prof. André)',
     type: 'image', pdfPath: '/pdfs/prova-andre-av1-fundamentos.jpg',
-    summaryFile: 'prova-fund-av1.summary.json', source: 'user_upload' },
+    summaryFile: 'prova-fund-av1.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Hardware e Software', 'Representação de Dados'],
+  },
   { id: 'cronograma-ivs', disciplineCode: 'PNAAT', title: 'Edital IVS - Cronograma (2026.2)',
     type: 'image', pdfPath: '/pdfs/cronograma-ivs.jpg',
     summaryFile: 'cronograma-ivs.summary.json', source: 'user_upload' },
@@ -822,21 +926,44 @@ export const materials: Material[] = [
   // NOVOS MATERIAIS — Matemática (Matrizes)
   { id: 'mat-00-matrizes', disciplineCode: 'TEC.1984', title: 'Matrizes — Aula 00 (Slides)',
     type: 'slides', pdfPath: '/pdfs/mat-00-matrizes.pdf',
-    summaryFile: 'mat-00-matrizes.summary.json', source: 'user_upload' },
+    summaryFile: 'mat-00-matrizes.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['1. Álgebra Matricial'],
+  },
   { id: 'mat-01-matrizes', disciplineCode: 'TEC.1984', title: 'Matrizes — Aula 01 (Lista)',
     type: 'lista_exercicios', pdfPath: '/pdfs/mat-01-matrizes.pdf',
-    summaryFile: 'mat-01-matrizes.summary.json', source: 'user_upload' },
+    summaryFile: 'mat-01-matrizes.summary.json', source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['1. Álgebra Matricial'],
+  },
   // NOVOS MATERIAIS — Algoritmos (Slides gerais + Tipos/Operadores)
   { id: 'alg-slides-geral', disciplineCode: 'TEC.1687', title: 'Algoritmos — Slides Gerais (64 páginas, Prof. Fábio)',
     type: 'slides', pdfPath: '/pdfs/alg-slides-geral.pdf',
-    summaryFile: 'alg-slides-geral.summary.json', pages: 64, source: 'user_upload' },
+    summaryFile: 'alg-slides-geral.summary.json', pages: 64, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 2: Desvios condicionais', 'Unidade 3: Comandos de repetição'],
+  },
   { id: 'alg-tipos-operadores', disciplineCode: 'TEC.1687', title: 'Tipos de Variáveis e Operadores (Prof. Fábio)',
     type: 'slides', pdfPath: '/pdfs/alg-tipos-operadores.pdf',
-    summaryFile: 'alg-tipos-operadores.summary.json', pages: 16, source: 'user_upload' },
+    summaryFile: 'alg-tipos-operadores.summary.json', pages: 16, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação'],
+  },
   // NOVO MATERIAL — Inglês (Vocabulário)
   { id: 'ing-vocabulario', disciplineCode: 'ING.001', title: 'Vocabulário Básico 2026',
     type: 'slides', pdfPath: '/pdfs/ing-vocabulario.pdf',
-    summaryFile: 'ing-vocabulario.summary.json', pages: 11, source: 'user_upload' },
+    summaryFile: 'ing-vocabulario.summary.json', pages: 11, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Leitura e estratégias', 'Gêneros e gramática'],
+  },
+  // NOVO MATERIAL — Inglês (vídeo do Classroom, 16/09)
+  { id: 'ing-video-corpo-verbos', disciplineCode: 'ING.001',
+    title: 'Vídeo: 15 partes do corpo que também são VERBOS (16 min)',
+    type: 'video', summaryFile: 'ing-video-corpo-verbos.summary.json', source: 'external',
+    externalUrl: 'https://www.youtube.com/watch?v=cCZPY-dgGMI',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Gêneros e gramática'],
+  },
 ];
 
 export interface CalendarEvent {
@@ -914,7 +1041,8 @@ export const evaluationPeriods: EvaluationPeriod[] = [
   { disciplineCode: 'TEC.1632', evaluationName: 'A1', description: 'Estrutura de um website (HTML) - peso 45%' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A2', description: 'Codificação visual (CSS) - peso 45%' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A3', description: 'Apresentação do projeto - peso 10%' },
-  { disciplineCode: 'TEC.1984', evaluationName: 'Av1', description: '1ª avaliação (Álgebra Matricial)' },
+  // Data confirmada pelo dono (19/09): prova de Matemática no dia 01/10.
+  { disciplineCode: 'TEC.1984', evaluationName: 'Av1', description: 'Prova — Álgebra Matricial (núcleo) + revisão de Lógica', date: '2026-10-01', estimatedWeek: 6 },
   { disciplineCode: 'TEC.1984', evaluationName: 'Av2', description: '2ª avaliação (Lógica Matemática)' },
   { disciplineCode: 'TEC.1984', evaluationName: 'Av3', description: '3ª avaliação (Conjuntos e Funções) + trabalho' },
   { disciplineCode: '53647', evaluationName: 'Av1', description: '1ª avaliação (Histórico, Hardware/Software)' },

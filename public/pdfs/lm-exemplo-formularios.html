@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formulários</title>
+  </head>
+  <body>
+    <h1>Formulários</h1>
+    <form action="#" method="GET">
+      <div>
+        <label for="input-nome">Nome Completo</label>
+        <input id="input-nome" name="nome" type="text" />
+      </div>
+      <div>
+        <label for="input-dtnascimento">Data de Nascimento</label>
+        <input id="input-dtnascimento" name="dtnascimento" type="date" />
+      </div>
+      <div>
+        <div>
+          <label for="input-curso">Curso:</label>
+        </div>
+        <select name="curso" id="input-curso">
+          <option value="ads">Análise e Desenvolvimento de Sistemas</option>
+          <option value="beca">Engenharia de Controle e Automação</option>
+          <option value="civil">Engenharia Civil</option>
+          <option value="matematica">Licenciatura em Matemática</option>
+        </select>
+      </div>
+      <div>
+        <div>
+          <label for="input-mensagem">Mensagem</label>
+        </div>
+        <textarea name="mensagem" id="input-mensagem"></textarea>
+      </div>
+      <div>
+        <label for="input-turno">Turno: </label>
+        <div id="input-turno">
+          <input type="radio" name="turno" value="manha" id="input-turno-manha" /> Manhã
+          <input type="radio" name="turno" value="tarde" id="input-turno-tarde" /> Tarde
+          <input type="radio" name="turno" value="noite" id="input-turno-noite" /> Noite
+          <input type="radio" name="turno" value="integral" id="input-turno-integral" /> Integral
+        </div>
+      </div>
+      <div>
+        <label for="input-necessidade">Necessidades especiais</label>
+        <div>
+          <input id="input-necessidade" type="checkbox" name="cadeira-rodas" value="cadeira-rodas" />Cadeira de rodas
+          <input
+            id="input-necessidade"
+            type="checkbox"
+            name="acompanhamento-psicologico"
+            value="acompanhamento-psicologico"
+          />Acompanhamento psicológico
+        </div>
+      </div>
+      <button type="submit">Enviar</button>
+      <button type="reset">Restaurar valores</button>
+      <button type="button" onclick="alert('Alerta com Javascript')">Exibir alerta</button>
+    </form>
+  </body>
+</html>

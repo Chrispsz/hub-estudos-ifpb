@@ -1,0 +1,250 @@
+                Curso Superior de Análise e Desenvolvimento de Sistemas
+                Linguagens de Marcação
+                Prof. MSc. Diogo D. Moreira
+
+
+
+
+HTML
+Formulários
+
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Introdução
+× Formulários HTML são um dos principais pontos de interação entre
+      um usuário e um web site ou aplicativo.
+× Permitem que os usuários enviem dados para o web site.
+× Na maior parte do tempo, os dados são enviados para um servidor na
+      web
+
+
+
+
+                                                                       2
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Introdução
+× Um formulário HTML é feito de um ou mais widgets (ou
+      componentes, como preferir).
+× Esses widgets podem ser campos de texto (linha única ou de várias
+      linhas), caixas de seleção, botões, checkboxes ou radio buttons.
+
+
+
+
+                                                                         3
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Form
+× Todo formulário começa e termina com a tag <form>. Como no
+      exemplo abaixo:
+
+
+<form action="/pagina-processa-dados">
+</form>
+
+
+
+
+                                                               4
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Form
+× O atributo "action" da tag form indica para onde os dados desse
+      formulário devem ser enviados. Neste caso, um endereço
+      "pagina-processa-dados"
+
+
+<form action="/pagina-processa-dados">
+</form>
+
+
+
+
+                                                                    5
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Form
+× Em alguns casos, é necessário definir o method dos formulários. Os
+      possíveis valores de method são GET e POST
+<form method="post" action="/pagina-processa-dados">
+</form>
+
+
+
+
+                                                                       6
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Form
+× Por hora, entenda que GET e POST são usados para coisas
+      diferentes:
+        ×       Use GET para buscas ou informações que não são sensíveis ou confidenciais.
+
+        ×       Use POST quando as informações forem sensíveis/confidenciais.
+
+
+
+
+                                                                                             7
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Input
+× O elemento mais importante de formulários é o input. Ele vai servir
+      para entrada de vários tipos de informação e sua exibição vai variar
+      muito.
+× Como ele pode receber vários tipos de informações, o atributo "type"
+      é o que define qual informação será passada
+
+
+
+
+                                                                             8
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Input
+● Type
+        ○       text
+        ○       email
+        ○       date
+        ○       tel
+        ○       url
+        ○       search
+        ○       password
+
+
+
+                                                       9
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Label
+× A tag <label> é uma maneira para vincular uma descrição à um
+      campo do formulário. O atributo for faz referência ao id do campo
+      correspondente.
+      <label for="email">
+
+× Referencia um campo de entrada de e-mail que tem id="email"
+
+
+
+
+                                                                          10
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Select
+× Select define uma lista de opções dentro de um componente
+      "drop-down", junto com a tag option
+
+      <select name="carros">
+        <option value="bmw">BMW</option>
+        <option value="vw">VW</option>
+        <option value="fiat">Fiat</option>
+        <option value="audi">Audi</option>
+      </select>
+
+                                                              11
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Textarea
+× Textarea define um campo de texto de mais de uma linha, diferente
+      de um input do tipo "text"
+
+      <textarea name="message">
+         Oi mãe, tudo bem?
+      </textarea>
+
+      Dessa forma, a caixa de texto já é iniciada com um texto
+      predefinido, mas também pode ser deixado vazio.
+
+                                                                      12
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Botões
+
+A tag <button> define um botão clicável.
+Dentro de um elemento <button>, você pode inserir texto (e tags como
+<i>, <b>, <strong>, <br>, <img>, etc.).
+Isso não é possível com um botão criado com o elemento <input>
+
+
+
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Botões
+
+Em HTML, os botões são divididos em três tipos principais, diferenciados
+pelo atributo type dentro do elemento <button> ou <input>:
+submit, reset e button.
+
+
+
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Botões
+
+Em HTML, os botões são divididos em três tipos principais, diferenciados
+pelo atributo type dentro do elemento <button> ou <input>:
+Botão Submit:
+O botão submit, quando clicado dentro de um <form>, envia os dados do
+formulário ao servidor para processamento. Se o atributo type for omitido,
+o botão passa a ser, por padrão, um botão submit dentro de um
+formulário.
+
+
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Botões
+
+Em HTML, os botões são divididos em três tipos principais, diferenciados
+pelo atributo type dentro do elemento <button> ou <input>:
+Botão Reset:
+O botão reset "limpa" os campos do formulário, restaurando-os aos seus
+valores iniciais.
+
+
+
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Botões
+
+Em HTML, os botões são divididos em três tipos principais, diferenciados
+pelo atributo type dentro do elemento <button> ou <input>:
+Botão Geral:
+O tipo button é um botão clicável genérico, sem comportamento padrão.
+Sua funcionalidade é inteiramente controlada por scripts e ouvintes de
+eventos JavaScript, permitindo ações personalizadas quando clicado.
+
+
+
+
+ Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Componentes checáveis
+
+● Componentes checáveis são aqueles em que o estado pode ser
+  mudado ao clicar neles. Existem dois tipos em HTML: Checkbox e
+  Radio Button (as traduções não ajudaram nesse caso, prefira usar
+  esses termos).
+● Para o caso do Radio, todos os names devem ser iguais para que não
+  seja possível selecionar dois do mesmo grupo.
+
+
+
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+Considerações gerais
+× Para termos um formulário bem estruturado e com código fácil de
+      entender, as sugestões são:
+        ×       Cada campo do formulário deve estar em uma div
+
+        ×       Cada campo do formulário deve ter um label associado a ele
+
+
+
+
+                                                                             19
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+       Prática
+                              Construa um formulário para que um usuário do seu site possa
+                              fazer o pedido de uma pizza.
+                              O formulário deve ter:
+                                ● Sabor da pizza (em um select) e quantidade (input tipo
+                                  number)
+                                ● Tamanho da pizza (em um input tipo "radio")
+                                ● Adicionais (quantos quiser, em inputs tipo "checkbox")
+                                ● Bebida (em um select) e quantidade (input tipo number)
+                                ● Endereço de entrega (em um input do tipo textarea)
+                              Além disso, insira botões do tipo "reset" e "submit" para limpar e
+                              enviar o formulário
+
+
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+

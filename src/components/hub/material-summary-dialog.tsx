@@ -75,6 +75,7 @@ const typeLabel: Record<Material['type'], string> = {
   pdf: 'PDF',
   image: 'Imagem',
   calendar: 'Calendário',
+  exemplo: 'Exemplo de código',
 };
 
 // Cache simples em memória (session) para evitar re-fetching

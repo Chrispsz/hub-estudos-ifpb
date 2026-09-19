@@ -28,6 +28,7 @@ import { SettingsView } from '@/components/hub/settings-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
 import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
+import { OPEN_SIMULADO_EVENT, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 
 const VALID_TABS: TabKey[] = [
@@ -84,6 +85,28 @@ export default function Page() {
     }
     window.addEventListener(OPEN_METHOD_EVENT, onOpenMethod);
     return () => window.removeEventListener(OPEN_METHOD_EVENT, onOpenMethod);
+  }, []);
+
+  // Parâmetros para o Simulado Pro (evento hub:open-simulado — card da prova
+  // no Painel). Nonce garante re-aplicação mesmo voltando à mesma aba.
+  const [simuladoReq, setSimuladoReq] = React.useState<
+    { detail: OpenSimuladoDetail; nonce: number } | undefined
+  >(undefined);
+  const simuladoNonce = React.useRef(0);
+  React.useEffect(() => {
+    function onOpenSimulado(e: Event) {
+      const detail = (e as CustomEvent<OpenSimuladoDetail>).detail ?? {};
+      simuladoNonce.current += 1;
+      setSimuladoReq({ detail, nonce: simuladoNonce.current });
+      setActiveState('practice');
+      if (typeof window !== 'undefined') {
+        const newUrl = `${window.location.pathname}${window.location.search}#practice`;
+        window.history.pushState({ tab: 'practice' }, '', newUrl);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    window.addEventListener(OPEN_SIMULADO_EVENT, onOpenSimulado);
+    return () => window.removeEventListener(OPEN_SIMULADO_EVENT, onOpenSimulado);
   }, []);
 
   const setActive = React.useCallback((k: TabKey) => {
@@ -205,7 +228,7 @@ export default function Page() {
       case 'library':
         return <LibraryView />;
       case 'practice':
-        return <PracticeView />;
+        return <PracticeView simuladoReq={simuladoReq} />;
       case 'method':
         return (
           <MethodView
