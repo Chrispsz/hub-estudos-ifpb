@@ -66,7 +66,7 @@ export interface Material {
   id: string;
   disciplineCode: string;
   title: string;
-  type: 'slides' | 'lista_exercicios' | 'web_page' | 'introducao' | 'ementa' | 'video' | 'pdf' | 'calendar';
+  type: 'slides' | 'lista_exercicios' | 'web_page' | 'introducao' | 'ementa' | 'video' | 'pdf' | 'image' | 'calendar';
   // PDF público (servido de /pdfs/) - opcional
   pdfPath?: string;
   // Resumo IA em /data/ai-summaries/
@@ -220,7 +220,7 @@ export const disciplines: Discipline[] = [
       'MEDINA, M; FERTIG, C. Algoritmos e programação: teoria e prática. Novatec, 2005.',
       'SOUZA, M. A. F. et al. Algoritmos e lógica de programação. Thomson Pioneira, 2005.',
     ],
-    materiaisUsuario: 3,
+    materiaisUsuario: 4,
     dicasEstudo: [
       'Pratique TODOS os dias - programação se aprende programando',
       'Resolva as "Questões da Semana" do Classroom toda semana — elas são o treino oficial do prof. Fábio',
@@ -301,7 +301,7 @@ export const disciplines: Discipline[] = [
       'SILVA, M. S. CSS3. Novatec, 2011.',
       'TERUEL, E. C. HTML5: guia prático. Érica, 2014.',
     ],
-    materiaisUsuario: 15,
+    materiaisUsuario: 10,
     dicasEstudo: [
       'Construa um site pessoal desde a primeira semana',
       'Use o VS Code com extensão Live Server para preview',
@@ -384,7 +384,7 @@ export const disciplines: Discipline[] = [
       'CORDEIRO, D. Um convite à matemática. EDUFCG, 21ª ed., 2007.',
       'LIMA, E. L. et al. A Matemática do Ensino Médio (Vols. 1, 2, 3). SBM, 2002.',
     ],
-    materiaisUsuario: 2,
+    materiaisUsuario: 4,
     dicasEstudo: [
       'Monte tabelas-verdade para TODOS os exercícios de lógica',
       'Pratique conversões e operações com matrizes sem calculadora',
@@ -461,7 +461,7 @@ export const disciplines: Discipline[] = [
       'STALLINGS, W. Arquitetura e Organização de Computadores. Makron Books, 5ª ed., 2002.',
       'MEIRELES, F. S. Informática: Novas Aplicações. Makron Books, 2ª ed., 1994.',
     ],
-    materiaisUsuario: 0,
+    materiaisUsuario: 1,
     dicasEstudo: [
       'Pratique conversões de base (binário, octal, decimal, hex) até automatizar',
       'Monte um mapa das portas lógicas com suas tabelas verdade',
@@ -615,7 +615,7 @@ export const disciplines: Discipline[] = [
       'MARINOTTO, D. Reading on info tech. Novatec, 2ª ed., 2008.',
       'MURPHY, R. Essential grammar in use. Cambridge, 2ª ed., 1997.',
     ],
-    materiaisUsuario: 0,
+    materiaisUsuario: 1,
     dicasEstudo: [
       'Leia textos em inglês da área de TI todos os dias (15 min)',
       'Monte um glossário pessoal de termos técnicos',
@@ -791,11 +791,11 @@ export const materials: Material[] = [
     summaryFile: 'calendario.summary.json', source: 'ifpb_site' },
   // Provas reais (fotos enviadas pelo usuário)
   { id: 'prova-fund-av1', disciplineCode: '53647', title: 'Prova Av1 - Fundamentos da Computação (Prof. André)',
-    type: 'pdf', pdfPath: '/pdfs/prova-andre-av1-fundamentos.jpg',
+    type: 'image', pdfPath: '/pdfs/prova-andre-av1-fundamentos.jpg',
     summaryFile: 'prova-fund-av1.summary.json', source: 'user_upload' },
   { id: 'cronograma-ivs', disciplineCode: 'PNAAT', title: 'Edital IVS - Cronograma (2026.2)',
-    type: 'pdf', pdfPath: '/pdfs/cronograma-ivs.jpg',
-    summaryFile: '', source: 'user_upload' },
+    type: 'image', pdfPath: '/pdfs/cronograma-ivs.jpg',
+    summaryFile: 'cronograma-ivs.summary.json', source: 'user_upload' },
   // PNAAT
   { id: 'pnaat-cursos', disciplineCode: 'PNAAT', title: 'PNAAT - Meus Cursos (PDF)',
     type: 'pdf', pdfPath: '/pdfs/PNAAT-Meus-cursos.pdf',

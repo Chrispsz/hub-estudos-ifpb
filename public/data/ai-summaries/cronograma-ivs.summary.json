@@ -1,0 +1,59 @@
+{
+  "titulo": "Edital IVS — Cronograma (2026.2)",
+  "disciplina": "PNAAT / Assistência Estudantil",
+  "tipo": "outro",
+  "tempo_estudo_minutos": 5,
+  "resumo_geral": "Documento do IF Sertão-PB Campus Cajazeiras com o cronograma oficial do Edital de IVS (Índice de Vulnerabilidade Social) do segundo semestre de 2026. Define as sete etapas do processo seletivo auxiliar — inscrição, análise socioeconômica, entrevistas, resultado preliminar, interposição e análise de recursos e resultado final — com as datas exatas de início e fim de cada fase, de 01/09 a 23/10/2026. É essencial acompanhar os prazos para não perder nenhuma etapa do processo.",
+  "conceitos_chave": [
+    {
+      "conceito": "IVS — Índice de Vulnerabilidade Social",
+      "explicacao": "Instrumento utilizado pela assistência estudantil para avaliar a vulnerabilidade socioeconômica de estudantes e priorizar benefícios e auxílios.",
+      "exemplo": "O preenchimento correto dos dados na inscrição (01/09 a 15/09/2026) determina a análise posterior."
+    },
+    {
+      "conceito": "Período de inscrição",
+      "explicacao": "Fase em que o estudante se cadastra no processo. Fora dela não é possível participar.",
+      "exemplo": "01/09 a 15/09/2026."
+    },
+    {
+      "conceito": "Análise socioeconômica",
+      "explicacao": "A comissão avalia as informações e documentos enviados na inscrição para calcular a vulnerabilidade.",
+      "exemplo": "16/09 a 02/10/2026."
+    },
+    {
+      "conceito": "Entrevistas",
+      "explicacao": "Etapa presencial ou virtual de confirmação das informações, para uma amostra ou todos os inscritos.",
+      "exemplo": "05 a 06/10/2026."
+    },
+    {
+      "conceito": "Resultado preliminar e recursos",
+      "explicacao": "A lista prévia pode ser contestada pelo estudante na fase de interposição de recursos, antes do resultado definitivo.",
+      "exemplo": "Preliminar em 07/10; recursos de 08 a 11/10; análise dos recursos de 13 a 22/10/2026."
+    },
+    {
+      "conceito": "Resultado final",
+      "explicacao": "Publicação definitiva da classificação, após julgados todos os recursos.",
+      "exemplo": "23/10/2026."
+    }
+  ],
+  "pontos_importantes": [
+    "Inscrições: 01/09 a 15/09/2026 — não há prazo extra",
+    "Análise socioeconômica: 16/09 a 02/10/2026",
+    "Entrevistas: 05 a 06/10/2026",
+    "Resultado preliminar: 07/10/2026",
+    "Interposição de recursos: 08/10 a 11/10/2026",
+    "Análise dos recursos: 13/10 a 22/10/2026",
+    "Resultado final: 23/10/2026",
+    "O próprio documento reforça: fique atento(a) ao cronograma e não perca os prazos"
+  ],
+  "erros_comuns": [
+    "Perder a janela de inscrição (acreditar que ainda dá tempo após 15/09)",
+    "Não conferir o resultado preliminar e perder o prazo de recurso",
+    "Faltar à entrevista nos dias 05 e 06/10 sem justificativa"
+  ],
+  "proximos_passos": [
+    "Anote as datas no celular com lembrete 2 dias antes de cada fase",
+    "Separe antecipadamente os documentos socioeconômicos pedidos no edital",
+    "Acompanhe a página da assistência estudantil (CAEST) para comunicações oficiais"
+  ]
+}

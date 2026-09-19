@@ -8,6 +8,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Image as ImageIcon,
   X,
 } from 'lucide-react';
 import {
@@ -37,6 +38,19 @@ interface Props {
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
 const touchBtn = 'h-11 sm:h-8';
 
+/** Rótulo legível do tipo exibido no cabeçalho do dialog. */
+const TYPE_LABEL: Record<Material['type'], string> = {
+  slides: 'Slides',
+  lista_exercicios: 'Lista de exercícios',
+  web_page: 'Página web',
+  introducao: 'Introdução',
+  ementa: 'Ementa',
+  video: 'Vídeo',
+  pdf: 'PDF',
+  image: 'Imagem',
+  calendar: 'Calendário',
+};
+
 export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const sp = useStudyProgress();
   const [tutorOpen, setTutorOpen] = React.useState(false);
@@ -53,6 +67,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
     ? getDisciplineByCode(material.disciplineCode)
     : undefined;
   const color = getColorClasses(discipline?.color ?? 'slate');
+  const isImage = material?.type === 'image';
 
   React.useEffect(() => {
     if (open && material) {
@@ -78,7 +93,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
               color.text,
             )}
           >
-            <FileText className="size-4.5" />
+            {isImage ? <ImageIcon className="size-4.5" /> : <FileText className="size-4.5" />}
           </div>
           <div className="min-w-0 flex-1">
             <DialogTitle className="truncate text-base leading-tight">
@@ -89,7 +104,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 {discipline?.shortName ?? material.disciplineCode}
               </Badge>
               {material.pages ? <span>{material.pages} páginas</span> : null}
-              <span className="hidden sm:inline">{material.type}</span>
+              <span className="hidden sm:inline">{TYPE_LABEL[material.type]}</span>
             </DialogDescription>
           </div>
           <Button
@@ -120,12 +135,12 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
             className={touchBtn}
             onClick={() => {
               if (!material.pdfPath) return;
-              const filename = material.pdfPath.split('/').pop() ?? 'arquivo.pdf';
+              const filename = material.pdfPath.split('/').pop() ?? 'arquivo';
               downloadPdf(material.pdfPath, filename);
               toast.success('Download iniciado');
             }}
           >
-            <Download className="size-3.5" /> Baixar PDF
+            <Download className="size-3.5" /> {isImage ? 'Baixar imagem' : 'Baixar PDF'}
           </Button>
           <Button
             size="sm"
@@ -164,14 +179,31 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
         </div>
 
         <div className="flex min-h-0 flex-col">
-          <iframe
-            src={material.pdfPath}
-            title={material.title}
-            className={cn(
-              'w-full bg-muted transition-all duration-300',
-              tutorOpen ? 'h-[52vh]' : 'h-[80vh]',
-            )}
-          />
+          {isImage ? (
+            // JPG/PNG (ex.: fotos de provas): <img> direto — iframe não dá
+            // toolbar útil para imagem e o zoom nativo é pior.
+            <div
+              className={cn(
+                'flex items-center justify-center overflow-auto bg-muted p-2 transition-all duration-300',
+                tutorOpen ? 'h-[52vh]' : 'h-[80vh]',
+              )}
+            >
+              <img
+                src={material.pdfPath}
+                alt={material.title}
+                className="max-h-full max-w-full rounded-md object-contain shadow-md"
+              />
+            </div>
+          ) : (
+            <iframe
+              src={material.pdfPath}
+              title={material.title}
+              className={cn(
+                'w-full bg-muted transition-all duration-300',
+                tutorOpen ? 'h-[52vh]' : 'h-[80vh]',
+              )}
+            />
+          )}
           {tutorOpen && (
             <div className="flex h-[28vh] flex-col border-t bg-background">
               <TutorQuickPanel

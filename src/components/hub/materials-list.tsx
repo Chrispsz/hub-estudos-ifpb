@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileText,
   History,
+  ImageIcon,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -52,6 +53,7 @@ const typeLabel: Record<Material['type'], string> = {
   ementa: 'Plano de Disciplina',
   video: 'Vídeo',
   pdf: 'PDF',
+  image: 'Imagem',
   calendar: 'Calendário',
 };
 
@@ -475,7 +477,15 @@ const MaterialRow = React.memo(function MaterialRow({
             className="h-11 sm:h-8"
             onClick={() => onOpenPdf(material)}
           >
-            <FileText className="size-3.5" /> PDF
+            {material.type === 'image' ? (
+              <>
+                <ImageIcon className="size-3.5" /> Ver
+              </>
+            ) : (
+              <>
+                <FileText className="size-3.5" /> PDF
+              </>
+            )}
           </Button>
         )}
         {material.summaryFile && (

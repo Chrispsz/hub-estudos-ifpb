@@ -44,6 +44,7 @@ const typeLabel: Record<Material['type'], string> = {
   ementa: 'Plano',
   video: 'Vídeo',
   pdf: 'PDF',
+  image: 'Imagem',
   calendar: 'Calendário',
 };
 

@@ -129,6 +129,7 @@ const MATERIAL_TYPE_LABEL: Record<Material['type'], string> = {
   ementa: 'Ementa',
   video: 'Vídeo',
   pdf: 'PDF',
+  image: 'Imagem',
   calendar: 'Calendário',
 };
 

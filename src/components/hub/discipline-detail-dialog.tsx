@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileText,
   GraduationCap,
+  Image as ImageIcon,
   LayoutList,
   Library,
   Lightbulb,
@@ -75,6 +76,7 @@ const typeLabel: Record<Material['type'], string> = {
   ementa: 'Plano de Disciplina',
   video: 'Vídeo',
   pdf: 'PDF',
+  image: 'Imagem',
   calendar: 'Calendário',
 };
 
@@ -432,7 +434,15 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                   className={touchBtn}
                                   onClick={() => setPdfFor(m)}
                                 >
-                                  <FileText className="size-3.5" /> Abrir PDF
+                                  {m.type === 'image' ? (
+                                    <>
+                                      <ImageIcon className="size-3.5" /> Ver
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FileText className="size-3.5" /> Abrir PDF
+                                    </>
+                                  )}
                                 </Button>
                               )}
                               {m.summaryFile && (
