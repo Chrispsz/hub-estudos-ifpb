@@ -224,3 +224,14 @@ export const MATH_CHECKLIST: { grupo: string; itens: string[] }[] = [
 export function planDayFor(daysLeft: number): PlanDay | undefined {
   return MATH_EXAM_PLAN.find((d) => d.offset === daysLeft);
 }
+
+/**
+ * Dias do plano que ficaram PARA TRÁS (modo recuperação).
+ * O plano tem 12 dias; se o aluno só "entrou" nele com 9 dias restantes, os
+ * dias D-11..D-10..(acima do dia atual) foram pulados — eles continuam sendo
+ * conteúdo da prova e precisam de um catch-up condensado.
+ */
+export function missedPlanDays(daysLeft: number): PlanDay[] {
+  if (daysLeft >= MATH_EXAM_PLAN.length) return [];
+  return MATH_EXAM_PLAN.filter((d) => d.offset > daysLeft - 1 && d.offset > 0);
+}

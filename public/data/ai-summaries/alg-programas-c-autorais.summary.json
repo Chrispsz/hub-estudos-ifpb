@@ -1,0 +1,58 @@
+{
+  "titulo": "Programas C do autor — aula + Questões da Semana 1 (resolvidos)",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "codigo_autoral",
+  "tempo_estudo_minutos": 40,
+  "resumo_geral": "Arquivo 'Programas C.7z' enviado pelo dono em 19/09: 19 programas .c autorais COM OUTPUTS (compilados e rodados) — 10 da prática de aula (média de notas, círculo com const PI, perímetro, hipotenusa com pow/sqrt, raiz/cubo, ASCII ida-e-volta, minúscula→maiúscula com −32) + as 9 questões da Semana 1 completas (antecessor/sucessor, área do triângulo, temperatura com 9.0/5.0, velocidade km/h→m/s, polegadas×2.54, cosseno via identidade sen²+cos²=1, terreno R$300/m², PA de 5 termos e reverso de 4 dígitos com / e %). É a PROVA de que a Semana 1 está dominada: a receita ler→calcular→printf está sólida, inclusive com conversões de unidades e decomposição de dígitos. O nível agora é exatamente o da Semana 2 (porcentagem, laço, distância euclidiana) e depois desvios condicionais.",
+  "conceitos_chave": [
+    {
+      "conceito": "Receita padrão dominada: scanf → fórmula → printf",
+      "explicacao": "Todos os 19 programas seguem a mesma estrutura do professor: ler variáveis (com & no scanf), calcular em variável intermediária com nome descritivo, imprimir com formato. O dono já usa scanf múltiplo (%f%f) para ler 2 valores numa linha — atalho que economiza código.",
+      "exemplo": "scanf(\"%f%f\", &comprimento, &largura);"
+    },
+    {
+      "conceito": "Conversões de unidades",
+      "explicacao": "Km/h→m/s em 2 passos (×1000, ×3600), polegadas→cm (×2.54), Celsius→Fahrenheit (9.0/5.0 — divisão REAL, não inteira!) e →Kelvin (+273.15). Padrão de prova: decorar os fatores.",
+      "exemplo": "float Fahrenheit = celsius * 9.0 / 5.0 + 32;"
+    },
+    {
+      "conceito": "Decomposição de dígitos com / e % (reverso de 4 dígitos)",
+      "explicacao": "A técnica mais importante do arquivo: milhar = n/1000; resto = n%1000; centena = resto/100; ... e remonta invertendo os pesos. Serve para soma de dígitos, CPF, capicua — cai em prova.",
+      "exemplo": "int unidade = resto % 10; int reverso = unidade*1000 + dezena*100 + centena*10 + milhar;"
+    },
+    {
+      "conceito": "Casts e tabela ASCII",
+      "explicacao": "O autor domina char↔int: (int)'A' dá o código, (char)65 dá a letra, e maiúscula = minúscula − 32 (diferença fixa na tabela ASCII). Pair ascii/caractere/letra_m_M mostram os 3 sentidos.",
+      "exemplo": "char maiuscula = (char)((int)minuscula - 32);"
+    },
+    {
+      "conceito": "math.h na prática: pow() e sqrt()",
+      "explicacao": "Hipotenusa = sqrt(pow(c1,2)+pow(c2,2)); cubo = pow(n,3); cosseno via identidade sen²+cos²=1 → sqrt(1 − seno²). Em Linux compilar com -lm (o autor já fez — os binários estão na pasta output/).",
+      "exemplo": "float cos_abs = sqrt(1.0 - seno * seno);"
+    }
+  ],
+  "pontos_importantes": [
+    "19 programas compilados com outputs na pasta output/ — disciplina de testar cada código antes de entregar (exatamente o que prova cobra).",
+    "const float PI=3.14 no comprimento.c: primeira constante nomeada do curso — melhor que número solto na fórmula.",
+    "A PA do aritmetica.c soma a razão passo a passo (a2=a1+r, a3=a2+r...) — sem laço, que é o que a Semana 1 pedia; na Semana 2 a tabuada já usa for.",
+    "VelocidadeMedia imprime com %.0f (m/s inteiro) — dependendo do enunciado, %.2f é mais seguro.",
+    "Cosseno 'absoluto': sqrt retorna sempre ≥0, então o programa entrega cos para seno positivo; para cos com sinal seria preciso decidir o quadrante."
+  ],
+  "erros_comuns": [
+    "⚠ BUG REAL no antecessor_e_sucessor.c: scanf(\"%c\", &numero) lê UM CARACTERE num int (deveria ser %d), e o printf imprime com %c em vez de %d — a saída sai como caracteres da tabela ASCII (ex.: digitar 5 imprime o caractere de controle da posição 5, invisível ou estranho). Correção: %d nos dois lugares. Este bug é ótimo material de revisão: compilador não reclama, mas a lógica sai errada.",
+    "void main() funciona no Dev-C++/GCC do autor, mas o padrão moderno é int main(){ ... return 0; } — os programas da prova podem ser escritos nos dois formatos, mas int main é o seguro.",
+    "No raiz_cubo.c, pow(num,3) atribuído a int pode truncar em casos extremos (pow retorna double); para cubo exato, num*num*num é 100% seguro.",
+    "Faltam \\n no final de alguns printf (hello_world, antecessor) — só estética, mas padronizar ajuda a ler a saída."
+  ],
+  "exercicios_sugeridos": [
+    "No Praticar do Hub: 'Encontre o bug' (alg-aut-q1) mostra o antecessor_e_sucessor.c original para você mesmo corrigir o %c → %d.",
+    "alg-aut-q2: reutilize sua técnica do reverso.c para SOMAR os 4 dígitos de um número (mesma decomposição, resultado diferente).",
+    "alg-aut-q3: ajuste seu VelocidadeMedia.c para imprimir com 2 decimais (%.2f) e teste com 90 km/h em 1 h → deve dar 25.00 m/s."
+  ],
+  "perguntas_autoavaliação": [
+    "Por que %d no scanf do antecessor_e_sucessor corrige o bug? (R: %c lê 1 byte/caractere; %d lê o número inteiro digitado)",
+    "Qual a diferença entre scanf(\"%f\", &x) duas vezes e scanf(\"%f%f\", &a, &b)? (R: nenhuma na lógica — a segunda lê os dois de uma vez, separados por espaço/Enter)",
+    "Como você decomporia um número de 5 dígitos com a sua técnica do reverso.c? (R: mesma ideia: /10000, %10000, /1000... um dígito por vez)",
+    "Por que escrever 9.0/5.0 e não 9/5 na conversão de temperatura? (R: 9/5 é divisão INTEIRA = 1; 9.0/5.0 = 1.8 real)"
+  ]
+}

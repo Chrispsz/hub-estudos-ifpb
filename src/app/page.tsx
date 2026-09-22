@@ -28,7 +28,7 @@ import { SettingsView } from '@/components/hub/settings-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
 import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
-import { OPEN_SIMULADO_EVENT, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 
 const VALID_TABS: TabKey[] = [
@@ -107,6 +107,28 @@ export default function Page() {
     }
     window.addEventListener(OPEN_SIMULADO_EVENT, onOpenSimulado);
     return () => window.removeEventListener(OPEN_SIMULADO_EVENT, onOpenSimulado);
+  }, []);
+
+  // Evento hub:open-practice (Plano de Recuperação) — abre a aba Praticar e
+  // pré-filtra a disciplina indicada.
+  const [practiceReq, setPracticeReq] = React.useState<
+    { detail: { disciplineCode?: string }; nonce: number } | undefined
+  >(undefined);
+  const practiceNonce = React.useRef(0);
+  React.useEffect(() => {
+    function onOpenPractice(e: Event) {
+      const detail = (e as CustomEvent<{ disciplineCode?: string }>).detail ?? {};
+      practiceNonce.current += 1;
+      setPracticeReq({ detail, nonce: practiceNonce.current });
+      setActiveState('practice');
+      if (typeof window !== 'undefined') {
+        const newUrl = `${window.location.pathname}${window.location.search}#practice`;
+        window.history.pushState({ tab: 'practice' }, '', newUrl);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    window.addEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
+    return () => window.removeEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
   }, []);
 
   const setActive = React.useCallback((k: TabKey) => {
@@ -228,7 +250,7 @@ export default function Page() {
       case 'library':
         return <LibraryView />;
       case 'practice':
-        return <PracticeView simuladoReq={simuladoReq} />;
+        return <PracticeView simuladoReq={simuladoReq} practiceReq={practiceReq} />;
       case 'method':
         return (
           <MethodView

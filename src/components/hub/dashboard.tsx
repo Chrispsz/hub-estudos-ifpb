@@ -42,6 +42,7 @@ import type { Discipline, Material } from '@/data/course-data';
 import { studyStrategy } from '@/data/course-data';
 import { TodayStudyCard } from './today-study-card';
 import { ExamPrepCard } from './exam-prep-card';
+import { RecoveryCard } from './recovery-card';
 import { SemesterProjection } from './semester-projection';
 import {
   daysUntilDate,
@@ -177,6 +178,9 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
 
       {/* FOCO: Prova de Matemática (Av1, 01/10) — plano 12 dias material-first */}
       <ExamPrepCard />
+
+      {/* PLANO DE RECUPERAÇÃO — semana atual + fila de prioridades (sem S1 feita, resto pendente) */}
+      <RecoveryCard />
 
       {/* "O que estudar hoje" (card central V3) — inclui o CTA do Protocolo HUB */}
       <TodayStudyCard

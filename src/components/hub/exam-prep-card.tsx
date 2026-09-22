@@ -11,6 +11,7 @@ import {
   BookOpen,
   CalendarClock,
   ChevronDown,
+  CircleAlert,
   CircleCheck,
   GraduationCap,
   ListChecks,
@@ -33,6 +34,7 @@ import {
   MATH_EXAM,
   MATH_EXAM_PLAN,
   MATH_FORMULAS,
+  missedPlanDays,
   planDayFor,
   type PlanDay,
   type PlanKind,
@@ -91,6 +93,7 @@ export function ExamPrepCard() {
   }
 
   const day = planDayForDaysLeft(daysLeft);
+  const missed = missedPlanDays(daysLeft);
   const totalTasks = MATH_EXAM_PLAN.reduce((a, d) => a + d.tarefas.length, 0);
   const doneTasks = Object.values(checked).filter(Boolean).length;
   const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
@@ -145,6 +148,26 @@ export function ExamPrepCard() {
             <span className="text-[11px] text-muted-foreground">01/10 · faltam</span>
           </div>
         </div>
+
+        {/* MODO RECUPERAÇÃO: dias do plano que ficaram para trás */}
+        {missed.length > 0 && (
+          <div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <div className="flex items-start gap-2">
+              <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  Modo recuperação: {missed.length} dia(s) do plano ficaram para trás
+                </p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80 dark:text-amber-300/80">
+                  {missed.map((m) => m.titulo).join(' · ')}. O conteúdo CONTINUA na prova —
+                  faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da
+                  Lista 01) antes do dia de hoje. A fila certa está no card “Plano de
+                  Recuperação”.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Dia de hoje do plano */}
         {day && (
@@ -276,6 +299,9 @@ export function ExamPrepCard() {
                       <Badge variant="outline" className={cn('border text-[10px]', KIND_STYLE[d.kind])}>
                         {KIND_LABEL[d.kind]}
                       </Badge>
+                      {missed.some((m) => m.offset === d.offset) && (
+                        <Badge className="border-0 bg-amber-500 text-[9px] text-white">atrasado</Badge>
+                      )}
                       <p className="min-w-0 flex-1 text-sm font-medium">{d.titulo}</p>
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Timer className="size-3" /> {d.minutos}min

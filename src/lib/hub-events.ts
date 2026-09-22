@@ -34,3 +34,16 @@ export function openSimulado(detail: OpenSimuladoDetail = {}): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent<OpenSimuladoDetail>(OPEN_SIMULADO_EVENT, { detail }));
 }
+
+export const OPEN_PRACTICE_EVENT = 'hub:open-practice';
+
+export interface OpenPracticeDetail {
+  /** Disciplina para pré-filtrar a lista de exercícios. */
+  disciplineCode?: string;
+}
+
+/** Dispara a troca para a aba Praticar com o filtro de disciplina aplicado. */
+export function openPractice(detail: OpenPracticeDetail = {}): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<OpenPracticeDetail>(OPEN_PRACTICE_EVENT, { detail }));
+}

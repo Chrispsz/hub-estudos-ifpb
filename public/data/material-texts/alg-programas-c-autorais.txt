@@ -1,0 +1,256 @@
+PROGRAMAS C DO AUTOR — Arquivo enviado pelo dono do Hub (19/09, "Programas C.7z")
+Soluções autorais compiladas e testadas: 10 programas da aula + 9 questões da Semana 1.
+Uso: gabarito autoral do Praticar (alg-s1q1..q8) e referência de estilo pessoal.
+DIRETÓRIO: 19 arquivos .c + binários na pasta output/ (prova de que compilou e rodou cada um).
+
+================================================================================
+PARTE 1 — PROGRAMAS FEITOS EM AULA (prática livre do autor)
+================================================================================
+
+--- hello_world.c ---
+#include <stdio.h>
+
+void main (){
+    printf("Hello, World!");
+}
+
+--- media.c ---
+#include <stdio.h>
+
+void main(){
+    float nota1,nota2,nota3;
+    printf("Informe a primeira nota:");
+    scanf("%f", &nota1);
+    printf("Informe a segunda nota:");
+    scanf("%f", &nota2);
+    printf("Informe a terceira nota:");
+    scanf("%f", &nota3);
+    float media = (nota1+nota2+nota3)/3;
+    printf("A media parcial eh %.1f\n",media);
+}
+
+--- media_simplificado.c --- (mesma lógica, leitura em uma linha só)
+#include <stdio.h>
+
+void main(){
+    float nota1,nota2,nota3;
+    printf("Informe as tres notas:");
+    scanf("%f%f%f",&nota1,&nota2,&nota3);
+    float media = (nota1+nota2+nota3)/3;
+    printf("A media parcial eh %.1f\n",media);
+}
+
+--- comprimento.c --- (círculo: área e comprimento; const float PI)
+#include "stdio.h"
+const float PI=3.14;
+void main(){
+    float raio;
+    printf("Informe o valor do raio:");
+    scanf("%f", &raio);
+    float area = (PI*(raio*raio));
+    float comprimento = 2*PI*raio;
+    printf("A area eh %.2f\n",area);
+    printf("O comprimento eh %.2f\n",comprimento);
+}
+
+--- perimetro.c --- (quadrado: área e perímetro; variável global)
+#include <stdio.h>
+float lado;
+void main(){
+    printf("informe o valor do lado:");
+    scanf("%f", &lado);
+    float area = lado * lado;
+    float perimetro = 4 * lado;
+    printf("A area eh %.2f",area);
+    printf("\nO perimetro eh %.2f\n", perimetro);
+}
+
+--- hipotenuza.c --- (pow + sqrt de math.h)
+#include <stdio.h>
+#include <math.h>
+
+void main(){
+    float cateto1, cateto2;
+    printf("informe os dois catetos:");
+    scanf("%f%f", &cateto1,&cateto2);
+    float soma = pow(cateto1,2) + pow(cateto2,2);
+    float hipotenuza = sqrt(soma);
+    printf("A hipotenuza eh %.1f\n",hipotenuza);
+}
+
+--- raiz_cubo.c --- (cubo inteiro via pow e raiz via sqrt)
+#include <stdio.h>
+#include <math.h>
+
+void main(){
+    int num;
+    printf("Informe um numero inteiro:");
+    scanf("%d", &num);
+    int cubo = pow(num,3);
+    float raiz = sqrt(num);
+    printf("O cubo eh %d e a raiz quadrada eh %.1f\n",cubo,raiz);
+}
+
+--- ascii.c --- (char → código ASCII com cast (int))
+#include <stdio.h>
+
+void main(){
+    char caractere;
+    printf("Informe um caractere:");
+    scanf("%c", &caractere);
+    int posicao = (int)caractere;
+    printf("posicao:%d\n",posicao);
+}
+
+--- caractere.c --- (código ASCII → char com cast (char))
+#include <stdio.h>
+
+void main(){
+    int posicao;
+    printf("Informe a posicao desejada:");
+    scanf("%d", &posicao);
+    char caractere = (char)posicao;
+    printf("Caractere:%c\n",caractere);
+}
+
+--- letra_m_M.c --- (minúscula → maiúscula pela tabela ASCII: -32)
+#include <stdio.h>
+
+void main(){
+    char minuscula;
+    printf("Informe a letra minuscula:");
+    scanf("%c", &minuscula);
+    int posicaoMai = (int)minuscula-32;
+    char maiuscula = (char)posicaoMai;
+    printf("A letra correspondente eh %c\n",maiuscula);
+}
+
+================================================================================
+PARTE 2 — QUESTÕES DA SEMANA 1 RESOLVIDAS PELO AUTOR (Classroom, 09/09)
+================================================================================
+
+--- antecessor_e_sucessor.c --- (⚠ TEM UM BUG — ver erros no resumo IA)
+#include <stdio.h>
+
+void main(){
+    int numero;
+    printf("Informe um numero:");
+    scanf("%c", &numero);
+    int antecessor = numero - 1;
+    int sucessor = numero + 1;
+    printf("O numero antecessor eh %c e o numero sucessor eh %c",antecessor,sucessor);
+}
+
+--- area_triangulo.c ---
+#include <stdio.h>
+
+void main(){
+    float base,altura;
+    printf("Informe o valor da base e da altura do triangulo:");
+    scanf("%f%f", &base,&altura);
+    float area = (base * altura)/2;
+    printf("A area do triangulo eh %.2f\n",area);
+}
+
+--- temperatura.c --- (Celsius → Fahrenheit (9.0/5.0!) e Kelvin)
+#include <stdio.h>
+
+void main(){
+    float celsius;
+    printf("Digite a temperatura em celcius: ");
+    scanf("%f", &celsius);
+    float Fahrenheit = celsius * 9.0 / 5.0 + 32;
+    float kelvin = celsius + 273.15;
+    printf("A temperatura correspondente em Fahrenheit eh %.2f e em kelvin %.2f", Fahrenheit, kelvin);
+
+}
+
+--- VelocidadeMedia.c --- (km/h → m/s: metros/segundos)
+#include <stdio.h>
+
+void main(){
+    float km,tempo;
+    printf("Distancia percorrida em km:");
+    scanf("%f", &km);
+    printf("Tempo gasto em horas:");
+    scanf("%f", &tempo);
+    float metros = km * 1000;
+    float segundos = tempo * 3600;
+    float media = metros / segundos;
+    printf("A velocidade media eh %.0f m/s\n", media);
+}
+
+--- polegadas.c --- (polegadas → cm: ×2.54)
+#include <stdio.h>
+
+void main(){
+    float polegadas;
+    printf("Valor em polegadas:");
+    scanf("%f", &polegadas);
+    float centimentros = polegadas * 2.54;
+    printf("O valor de polegadas em centimetros eh %.2f\n", centimentros);
+}
+
+--- cosseno.c --- (identidade sen²+cos²=1 → cos = sqrt(1 − sen²))
+#include <stdio.h>
+#include <math.h>
+
+void main(){
+    float seno;
+    printf("Informe o valor de seno: ");
+    scanf("%f", &seno);
+    float cos_abs = sqrt(1.0 - seno * seno);
+    printf("O valor do cosseno absoluto eh: %.2f\n", cos_abs);
+}
+
+--- terreno.c --- (área × R$ 300/m²)
+#include <stdio.h>
+
+void main(){
+    float comprimento, largura;
+    printf("Informe o comprimento e a largura do terreno: ");
+    scanf("%f%f", &comprimento, &largura);
+    float area = comprimento * largura;
+    float valor = area * 300;
+    printf("Esse terreno esta avaliado em: %.2f\n", valor);
+}
+
+--- aritmetica.c --- (PA: 5 termos somando a razão passo a passo)
+#include <stdio.h>
+
+void main(){
+    float primeiroTermo, razao;
+    printf("Digite o primeiro termo da PA: ");
+    scanf("%f", &primeiroTermo);
+    printf("Digite a razao da PA: ");
+    scanf("%f", &razao);
+    float segundoTermo = primeiroTermo + razao;
+    float terceiroTermo = segundoTermo + razao;
+    float quartoTermo = terceiroTermo + razao;
+    float quintoTermo = quartoTermo + razao;
+    printf("Primeiro termo: %.0f\n", primeiroTermo);
+    printf("Segundo termo: %.0f\n", segundoTermo);
+    printf("Terceiro termo: %.0f\n", terceiroTermo);
+    printf("Quarto termo: %.0f\n", quartoTermo);
+    printf("Quinto termo: %.0f\n", quintoTermo);
+}
+
+--- reverso.c --- (decomposição de dígitos com / e % — técnica de ouro)
+#include <stdio.h>
+
+void main(){
+    int num;
+    printf("Informe o numero inteiro entre 1000 e 9999: ");
+    scanf("%d", &num);
+    int milhar = num / 1000;
+    int resto = num % 1000;
+    int centena = resto / 100;
+    resto = resto % 100;
+    int dezena = resto / 10;
+    int unidade = resto % 10;
+    int reverso = (unidade * 1000)+(dezena * 100)+(centena * 10)+milhar;
+    printf("O numero reverso de %d eh %d\n",num, reverso);
+}
+
+================================================================================
+FIM — 19 programas. Progresso comprovado: Questões da Semana 1 = 100% feitas.

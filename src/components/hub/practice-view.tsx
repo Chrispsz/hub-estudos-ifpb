@@ -38,6 +38,7 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
 import { openSimulado, type OpenSimuladoDetail } from '@/lib/hub-events';
+import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
 import {
   exercises,
@@ -76,9 +77,12 @@ const ALIGN_STATS = getAlignmentStats();
 
 export function PracticeView({
   simuladoReq,
+  practiceReq,
 }: {
   /** Pedido externo p/ abrir o Simulado pré-configurado (ex.: prova de Matemática). */
   simuladoReq?: { detail: OpenSimuladoDetail; nonce: number };
+  /** Pedido externo p/ pré-filtrar a disciplina (Plano de Recuperação). */
+  practiceReq?: { detail: OpenPracticeDetail; nonce: number };
 } = {}) {
   const sp = useStudyProgress();
   const [mode, setMode] = React.useState<PracticeMode>('exercicios');
@@ -118,7 +122,7 @@ export function PracticeView({
       </div>
 
       <TabsContent value="exercicios" className="mt-0">
-        <ExercisesPanel simuladoReq={simuladoReq} />
+        <ExercisesPanel simuladoReq={simuladoReq} practiceReq={practiceReq} />
       </TabsContent>
       <TabsContent value="flashcards" className="mt-0">
         <FlashcardsView />
@@ -137,13 +141,24 @@ const MATH_EXAM_PRESET = {
 
 function ExercisesPanel({
   simuladoReq,
+  practiceReq,
 }: {
   simuladoReq?: { detail: OpenSimuladoDetail; nonce: number };
+  practiceReq?: { detail: OpenPracticeDetail; nonce: number };
 } = {}) {
   const sp = useStudyProgress();
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [filterTopic, setFilterTopic] = React.useState<string>('all');
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
+
+  // Pré-filtro de disciplina vindo de fora (ex.: card Plano de Recuperação).
+  React.useEffect(() => {
+    const code = practiceReq?.detail.disciplineCode;
+    if (code && getDisciplineByCode(code)) {
+      setFilterDiscipline(code);
+      setFilterTopic('all');
+    }
+  }, [practiceReq?.nonce, practiceReq]);
   // PADRÃO MATERIAL-FIRST: por padrão só aparece o que já foi dado em sala.
   // Persistido — o aluno escolhe se quer se adiantar.
   const [onlyAligned, setOnlyAligned] = useLocalStorage<boolean>('hub:praticar:soEmSala', true);

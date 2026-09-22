@@ -225,9 +225,10 @@ export const disciplines: Discipline[] = [
       'MEDINA, M; FERTIG, C. Algoritmos e programação: teoria e prática. Novatec, 2005.',
       'SOUZA, M. A. F. et al. Algoritmos e lógica de programação. Thomson Pioneira, 2005.',
     ],
-    materiaisUsuario: 5,
+    materiaisUsuario: 6,
     dicasEstudo: [
-      'Pratique TODOS os dias - programação se aprende programando',
+      'Pratique TODOS os dias - programação se aprende programando'
+      + ' — suas próprias soluções da Semana 1 estão no Hub como gabarito autoral (material "Programas C do autor")',
       'Resolva as "Questões da Semana" do Classroom toda semana — elas são o treino oficial do prof. Fábio',
       'Monitoria da disciplina (monitor Everton): Tira-Dúvidas toda SEGUNDA, 19h–21h, e Resolução de Questões toda QUARTA, 19h–21h — tudo no servidor da monitoria no Discord (link na Biblioteca)',
       'Faça a Lista de Exercícios completa antes da primeira prova',
@@ -747,6 +748,11 @@ export const materials: Material[] = [
     summaryFile: 'alg-questoes-semana2.summary.json', pages: 2, source: 'user_upload',
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 3: Comandos de repetição'],
+  },
+  { id: 'alg-programas-c-autorais', disciplineCode: 'TEC.1687', title: 'Programas C do autor — aula + Questões da Semana 1 (19 resolvidos)',
+    type: 'exemplo', summaryFile: 'alg-programas-c-autorais.summary.json', source: 'user_upload',
+    // Material-first: as soluções autorais comprovam DOMÍNIO da Unidade 1 (lidas/compiladas/rodadas)
+    topicosCobertos: ['Unidade 1: Noções de algoritmos e programação'],
   },
   { id: 'alg-monitoria-discord', disciplineCode: 'TEC.1687', title: 'Monitoria — Servidor no Discord (Everton)',
     type: 'web_page', summaryFile: 'alg-monitoria-discord.summary.json', source: 'external',

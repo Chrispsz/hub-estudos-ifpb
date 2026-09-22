@@ -327,6 +327,44 @@ export const exercises: Exercise[] = [
     hint: 'Termo n = a1 + (n-1)*r. Imprima com um for de n = 1 a 5 (ou vá somando a razão a cada passo).',
   },
 
+  // ===== Do arquivo "Programas C do autor" (19/09) — gabarito autoral vira treino =====
+  {
+    id: 'alg-aut-q1',
+    disciplineCode: 'TEC.1687',
+    topic: 'Comandos de entrada e saída',
+    statement:
+      'ENCONTRE O BUG: o programa abaixo compila, mas a saída sai errada. Ele deveria ler um número inteiro e imprimir o antecessor e o sucessor. Identifique os 2 erros de especificador de formato e corrija.\n\n#include <stdio.h>\nvoid main(){\n    int numero;\n    printf("Informe um numero:");\n    scanf("%c", &numero);\n    int antecessor = numero - 1;\n    int sucessor = numero + 1;\n    printf("O numero antecessor eh %c e o numero sucessor eh %c",antecessor,sucessor);\n}',
+    difficulty: 'medio',
+    source: 'ia_sugerido',
+    unit: 'Unidade 1: Noções de algoritmos e programação',
+    linkedMaterials: ['alg-programas-c-autorais'],
+    hint: 'Este código é do seu próprio arquivo! %c lê 1 CARACTERE (1 byte) e imprime o símbolo da tabela ASCII — para número inteiro use %d no scanf E no printf.',
+  },
+  {
+    id: 'alg-aut-q2',
+    disciplineCode: 'TEC.1687',
+    topic: 'Operadores aritméticos',
+    statement:
+      'Reutilizando a técnica do seu reverso.c (decomposição com / e %): leia um número inteiro de 4 dígitos e imprima a SOMA dos seus 4 dígitos. Ex.: 1234 → 1+2+3+4 = 10.',
+    difficulty: 'medio',
+    source: 'ia_sugerido',
+    unit: 'Unidade 1: Noções de algoritmos e programação',
+    linkedMaterials: ['alg-programas-c-autorais'],
+    hint: 'Mesma decomposição do seu programa: milhar = n/1000; resto = n%1000; centena = resto/100; ... e some os 4 em vez de remontar invertido.',
+  },
+  {
+    id: 'alg-aut-q3',
+    disciplineCode: 'TEC.1687',
+    topic: 'Comandos de entrada e saída',
+    statement:
+      'Ajuste o seu VelocidadeMedia.c: além de converter km/h para m/s (×1000, ÷3600), imprima o resultado com 2 casas decimais e teste com 90 km em 1 hora (esperado: 25.00 m/s). Explique por que %.0f pode esconder um cálculo errado.',
+    difficulty: 'facil',
+    source: 'ia_sugerido',
+    unit: 'Unidade 1: Noções de algoritmos e programação',
+    linkedMaterials: ['alg-programas-c-autorais'],
+    hint: 'Basta trocar %.0f por %.2f no seu printf. E o teste bate: 90000 m / 3600 s = 25 m/s exatos.',
+  },
+
   // ===== Questões da Semana 2 (Classroom do Prof. Fábio — 19/09) =====
   {
     id: 'alg-s2q1',
