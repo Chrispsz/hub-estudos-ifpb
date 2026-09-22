@@ -13,7 +13,12 @@ export const MATH_EXAM = {
   disciplineName: 'Matemática Aplicada à Computação',
   evaluationName: 'Av1',
   date: '2026-10-01', // confirmado pelo dono — fonte da verdade em course-data
-  programa: 'Álgebra Matricial (núcleo da Av1) + Lógica Matemática (revisão contínua)',
+  // ESCOPO REAL confirmado pelo dono (22/09): o professor deu Lógica (1º assunto)
+  // e está fechando Matrizes (teoria, multiplicação, inversa, determinantes e
+  // exercícios — playlist Rumo ao Topo F169-F173). SISTEMAS LINEARES ainda NÃO
+  // foi dado e NÃO entra na Av1 — quem pulou está certo.
+  programa:
+    'Álgebra Matricial (núcleo): matrizes, operações, transposta, determinantes e matriz inversa + Lógica (revisão). Sistemas Lineares NÃO entram — professor ainda não deu (confirmado 22/09).',
   notaPeso: 'Av1 = 33,3% da média final (escala 0-100, aprovação ≥ 70)',
   simuladoFilter: { discipline: 'TEC.1984', onlyMaterialFirst: true },
 } as const;
@@ -83,12 +88,13 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
   {
     offset: 7,
     kind: 'pratica',
-    titulo: 'Sistemas lineares via matrizes',
+    titulo: 'Determinantes e Inversa na prática (aula "Aprenda com Exercícios")',
     minutos: 75,
     tarefas: [
-      { texto: 'Lista: sistemas matriciais (exercícios 3, 4, 11 e 15)', materialId: 'mat-01-matrizes' },
-      { texto: 'mat-ex06 (AX = B com X = A⁻¹B)', exercisePool: ['mat-ex06'] },
-      { texto: 'Anotar no caderno os 3 passos: montar A e B → det → X = A⁻¹B', },
+      { texto: 'Lista: exercícios de determinante e inversa (2×2 e 3×3 por Sarrus) da Aula 01', materialId: 'mat-01-matrizes' },
+      { texto: 'Resolver 5 matrizes 2×2 novas: det → inversa → conferir A·A⁻¹ = I (sem olhar a fórmula)', },
+      { texto: 'Onde errar mais: sinal do det (ad − bc) e posições na fórmula da inversa — refazer 1 que errou', },
+      { texto: 'Sistemas lineares (AX = B)? PÓS-PROVA: professor ainda não deu — pule sem culpa (mat-ex06 fica guardado para depois da Av1)', },
     ],
   },
   {
@@ -185,7 +191,7 @@ export const MATH_FORMULAS: FormulaCard[] = [
   { grupo: 'Matrizes', titulo: 'Transposta e simetria', corpo: 'Aᵀ: linhas viram colunas (Aᵀij = Aji).\nSimétrica: A = Aᵀ.\nAntissimétrica: Aᵀ = −A (diagonal toda zero).', fonte: 'mat-01-matrizes' },
   { grupo: 'Matrizes', titulo: 'Determinante 2×2', corpo: 'A = [[a, b], [c, d]]\ndet(A) = a·d − b·c', fonte: 'mat-00-matrizes' },
   { grupo: 'Matrizes', titulo: 'Inversa 2×2', corpo: 'A⁻¹ = (1/det(A)) · [[d, −b], [−c, a]]\ndet(A) = 0 ⇒ NÃO existe inversa.\nTeste: A · A⁻¹ = I.', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Sistema linear', corpo: 'AX = B ⇒ X = A⁻¹B (quando det(A) ≠ 0).\nMonte A (coeficientes), X (incógnitas), B (resultados).', fonte: 'mat-01-matrizes' },
+  { grupo: 'Matrizes', titulo: 'Sistema linear (PÓS-PROVA)', corpo: 'AX = B ⇒ X = A⁻¹B (quando det(A) ≠ 0).\nMonte A (coeficientes), X (incógnitas), B (resultados).\n⚠ Professor ainda não deu — NÃO cai na Av1 (22/09).', fonte: 'mat-01-matrizes' },
   { grupo: 'Lógica', titulo: 'Conectivos', corpo: '¬p (não) · p ∧ q (e) · p ∨ q (ou) · p → q (se…então) · p ↔ q (se e só se).', fonte: 'mat-logica-slides' },
   { grupo: 'Lógica', titulo: 'Tabela da implicação', corpo: 'p → q é F APENAS quando V → F.\n(V,V)=V (V,F)=F (F,V)=V (F,F)=V', fonte: 'mat-logica-slides' },
   { grupo: 'Lógica', titulo: 'Tautologia × Contradição', corpo: 'Tautologia: sempre V (ex.: p ∨ ¬p).\nContradição: sempre F (ex.: p ∧ ¬p).\nContingência: depende dos valores.', fonte: 'mat-logica-lista' },
@@ -204,7 +210,12 @@ export const MATH_CHECKLIST: { grupo: string; itens: string[] }[] = [
       'Montar a transposta e testar simetria',
       'Calcular determinante 2×2',
       'Inverter matriz 2×2 e verificar com A·A⁻¹ = I',
-      'Resolver sistema 2×2 via AX = B',
+    ],
+  },
+  {
+    grupo: 'Pós-prova — NÃO cai na Av1',
+    itens: [
+      'Resolver sistema 2×2 via AX = B (sistemas lineares — professor ainda não deu, confirmado 22/09)',
     ],
   },
   {

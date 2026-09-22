@@ -976,13 +976,13 @@ export const exercises: Exercise[] = [
   {
     id: 'mat-ex06',
     disciplineCode: 'TEC.1984',
-    topic: 'Álgebra Matricial',
+    topic: 'Álgebra Matricial — Sistemas Lineares',
     statement:
-      'Resolva o sistema { x + y = 5; 2x - y = 1 } escrevendo-o na forma matricial AX = B e aplicando X = A⁻¹B. Confira a solução no sistema original.',
+      '[PÓS-PROVA — professor ainda NÃO deu sistemas lineares (confirmado 22/09), só resolva quando a aula acontecer] Resolva o sistema { x + y = 5; 2x - y = 1 } escrevendo-o na forma matricial AX = B e aplicando X = A⁻¹B. Confira a solução no sistema original.',
     difficulty: 'dificil',
     source: 'material_professor',
     hint: 'A = [[1, 1], [2, -1]], det(A) = -3. X = A⁻¹B com B = [5, 1]. Solução esperada: x = 2, y = 3.',
-    unit: '1. Álgebra Matricial',
+    unit: '1. Álgebra Matricial — Sistemas Lineares (ainda não dado em sala)',
     linkedMaterials: ['mat-01-matrizes'],
   },
   {

@@ -1048,7 +1048,9 @@ export const evaluationPeriods: EvaluationPeriod[] = [
   { disciplineCode: 'TEC.1632', evaluationName: 'A2', description: 'Codificação visual (CSS) - peso 45%' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A3', description: 'Apresentação do projeto - peso 10%' },
   // Data confirmada pelo dono (19/09): prova de Matemática no dia 01/10.
-  { disciplineCode: 'TEC.1984', evaluationName: 'Av1', description: 'Prova — Álgebra Matricial (núcleo) + revisão de Lógica', date: '2026-10-01', estimatedWeek: 6 },
+  // Escopo real confirmado (22/09): Matrizes + Determinantes + revisão de Lógica.
+  // Sistemas Lineares ainda NÃO foi dado em sala — não entra na Av1.
+  { disciplineCode: 'TEC.1984', evaluationName: 'Av1', description: 'Prova — Álgebra Matricial: matrizes, operações, determinantes e inversa + revisão de Lógica (sem Sistemas Lineares — ainda não dado)', date: '2026-10-01', estimatedWeek: 6 },
   { disciplineCode: 'TEC.1984', evaluationName: 'Av2', description: '2ª avaliação (Lógica Matemática)' },
   { disciplineCode: 'TEC.1984', evaluationName: 'Av3', description: '3ª avaliação (Conjuntos e Funções) + trabalho' },
   { disciplineCode: '53647', evaluationName: 'Av1', description: '1ª avaliação (Histórico, Hardware/Software)' },
