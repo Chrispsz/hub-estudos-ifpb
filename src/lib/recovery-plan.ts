@@ -115,7 +115,7 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
     disciplineCode: MATH_EXAM.disciplineCode,
     status: 'atrasado',
     resumo:
-      'Plano de 12 dias começou 19/09 e 3 dias ficaram para trás — a prova está a 9 dias e é o único compromisso com DATA.',
+      'Plano de 12 dias começou 19/09 e 4 dias ficaram para trás — faltam 8 dias para a prova e ela é o único compromisso com DATA.',
     porQue: 'Prova com data + maior volume de conteúdo novo (matrizes). Nada passa na frente disso.',
     acoes: [
       {
@@ -135,18 +135,24 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
   {
     id: 'alg',
     prioridade: 1,
-    title: 'Algoritmos — Semana 2 + ritual semanal',
+    title: 'Algoritmos — Semanas 2 e 3 + ritual semanal',
     disciplineCode: 'TEC.1687',
     status: 'parcial',
     resumo:
-      'Semana 1: FEITA e comprovada (19 programas seus já estão no Hub como gabarito autoral). Semana 2 (10 questões): pendente.',
+      'Semana 1: FEITA e comprovada (19 programas seus no Hub). Semana 2 (10 questões): pendente. Semana 3 (8 questões, 100% if/else) chegou 23/09 — começa a semana do ciclo.',
     porQue:
-      'Prova 1 em 30/10 e o ritual semanal é o treino oficial — suas soluções da S1 provam que dá para fazer S2 em ~2h.',
+      'A Prova 1 (30/10) é entrada/saída + IF, e a S3 é 100% desvios condicionais: treino EXATO. Feche a dívida da S2 e faça a S3 na semana dela.',
     acoes: [
       {
         id: 'alg-s2',
         texto: 'Fazer as 10 questões da Semana 2 no Praticar (mesma receita da S1: ler→calcular→imprimir)',
         minutos: 120,
+        tab: 'practice',
+      },
+      {
+        id: 'alg-s3',
+        texto: 'Fazer as 8 questões da Semana 3 no Praticar (if/else puro: bissexto, quadrantes, triângulo retângulo, regra do 0,7) — treino direto da Prova 1',
+        minutos: 100,
         tab: 'practice',
       },
       {

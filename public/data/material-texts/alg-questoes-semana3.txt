@@ -1,0 +1,56 @@
+QUESTÕES DA SEMANA 3 — Algoritmos (Classroom, 23/09/2026)
+Fonte: PDF "Questões Semana 3.pdf" enviado pelo dono do Hub.
+8 questões — 100% DESVIOS CONDICIONAIS (Unidade 2). É o treino exato da
+Prova 1 (30/10: entrada/saída, if e estruturas de decisão).
+Transcrição integral do material original (o PDF em si não chegou ao
+servidor; conteúdo completo veio na mensagem — recriado fielmente).
+
+================================================================================
+Q1. Escreva um programa que leia um número inteiro e determine o seu valor
+    absoluto. O valor absoluto deve ser calculado sem o uso de qualquer função
+    oferecida pela linguagem.
+
+Q2. Escreva um programa que leia o número de gols marcados pelo time da casa e
+    o número de gols marcado pelo time visitante e verifique se o jogo foi
+    vencido pelo time da casa, pelo time visitante ou se terminou empatado.
+
+Q3. Escreva um programa que leia a idade de uma pessoa e verifique se ela é
+    criança (0-12 anos), adolescente (13-17 anos), adulta (18-59) ou idosa
+    (acima de 60 anos).
+
+Q4. Escreva um programa que leia o valor de um ano e verifique se ele é ou não
+    bissexto. Um ano é bissexto se ele for divisível por quatrocentos ou se
+    ele for divisível por 4 mas não for divisível por 100.
+
+Q5. Escreva um programa que leia as coordenadas x e y de um ponto e verifique
+    a quantidade de quadrantes a que este ponto pertence.
+
+Q6. Escreva um programa que leia três números inteiros distintos e identifique
+    o maior número informado.
+
+Q7. Escreva um programa que leia os valores dos três ângulos internos de um
+    triângulo e verifique se o mesmo é um triângulo retângulo.
+
+Q8. Alfredo tem um carro flex e sempre fica na dúvida se é melhor abastecê-lo
+    com álcool ou gasolina. Um dia um de seus amigos o ensinou a seguinte dica:
+    "Pegue o valor do preço da gasolina e multiplique por 0,7. Se o valor for
+    menor ou igual ao valor do preço do álcool, abasteça com gasolina. Caso
+    contrário, abasteça com álcool." Com base nestas informações, escreva um
+    programa que leia o preço do litro da gasolina e do álcool e verifique se
+    é melhor abastecer com álcool ou com gasolina.
+================================================================================
+
+MAPA DAS QUESTÕES (o que cada uma treina):
+- Q1: if simples + operador de negação (sem fabs!)
+- Q2: if / else if / else com 3 saídas (comparação de inteiros)
+- Q3: cadeia de intervalos com && (0-12, 13-17, 18-59, 60+) — ATENÇÃO: idosa é
+  "acima de 60" (60 exato ainda é adulta!)
+- Q4: condição composta com && e || (a clássica do bissexto: %400 ou (%4 e !%100))
+- Q5: combinações de sinais (x>0/x<0/x==0 × y>0/y<0/y==0) — pontos em eixo
+  pertencem a 2 quadrantes; origem pertence a todos (4)
+- Q6: encadeamento de > com 3 valores distintos (o enunciado GARANTE distintos)
+- Q7: validação (soma = 180) + teste do ângulo reto em QUALQUER das 3 posições
+- Q8: regra do 0,7 — if (gasolina * 0.7 <= alcool) → GASOLINA; senão → ÁLCOOL
+  (cuidado com a direção do <=!)
+
+FIM — 8 questões. Semana 3 do ciclo: 23/09 a 29/09.

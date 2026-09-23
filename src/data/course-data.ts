@@ -749,6 +749,13 @@ export const materials: Material[] = [
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 3: Comandos de repetição'],
   },
+  { id: 'alg-questoes-semana3', disciplineCode: 'TEC.1687', title: 'Questões da Semana 3 (Classroom, 23/09)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana3.pdf',
+    summaryFile: 'alg-questoes-semana3.summary.json', pages: 1, source: 'user_upload',
+    // Material-first: 8 questões 100% de desvios condicionais — comprova que a
+    // Unidade 2 está sendo dada (exatamente o escopo da Prova 1, 30/10).
+    topicosCobertos: ['Unidade 2: Desvios condicionais'],
+  },
   { id: 'alg-programas-c-autorais', disciplineCode: 'TEC.1687', title: 'Programas C do autor — aula + Questões da Semana 1 (19 resolvidos)',
     type: 'exemplo', summaryFile: 'alg-programas-c-autorais.summary.json', source: 'user_upload',
     // Material-first: as soluções autorais comprovam DOMÍNIO da Unidade 1 (lidas/compiladas/rodadas)
