@@ -185,7 +185,7 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
     id: 'ing',
     prioridade: 3,
     title: 'Inglês — vídeo Corpo + Verbos',
-    disciplineCode: 'TEC.1681',
+    disciplineCode: 'ING.001',
     status: 'pendente',
     resumo: 'Vídeo postado no Classroom (16/09). Leve — cabe em qualquer folga ou fim de semana.',
     porQue: 'Conteúdo mínimo e de baixa dificuldade; não atrasa o semestre se cair 1 semana.',
@@ -219,7 +219,7 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
     id: 'rht',
     prioridade: 5,
     title: 'RHT — ADIAR até depois da prova',
-    disciplineCode: 'TEC.1685',
+    disciplineCode: 'TEC.0953',
     status: 'adiado',
     resumo:
       'Até 01/10: só acompanhar as aulas. Retomar estudos ativos a partir de 02/10 (teletrabalho/SERPRO e ementa já resumidos no Hub).',

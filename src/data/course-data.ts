@@ -53,7 +53,6 @@ export interface Discipline {
   scale: 10 | 100;                  // escala usada
   bibliografiaBasica: string[];
   bibliografiaComplementar: string[];
-  materiaisUsuario: number;
   dicasEstudo: string[];
   prioridade: 'alta' | 'media' | 'baixa';
   // Ordem recomendada de estudo (do PDF da ementa/professor)
@@ -79,6 +78,11 @@ export interface Material {
   // Praticar/Simulado (src/lib/curriculum-state.ts). Só materiais de aula real
   // recebem a anotação — ementas, calendários e apoio NÃO contam.
   topicosCobertos?: string[];
+  // GATE FINO (opcional): sub-tópicos ESPECÍFICOS dentro de uma unidade que
+  // este material comprova (ex.: ['Sistemas Lineares'] quando o professor
+  // finalmente der sistemas dentro de "1. Álgebra Matricial"). Libera
+  // automaticamente exercícios com `requiresSubtopico` — sem editar código.
+  topicosCobertosFino?: string[];
 }
 
 export interface CourseInfo {
@@ -225,7 +229,6 @@ export const disciplines: Discipline[] = [
       'MEDINA, M; FERTIG, C. Algoritmos e programação: teoria e prática. Novatec, 2005.',
       'SOUZA, M. A. F. et al. Algoritmos e lógica de programação. Thomson Pioneira, 2005.',
     ],
-    materiaisUsuario: 6,
     dicasEstudo: [
       'Pratique TODOS os dias - programação se aprende programando'
       + ' — suas próprias soluções da Semana 1 estão no Hub como gabarito autoral (material "Programas C do autor")',
@@ -308,7 +311,6 @@ export const disciplines: Discipline[] = [
       'SILVA, M. S. CSS3. Novatec, 2011.',
       'TERUEL, E. C. HTML5: guia prático. Érica, 2014.',
     ],
-    materiaisUsuario: 12,
     dicasEstudo: [
       'Construa um site pessoal desde a primeira semana',
       'Aula 06 (Formulários): abra o index.html de exemplo na Biblioteca, compare com os slides e faça a prática do pedido de pizza (Praticar)',
@@ -393,7 +395,6 @@ export const disciplines: Discipline[] = [
       'CORDEIRO, D. Um convite à matemática. EDUFCG, 21ª ed., 2007.',
       'LIMA, E. L. et al. A Matemática do Ensino Médio (Vols. 1, 2, 3). SBM, 2002.',
     ],
-    materiaisUsuario: 4,
     dicasEstudo: [
       'PROVA 01/10: siga o plano de 12 dias no card "Foco: Prova de Matemática" do Painel',
       'Monte tabelas-verdade para TODOS os exercícios de lógica',
@@ -471,7 +472,6 @@ export const disciplines: Discipline[] = [
       'STALLINGS, W. Arquitetura e Organização de Computadores. Makron Books, 5ª ed., 2002.',
       'MEIRELES, F. S. Informática: Novas Aplicações. Makron Books, 2ª ed., 1994.',
     ],
-    materiaisUsuario: 1,
     dicasEstudo: [
       'Pratique conversões de base (binário, octal, decimal, hex) até automatizar',
       'Monte um mapa das portas lógicas com suas tabelas verdade',
@@ -549,7 +549,6 @@ export const disciplines: Discipline[] = [
       'MINICUCCI, A. Dinâmica de grupo. Atlas, 5ª ed., 2012.',
       'TOMASI, C.; MEDEIROS, J. B. Comunicação empresarial. Atlas, 5ª ed., 2019.',
     ],
-    materiaisUsuario: 1,
     dicasEstudo: [
       'Participe ativamente dos debates em sala - contam ponto',
       'Faça resumos dos textos indicados antes das aulas',
@@ -625,7 +624,6 @@ export const disciplines: Discipline[] = [
       'MARINOTTO, D. Reading on info tech. Novatec, 2ª ed., 2008.',
       'MURPHY, R. Essential grammar in use. Cambridge, 2ª ed., 1997.',
     ],
-    materiaisUsuario: 1,
     dicasEstudo: [
       'Leia textos em inglês da área de TI todos os dias (15 min)',
       'Monte um glossário pessoal de termos técnicos',
@@ -688,7 +686,6 @@ export const disciplines: Discipline[] = [
       'GARCIA, O. M. Comunicação em Prosa Moderna. FGV.',
     ],
     bibliografiaComplementar: [],
-    materiaisUsuario: 0,
     dicasEstudo: [
       'Leia ativamente - sublinhe e faça anotações',
       'Pratique a produção de resumos e resenhas',

@@ -52,13 +52,40 @@ export function getUnitsOf(disciplineCode: string): string[] {
   return d ? d.conteudoProgramatico.map((u) => u.unidade) : [];
 }
 
+/**
+ * GATE FINO: sub-tópicos específicos (dentro de uma unidade) já comprovados
+ * por materiais reais via `topicosCobertosFino`. Ex.: o professor deu
+ * "sistemas lineares" dentro da unidade 1 → um material novo registra
+ * topicosCobertosFino: ['Sistemas Lineares'] e os exercícios com
+ * `requiresSubtopico` se liberam sozinhos — sem editar código.
+ */
+export function getCoveredSubtopicos(disciplineCode: string): Set<string> {
+  const covered = new Set<string>();
+  for (const m of materials) {
+    if (m.disciplineCode !== disciplineCode) continue;
+    if (!materialComprovaAula(m)) continue;
+    for (const s of m.topicosCobertosFino ?? []) covered.add(s);
+  }
+  return covered;
+}
+
+/** A disciplina já comprovou (por material real) este sub-tópico fino? */
+export function disciplineCoversSubtopico(disciplineCode: string, subtopico: string): boolean {
+  return getCoveredSubtopicos(disciplineCode).has(subtopico);
+}
+
 /** Estágio de um exercício: o tópico dele já foi dado em sala? */
 export function getExerciseStage(ex: Exercise): ExerciseStage {
   const covered = getCoveredUnits(ex.disciplineCode);
   // Sem campo `unit` (ex.: prova real antiga sem mapeamento) → assume em sala
   // para não esconder conteúdo real do aluno.
   if (!ex.unit) return 'em_sala';
-  return covered.has(ex.unit) ? 'em_sala' : 'adiantado';
+  if (!covered.has(ex.unit)) return 'adiantado';
+  // Unidade coberta, mas o exercício exige um sub-tópico fino ainda não
+  // comprovado por material real (ex.: sistemas lineares) → segue "adiantado".
+  if (ex.requiresSubtopico && !disciplineCoversSubtopico(ex.disciplineCode, ex.requiresSubtopico))
+    return 'adiantado';
+  return 'em_sala';
 }
 
 /** Divide o acervo em "no ritmo da turma" e "adiantado" (com estágio em cada). */
