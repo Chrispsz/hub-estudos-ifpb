@@ -22,6 +22,17 @@ if [ -f worklog-backup.md ]; then
 fi
 
 tree=$(printf '%s\n' "$entries" | git mktree)
+
+# vercel.json TEM que ir junto: com git.deploymentEnabled {"worklog": false} no
+# próprio commit pushado, a Vercel ignora o branch (senão tenta buildar e falha
+# por falta de package.json). Como o mktree reconstrói a árvore do zero, sem
+# isso o próximo update apagaria o arquivo do branch.
+if [ -f vercel.json ]; then
+  blob_vjson=$(git hash-object -w vercel.json)
+  entries="${entries}
+100644 blob ${blob_vjson}$(printf '\t')vercel.json"
+  tree=$(printf '%s\n' "$entries" | git mktree)
+fi
 note="${1:-update $(date -u '+%Y-%m-%dT%H:%MZ')}"
 commit=$(git commit-tree "$tree" -m "worklog: ${note}")
 git push -q origin "${commit}:refs/heads/worklog" --force
