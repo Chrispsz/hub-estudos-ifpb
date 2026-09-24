@@ -209,7 +209,7 @@ export const disciplines: Discipline[] = [
     criteriosAprovacao: 'Aprovação por média ≥ 70. Reprovação < 40. AF para média entre 40 e 70.',
     evaluationMethod: 'aritmetica_simples',
     gradeComponents: [
-      { name: 'Prova 1', weight: 33.33, scale: 100, description: 'Unidades 1 e 2 - entrada/saída, if/switch' },
+      { name: 'Prova 1', weight: 33.33, scale: 100, description: 'Unidades 1 e 2 - entrada/saída, if/switch. Formato (confirmado 24/09): 3 questões — 1 fácil, 1 média, 1 difícil — programas podem vir da Lista de Exercícios (289)' },
       { name: 'Prova 2', weight: 33.33, scale: 100, description: 'Unidade 3 - repetição (for/while/do-while)' },
       { name: 'Prova 3', weight: 33.34, scale: 100, description: 'Unidades 4 e 5 - vetores, funções, recursividade' },
     ],
@@ -234,7 +234,7 @@ export const disciplines: Discipline[] = [
       + ' — suas próprias soluções da Semana 1 estão no Hub como gabarito autoral (material "Programas C do autor")',
       'Resolva as "Questões da Semana" do Classroom toda semana — elas são o treino oficial do prof. Fábio',
       'Monitoria da disciplina (monitor Everton): Tira-Dúvidas toda SEGUNDA, 19h–21h, e Resolução de Questões toda QUARTA, 19h–21h — tudo no servidor da monitoria no Discord (link na Biblioteca)',
-      'Faça a Lista de Exercícios completa antes da primeira prova',
+      'Prova 1 (30/10) = 3 questões — 1 fácil, 1 média, 1 difícil — e os programas PODEM VIR DA LISTA de Exercícios (289 questões): treine as seções 1 e 2 (Q1–97 = entrada/saída + if/else) antes da prova',
       'Compile e execute cada exemplo no computador',
       'Use o depurador (debugger) para entender o fluxo do programa',
       'Quando travar, escreva o algoritmo em português antes de codar',
@@ -247,7 +247,7 @@ export const disciplines: Discipline[] = [
       '3. Resolva exercícios 1-15 da Lista de Exercícios',
       '4. Estude Unidade 2 (if/switch) - faça exercícios 16-30',
       '5. Pratique cada exemplo no VS Code ou Replit',
-      '6. Revise para Prova 1 (30/10 — semana 10)',
+      '6. Revise para Prova 1 (30/10 — 3 questões: fácil/média/difícil; podem vir da Lista de Exercícios, seções Q1–97)',
       '7. Continue com Unidade 3 (repetição) após a Prova 1',
     ],
     datasImportantes: [
@@ -290,7 +290,7 @@ export const disciplines: Discipline[] = [
     criteriosAprovacao: 'MF ≥ 70 aprovado direto. MF < 40 reprovado. 40 ≤ MF < 70 faz avaliação final.',
     evaluationMethod: 'ponderada_atividades',
     gradeComponents: [
-      { name: 'A1', weight: 45, scale: 100, description: 'Estrutura de um website (HTML)' },
+      { name: 'A1', weight: 45, scale: 100, description: 'Estrutura de um website (HTML). 1ª etapa: proposta em slides — entrega 09/10' },
       { name: 'A2', weight: 45, scale: 100, description: 'Codificação visual (CSS)' },
       { name: 'A3', weight: 10, scale: 100, description: 'Apresentação do projeto' },
     ],
@@ -312,8 +312,10 @@ export const disciplines: Discipline[] = [
       'TERUEL, E. C. HTML5: guia prático. Érica, 2014.',
     ],
     dicasEstudo: [
+      'PROJETO 1ª ETAPA (entrega 09/10 + apresentação em aula): proposta do website em slides (~5 min, nome de TODOS os integrantes) com nome do site, tema, stakeholders e MÍNIMO 6 tópicos (vira página) — equipes de até 4 pessoas, FIXAS até o fim do semestre',
       'Construa um site pessoal desde a primeira semana',
       'Aula 06 (Formulários): abra o index.html de exemplo na Biblioteca, compare com os slides e faça a prática do pedido de pizza (Praticar)',
+      'Aula 07 (Metadados): complete o <head> do site do projeto com charset, title, author, description, keywords e favicon — barato e conta pontos na avaliação da estrutura',
       'Use o VS Code com extensão Live Server para preview',
       'Valide seu HTML no W3C Validator',
       'Pratique Flexbox e Grid fazendo layouts reais',
@@ -328,7 +330,7 @@ export const disciplines: Discipline[] = [
       '5. Estude Hyperlinks e URLs (03 — elemento <a>, caminhos, target, download)',
       '6. Estude Mídias (04 — img, figure/figcaption, audio e video)',
       '7. Estude Formulários (06 — form/action/method, input, select, textarea, botões e checáveis) e pratique: o formulário da pizza está no Praticar',
-      '8. Comece o projeto A1 imediatamente (estrutura HTML) — o capítulo Formulários da apostila cobre a página de contato (dica do Formspree)',
+      '8. Comece o projeto A1 imediatamente — 1ª etapa (proposta em slides) entrega 09/10: nome, tema, stakeholders e 6+ tópicos; o capítulo Formulários da apostila cobre a página de contato (dica do Formspree)',
       '9. Depois do HTML, estude CSS (seletores, box model)',
       '10. Faça o A2 (CSS) - use Flexbox/Grid',
       '11. Prepare a apresentação A3 com antecedência',
@@ -876,6 +878,19 @@ export const materials: Material[] = [
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['HTML'],
   },
+  // NOVOS MATERIAIS — LM aula 07 (enviados pelo usuário em 24/09)
+  { id: 'lm-html-07-metadados', disciplineCode: 'TEC.1632', title: 'HTML - Metadados (19 slides)',
+    type: 'slides', pdfPath: '/pdfs/lm-html-07-metadados.pdf',
+    summaryFile: 'lm-html-07-metadados.summary.json', pages: 19, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
+  { id: 'lm-web-metadados', disciplineCode: 'TEC.1632', title: 'Metadados (web — apostila da disciplina)',
+    type: 'web_page', summaryFile: 'lm-gitbook-metadados.summary.json', source: 'external',
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/metadados',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-ementa', disciplineCode: 'TEC.1632', title: 'Plano de Disciplina - Linguagens de Marcação',
     type: 'ementa', pdfPath: '/data/ementas/ementa-linguagens-marcacao.pdf',
     summaryFile: 'LM-ementa.summary.json', source: 'ifpb_site' },
@@ -991,6 +1006,7 @@ export const calendarEvents: CalendarEvent[] = [
   { date: '2026-09-16', dateLabel: '16/Set-02/Out', title: 'IVS - Análise Socioeconômica', category: 'outro' },
   { date: '2026-10-05', dateLabel: '05-06/Out', title: 'IVS - Entrevistas', category: 'outro' },
   { date: '2026-10-07', dateLabel: '07/Out', title: 'IVS - Resultado Preliminar', category: 'outro' },
+  { date: '2026-10-09', dateLabel: '09/Out', title: 'LM - Projeto 1ª etapa: entrega + apresentação (proposta em slides)', category: 'avaliacao', relatedDiscipline: 'TEC.1632' },
   { date: '2026-10-23', dateLabel: '23/Out', title: 'IVS - Resultado Final', category: 'outro' },
   // Feriados nacionais 2026
   { date: '2026-09-07', dateLabel: '07/Set', title: 'Independência do Brasil', category: 'feriado' },
@@ -1042,13 +1058,15 @@ export interface EvaluationPeriod {
 // "A definir" nos detalhes da disciplina e NUNCA com prazo contado.
 export const evaluationPeriods: EvaluationPeriod[] = [
   // Algoritmos — datas REAIS do PDF do professor (30/10, 04/12 e 29/01)
-  { disciplineCode: 'TEC.1687', evaluationName: 'Prova 1', description: '1ª avaliação — entrada/saída, if e estruturas de decisão', estimatedWeek: 10, date: '2026-10-30' },
+  { disciplineCode: 'TEC.1687', evaluationName: 'Prova 1', description: '1ª avaliação — entrada/saída e desvios condicionais. 3 questões (1 fácil, 1 média, 1 difícil); programas podem vir da Lista de Exercícios (289)', estimatedWeek: 10, date: '2026-10-30' },
   { disciplineCode: 'TEC.1687', evaluationName: 'Prova 2', description: '2ª avaliação — vetores e matrizes', estimatedWeek: 15, date: '2026-12-04' },
   { disciplineCode: 'TEC.1687', evaluationName: 'Prova 3', description: '3ª avaliação — subprogramas e recursividade', estimatedWeek: 19, date: '2027-01-29' },
   { disciplineCode: 'TEC.1687', evaluationName: 'Reposição', description: 'Reposição mediante processo no SUAP', estimatedWeek: 19, date: '2027-02-01', conditional: true },
   // Demais disciplinas — estrutura de avaliação (nomes/pesos reais dos planos docentes)
   // usada APENAS na calculadora de notas; SEM data = sem prazo exibido em lugar nenhum.
-  { disciplineCode: 'TEC.1632', evaluationName: 'A1', description: 'Estrutura de um website (HTML) - peso 45%' },
+  { disciplineCode: 'TEC.1632', evaluationName: 'A1', description: 'Estrutura de um website (HTML) - peso 45%. 1ª etapa (Classroom, 24/09): proposta em slides — entrega 09/10' },
+  // Etapa com data oficial publicada no Classroom (prof. Diogo, 24/09) — entra no destaque de prazo.
+  { disciplineCode: 'TEC.1632', evaluationName: 'Projeto 1ª etapa', description: 'Proposta do website em slides (~5 min, nomes de todos): nome do site, tema, stakeholders e mínimo 6 tópicos. Entrega no Classroom + apresentação em sala', date: '2026-10-09' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A2', description: 'Codificação visual (CSS) - peso 45%' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A3', description: 'Apresentação do projeto - peso 10%' },
   // Data confirmada pelo dono (19/09): prova de Matemática no dia 01/10.

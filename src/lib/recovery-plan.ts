@@ -139,9 +139,9 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
     disciplineCode: 'TEC.1687',
     status: 'parcial',
     resumo:
-      'Semana 1: FEITA e comprovada (19 programas seus no Hub). Semana 2 (10 questões): pendente. Semana 3 (8 questões, 100% if/else) chegou 23/09 — começa a semana do ciclo.',
+      'Semana 1: FEITA e comprovada (19 programas seus no Hub). Semana 2 (10 questões): pendente. Semana 3 (8 questões, 100% if/else) chegou 23/09 — começa a semana do ciclo. Formato da Prova 1 confirmado (24/09): 3 questões — 1 fácil, 1 média, 1 difícil — e os programas PODEM VIR DA LISTA (289 questões; escopo Q1–97).',
     porQue:
-      'A Prova 1 (30/10) é entrada/saída + IF, e a S3 é 100% desvios condicionais: treino EXATO. Feche a dívida da S2 e faça a S3 na semana dela.',
+      'A Prova 1 (30/10) é entrada/saída + IF, a S3 é 100% desvios condicionais e as questões podem vir da Lista (Q1–97): treino EXATO. Feche a dívida da S2 e faça a S3 na semana dela.',
     acoes: [
       {
         id: 'alg-s2',
@@ -156,6 +156,12 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
         tab: 'practice',
       },
       {
+        id: 'alg-lista-q1-97',
+        texto: 'Treinar a Lista de Exercícios no ritmo (Q1–57 entrada/saída + Q58–97 if/else): é a fonte possível das 3 questões da prova',
+        minutos: 60,
+        tab: 'practice',
+      },
+      {
         id: 'alg-bug',
         texto: 'Resolver o desafio do bug do seu antecessor_e_sucessor.c (%c vs %d) no Praticar — 3 exercícios novos extraídos do SEU arquivo',
         minutos: 20,
@@ -166,16 +172,29 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
   {
     id: 'lm',
     prioridade: 2,
-    title: 'Linguagem de Marcação — Formulários (aula 06)',
+    title: 'Linguagem de Marcação — Metadados + Projeto 1ª etapa',
     disciplineCode: 'TEC.1632',
     status: 'pendente',
     resumo:
-      'Último assunto dado (19/09): formulários HTML. Conteúdo curto — 1 sessão fecha com o GitBook + slides.',
-    porQue: 'Assunto curto e recente: estudar agora custa pouco e evita dívida acumulando antes da próxima aula.',
+      'Aula 07 (24/09): metadados — charset, title vs h1, author/description/keywords e favicon. E o Projeto 1ª etapa entrega 09/10: proposta em slides (~5 min, nomes de todos) com nome, tema, stakeholders e 6+ tópicos.',
+    porQue:
+      'Prazo REAL em 15 dias (09/10) e assunto novo curto. A proposta ainda não exige código — o custo é alinhar tema e tópicos com a equipe (até 4 pessoas, fixas até o fim do semestre).',
     acoes: [
       {
+        id: 'lm-proj-proposta',
+        texto: 'PROJETO 1ª etapa: com a equipe, escolham tema + nome do site e definam os 6+ tópicos (vira página) → montem os slides COM os nomes de todos',
+        minutos: 60,
+        materialId: 'lm-ementa',
+      },
+      {
+        id: 'lm-meta',
+        texto: 'Sessão de metadados: slides da aula 07 + capítulo do GitBook — depois complete o <head> do site do projeto (charset, title, description, favicon)',
+        minutos: 40,
+        materialId: 'lm-html-07-metadados',
+      },
+      {
         id: 'lm-form',
-        texto: 'Sessão única de formulários: slides da aula 06 + tutorial GitBook (form, input, label, select)',
+        texto: 'Fechar a aula 06 (formulários) se ainda não fez: slides + tutorial GitBook (form, input, label, select)',
         minutos: 45,
         materialId: 'lm-html-06-formularios',
       },

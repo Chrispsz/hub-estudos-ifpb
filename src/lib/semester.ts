@@ -146,6 +146,12 @@ export const ACADEMIC_EVENTS: AcademicEvent[] = [
     kind: 'letivo',
   },
   {
+    date: '2026-10-09',
+    title: 'LM: entrega do Projeto — 1ª etapa (proposta)',
+    description: 'Proposta do website em slides (~5 min, com nomes de todos): nome do site, tema, stakeholders e mínimo de 6 tópicos. Apresentação em sala no dia da entrega.',
+    kind: 'prazo',
+  },
+  {
     date: '2026-10-07',
     title: 'Prazo final: trancamento 2026.2 (veteranos)',
     description: 'Pedido deve ser feito no SUAP até esta data.',

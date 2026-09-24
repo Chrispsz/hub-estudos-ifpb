@@ -1,0 +1,112 @@
+LINGUAGENS DE MARCAÇÃO — AULA 07: HTML METADADOS
+Curso Superior de Análise e Desenvolvimento de Sistemas — IFPB Campus Cajazeiras
+Prof. MSc. Diogo D. Moreira — 19 slides
+
+--- Slide 1 ---
+HTML
+Metadados
+Curso Superior de Análise e Desenvolvimento de Sistemas
+Linguagens de Marcação - Prof. MSc. Diogo D. Moreira
+
+--- Slide 2 ---
+Metadados
+● Metadados são dados sobre dados. Informações sobre a própria informação. Metadados são estruturas de informações que descrevem características de uma fonte de informação.
+
+--- Slide 3 ---
+Metadados
+● Como vimos anteriormente, a tag HEAD contém informações que não são transpostas visivelmente para o usuário/leitor do documento
+● Ao contrário do conteúdo do elemento <body>, que são exibidos na página quando carregados no navegador
+
+--- Slide 4 ---
+Metadados
+● O trabalho do HEAD é conter metadados sobre o documento
+● Nós já vimos o elemento <title> em ação — ele pode ser usado para adicionar um título ao documento, mas pode ser confundido com o elemento <h1>, mas são coisas diferentes.
+
+--- Slide 5 ---
+Metadados
+● H1 vs TITLE
+○ O elemento <h1> aparece na página quando é carregado no navegador — geralmente é usado uma vez por página, para marcar o título do conteúdo da sua página (o título da história, ou da notícia, por exemplo).
+
+--- Slide 6 ---
+Metadados
+● H1 vs TITLE
+○ O elemento <title> é um metadado que representa o título de todo o documento HTML (não o conteúdo do documento).
+
+--- Slide 7 ---
+Metadados
+● H1 vs TITLE
+[Imagem: busca do Google por "portal do estudante ifpb" mostrando o resultado "Portal do Estudante | IFPB" (que vem do <title>), ao lado da página real do Portal do Estudante IFPB com o título "Portal do Estudante" dentro da página (o <h1>).]
+
+--- Slide 8 ---
+Metadados
+● H1 vs TITLE
+○ Dependendo de onde está sendo visualizado, o elemento title é dispensado, pois não faz parte do corpo do texto.
+[Imagem: visualização no Chrome Desktop (MacOS) — o title aparece somente na aba do navegador ("Home | Diogo Moreira"), fora do corpo da página.]
+
+--- Slide 9 ---
+Metadados
+● H1 vs TITLE
+○ Dependendo de onde está sendo visualizado, o elemento title é dispensado, pois não faz parte do corpo do texto.
+[Imagem: visualização no Safari (iOS) — no modo leitura o title aparece no topo da interface do navegador, fora do corpo do texto.]
+
+--- Slide 10 ---
+Metadados
+● Metadados descrevem dados em HTML, que possui uma maneira oficial de adicionar metadados a um documento - o elemento <meta>.
+● Outras tags também podem ser pensadas como metadados
+
+--- Slide 11 ---
+Metadados
+● Metadados são úteis para que outros sites possam ler informações e realizar atividades integradas
+[Imagem: post do Facebook colando um link do Spotify — aparece cartão com capa do álbum, nome da música "Don't Take The Money" (Bleachers) e botão "Play on Spotify", dados lidos dos metadados da página.]
+
+--- Slide 12 ---
+Metadados
+● Exemplo:
+○ <meta charset="utf-8">
+○ Especifica a codificação de caracteres do documento, ou seja, o conjunto de caracteres que o documento está autorizado a usar.
+○ utf-8 é um conjunto de caracteres universal que inclui praticamente qualquer caractere de qualquer linguagem humana.
+
+--- Slide 13 ---
+Metadados
+● Muitos elementos <meta> incluem atributos de name e content:
+○ O name especifica o tipo de elemento meta que é; que tipo de informação contém.
+○ O content especifica o conteúdo real do meta.
+
+--- Slide 14 ---
+Metadados
+● Dois desses meta-elementos que são úteis para incluir na sua página definem o autor da página e fornecem uma descrição concisa da página.
+
+--- Slide 15 ---
+Metadados
+● Autor e descrição
+○ <meta name="author" content="Diogo">
+○ <meta name="description" content="Site da disciplina">
+
+--- Slide 16 ---
+Metadados
+● Outras metatags importantes
+○ Keywords
+○ <meta name="keywords" content="html, linguagens de marcação">
+○ Nesta metatag você colocará as palavras chave relativas ao assunto do site.
+
+--- Slide 17 ---
+Metadados
+● Outras metatags importantes
+○ Favicon
+[Imagem: abas do Chrome com os favicons (TweetDeck, Pinterest, Reddit) ao lado do título de cada aba.]
+
+--- Slide 18 ---
+Metadados
+● Outras metatags importantes
+○ Favicon
+○ <link rel="icon" href="icone.png">
+○ Um favicon é um pequeno ícone em forma quadrada de, normalmente, 16 pixels de altura e 16 pixels de largura
+
+--- Slide 19 ---
+Prática
+Crie um nova página HTML sobre algum conteúdo de sua preferência (séries, filmes, jogos, animes...) e adicione as seguintes metatags:
+● charset
+● author, description
+● keywords
+● title
+Além disso, adicione uma imagem de sua preferência como ícone
