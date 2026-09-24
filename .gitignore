@@ -55,6 +55,7 @@ server.log
 
 # ---- Artefatos do ambiente de desenvolvimento (não fazem parte do app) ----
 worklog.md
+worklog-backup.md
 Caddyfile
 .zscripts
 /db
