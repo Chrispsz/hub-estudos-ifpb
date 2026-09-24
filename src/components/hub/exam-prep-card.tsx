@@ -60,10 +60,10 @@ type CheckedMap = Record<string, boolean>;
 const LS_PLAN = 'hub:math-exam:v1:plan';
 const LS_CHECK = 'hub:math-exam:v1:checklist';
 
-/** Mapeia "faltam N dias" para o dia do plano (começa hoje com 12 dias). */
+/** Mapeia "faltam N dias" para o dia do plano (offset N = N dias antes da prova; 0 = prova). */
 function planDayForDaysLeft(daysLeft: number): PlanDay | undefined {
   if (daysLeft < 0) return undefined;
-  const offset = Math.min(Math.max(daysLeft - 1, 0), MATH_EXAM_PLAN.length - 1);
+  const offset = Math.min(Math.max(daysLeft, 0), MATH_EXAM_PLAN.length - 1);
   return planDayFor(offset) ?? MATH_EXAM_PLAN[Math.min(offset, MATH_EXAM_PLAN.length - 1)];
 }
 

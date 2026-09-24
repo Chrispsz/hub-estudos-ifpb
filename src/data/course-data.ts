@@ -398,22 +398,22 @@ export const disciplines: Discipline[] = [
       'LIMA, E. L. et al. A Matemática do Ensino Médio (Vols. 1, 2, 3). SBM, 2002.',
     ],
     dicasEstudo: [
-      'PROVA 01/10: siga o plano de 12 dias no card "Foco: Prova de Matemática" do Painel',
+      'PROVA 01/10: siga o plano do card "Foco: Prova de Matemática" — a ordem agora é FAZER as listas: Matrizes (3 blocos) → Lógica (2 partes)',
       'Monte tabelas-verdade para TODOS os exercícios de lógica',
-      'Pratique conversões e operações com matrizes sem calculadora',
-      'Faça mapas mentais conectando Lógica → Conjuntos → Funções',
+      'Pratique as operações com matrizes sem calculadora',
+      'Determinantes e Sistemas Lineares: pós-prova — o professor ainda não deu (confirmado 24/09)',
       'Resolva exercícios extras de Lógica - base para programação',
       'Use a lista de exercícios do professor Eudes como referência',
     ],
     prioridade: 'alta',
     ordemEstudo: [
-      '1. Comece pela Álgebra Matricial (Unidade 1)',
-      '2. Pratique operações com matrizes e determinantes',
-      '3. Estude Lógica - leia os slides "05 - Lógica" (47 páginas)',
-      '4. Resolva a Lista de Exercícios de Lógica',
-      '5. Monte tabelas-verdade de TODOS os exercícios',
-      '6. Estude Conjuntos (Unidade 3)',
-      '7. Funções (Unidade 4) - mais longo, reserve tempo',
+      '1. FAÇA a Lista de Matrizes (35 questões) com a teoria da Aula 00 ao lado só para consultar',
+      '2. Blocos da lista: Q1–16 construir/igualdade/soma · Q17–30 produtos/simetria · Q31–35 inversa',
+      '3. Depois faça a Lista de Lógica (18 questões): Q1–12 valores e tabelas · Q13–18 argumentos',
+      '4. Monte tabelas-verdade de TODOS os exercícios de lógica',
+      '5. Faça o simulado no D-2 (29/09) e refaça os erros na véspera',
+      '6. Determinantes e Sistemas Lineares: pós-prova — o professor ainda não deu',
+      '7. Conjuntos (Un. 3) e Funções (Un. 4): foco DEPOIS da Av1',
     ],
     // POLÍTICA ANTI-ESTIMATIVA: Av1/Av2/Av3 sem data oficial ficam em
     // evaluationPeriods como "A definir" — nada de semana estimada.
@@ -1070,9 +1070,9 @@ export const evaluationPeriods: EvaluationPeriod[] = [
   { disciplineCode: 'TEC.1632', evaluationName: 'A2', description: 'Codificação visual (CSS) - peso 45%' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A3', description: 'Apresentação do projeto - peso 10%' },
   // Data confirmada pelo dono (19/09): prova de Matemática no dia 01/10.
-  // Escopo real confirmado (22/09): Matrizes + Determinantes + revisão de Lógica.
-  // Sistemas Lineares ainda NÃO foi dado em sala — não entra na Av1.
-  { disciplineCode: 'TEC.1984', evaluationName: 'Av1', description: 'Prova — Álgebra Matricial: matrizes, operações, determinantes e inversa + revisão de Lógica (sem Sistemas Lineares — ainda não dado)', date: '2026-10-01', estimatedWeek: 6 },
+  // Escopo real confirmado (24/09): Matrizes (até inversa) + Lógica. SEM
+  // determinantes e SEM sistemas lineares — o professor ainda não deu.
+  { disciplineCode: 'TEC.1984', evaluationName: 'Av1', description: 'Prova — conteúdo dado em sala: Matrizes (operações, transposta, simétrica/antissimétrica, inversa) + Lógica Matemática. NÃO entram: determinantes e sistemas lineares (ainda não dados)', date: '2026-10-01', estimatedWeek: 6 },
   { disciplineCode: 'TEC.1984', evaluationName: 'Av2', description: '2ª avaliação (Lógica Matemática)' },
   { disciplineCode: 'TEC.1984', evaluationName: 'Av3', description: '3ª avaliação (Conjuntos e Funções) + trabalho' },
   { disciplineCode: '53647', evaluationName: 'Av1', description: '1ª avaliação (Histórico, Hardware/Software)' },

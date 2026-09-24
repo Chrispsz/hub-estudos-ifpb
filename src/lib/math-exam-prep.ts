@@ -1,24 +1,25 @@
 // math-exam-prep.ts — FOCO: Prova de Matemática, 01/10/2026 (Av1)
 //
 // Tudo aqui é extraído dos MATERIAIS REAIS estudados em aula:
-//   - mat-00-matrizes (slides aula 00) · mat-01-matrizes (lista)
-//   - mat-logica-slides (47p) · mat-logica-lista (exercícios)
-// Plano de 12 dias (D-12 → dia da prova) com tarefas que apontam para os
-// materiais e para os exercícios material-first do acervo (mat-ex01..12).
-// Quando o dono mudar a data em course-data.ts (evaluationPeriods), o plano
-// continua válido: os dias são calculados por OFFSET até a prova.
+//   - mat-00-matrizes (teoria Aula 00) · mat-01-matrizes (LISTA — 35 questões)
+//   - mat-logica-slides (47p) · mat-logica-lista (LISTA — 18 questões)
+// PLANO REFEITO (24/09, D-7, pedido do dono): o plano antigo (12 dias,
+// centrado em ler teoria) ficou confuso e incluía DETERMINANTES — que NÃO
+// caem. Agora é simples: FAZER AS LISTAS impressas que o dono tem, bloco a
+// bloco (Matrizes em 3 blocos → Lógica em 2 partes → simulado D-2 → véspera),
+// com a teoria só como apoio. Determinantes (1.3) e Sistemas Lineares (1.4)
+// ficam PÓS-PROVA — o professor ainda não deu (confirmado pelo dono em 24/09).
 
 export const MATH_EXAM = {
   disciplineCode: 'TEC.1984',
   disciplineName: 'Matemática Aplicada à Computação',
   evaluationName: 'Av1',
   date: '2026-10-01', // confirmado pelo dono — fonte da verdade em course-data
-  // ESCOPO REAL confirmado pelo dono (22/09): o professor deu Lógica (1º assunto)
-  // e está fechando Matrizes (teoria, multiplicação, inversa, determinantes e
-  // exercícios — playlist Rumo ao Topo F169-F173). SISTEMAS LINEARES ainda NÃO
-  // foi dado e NÃO entra na Av1 — quem pulou está certo.
+  // ESCOPO REAL confirmado pelo dono (24/09): a prova é focada no CONTEÚDO
+  // dado em sala = Matrizes (até inversa — Q31–35 da lista) + Lógica.
+  // NÃO ENTRAM: determinantes e sistemas lineares (ainda não dados).
   programa:
-    'Álgebra Matricial (núcleo): matrizes, operações, transposta, determinantes e matriz inversa + Lógica (revisão). Sistemas Lineares NÃO entram — professor ainda não deu (confirmado 22/09).',
+    'NÚCLEO: Matrizes — operações (soma, escalar, produto), transposta, simétrica/antissimétrica e matriz inversa (Q31–35 da lista) + Lógica — proposições, conectivos, tabelas-verdade, tautologias, equivalências e argumentos. NÃO CAEM: determinantes e sistemas lineares (ainda não dados — confirmado 24/09).',
   notaPeso: 'Av1 = 33,3% da média final (escala 0-100, aprovação ≥ 70)',
   simuladoFilter: { discipline: 'TEC.1984', onlyMaterialFirst: true },
 } as const;
@@ -39,139 +40,101 @@ export interface PlanDay {
   tarefas: PlanTask[];
 }
 
-/** 12 dias de plano — offset -11..0 (começa hoje quando faltam 12). */
+/**
+ * Plano D-7 (24/09 → 01/10) — UM DIA POR OFFSET, centrado em RESOLVER AS LISTAS.
+ * offset = dias antes da prova (7 = hoje 24/09, 0 = dia da prova).
+ * Ordem recomendada das listas impressas (as 3 folhas que o dono tem):
+ *   1º Lista de Matrizes (35Q, em 3 blocos) → 2º Lista de Lógica (18Q, em 2 partes).
+ * Determinantes e sistemas lineares NÃO caem — nada aqui depende deles.
+ */
 export const MATH_EXAM_PLAN: PlanDay[] = [
   {
-    offset: 11,
-    kind: 'estudo',
-    titulo: 'Matrizes: conceituação e tipos',
-    minutos: 60,
-    tarefas: [
-      { texto: 'Reler slides da Aula 00: ordem, aij, matrizes especiais (linha, coluna, quadrada, identidade, nula)', materialId: 'mat-00-matrizes' },
-      { texto: 'Treinar notação com o exercício de conceituação (mat-ex01)', exercisePool: ['mat-ex01'] },
-      { texto: 'Fechar o caderno e escrever de memória os 5 tipos de matriz', },
-    ],
-  },
-  {
-    offset: 10,
+    offset: 7, // 24/09 — HOJE
     kind: 'pratica',
-    titulo: 'Operações: soma, escalar e produto',
-    minutos: 75,
+    titulo: 'Lista de Matrizes — Bloco 1 (Q1–16)',
+    minutos: 90,
     tarefas: [
-      { texto: 'Slides: regra da multiplicação (linhas × colunas) e quando NÃO é possível', materialId: 'mat-00-matrizes' },
-      { texto: 'Lista da Aula 01: exercícios de soma e produto (7, 9 e 17)', materialId: 'mat-01-matrizes' },
-      { texto: 'mat-ex02 (operações básicas) e mat-ex03 (AB × BA e não-comutatividade)', exercisePool: ['mat-ex02', 'mat-ex03'] },
+      { texto: 'No papel impresso: Q1–8 (construir matrizes pela lei de formação e igualdade) — a teoria da Aula 00 fica ao lado SÓ para consultar', materialId: 'mat-01-matrizes' },
+      { texto: 'Q9–16: soma, diferença, escalar e equações matriciais simples (ex.: X + A = B − C)', materialId: 'mat-01-matrizes' },
+      { texto: 'Marcar com caneta as que travaram — viram prioridade no Bloco 3 (D-5)', },
     ],
   },
   {
-    offset: 9,
-    kind: 'estudo',
-    titulo: 'Transposta, simétricas e antissimétricas',
-    minutos: 50,
-    tarefas: [
-      { texto: 'Definição Aᵀij = Aji + teste de simetria (A = Aᵀ)', materialId: 'mat-00-matrizes' },
-      { texto: 'Lista: exercícios da transposta e simetria (2b, 26a, 28 e 29)', materialId: 'mat-01-matrizes' },
-      { texto: 'mat-ex04 (transposta + antissimétrica)', exercisePool: ['mat-ex04'] },
-    ],
-  },
-  {
-    offset: 8,
-    kind: 'estudo',
-    titulo: 'Determinantes e matriz inversa 2×2',
-    minutos: 75,
-    tarefas: [
-      { texto: 'Fórmula det = ad − bc e inversa = adj(A)/det(A) — slides', materialId: 'mat-00-matrizes' },
-      { texto: 'Fazer 5 determinantes de cabeça e conferir com calculadora', },
-      { texto: 'mat-ex05 (det + inversa + verificação A·A⁻¹ = I)', exercisePool: ['mat-ex05'] },
-    ],
-  },
-  {
-    offset: 7,
+    offset: 6, // 25/09
     kind: 'pratica',
-    titulo: 'Determinantes e Inversa na prática (aula "Aprenda com Exercícios")',
-    minutos: 75,
+    titulo: 'Lista de Matrizes — Bloco 2 (Q17–30)',
+    minutos: 90,
     tarefas: [
-      { texto: 'Lista: exercícios de determinante e inversa (2×2 e 3×3 por Sarrus) da Aula 01', materialId: 'mat-01-matrizes' },
-      { texto: 'Resolver 5 matrizes 2×2 novas: det → inversa → conferir A·A⁻¹ = I (sem olhar a fórmula)', },
-      { texto: 'Onde errar mais: sinal do det (ad − bc) e posições na fórmula da inversa — refazer 1 que errou', },
-      { texto: 'Sistemas lineares (AX = B)? PÓS-PROVA: professor ainda não deu — pule sem culpa (mat-ex06 fica guardado para depois da Av1)', },
+      { texto: 'Q17–22: produtos (linha × coluna) e potências A², A³, Aⁿ — a ideia da Q19/Q20 vale ouro', materialId: 'mat-01-matrizes' },
+      { texto: 'Q23–30: matrizes que comutam, transposta e simétrica/antissimétrica', materialId: 'mat-01-matrizes' },
+      { texto: 'Apoio no Praticar: mat-ex03 (AB ≠ BA) e mat-ex04 (transposta + antissimétrica)', exercisePool: ['mat-ex03', 'mat-ex04'] },
     ],
   },
   {
-    offset: 6,
+    offset: 5, // 26/09
+    kind: 'pratica',
+    titulo: 'Lista de Matrizes — Bloco 3 (Q31–35: inversa) + revisão',
+    minutos: 75,
+    tarefas: [
+      { texto: 'Q31–35: inversa — depois de inverter, SEMPRE confira A·A⁻¹ = I (a verificação pega quase todo erro)', materialId: 'mat-01-matrizes' },
+      { texto: 'Refazer as marcadas no Bloco 1: tentar primeiro, consultar a teoria depois', materialId: 'mat-00-matrizes' },
+      { texto: 'Determinantes como TÓPICO não caem — se usar a fórmula da inversa 2×2 (det = ad − bc por dentro), ela está nos cards abaixo', },
+    ],
+  },
+  {
+    offset: 4, // 27/09
+    kind: 'pratica',
+    titulo: 'Lista de Lógica — Parte 1 (Q1–12)',
+    minutos: 90,
+    tarefas: [
+      { texto: 'Q1–7: proposições (V/F), tradução português ↔ símbolos e valores lógicos', materialId: 'mat-logica-lista' },
+      { texto: 'Q8–10: tabelas-verdade e tautologia/contradição/contingência — monte TODAS as linhas', materialId: 'mat-logica-lista' },
+      { texto: 'Q11–12: equivalências, negações e quantificadores (a Q12 usa ∀ e ∃ — negue com cuidado)', materialId: 'mat-logica-lista' },
+      { texto: 'Apoio no Praticar: mat-ex07 (proposições) e mat-ex08 (negações)', exercisePool: ['mat-ex07', 'mat-ex08'] },
+    ],
+  },
+  {
+    offset: 3, // 28/09
+    kind: 'pratica',
+    titulo: 'Lista de Lógica — Parte 2 (Q13–18: argumentos)',
+    minutos: 90,
+    tarefas: [
+      { texto: 'Q13–15: encadeamentos estilo múltipla escolha — exatamente o formato de prova', materialId: 'mat-logica-lista' },
+      { texto: 'Q16–18: ilha dos cavalheiros/velhacos, OBMEP dos tamanduás e o caso do crime — raciocínio puro, com calma', materialId: 'mat-logica-lista' },
+      { texto: 'Apoio no Praticar: mat-ex11 (De Morgan) e mat-ex12 (validade de argumento)', exercisePool: ['mat-ex11', 'mat-ex12'] },
+    ],
+  },
+  {
+    offset: 2, // 29/09
     kind: 'simulado',
-    titulo: 'SIMULADO 1 — bloco de Matrizes',
-    minutos: 45,
-    tarefas: [
-      { texto: 'Simulado Pro: 5 questões, disciplina Matemática, modo prova (30-45 min)', },
-      { texto: 'Corrigir com as dicas e registrar "consegui/não consegui" em cada uma', },
-      { texto: 'Refazer no papel as que deram errado, seguindo o resumo da Aula 00', materialId: 'mat-00-matrizes' },
-    ],
-  },
-  {
-    offset: 5,
-    kind: 'estudo',
-    titulo: 'Lógica: proposições e conectivos',
-    minutos: 60,
-    tarefas: [
-      { texto: 'Slides de Lógica: proposição, valor lógico, conectivos (∧ ∨ → ↔)', materialId: 'mat-logica-slides' },
-      { texto: 'mat-ex07 (classificar proposições) e mat-ex08 (negações)', exercisePool: ['mat-ex07', 'mat-ex08'] },
-      { texto: 'Traduzir 3 frases do dia a dia para símbolos lógicos', },
-    ],
-  },
-  {
-    offset: 4,
-    kind: 'pratica',
-    titulo: 'Tabelas-verdade sem medo',
+    titulo: 'SIMULADO — prova completa',
     minutos: 75,
     tarefas: [
-      { texto: 'Slides: montar tabela passo a passo (2 variáveis = 4 linhas)', materialId: 'mat-logica-slides' },
-      { texto: 'Lista de Lógica: 3 tabelas-verdade à mão', materialId: 'mat-logica-lista' },
-      { texto: 'mat-ex09 ((p→q) ∧ (q→p)) e mat-ex10 (tautologia/contradição)', exercisePool: ['mat-ex09', 'mat-ex10'] },
+      { texto: 'Simulado Pro: 10 questões de Matemática, 60 min, sem consultar nada antes de responder', },
+      { texto: 'Meta: ≥ 70% (nota de aprovação). Abaixo disso → o bloco com mais erros vira a revisão de amanhã', },
+      { texto: 'Refazer no papel as que erraram, com o card de fórmulas fechado ao lado', },
     ],
   },
   {
-    offset: 3,
-    kind: 'pratica',
-    titulo: 'Equivalências e argumentos (De Morgan, Modus Ponens)',
-    minutos: 60,
-    tarefas: [
-      { texto: 'Slides: equivalências notáveis e regras de inferência', materialId: 'mat-logica-slides' },
-      { texto: 'mat-ex11 (De Morgan por tabela) e mat-ex12 (validade de argumento)', exercisePool: ['mat-ex11', 'mat-ex12'] },
-      { texto: 'Lista de Lógica: identificar premissas e conclusão em 2 argumentos', materialId: 'mat-logica-lista' },
-    ],
-  },
-  {
-    offset: 2,
+    offset: 1, // 30/09
     kind: 'revisao',
-    titulo: 'Revisão integrada: fórmulas + erros comuns',
+    titulo: 'Véspera — revisão leve e erros',
     minutos: 50,
     tarefas: [
-      { texto: 'Reler os cards de fórmulas deste plano (abaixo) e recitar cada uma de memória', },
-      { texto: 'Ler "erros comuns" dos resumos IA dos 4 materiais de Matemática', materialId: 'mat-01-matrizes' },
-      { texto: 'Resolver novamente as questões marcadas como "não consegui" no Praticar', },
+      { texto: 'Recitar os cards de fórmulas de memória (abaixo) — Matrizes primeiro, Lógica depois', },
+      { texto: 'Refazer SOMENTE as questões marcadas como "não consegui" nas duas listas', },
+      { texto: 'Perguntas de autoavaliação dos resumos IA dos 4 materiais de Matemática (leve, antes de dormir)', materialId: 'mat-01-matrizes' },
     ],
   },
   {
-    offset: 1,
-    kind: 'simulado',
-    titulo: 'SIMULADO 2 — prova completa',
-    minutos: 60,
-    tarefas: [
-      { texto: 'Simulado Pro: 10 questões de Matemática, 60 minutos, sem consultar nada antes de responder', },
-      { texto: 'Meta: ≥ 70% (nota de aprovação). Abaixo disso → revisar o bloco com mais erros', },
-      { texto: 'Revisar perguntas de autoavaliação dos resumos antes de dormir (leve)', materialId: 'mat-logica-lista' },
-    ],
-  },
-  {
-    offset: 0,
+    offset: 0, // 01/10
     kind: 'prova',
     titulo: 'DIA DA PROVA — 01/10',
     minutos: 20,
     tarefas: [
-      { texto: 'Manhã: reler só os cards de fórmulas e a tabela-verdade da implicação (15 min, sem exercício novo)', },
+      { texto: 'Manhã: reler só os cards de fórmulas e a tabela da implicação (15 min, sem exercício novo)', },
       { texto: 'Levar: caneta, lápis, borracha, calculadora (se permitido) e água', },
-      { texto: 'Na prova: ler o enunciado 2×, começar pelas questões fáceis, conferir det antes de inverter matriz', },
+      { texto: 'Na prova: ler o enunciado 2×, começar pelas fáceis e conferir inversa com A·A⁻¹ = I', },
     ],
   },
 ];
@@ -189,9 +152,8 @@ export const MATH_FORMULAS: FormulaCard[] = [
   { grupo: 'Matrizes', titulo: 'Soma e escalar', corpo: 'A + B: somar elemento a elemento (mesma ordem).\nkA: multiplicar TODOS os aij por k.', fonte: 'mat-00-matrizes' },
   { grupo: 'Matrizes', titulo: 'Multiplicação', corpo: 'A(m×n) · B(n×p) = C(m×p).\nSó existe se colunas de A = linhas de B.\ncij = Σ aik · bkj (linha i de A × coluna j de B).\nAB ≠ BA (não é comutativa!).', fonte: 'mat-00-matrizes' },
   { grupo: 'Matrizes', titulo: 'Transposta e simetria', corpo: 'Aᵀ: linhas viram colunas (Aᵀij = Aji).\nSimétrica: A = Aᵀ.\nAntissimétrica: Aᵀ = −A (diagonal toda zero).', fonte: 'mat-01-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Determinante 2×2', corpo: 'A = [[a, b], [c, d]]\ndet(A) = a·d − b·c', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Inversa 2×2', corpo: 'A⁻¹ = (1/det(A)) · [[d, −b], [−c, a]]\ndet(A) = 0 ⇒ NÃO existe inversa.\nTeste: A · A⁻¹ = I.', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Sistema linear (PÓS-PROVA)', corpo: 'AX = B ⇒ X = A⁻¹B (quando det(A) ≠ 0).\nMonte A (coeficientes), X (incógnitas), B (resultados).\n⚠ Professor ainda não deu — NÃO cai na Av1 (22/09).', fonte: 'mat-01-matrizes' },
+  { grupo: 'Matrizes', titulo: 'Inversa 2×2 (com det por dentro)', corpo: 'det(A) = a·d − b·c (só a ferramenta da inversa — determinantes como TÓPICO não caem)\nA⁻¹ = (1/det(A)) · [[d, −b], [−c, a]]\ndet(A) = 0 ⇒ NÃO existe inversa.\nTeste: A · A⁻¹ = I.', fonte: 'mat-00-matrizes' },
+  { grupo: 'Matrizes', titulo: 'PÓS-PROVA: determinantes e sistemas', corpo: 'Determinantes (3×3/Sarrus) e Sistemas Lineares (AX = B) são os tópicos 1.3 e 1.4 — o professor ainda NÃO deu (confirmado 24/09): não caem na Av1.', fonte: 'mat-00-matrizes' },
   { grupo: 'Lógica', titulo: 'Conectivos', corpo: '¬p (não) · p ∧ q (e) · p ∨ q (ou) · p → q (se…então) · p ↔ q (se e só se).', fonte: 'mat-logica-slides' },
   { grupo: 'Lógica', titulo: 'Tabela da implicação', corpo: 'p → q é F APENAS quando V → F.\n(V,V)=V (V,F)=F (F,V)=V (F,F)=V', fonte: 'mat-logica-slides' },
   { grupo: 'Lógica', titulo: 'Tautologia × Contradição', corpo: 'Tautologia: sempre V (ex.: p ∨ ¬p).\nContradição: sempre F (ex.: p ∧ ¬p).\nContingência: depende dos valores.', fonte: 'mat-logica-lista' },
@@ -206,16 +168,17 @@ export const MATH_CHECKLIST: { grupo: string; itens: string[] }[] = [
     itens: [
       'Identificar ordem e elementos aij',
       'Somar matrizes e multiplicar por escalar',
-      'Multiplicar matrizes sabendo quando é possível',
-      'Montar a transposta e testar simetria',
-      'Calcular determinante 2×2',
-      'Inverter matriz 2×2 e verificar com A·A⁻¹ = I',
+      'Multiplicar matrizes sabendo quando é possível (AB ≠ BA)',
+      'Montar a transposta e testar simetria/antissimetria',
+      'Inverter matriz e verificar com A·A⁻¹ = I',
+      'Resolver equações matriciais simples (X + A = B − C)',
     ],
   },
   {
     grupo: 'Pós-prova — NÃO cai na Av1',
     itens: [
-      'Resolver sistema 2×2 via AX = B (sistemas lineares — professor ainda não deu, confirmado 22/09)',
+      'Determinantes como tópico (2×2 aparece só por dentro da inversa)',
+      'Sistemas lineares via AX = B (professor ainda não deu — confirmado 24/09)',
     ],
   },
   {
@@ -238,11 +201,10 @@ export function planDayFor(daysLeft: number): PlanDay | undefined {
 
 /**
  * Dias do plano que ficaram PARA TRÁS (modo recuperação).
- * O plano tem 12 dias; se o aluno só "entrou" nele com 9 dias restantes, os
- * dias D-11..D-10..(acima do dia atual) foram pulados — eles continuam sendo
- * conteúdo da prova e precisam de um catch-up condensado.
+ * O plano tem 8 dias (offset 7..0); se o aluno começar com menos dias,
+ * os offsets acima de daysLeft são os dias pulados — catch-up condensado.
  */
 export function missedPlanDays(daysLeft: number): PlanDay[] {
   if (daysLeft >= MATH_EXAM_PLAN.length) return [];
-  return MATH_EXAM_PLAN.filter((d) => d.offset > daysLeft - 1 && d.offset > 0);
+  return MATH_EXAM_PLAN.filter((d) => d.offset > daysLeft && d.offset > 0);
 }

@@ -788,7 +788,7 @@ export const exercises: Exercise[] = [
     disciplineCode: 'TEC.1984',
     topic: 'Álgebra Matricial',
     statement:
-      'Dadas as matrizes A = [[1,2],[3,4]] e B = [[5,6],[7,8]], calcule A + B, A × B e o determinante de A.',
+      'Dadas as matrizes A = [[1,2],[3,4]] e B = [[5,6],[7,8]], calcule A + B, 3A e A × B (confira antes se a multiplicação é possível).',
     difficulty: 'medio',
     source: 'gerado_topico',
     unit: '1. Álgebra Matricial',
@@ -1059,13 +1059,15 @@ export const exercises: Exercise[] = [
   {
     id: 'mat-ex05',
     disciplineCode: 'TEC.1984',
-    topic: 'Álgebra Matricial',
+    topic: 'Álgebra Matricial — Determinantes',
     statement:
-      'Para A = [[3, 1], [2, 1]]: a) calcule det(A); b) encontre A⁻¹ pela fórmula adj(A)/det(A); c) confirme multiplicando A·A⁻¹ = I.',
+      '[PÓS-PROVA — determinantes é o tópico 1.3, ainda não dado em sala (confirmado 24/09); o Hub libera esta questão automaticamente quando um material comprovar a aula] Para A = [[3, 1], [2, 1]]: a) calcule det(A); b) encontre A⁻¹ pela fórmula adj(A)/det(A); c) confirme multiplicando A·A⁻¹ = I.',
     difficulty: 'medio',
     source: 'material_professor',
     hint: 'det 2×2 = ad - bc = 3·1 - 1·2 = 1. A⁻¹ = (1/det)·[[d, -b], [-c, a]]. Se det = 0, a matriz NÃO tem inversa.',
     unit: '1. Álgebra Matricial',
+    // Gate fino: liberada só quando material real registrar topicosCobertosFino: ['Determinantes']
+    requiresSubtopico: 'Determinantes',
     linkedMaterials: ['mat-00-matrizes'],
   },
   {
