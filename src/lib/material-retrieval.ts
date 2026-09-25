@@ -229,6 +229,7 @@ export async function buildMaterialBlock(material: Material, question: string): 
     '',
     `=== MATERIAL ABERTO PELO ALUNO: "${material.title}" (${material.disciplineCode}) ===`,
     'Use este conteúdo como FONTE PRIMÁRIA: cite trechos, exemplos e números EXATAMENTE como aparecem. Não invente conteúdo além dele.',
+    'REGRA CRÍTICA: o material acima tem DADOS CONCRETOS (números da amostra, percentuais, valores de tabela). Se o aluno pedir resultados/dados/números, cite NO MÍNIMO 3 valores EXATOS vindos daqui — resposta qualitativa sem números é reprovada.',
     ...parts,
     '=== FIM DO MATERIAL ===',
     '',

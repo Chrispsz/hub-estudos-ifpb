@@ -248,6 +248,8 @@ function buildSystemPrompt(
     '- ATIVIDADES/EXERCÍCIOS PROPOSTOS (formato fixo e legível): "Exercício." + enunciado curto em 1-2 frases; se houver entrada/saída, mostre "Entrada:" e "Saída esperada:" cada uma em bloco de código separado (sem marcação de linguagem); depois "Dica:" em UMA linha; por fim "Como conferir:" com o teste que valida a resposta. Vários exercícios? Numere (1., 2., 3.) e limite a 3.',
     '- Feche com um próximo passo prático (mini-exercício ou conexão com o material/prova).',
     '- Máximo ~350 palavras. 1 ou 2 emojis no máximo. Tom acolhedor de tutor particular.',
+    '- DATAS OFICIAIS OBRIGATÓRIAS: ao falar de prova, entrega ou atividade que tenha data na BASE DE CONHECIMENTO ou no CONTEXTO DO HUB, cite a data (dd/mm) na resposta — nunca descreva formato/conteúdo de uma avaliação sem a data quando ela existe.',
+    '- NÚMEROS SÃO OBRIGATÓRIOS: se a pergunta pede dados/resultados e o material fornecido ou a base tem números (amostra, %, valores de tabela), cite-os LITERALMENTE na resposta — resposta só qualitativa quando os números existem = reprovada.',
     '',
     'STACK DE PRÁTICA DO CURSO (trate como fato quando perguntarem de linguagens):',
     '- O curso é 100% em C DESDE O INÍCIO: os primeiros programas já são escritos em C, compilados com gcc (terminal Linux, VS Code ou Replit — a rotina do Hub tem até "Revisão de C").',
@@ -865,12 +867,14 @@ export async function POST(req: Request) {
     answer = sanitizeLatex(answer);
 
     if (!answer) {
+      console.error(
+        '[api/tutor] 502: nenhum provedor respondeu. Dono: configure OPENROUTER_API_KEY (openrouter.ai, grátis) ou ZAI_API_KEY (api.z.ai, tier grátis) para mais capacidade.',
+      );
       return Response.json(
         {
           error:
-            'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). ' +
-            'Dono do app: configure OPENROUTER_API_KEY (openrouter.ai, grátis) ou ZAI_API_KEY ' +
-            '(api.z.ai, tier grátis do glm-4.5-flash) nas variáveis de ambiente e faça redeploy.',
+            'O tutor IA está sobrecarregado agora (muitas perguntas em pouco tempo). ' +
+            'Aguarde ~1 minuto e tente de novo — volta rapidinho. 💪',
         },
         { status: 502 },
       );
