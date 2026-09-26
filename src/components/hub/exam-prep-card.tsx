@@ -21,6 +21,7 @@ import {
   GraduationCap,
   Layers,
   ListChecks,
+  Minus,
   Play,
   Sigma,
   Sparkles,
@@ -887,6 +888,20 @@ const READINESS_TARGET: Record<ReadinessComponentId, ((disciplineCode: string) =
 const GAUGE_R = 52;
 const GAUGE_C = 2 * Math.PI * GAUGE_R;
 
+/** Réguia de domínio por tópico — a MESMA gramática de cores da tendência
+ *  do Histórico e da faixa "foco da prova" (≥60 emerald / ≥40 amber / <40 rose). */
+function masteryBarCls(pct: number): string {
+  if (pct >= 60) return 'bg-emerald-500';
+  if (pct >= 40) return 'bg-amber-500';
+  return 'bg-rose-500';
+}
+
+function masteryTextCls(pct: number): string {
+  if (pct >= 60) return 'text-emerald-600 dark:text-emerald-400';
+  if (pct >= 40) return 'text-amber-600 dark:text-amber-400';
+  return 'text-rose-600 dark:text-rose-400';
+}
+
 function ReadinessSection({
   readiness,
   daysLeft,
@@ -1005,7 +1020,68 @@ function ReadinessSection({
                       />
                     )}
                   </div>
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{c.detail}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={c.detail}>
+                    {c.detail}
+                  </p>
+                  {/* DOMÍNIO POR TÓPICO (só simulado, só com detalhe por questão):
+                      a evidência de 30% do score deixa de ser um número plano —
+                      cada tópico do escopo mostra onde está AGORA (última
+                      tentativa), com delta e a régua de cor do resultado. O
+                      tópico <60% carrega a mira do "foco da prova". */}
+                  {c.id === 'simulado' && readiness.topicMastery ? (
+                    <div
+                      className="mt-1.5 space-y-1 rounded-md border border-amber-500/20 bg-amber-500/5 p-1.5"
+                      aria-label="Domínio atual por tópico do escopo da prova"
+                    >
+                      {readiness.topicMastery.map((t, ti) => {
+                        const DeltaIcon = t.delta > 0 ? TrendingUp : t.delta < 0 ? TrendingDown : Minus;
+                        const deltaCls =
+                          t.delta > 0
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : t.delta < 0
+                              ? 'text-rose-500'
+                              : 'text-muted-foreground/60';
+                        const deltaTxt = `Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`;
+                        return (
+                          <div
+                            key={t.topic}
+                            className="flex items-center gap-1.5"
+                            title={`${t.topic}: ${t.pct}% na última tentativa · ${deltaTxt}`}
+                          >
+                            {t.pct < 60 ? (
+                              <Crosshair
+                                className="size-3 shrink-0 text-rose-500"
+                                role="img"
+                                aria-label={`${t.topic} é o foco da prova`}
+                              />
+                            ) : (
+                              <span className="size-3 shrink-0" aria-hidden />
+                            )}
+                            <span className="min-w-0 flex-[2] truncate text-[10px] font-medium">
+                              {t.topic}
+                            </span>
+                            <span className="h-1 flex-[3] overflow-hidden rounded-full bg-muted" aria-hidden>
+                              <motion.span
+                                className={cn('block h-full rounded-full', masteryBarCls(t.pct))}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${t.pct}%` }}
+                                transition={{ duration: 0.6, delay: 0.4 + ti * 0.08, ease: 'easeOut' }}
+                              />
+                            </span>
+                            <span
+                              className={cn(
+                                'w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums',
+                                masteryTextCls(t.pct),
+                              )}
+                            >
+                              {t.pct}%
+                            </span>
+                            <DeltaIcon className={cn('size-3 shrink-0', deltaCls)} aria-hidden />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
                 {clickable ? (
                   <ArrowUpRight
@@ -1052,7 +1128,9 @@ function ReadinessSection({
             {READINESS_LABEL[readiness.tone]}
           </Badge>
           <span className="text-[11px] text-muted-foreground">
-            sobe ao vivo: marcar tarefas, revisar cartões e correr o simulado
+            {readiness.topicMastery
+              ? 'derrubar o tópico em foco sobe o score ao vivo — o simulado usa seu domínio atual por tópico'
+              : 'sobe ao vivo: marcar tarefas, revisar cartões e correr o simulado'}
           </span>
         </div>
       )}
@@ -1081,7 +1159,8 @@ function ReadinessSection({
       <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
         Score = média ponderada das evidências (simulado 30% · exercícios 20% · checklist 20% ·
         baralho 15% · plano 15%). Componente sem dado não entra na conta — o score não inventa
-        prontidão.
+        prontidão. Com detalhe por questão, o simulado usa o domínio ATUAL de cada tópico do
+        escopo (média das últimas tentativas), não só a última nota geral.
       </p>
     </section>
   );

@@ -19,6 +19,7 @@ import {
   MATH_EXAM,
   MATH_EXAM_PLAN,
 } from './math-exam-prep';
+import { computeTopicTrends } from './simulado-debrief';
 import type { StudyProgress } from './study-progress';
 import { capQuestion } from './tutor-stream';
 
@@ -49,6 +50,24 @@ export interface ReadinessResult {
   components: ReadinessComponent[];
   /** Erros pendentes no caderno, só Matemática — contexto para a IA. */
   pendentesMat: number;
+  /**
+   * Domínio ATUAL por tópico do escopo da prova (última tentativa de cada
+   * tópico), quando as corridas gravam detalhe por questão. É o que o
+   * componente "simulado" passa a usar como evidência — não só a última
+   * nota geral. Undefined = sem detalhe por questão (fallback à nota geral).
+   */
+  topicMastery?: ReadinessTopicMastery[];
+}
+
+/** Um tópico do escopo da prova e o seu aproveitamento mais recente. */
+export interface ReadinessTopicMastery {
+  topic: string;
+  /** Último aproveitamento do tópico (0–100). */
+  pct: number;
+  /** Variação em pp entre a 1ª e a última tentativa do tópico. */
+  delta: number;
+  /** Quantas tentativas com detalhe alimentaram este tópico. */
+  attempts: number;
 }
 
 // ---------- Pesos e helpers ----------
@@ -94,24 +113,58 @@ export function computeReadiness(
 ): ReadinessResult {
   const components: ReadinessComponent[] = [];
 
-  // 1) Simulado — a evidência em condições de prova. Prefere corridas da
-  //    disciplina da prova; sem nenhuma, usa a última corrida geral (honesto:
-  //    é a melhor evidência disponível, e o detail diz de onde vem).
+  // 1) Simulado — a evidência em condições de prova. COM detalhe por questão,
+  //    sobe de nível: usa o domínio ATUAL de cada tópico do escopo da prova
+  //    (última tentativa de cada um — a média de onde você ESTÁ, não de uma
+  //    única prova). Sem detalhe, cai para a última corrida (honesto sobre a
+  //    origem no detail). Tópico do escopo sem evidência fica explícito.
   const mathRuns = (progress.simuladoRuns ?? []).filter(
     (r) => r.filters?.discipline === MATH_EXAM.disciplineCode,
   );
   const pool = mathRuns.length > 0 ? mathRuns : (progress.simuladoRuns ?? []);
+  const scopeTrends = computeTopicTrends(progress.simuladoRuns ?? []).filter(
+    (t) =>
+      t.disciplineCode === MATH_EXAM.disciplineCode &&
+      (MATH_EXAM.topicosEscopo as readonly string[]).includes(t.topic),
+  );
+  const topicMastery: ReadinessTopicMastery[] | undefined =
+    scopeTrends.length > 0
+      ? scopeTrends.map((t) => ({
+          topic: t.topic,
+          pct: t.last,
+          delta: t.delta,
+          attempts: t.series.length,
+        }))
+      : undefined;
   if (pool.length > 0) {
     const last = [...pool].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     )[0];
-    const pct = runPct(last.solved, last.total);
-    components.push({
-      id: 'simulado',
-      label: 'Simulado da prova',
-      pct,
-      detail: `${mathRuns.length > 0 ? 'última' : 'corrida geral'}: ${pct}% (${fmtDDMM(last.date)})`,
-    });
+    const pctRun = runPct(last.solved, last.total);
+    if (topicMastery) {
+      // Média do domínio atual dos tópicos COM evidência (renormalizado —
+      // a mesma regra de honestidade dos componentes, agora por tópico).
+      const pct = Math.round(
+        topicMastery.reduce((a, t) => a + t.pct, 0) / topicMastery.length,
+      );
+      const missing = (MATH_EXAM.topicosEscopo as readonly string[]).filter(
+        (tp) => !topicMastery.some((t) => t.topic === tp),
+      );
+      const attempts = topicMastery.reduce((a, t) => a + t.attempts, 0);
+      components.push({
+        id: 'simulado',
+        label: 'Simulado da prova',
+        pct,
+        detail: `domínio por tópico do escopo (${attempts} tentativas c/ detalhe) · última geral: ${pctRun}%${missing.length > 0 ? ` · falta evidência: ${missing.join(', ')}` : ''}`,
+      });
+    } else {
+      components.push({
+        id: 'simulado',
+        label: 'Simulado da prova',
+        pct: pctRun,
+        detail: `${mathRuns.length > 0 ? 'última' : 'corrida geral'}: ${pctRun}% (${fmtDDMM(last.date)})`,
+      });
+    }
   } else {
     components.push({
       id: 'simulado',
@@ -202,6 +255,7 @@ export function computeReadiness(
     tone: score === null ? 'atencao' : toneFor(score),
     components,
     pendentesMat,
+    topicMastery,
   };
 }
 
@@ -233,6 +287,18 @@ export function buildReadinessQuestion(
     return `- ${c.label}: ${evidencia}`;
   });
 
+  // Domínio por tópico do escopo — a IA enxerga ONDE está o foco real.
+  const dominioBloco = result.topicMastery
+    ? [
+        '',
+        'Domínio ATUAL por tópico do escopo da prova (última tentativa de cada tópico; Δ = variação entre 1ª e última):',
+        ...result.topicMastery.map(
+          (t) =>
+            `- ${t.topic}: ${t.pct}% (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'})`,
+        ),
+      ]
+    : [];
+
   const cadernoLinha =
     pendentesMat > 0
       ? `- Caderno de Erros: ${pendentesMat} pendente(s) na Matemática (erros que ainda não revisei)`
@@ -242,10 +308,12 @@ export function buildReadinessQuestion(
     head,
     'Evidências reais registradas pelo Hub:',
     ...linhas,
+    ...dominioBloco,
     cadernoLinha,
     '',
     'Responda em 3 partes, como coach — direto, sem elogio vazio:',
-    '1. O que MAIS pesa contra a minha prontidão agora e por quê (olhando os componentes acima).',
+    '1. O que MAIS pesa contra a minha prontidão agora e por quê (olhando os componentes acima' +
+      (result.topicMastery ? ' e o domínio por tópico do escopo' : '') + ').',
     '2. Plano concreto de hoje até 01/10, dia a dia, citando as listas reais (Matrizes Q1–16, Q17–30, Q31–35; Lógica Q1–12, Q13–18) e materiais do Hub.',
     '3. O que NÃO estudar nesses dias (fora do escopo da prova) para não desperdiçar as horas restantes.',
   ].join('\n');
