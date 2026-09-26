@@ -48,6 +48,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { defaultProgress, exportProgressJSON, importProgressJSON, useStudyProgress } from '@/lib/study-progress';
+import { useFocusMode } from '@/lib/focus-mode';
 
 export function SettingsView() {
   const sp = useStudyProgress();
@@ -140,6 +141,20 @@ export function SettingsView() {
                 <SelectItem value="system">Sistema</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Modo foco (navegação simples)</p>
+              <p className="text-xs text-muted-foreground">
+                Esconde <b>Método</b>, <b>Cronograma</b> e <b>Progresso</b> atrás do botão "Mais"
+                na barra lateral — só o estudo do dia a dia na frente. Nada é apagado; um toque
+                em "Mais" traz de volta.
+              </p>
+            </div>
+            <FocusModeSwitch />
           </div>
         </CardContent>
       </Card>
@@ -667,5 +682,16 @@ function InstallAppCard() {
         )}
       </CardContent>
     </Card>
+  );
+}
+/** Switch do Modo Foco — hook próprio isola re-render do card inteiro. */
+function FocusModeSwitch() {
+  const [focusMode, setFocusMode] = useFocusMode();
+  return (
+    <Switch
+      checked={focusMode}
+      onCheckedChange={setFocusMode}
+      aria-label="Ativar ou desativar o modo foco na navegação"
+    />
   );
 }

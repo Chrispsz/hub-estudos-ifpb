@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { GraduationCap, Menu } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronDown, GraduationCap, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,6 +13,10 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { useFocusMode } from '@/lib/focus-mode';
+
+/** Abas que ficam em "Mais" quando o Modo Foco está ligado. */
+const SECONDARY_TABS: TabKey[] = ['method', 'schedule', 'progress'];
 
 export type TabKey =
   | 'dashboard'
@@ -50,51 +55,125 @@ export function SidebarNav({
   totalMaterials,
 }: SidebarNavProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [focusMode] = useFocusMode();
+  // "Mais" abre sozinho se a aba ativa for uma das escondidas — nunca some
+  // a aba em que a pessoa está de propósito.
+  const [moreOpen, setMoreOpen] = React.useState(false);
+
+  const primary = focusMode
+    ? items.filter((it) => !SECONDARY_TABS.includes(it.value))
+    : items;
+  const secondary = focusMode ? items.filter((it) => SECONDARY_TABS.includes(it.value)) : [];
+  const activeHidden = secondary.some((it) => it.value === active);
+
+  React.useEffect(() => {
+    if (activeHidden) setMoreOpen(true);
+  }, [activeHidden]);
 
   function handleSelect(k: TabKey) {
     onChange(k);
     setMobileOpen(false);
   }
 
+  const renderNavItem = (it: NavItem) => (
+    <button
+      key={it.value}
+      onClick={() => handleSelect(it.value)}
+      className={cn(
+        'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all active:scale-[0.98]',
+        'hover:bg-muted/60',
+        active === it.value
+          ? 'bg-muted text-foreground shadow-sm'
+          : 'text-muted-foreground',
+      )}
+      aria-current={active === it.value ? 'page' : undefined}
+    >
+      <span
+        className={cn(
+          'grid size-8 shrink-0 place-items-center rounded-md transition-colors',
+          active === it.value
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+            : 'text-muted-foreground group-hover:text-foreground',
+        )}
+      >
+        {it.icon}
+      </span>
+      <span className="flex-1 text-left">{it.label}</span>
+      {it.badge != null && it.badge > 0 && (
+        <Badge
+          variant="outline"
+          className={cn(
+            'h-5 min-w-5 shrink-0 justify-center border px-1.5 text-[10px]',
+            it.badgeColor ?? 'border-border text-muted-foreground',
+          )}
+        >
+          {it.badge}
+        </Badge>
+      )}
+    </button>
+  );
+
   const NavList = (
     <nav className="flex flex-col gap-1" aria-label="Navegação principal">
-      {items.map((it) => (
-        <button
-          key={it.value}
-          onClick={() => handleSelect(it.value)}
-          className={cn(
-            'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-            'hover:bg-muted/60',
-            active === it.value
-              ? 'bg-muted text-foreground shadow-sm'
-              : 'text-muted-foreground',
-          )}
-          aria-current={active === it.value ? 'page' : undefined}
-        >
-          <span
+      {primary.map(renderNavItem)}
+
+      {/* Modo Foco: abas de apoio agrupadas em "Mais" — 1 toque traz de volta. */}
+      {focusMode && secondary.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((o) => !o)}
+            aria-expanded={moreOpen}
             className={cn(
-              'grid size-8 shrink-0 place-items-center rounded-md transition-colors',
-              active === it.value
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                : 'text-muted-foreground group-hover:text-foreground',
+              'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60',
+              activeHidden ? 'text-foreground' : 'text-muted-foreground',
             )}
           >
-            {it.icon}
-          </span>
-          <span className="flex-1 text-left">{it.label}</span>
-          {it.badge != null && it.badge > 0 && (
-            <Badge
-              variant="outline"
+            <span
               className={cn(
-                'h-5 min-w-5 shrink-0 justify-center border px-1.5 text-[10px]',
-                it.badgeColor ?? 'border-border text-muted-foreground',
+                'grid size-8 shrink-0 place-items-center rounded-md transition-colors',
+                activeHidden
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                  : 'text-muted-foreground group-hover:text-foreground',
               )}
             >
-              {it.badge}
-            </Badge>
-          )}
-        </button>
-      ))}
+              <ChevronDown
+                className={cn('size-4 transition-transform duration-200', moreOpen && 'rotate-180')}
+                aria-hidden
+              />
+            </span>
+            <span className="flex-1 text-left">Mais</span>
+            {!moreOpen && (
+              <span className="flex items-center gap-1">
+                {secondary.map((it) =>
+                  it.badge != null && it.badge > 0 ? (
+                    <span
+                      key={it.value}
+                      className="size-1.5 rounded-full bg-amber-500"
+                      aria-label={`${it.label}: ${it.badge} pendências`}
+                    />
+                  ) : null,
+                )}
+              </span>
+            )}
+          </button>
+          <AnimatePresence initial={false}>
+            {moreOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="overflow-hidden"
+              >
+                <div className="ml-4 flex flex-col gap-1 border-l border-border/70 pl-2">
+                  {secondary.map(renderNavItem)}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
     </nav>
   );
 

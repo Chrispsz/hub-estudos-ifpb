@@ -24,7 +24,13 @@ interface ChatMessage {
   model?: string;
   /** Miniatura do print anexado (só na conversa viva — painel é efêmero). */
   image?: string;
+  /** Hora local (HH:MM) — referência discreta na conversa. */
+  time?: string;
 }
+
+/** Hora local curta (HH:MM) para carimbar mensagens do chat. */
+const hhmm = () =>
+  new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 interface TutorQuickPanelProps {
   discipline: string;
@@ -114,7 +120,12 @@ export function TutorQuickPanel({
       .filter((m) => !m.content.startsWith('⚠️'))
       .slice(-12)
       .map(({ role, content }) => ({ role, content }));
-    appendMessage({ role: 'user', content: q || '📷 print anexado', image: image ?? undefined });
+    appendMessage({
+      role: 'user',
+      content: q || '📷 print anexado',
+      image: image ?? undefined,
+      time: hhmm(),
+    });
     setLoading(true);
     setStreamText(null);
     try {
@@ -135,11 +146,11 @@ export function TutorQuickPanel({
           setStreamText(full);
         },
       );
-      appendMessage({ role: 'assistant', content: result.answer, model: result.model });
+      appendMessage({ role: 'assistant', content: result.answer, model: result.model, time: hhmm() });
     } catch (err) {
       const partial = err instanceof TutorStreamError ? err.partial : '';
       if (partial.trim()) {
-        appendMessage({ role: 'assistant', content: partial });
+        appendMessage({ role: 'assistant', content: partial, time: hhmm() });
       } else {
         appendMessage({
           role: 'assistant',
@@ -183,7 +194,7 @@ export function TutorQuickPanel({
                   key={s}
                   type="button"
                   onClick={() => ask(s)}
-                  className="rounded-full border border-border bg-muted/60 px-3 py-2 text-xs transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:text-emerald-400 sm:py-1.5"
+                  className="rounded-full border border-border bg-muted/60 px-3 py-2 text-xs transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 active:scale-[0.97] dark:hover:text-emerald-400 sm:py-1.5"
                 >
                   {s}
                 </button>
@@ -193,7 +204,13 @@ export function TutorQuickPanel({
         )}
 
         {messages.map((m) => (
-          <div key={m.id} className={cn('flex gap-2', m.role === 'user' && 'flex-row-reverse')}>
+          <div
+            key={m.id}
+            className={cn(
+              'animate-msg-in flex gap-2',
+              m.role === 'user' && 'flex-row-reverse',
+            )}
+          >
             <div
               className={cn(
                 'grid size-6 shrink-0 place-items-center rounded-full',
@@ -206,10 +223,10 @@ export function TutorQuickPanel({
             </div>
             <div
               className={cn(
-                'max-w-[88%] rounded-xl px-3 py-2',
+                'max-w-[88%] rounded-2xl px-3 py-2 shadow-sm',
                 m.role === 'user'
-                  ? 'whitespace-pre-wrap bg-emerald-600 text-white'
-                  : 'bg-muted text-foreground',
+                  ? 'whitespace-pre-wrap rounded-tr-sm bg-gradient-to-br from-emerald-600 to-teal-600 text-white'
+                  : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
               )}
             >
               {m.role === 'user' ? (
@@ -222,11 +239,13 @@ export function TutorQuickPanel({
                       className="mt-2 max-h-40 rounded-lg"
                     />
                   )}
+                  {m.time && <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>}
                 </>
               ) : (
                 <>
                   <TutorMarkdown content={m.content} />
                   <div className="mt-1.5 flex items-center gap-2">
+                    {m.time && <span className="text-[10px] text-muted-foreground/60">{m.time}</span>}
                     {m.model && (
                       <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
                     )}
@@ -283,7 +302,7 @@ export function TutorQuickPanel({
                     key={f.label}
                     type="button"
                     onClick={() => ask(f.q)}
-                    className="rounded-full border border-border bg-muted/60 px-2.5 py-1.5 text-xs transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:text-emerald-400"
+                    className="rounded-full border border-border bg-muted/60 px-2.5 py-1.5 text-xs transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 active:scale-[0.97] dark:hover:text-emerald-400"
                   >
                     {f.label}
                   </button>

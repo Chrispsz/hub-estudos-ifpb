@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  Download,
   History,
   ImagePlus,
   Loader2,
@@ -91,7 +92,13 @@ interface ChatMessage {
   model?: string;
   /** Miniatura do print anexado (só na conversa viva — não persiste no banco). */
   image?: string;
+  /** Hora local (HH:MM) da mensagem — referência discreta de quando estudou. */
+  time?: string;
 }
+
+/** Hora local curta (HH:MM) para carimbar mensagens do chat. */
+const hhmm = () =>
+  new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 interface BannerSnapshot {
   saved: PomodoroState;
@@ -845,7 +852,7 @@ export function StudyView({
       .map(({ role, content }) => ({ role, content }));
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: q || '📷 print anexado', image: image ?? undefined },
+      { role: 'user', content: q || '📷 print anexado', image: image ?? undefined, time: hhmm() },
     ]);
     setChatImage(null);
     setChatInput('');
@@ -871,13 +878,13 @@ export function StudyView({
       );
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: result.answer, model: result.model },
+        { role: 'assistant', content: result.answer, model: result.model, time: hhmm() },
       ]);
     } catch (err) {
       // stream caiu no meio? mantém o parcial que o aluno já viu
       const partial = err instanceof TutorStreamError ? err.partial : '';
       if (partial.trim()) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: partial }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: partial, time: hhmm() }]);
       }
       toast.error(err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.');
     } finally {
@@ -893,6 +900,32 @@ export function StudyView({
     void fetch(`/api/tutor/history?discipline=${encodeURIComponent(disciplineCode)}`, {
       method: 'DELETE',
     }).catch(() => {});
+  };
+
+  /** Baixa a conversa em .md — o aluno arquiva no caderno/documento de estudos. */
+  const exportChat = () => {
+    const lines = messages
+      .filter((m) => !m.content.startsWith('⚠️'))
+      .map((m) => {
+        const who = m.role === 'user' ? '**Você**' : `**Tutor**${m.model ? ` (${m.model})` : ''}`;
+        const when = m.time ? ` — ${m.time}` : '';
+        return `${who}${when}\n\n${m.content}\n`;
+      });
+    const header = `# Conversa com o Tutor — ${discipline.name}\n\nExportado do Hub de Estudos em ${new Date().toLocaleDateString('pt-BR')}\n\n---\n\n`;
+    try {
+      const blob = new Blob([header + lines.join('\n---\n\n')], {
+        type: 'text/markdown;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tutor-${disciplineCode.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Conversa baixada em Markdown.');
+    } catch {
+      toast.error('Não consegui baixar a conversa agora.');
+    }
   };
 
   /** Copia o texto completo de uma resposta do tutor (pra colar no caderno). */
@@ -1281,6 +1314,17 @@ export function StudyView({
                 variant="ghost"
                 size="icon"
                 className="size-8 shrink-0"
+                onClick={exportChat}
+                disabled={messages.length <= 1}
+                aria-label="Baixar conversa"
+                title="Baixar conversa em Markdown (pra guardar no caderno)"
+              >
+                <Download className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0"
                 onClick={clearChat}
                 disabled={chatLoading}
                 aria-label="Limpar conversa"
@@ -1299,7 +1343,7 @@ export function StudyView({
               <div
                 key={i}
                 className={cn(
-                  'flex gap-2',
+                  'animate-msg-in flex gap-2',
                   m.role === 'user' ? 'justify-end' : 'justify-start',
                 )}
               >
@@ -1310,10 +1354,10 @@ export function StudyView({
                 )}
                 <div
                   className={cn(
-                    'max-w-[85%] rounded-xl px-3 py-2 text-sm',
+                    'max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm',
                     m.role === 'user'
-                      ? 'whitespace-pre-wrap bg-emerald-600 text-white'
-                      : 'bg-muted text-foreground',
+                      ? 'whitespace-pre-wrap rounded-tr-sm bg-gradient-to-br from-emerald-600 to-teal-600 text-white'
+                      : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
                   )}
                 >
                   {m.role === 'user' ? (
@@ -1326,26 +1370,34 @@ export function StudyView({
                           className="mt-2 max-h-44 rounded-lg"
                         />
                       )}
+                      {m.time && (
+                        <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>
+                      )}
                     </>
                   ) : (
-                    <TutorMarkdown content={m.content} />
-                  )}
-                  {m.role === 'assistant' && (m.model || m.content.length > 80) && (
-                    <div className="mt-1.5 flex items-center gap-2">
-                      {m.model && (
-                        <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => copyAnswer(m.content)}
-                        aria-label="Copiar resposta"
-                        title="Copiar resposta"
-                        className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
-                      >
-                        <Copy className="size-3" />
-                        copiar
-                      </button>
-                    </div>
+                    <>
+                      <TutorMarkdown content={m.content} />
+                      <div className="mt-1.5 flex items-center gap-2">
+                        {m.time && (
+                          <span className="text-[10px] text-muted-foreground/60">{m.time}</span>
+                        )}
+                        {m.model && (
+                          <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
+                        )}
+                        {m.content.length > 80 && (
+                          <button
+                            type="button"
+                            onClick={() => copyAnswer(m.content)}
+                            aria-label="Copiar resposta"
+                            title="Copiar resposta"
+                            className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
+                          >
+                            <Copy className="size-3" />
+                            copiar
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
