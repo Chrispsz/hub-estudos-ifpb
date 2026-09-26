@@ -217,7 +217,7 @@ export function SidebarNav({
               <Menu className="size-4" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent side="left" className="w-64 p-0" aria-describedby={undefined}>
             <SheetHeader className="border-b p-4">
               <SheetTitle className="flex items-center gap-2 text-base">
                 <GraduationCap className="size-5 text-emerald-600 dark:text-emerald-400" />

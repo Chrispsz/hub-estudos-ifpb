@@ -68,7 +68,7 @@ export function TutorQuickPanel({
   /** Modo dica: tutor socrático — pistas antes da solução completa. */
   const [hintMode, setHintMode] = React.useState(false);
   /** Ouvir resposta — TTS nativo do navegador. */
-  const { speakingId, toggle: toggleSpeech, supported: ttsSupported } = useTutorSpeech();
+  const { speakingId, preparingId, toggle: toggleSpeech } = useTutorSpeech();
 
   // Anexa mensagem com id único — chaves estáveis na lista de conversa.
   const appendMessage = React.useCallback((msg: Omit<ChatMessage, 'id'>) => {
@@ -281,7 +281,7 @@ export function TutorQuickPanel({
                       <Copy className="size-3" />
                       copiar
                     </button>
-                    {ttsSupported && m.content.length > 80 && (
+                    {m.content.length > 80 && (
                       <button
                         type="button"
                         onClick={() => toggleSpeech(m.id, m.content)}
@@ -289,13 +289,17 @@ export function TutorQuickPanel({
                         title={speakingId === m.id ? 'Parar leitura' : 'Ouvir resposta em voz alta'}
                         className={cn(
                           'flex items-center gap-1 text-[10px] transition-colors',
-                          speakingId === m.id
+                          speakingId === m.id || preparingId === m.id
                             ? 'text-emerald-500'
                             : 'text-muted-foreground/60 hover:text-foreground',
                         )}
                       >
-                        {speakingId === m.id ? <Square className="size-3" /> : <Volume2 className="size-3" />}
-                        {speakingId === m.id ? 'parar' : 'ouvir'}
+                        {speakingId === m.id || preparingId === m.id ? (
+                          <Square className={cn('size-3', preparingId === m.id && 'animate-pulse')} />
+                        ) : (
+                          <Volume2 className="size-3" />
+                        )}
+                        {speakingId === m.id ? 'parar' : preparingId === m.id ? 'gerando…' : 'ouvir'}
                       </button>
                     )}
                   </div>

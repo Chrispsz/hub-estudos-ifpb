@@ -13,12 +13,21 @@ import {
   TrendingUp,
   Minus,
   CalendarRange,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
+import { openTutor } from '@/lib/hub-events';
+import {
+  buildWeeklyQuestion,
+  weekDisciplineShares,
+  type WeekSummary,
+} from '@/lib/weekly-coach';
+import { getDisciplineByCode } from '@/data/course-data';
+import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 
 const DAY_MS = 86_400_000;
@@ -160,17 +169,43 @@ export function WeeklyReport() {
   const thisWeek = React.useMemo(
     () => computeWeek(sp.progress.pomodoroSessions, 0, 6),
     [sp.progress.pomodoroSessions],
-  );
+  ) as WeekSummary;
   const lastWeek = React.useMemo(
     () => computeWeek(sp.progress.pomodoroSessions, 7, 13),
     [sp.progress.pomodoroSessions],
-  );
+  ) as WeekSummary;
 
   // Rótulos do período (mesma âncora temporal das janelas acima)
   const rangeLabels = React.useMemo(
     () => ({ current: formatRange(6, 0), previous: formatRange(13, 7) }),
     [sp.progress.pomodoroSessions],
   );
+
+  // ----- Coach semanal (IA): dados reais da semana → pergunta ao tutor -----
+  const shares = React.useMemo(
+    () => weekDisciplineShares(sp.progress.pomodoroSessions),
+    [sp.progress.pomodoroSessions],
+  );
+  const totalSharedMin = React.useMemo(
+    () => shares.reduce((acc, s) => acc + s.minutes, 0),
+    [shares],
+  );
+  const topDisciplineCode = shares[0]?.disciplineCode;
+
+  const askCoach = React.useCallback(() => {
+    const question = buildWeeklyQuestion({
+      thisWeek,
+      lastWeek,
+      rangeCurrent: rangeLabels.current,
+      rangePrevious: rangeLabels.previous,
+      sessions: sp.progress.pomodoroSessions,
+      simuladoRuns: sp.progress.simuladoRuns ?? [],
+    });
+    openTutor({
+      disciplineCode: topDisciplineCode,
+      question,
+    });
+  }, [thisWeek, lastWeek, rangeLabels, sp.progress.pomodoroSessions, sp.progress.simuladoRuns, topDisciplineCode]);
 
   const hasData = thisWeek.sessions > 0 || lastWeek.sessions > 0;
 
@@ -286,6 +321,50 @@ export function WeeklyReport() {
         ))}
       </div>
 
+      {/* Onde o tempo foi — distribuição por disciplina (dados reais da semana) */}
+      {shares.length > 0 && totalSharedMin > 0 ? (
+        <div className="mt-3" data-no-export="true">
+          <div
+            className="flex h-2 overflow-hidden rounded-full bg-muted"
+            role="img"
+            aria-label={`Distribuição do foco da semana por disciplina: ${shares
+              .slice(0, 4)
+              .map((s) => `${getDisciplineByCode(s.disciplineCode)?.shortName || s.disciplineCode} ${s.minutes} min`)
+              .join(', ')}`}
+          >
+            {shares.map((s, i) => {
+              const disc = getDisciplineByCode(s.disciplineCode);
+              const color = getColorClasses(disc?.color ?? 'slate');
+              const pct = (s.minutes / totalSharedMin) * 100;
+              return (
+                <motion.div
+                  key={s.disciplineCode}
+                  className={cn('h-full first:rounded-l-full last:rounded-r-full', color.bgSolid)}
+                  style={{ width: `${pct}%` }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.06, duration: 0.3 }}
+                  title={`${disc?.shortName || s.disciplineCode}: ${s.minutes} min`}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+            {shares.slice(0, 4).map((s) => {
+              const disc = getDisciplineByCode(s.disciplineCode);
+              const color = getColorClasses(disc?.color ?? 'slate');
+              return (
+                <span key={s.disciplineCode} className="flex items-center gap-1">
+                  <span className={cn('size-1.5 rounded-full', color.dot)} aria-hidden />
+                  {disc?.shortName || s.disciplineCode}
+                  <span className="tabular-nums">{s.minutes}min</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         {thisWeek.bestDayLabel && thisWeek.bestDayMinutes > 0 ? (
           <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-amber-600 dark:text-amber-400">
@@ -294,6 +373,21 @@ export function WeeklyReport() {
           </span>
         ) : null}
         <p className="text-muted-foreground">{message}</p>
+        {/* Coach semanal — âmbar (família análise: evolução/debriefing/caderno) */}
+        {hasData ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={askCoach}
+            data-no-export="true"
+            className="ml-auto h-7 gap-1.5 border-amber-300/70 bg-amber-50 px-2.5 text-[11px] font-medium text-amber-800 transition-all hover:bg-amber-100 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1 active:scale-95 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+            aria-label="Enviar os números da semana para a IA analisar como coach"
+            title="A IA lê a semana inteira (foco, distribuição, simulados, dias até a prova) e responde com leitura honesta + plano de 7 dias"
+          >
+            <Sparkles className="size-3" aria-hidden="true" />
+            Analisar minha semana com IA
+          </Button>
+        ) : null}
       </div>
     </Card>
   );

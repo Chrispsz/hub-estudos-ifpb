@@ -349,7 +349,7 @@ export function StudyView({
   /** Modo dica: tutor socrático — pistas antes da solução completa (estudo real). */
   const [chatHints, setChatHints] = React.useState(false);
   /** Ouvir resposta — TTS nativo do navegador (voz pt-BR). */
-  const { speakingId, toggle: toggleSpeech, supported: ttsSupported } = useTutorSpeech();
+  const { speakingId, preparingId, toggle: toggleSpeech } = useTutorSpeech();
 
   // ----- Derivados -----
   const discipline = getDisciplineByCode(disciplineCode) ?? disciplines[0];
@@ -1527,7 +1527,7 @@ export function StudyView({
                             copiar
                           </button>
                         )}
-                        {ttsSupported && m.content.length > 80 && (
+                        {m.content.length > 80 && (
                           <button
                             type="button"
                             onClick={() => toggleSpeech(i, m.content)}
@@ -1535,17 +1535,17 @@ export function StudyView({
                             title={speakingId === i ? 'Parar leitura' : 'Ouvir resposta em voz alta'}
                             className={cn(
                               'flex items-center gap-1 text-[10px] transition-colors',
-                              speakingId === i
+                              speakingId === i || preparingId === i
                                 ? 'text-emerald-500'
                                 : 'text-muted-foreground/60 hover:text-foreground',
                             )}
                           >
-                            {speakingId === i ? (
-                              <Square className="size-3" />
+                            {speakingId === i || preparingId === i ? (
+                              <Square className={cn('size-3', preparingId === i && 'animate-pulse')} />
                             ) : (
                               <Volume2 className="size-3" />
                             )}
-                            {speakingId === i ? 'parar' : 'ouvir'}
+                            {speakingId === i ? 'parar' : preparingId === i ? 'gerando…' : 'ouvir'}
                           </button>
                         )}
                       </div>
