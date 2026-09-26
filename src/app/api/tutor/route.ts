@@ -2,12 +2,17 @@
 //
 // Cadeia de provedores (primeiro disponível responde):
 //
-//  1º OpenRouter (se OPENROUTER_API_KEY)   — recomendado: 1 key grátis → dezenas de modelos free
-//  2º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
-//  3º SDK Z-AI do sandbox (dinâmico)       — funciona só em dev/sandbox (baseUrl interno),
+//  1º Google Gemini (se GEMINI_API_KEY)    — RECOMENDADO: key grátis no AI Studio
+//                                            (aistudio.google.com/app/apikey, sem cartão),
+//                                            tier grátis com VISÃO nativa + forte em matemática/LaTeX.
+//                                            Resolve texto E leitura de print na Vercel.
+//  2º OpenRouter (se OPENROUTER_API_KEY)   — 1 key grátis → dezenas de modelos free (texto + visão)
+//  3º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
+//  4º SDK Z-AI do sandbox (dinâmico)       — funciona só em dev/sandbox (baseUrl interno),
 //                                            na Vercel falha silenciosamente e é ignorado
 //
-// Configure no .env local e nas Environment Variables da Vercel — UMA das duas keys basta.
+// Configure no .env local e nas Environment Variables da Vercel — UMA key já ativa tudo;
+// GEMINI_API_KEY é a única que dá leitura de imagem + texto com UMA key só.
 // Modelos OpenRouter free verificados:
 //  ✅ nvidia/nemotron-3-super-120b-a12b:free  — melhor qualidade/velocidade p/ tutoria PT-BR
 //  ✅ nvidia/nemotron-3-ultra-550b-a55b:free  — 550B, mais profundo (mais lento)
@@ -15,6 +20,9 @@
 //  ✅ inclusionai/ling-3.0-flash-sante:free   — JSON limpo
 //  ✅ cohere/north-mini-code:free             — bom p/ dúvidas de código
 //  ✅ openrouter/free                         — roteador automático (rede de segurança)
+//  ✅ qwen/qwen3.8-27b:free                   — aceita IMAGEM (catálogo 09/2026)
+//  ✅ nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free — aceita IMAGEM
+//  ✅ google/gemma-4-26b-a4b-it:free          — aceita IMAGEM
 //  ❌ google/gemma-4-31b-it:free              — provider error (removido)
 //  ❌ thinkingmachines/inkling:free           — exige harness agentic (removido)
 
@@ -91,6 +99,12 @@ interface TutorRequestBody {
 const MAX_HISTORY = 12; // stateless por sessão — contexto suficiente para continuidade
 const MODEL_TIMEOUT_MS = 35_000; // se um modelo demorar >35s, cai para o próximo
 
+/**
+ * Cadeia de modelos free — ordem otimizada por modo (testada em 10/09/2026):
+ * tutor → qualidade didática em PT-BR | flashcards → saída JSON confiável.
+ * Obs.: quando GEMINI_API_KEY existe, Gemini entra ANTES desta cadeia (ver POST).
+ */
+
 /** Provedor público da Z.ai (api.z.ai) — OpenAI-compatible. Tier grátis no glm-4.5-flash. */
 const ZAI_PUBLIC = {
   get key() { return process.env.ZAI_API_KEY; },
@@ -124,17 +138,54 @@ const MODEL_CHAIN: Record<'tutor' | 'flashcards' | 'feynman', string[]> = {
   ],
 };
 
+
+/**
+ * Google Gemini (AI Studio) — o provedor que resolve TUDO com 1 key grátis:
+ * texto (matemática/LaTeX forte) + visão nativa (leitura de prints) — direto via
+ * REST, sem SDK, roda perfeito na Vercel. Key grátis em aistudio.google.com.
+ */
+const GEMINI = {
+  get key() {
+    return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+  },
+  baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  // flash-lite primeiro: limite free mais generoso (~1000 req/dia); flash é o plano B
+  models: process.env.GEMINI_MODEL
+    ? [process.env.GEMINI_MODEL]
+    : ['gemini-2.5-flash-lite', 'gemini-2.5-flash'],
+};
+
+/** Modelos free da OpenRouter que aceitam IMAGEM (catálogo verificado 09/2026). */
+const VISION_CHAIN_OPENROUTER = [
+  'qwen/qwen3.8-27b:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'google/gemma-4-26b-a4b-it:free',
+];
+
 /** Nome curto e legível para exibir na UI (remove sufixo :free e vendor). */
 function prettyModelName(id: string): string {
   const clean = id.replace(':free', '');
   const map: Record<string, string> = {
+    'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite',
+    'gemini-2.5-flash': 'Gemini 2.5 Flash',
     'nvidia/nemotron-3-super-120b-a12b': 'Nemotron 3 Super',
     'nvidia/nemotron-3-ultra-550b-a55b': 'Nemotron 3 Ultra',
     'nex-agi/nex-n2.5-pro': 'Nex N2.5 Pro',
     'inclusionai/ling-3.0-flash-sante': 'Ling 3.0 Flash',
     'openrouter/free': 'OpenRouter Auto',
+    'qwen/qwen3.8-27b': 'Qwen 3.8 27B (visão)',
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning': 'Nemotron 3 Nano Omni (visão)',
+    'google/gemma-4-26b-a4b-it': 'Gemma 4 26B (visão)',
   };
   return map[clean] ?? clean.split('/').pop() ?? clean;
+}
+
+/** Qual provedor responde a leitura de imagem NESTE deploy (para a UI ser honesta). */
+function visionProviderLabel(): string | null {
+  if (GEMINI.key) return 'Gemini (key grátis do AI Studio)';
+  if (process.env.OPENROUTER_API_KEY) return 'OpenRouter (modelos free de visão)';
+  if (ZAI_PUBLIC.key) return `Z.ai (${process.env.ZAI_VISION_MODEL || 'glm-4.5v'})`;
+  return null; // sandbox SDK cobre o dev; na Vercel = sem visão
 }
 
 function buildFlashcardsPrompt(discipline: string, topic: string): string {
@@ -353,7 +404,9 @@ async function callOpenRouter(
     }
 
     if (onDelta && res.body) {
-      const full = await consumeSSE(res, onDelta, (ms) => arm(ms));
+      const full = await consumeSSE(res, onDelta, (ms) => arm(ms), (json) =>
+        json.choices?.[0]?.delta?.content,
+      );
       if (!full.trim()) throw new Error('stream vazio');
       return full.trim();
     }
@@ -372,12 +425,112 @@ async function callOpenRouter(
   }
 }
 
-/** Consome uma resposta SSE OpenAI-compatible, repassando deltas.
+/** Separa um data URL em mime type + base64 puro (para inline_data do Gemini). */
+function parseDataUrl(dataUrl: string): { mime: string; b64: string } | null {
+  // [\s\S] em vez do flag "s" (tsconfig target < es2018 não aceita o flag)
+  const m = /^data:([^;]+);base64,([\s\S]+)$/.exec(dataUrl);
+  return m ? { mime: m[1], b64: m[2] } : null;
+}
+
+/**
+ * Google Gemini via REST puro (sem SDK — roda em qualquer serverless, incl. Vercel).
+ * Suporta histórico, streaming SSE (alt=sse) e imagem anexada (inline_data).
+ * Tier grátis do AI Studio: gemini-2.5-flash-lite ~1000 req/dia — sem cartão.
+ */
+async function callGemini(
+  model: string,
+  apiKey: string,
+  systemPrompt: string,
+  history: ChatMessage[],
+  question: string,
+  onDelta?: (piece: string) => void,
+  imageDataUrl?: string,
+): Promise<string> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arm = (ms?: number) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), ms ?? MODEL_TIMEOUT_MS);
+  };
+  arm(onDelta ? 22_000 : MODEL_TIMEOUT_MS);
+
+  try {
+    const parts: Record<string, unknown>[] = [{ text: question }];
+    if (imageDataUrl) {
+      const img = parseDataUrl(imageDataUrl);
+      if (img) parts.push({ inline_data: { mime_type: img.mime, data: img.b64 } });
+    }
+    const contents = [
+      ...history.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+      { role: 'user', parts },
+    ];
+
+    const method = onDelta ? 'streamGenerateContent?alt=sse' : 'generateContent';
+    const res = await fetch(`${GEMINI.baseUrl}/models/${model}:${method}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
+        // aulas/matemática não podem travar em filtro conservador — só bloqueia alto risco
+        safetySettings: [
+          'HARM_CATEGORY_HARASSMENT',
+          'HARM_CATEGORY_HATE_SPEECH',
+          'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          'HARM_CATEGORY_DANGEROUS_CONTENT',
+        ].map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' })),
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${detail.slice(0, 200)}`);
+    }
+
+    if (onDelta && res.body) {
+      const full = await consumeSSE(res, onDelta, (ms) => arm(ms), (json) => {
+        const piece = json.candidates?.[0]?.content?.parts
+          ?.map((p: { text?: string }) => p.text ?? '')
+          .join('');
+        return piece || undefined;
+      });
+      if (!full.trim()) throw new Error('stream vazio');
+      return full.trim();
+    }
+
+    const data = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+      promptFeedback?: { blockReason?: string };
+      error?: { message?: string };
+    };
+    if (data.error) throw new Error(data.error.message ?? 'erro da API Gemini');
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`bloqueado: ${data.promptFeedback.blockReason}`);
+    }
+
+    const text = data.candidates?.[0]?.content?.parts
+      ?.map((p) => p.text ?? '')
+      .join('')
+      .trim();
+    if (!text) throw new Error('resposta vazia');
+    return text;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Consome uma resposta SSE, repassando deltas extraídos por `extract`.
  *  rearma o timeout de inatividade a cada chunk recebido. */
 async function consumeSSE(
   res: Response,
   onDelta: (piece: string) => void,
   rearm: (ms?: number) => void,
+  extract: (json: Record<string, any>) => string | undefined,
 ): Promise<string> {
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
@@ -397,12 +550,9 @@ async function consumeSSE(
       const payload = line.slice(5).trim();
       if (payload === '[DONE]') return full;
       try {
-        const json = JSON.parse(payload) as {
-          choices?: { delta?: { content?: string } }[];
-          error?: { message?: string };
-        };
+        const json = JSON.parse(payload) as Record<string, any>;
         if (json.error?.message) throw new Error(json.error.message);
-        const piece = json.choices?.[0]?.delta?.content;
+        const piece = extract(json);
         if (piece) {
           full += piece;
           onDelta(piece);
@@ -457,7 +607,9 @@ async function callZAIPublic(
     }
 
     if (onDelta && res.body) {
-      const full = await consumeSSE(res, onDelta, (ms) => arm(ms));
+      const full = await consumeSSE(res, onDelta, (ms) => arm(ms), (json) =>
+        json.choices?.[0]?.delta?.content,
+      );
       if (!full.trim()) throw new Error('stream vazio');
       return full.trim();
     }
@@ -591,28 +743,196 @@ async function callZAIRetry(
 }
 
 /**
- * Transcreve a imagem anexada (print/foto da questão) com o modelo de visão do
- * SDK Z-AI (glm-4.5v). A transcrição vira a "pergunta efetiva" — assim qualquer
- * provedor de TEXTO da cadeia responde com a questão na mão, e ela também entra
- * no retrieval (buildMaterialBlock usa a transcrição como consulta).
- * Só funciona em dev/sandbox (SDK interno); na Vercel cai no catch e o aluno
- * recebe aviso para digitar em texto.
+ * Transcreve a imagem anexada (print/foto da questão) com o PRIMEIRO modelo de
+ * visão disponível — cadeia pensada para funcionar 100% na Vercel com keys grátis:
+ *
+ *  1º Gemini (GEMINI_API_KEY)      — visão nativa, tier grátis generoso (RECOMENDADO)
+ *  2º OpenRouter (OPENROUTER_API_KEY) — modelos free que aceitam imagem
+ *  3º Z.ai público (ZAI_API_KEY)   — glm-4.5v via api.z.ai
+ *  4º SDK Z-AI do sandbox          — só em dev/sandbox (na Vercel não existe)
+ *
+ * A transcrição vira a "pergunta efetiva" — assim qualquer provedor de TEXTO da
+ * cadeia responde com a questão na mão, e ela também entra no retrieval.
  */
 async function transcribeImage(dataUrl: string, userNote: string): Promise<string> {
+  const instruction = buildTranscriptionInstruction(userNote);
+  const errors: string[] = [];
+
+  // 1º — Gemini: 1 key grátis resolve visão + texto na Vercel
+  const gKey = GEMINI.key;
+  if (gKey) {
+    for (const model of GEMINI.models) {
+      try {
+        const out = await callGemini(
+          model,
+          gKey,
+          TRANSCRIBER_SYSTEM,
+          [],
+          userNote || 'Transcreva a imagem anexada com fidelidade total.',
+          undefined,
+          dataUrl,
+        );
+        if (out) return out;
+      } catch (err) {
+        errors.push(`gemini/${model}: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+  }
+
+  // 2º — OpenRouter: modelos free de visão (formato OpenAI image_url)
+  const oKey = process.env.OPENROUTER_API_KEY;
+  if (oKey) {
+    for (const model of VISION_CHAIN_OPENROUTER) {
+      try {
+        const out = await callOpenRouterVision(model, oKey, instruction, dataUrl);
+        if (out) return out;
+      } catch (err) {
+        errors.push(`openrouter/${model}: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+  }
+
+  // 3º — Z.ai público (glm-4.5v) — se o dono configurou ZAI_API_KEY
+  const zKey = ZAI_PUBLIC.key;
+  if (zKey) {
+    try {
+      const out = await callZAIVision(zKey, instruction, dataUrl);
+      if (out) return out;
+    } catch (err) {
+      errors.push(`zai-public: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  // 4º — SDK do sandbox (dev). Na Vercel o import falha → cai no throw abaixo.
+  try {
+    const out = await transcribeImageSandbox(dataUrl, userNote);
+    if (out) return out;
+  } catch (err) {
+    errors.push(`sandbox-sdk: ${err instanceof Error ? err.message : err}`);
+  }
+
+  if (errors.length) {
+    console.warn('[api/tutor] cadeia de visão esgotou:', errors.join(' | '));
+  }
+  return '';
+}
+
+/** Instrução de transcrição fiel (compartilhada por toda a cadeia de visão). */
+const TRANSCRIBER_SYSTEM = [
+  'Você é o transcritor oficial do Hub de Estudos. Transcreva a imagem anexa para texto em português brasileiro, com fidelidade TOTAL:',
+  '- Enunciados, questões, alternativas, números, matrizes e unidades EXATAMENTE como aparecem (não invente, não corrija, não resolva).',
+  '- Matemática em LaTeX: $...$ inline; $$...$$ para blocos; matrizes com \\begin{pmatrix}…\\end{pmatrix}.',
+  '- Código C na imagem → bloco de código ```c.',
+  '- Comece direto com a transcrição (sem preâmbulo). Se a imagem não tiver relação com estudo, descreva o que ela mostra em 1-2 frases.',
+].join('\n');
+
+function buildTranscriptionInstruction(userNote: string): string {
+  return (
+    TRANSCRIBER_SYSTEM +
+    (userNote ? `\nContexto: o aluno escreveu junto: "${userNote.slice(0, 300)}".` : '')
+  );
+}
+
+/** Transcrição via OpenRouter (formato OpenAI multimodal: image_url com data URL). */
+async function callOpenRouterVision(
+  model: string,
+  apiKey: string,
+  instruction: string,
+  dataUrl: string,
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://hub-estudos-ifpb.app',
+        'X-Title': 'Hub de Estudos IFPB',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: instruction },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${detail.slice(0, 200)}`);
+    }
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string | null } }[];
+      error?: { message?: string };
+    };
+    if (data.error) throw new Error(data.error.message);
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) throw new Error('resposta vazia');
+    return content.trim();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Transcrição via API pública da Z.ai (glm-4.5v, OpenAI-compatible). */
+async function callZAIVision(
+  apiKey: string,
+  instruction: string,
+  dataUrl: string,
+): Promise<string> {
+  const model = process.env.ZAI_VISION_MODEL || 'glm-4.5v';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${ZAI_PUBLIC.baseUrl}/chat/completions`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: instruction },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${detail.slice(0, 200)}`);
+    }
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string | null } }[];
+      error?: { message?: string };
+    };
+    if (data.error) throw new Error(data.error.message);
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) throw new Error('resposta vazia');
+    return content.trim();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Transcrição com o SDK Z-AI do sandbox (glm-4.5v) — só funciona em dev. */
+async function transcribeImageSandbox(dataUrl: string, userNote: string): Promise<string> {
   const dynamicImport = new Function("return import('z-ai-web-dev-sdk')") as () => Promise<any>;
   const mod = await dynamicImport();
   const ZAI = mod.default;
   const zai = await ZAI.create();
-  const instruction = [
-    'Você é o transcritor oficial do Hub de Estudos. Transcreva a imagem anexa para texto em português brasileiro, com fidelidade TOTAL:',
-    '- Enunciados, questões, alternativas, números, matrizes e unidades EXATAMENTE como aparecem (não invente, não corrija, não resolva).',
-    '- Matemática em LaTeX: $...$ inline; $$...$$ para blocos; matrizes com \\begin{pmatrix}…\\end{pmatrix}.',
-    '- Código C na imagem → bloco de código ```c.',
-    '- Comece direto com a transcrição (sem preâmbulo). Se a imagem não tiver relação com estudo, descreva o que ela mostra em 1-2 frases.',
-    userNote ? `Contexto: o aluno escreveu junto: "${userNote.slice(0, 300)}".` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const instruction = buildTranscriptionInstruction(userNote);
   const completion = await zai.chat.completions.createVision({
     messages: [
       {
@@ -627,15 +947,22 @@ async function transcribeImage(dataUrl: string, userNote: string): Promise<strin
   return (completion?.choices?.[0]?.message?.content ?? '').trim();
 }
 
-/** GET: lista os modelos free em uso (para exibir nas Configurações). */
+/** GET: lista os modelos em uso + status de provedores (para exibir nas Configurações). */
 export async function GET() {
+  const vision = visionProviderLabel();
   return Response.json({
-    provider: 'openrouter',
+    provider: 'gemini → openrouter → z.ai → sandbox (primeiro disponível)',
+    vision: vision ?? 'somente dev/sandbox — configure GEMINI_API_KEY (grátis) para produção',
     chains: {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
       flashcards: MODEL_CHAIN.flashcards.map((id) => ({ id, label: prettyModelName(id) })),
+      vision: [
+        ...(GEMINI.key ? GEMINI.models.map((id) => ({ id, label: prettyModelName(id) })) : []),
+        ...VISION_CHAIN_OPENROUTER.map((id) => ({ id, label: prettyModelName(id) })),
+      ],
     },
     providers: {
+      gemini: Boolean(GEMINI.key),
       openrouter: Boolean(process.env.OPENROUTER_API_KEY),
       zaiPublic: Boolean(process.env.ZAI_API_KEY),
       zaiSdk: 'auto (só em dev/sandbox)',
@@ -731,8 +1058,16 @@ export async function POST(req: Request) {
             `[api/tutor] imagem transcrita em ${Date.now() - t0v}ms (${transcript.length} chars)`,
           );
         } else if (!question) {
+          const visionReady = Boolean(
+            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key,
+          );
           return Response.json(
-            { error: 'Não consegui ler a imagem agora. Tente de novo ou digite sua dúvida em texto.' },
+            {
+              error: visionReady
+                ? 'Não consegui ler a imagem agora. Tente de novo ou digite sua dúvida em texto.'
+                : 'Leitura de imagem ainda não configurada neste deploy. Dono: adicione a key grátis do ' +
+                  'Gemini (aistudio.google.com/app/apikey) como GEMINI_API_KEY na Vercel — ou digite sua dúvida em texto.',
+            },
             { status: 502 },
           );
         }
@@ -742,8 +1077,16 @@ export async function POST(req: Request) {
           err instanceof Error ? err.message : err,
         );
         if (!question) {
+          const visionReady = Boolean(
+            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key,
+          );
           return Response.json(
-            { error: 'A leitura de imagem falhou agora. Digite sua dúvida em texto ou tente de novo em instantes.' },
+            {
+              error: visionReady
+                ? 'A leitura de imagem falhou agora. Tente de novo em instantes ou digite sua dúvida em texto.'
+                : 'Leitura de imagem ainda não configurada neste deploy. Dono: adicione a key grátis do ' +
+                  'Gemini (aistudio.google.com/app/apikey) como GEMINI_API_KEY na Vercel — ou digite sua dúvida em texto.',
+            },
             { status: 502 },
           );
         }
@@ -811,6 +1154,32 @@ export async function POST(req: Request) {
           const deadline = Date.now() + 55_000;
 
           try {
+            // 0º: Gemini (key grátis do AI Studio — visão nativa + matemática forte)
+            const gKeyStream = GEMINI.key;
+            if (gKeyStream) {
+              for (const model of GEMINI.models) {
+                if (answer || Date.now() > deadline - 8_000) break;
+                const t0 = Date.now();
+                try {
+                  answer = await callGemini(
+                    model,
+                    gKeyStream,
+                    systemPrompt,
+                    history,
+                    effectiveQuestion,
+                    (piece) => send({ t: 'delta', v: piece }),
+                  );
+                  usedModel = prettyModelName(model);
+                  console.log(`[api/tutor] ${model} (stream) → ${Date.now() - t0}ms`);
+                } catch (err) {
+                  console.warn(
+                    `[api/tutor] modelo ${model} falhou (stream) em ${Date.now() - t0}ms:`,
+                    err instanceof Error ? err.message : err,
+                  );
+                }
+              }
+            }
+
             // 1º: cadeia OpenRouter em streaming
             if (apiKeyStream) {
               for (const model of MODEL_CHAIN.tutor) {
@@ -906,13 +1275,32 @@ export async function POST(req: Request) {
       return new Response(stream, { headers: SSE_HEADERS });
     }
 
+    const geminiKey = GEMINI.key;
     const apiKey = process.env.OPENROUTER_API_KEY;
     const zaiPubKey = ZAI_PUBLIC.key;
     let answer = '';
     let usedModel = '';
 
+    // 0º: Google Gemini (key grátis do AI Studio — visão nativa + matemática forte)
+    if (geminiKey) {
+      for (const model of GEMINI.models) {
+        const t0 = Date.now();
+        try {
+          answer = await callGemini(model, geminiKey, systemPrompt, history, effectiveQuestion);
+          usedModel = prettyModelName(model);
+          console.log(`[api/tutor] ${model} → ${Date.now() - t0}ms`);
+          break;
+        } catch (err) {
+          console.warn(
+            `[api/tutor] modelo ${model} falhou em ${Date.now() - t0}ms:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
+    }
+
     // 1º: cadeia de modelos free da OpenRouter
-    if (apiKey) {
+    if (!answer && apiKey) {
       for (const model of MODEL_CHAIN[isFlashcardsMode ? 'flashcards' : isFeynmanMode ? 'feynman' : 'tutor']) {
         const t0 = Date.now();
         try {
@@ -958,14 +1346,18 @@ export async function POST(req: Request) {
     answer = normalizeMath(answer);
 
     if (!answer) {
+      const withVision = Boolean(geminiKey || apiKey || zaiPubKey);
       console.error(
-        '[api/tutor] 502: nenhum provedor respondeu. Dono: configure OPENROUTER_API_KEY (openrouter.ai, grátis) ou ZAI_API_KEY (api.z.ai, tier grátis) para mais capacidade.',
+        '[api/tutor] 502: nenhum provedor respondeu. Dono: configure GEMINI_API_KEY (grátis em aistudio.google.com — dá visão + texto) ou OPENROUTER_API_KEY (openrouter.ai, grátis).',
       );
       return Response.json(
         {
-          error:
-            'O tutor IA está sobrecarregado agora (muitas perguntas em pouco tempo). ' +
-            'Aguarde ~1 minuto e tente de novo — volta rapidinho. 💪',
+          error: withVision
+            ? 'O tutor IA está sobrecarregado agora (muitas perguntas em pouco tempo). ' +
+              'Aguarde ~1 minuto e tente de novo — volta rapidinho. 💪'
+            : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
+              '(key grátis em aistudio.google.com/app/apikey) nas variáveis da Vercel — em seguida o tutor ' +
+              'funciona completo, incluindo leitura de prints. 💪',
         },
         { status: 502 },
       );

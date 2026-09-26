@@ -459,16 +459,18 @@ function NumberSetting({
   );
 }
 
-/** Informação da IA em uso (OpenRouter, modelos free com fallback automático). */
+/** Informação da IA em uso (Gemini/OpenRouter free com fallback automático). */
 function AiInfoCard() {
   const [chains, setChains] = React.useState<{
     tutor: { id: string; label: string }[];
     flashcards: { id: string; label: string }[];
   } | null>(null);
   const [providers, setProviders] = React.useState<{
+    gemini?: boolean;
     openrouter?: boolean;
     zaiPublic?: boolean;
   } | null>(null);
+  const [vision, setVision] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetch('/api/tutor')
@@ -476,11 +478,12 @@ function AiInfoCard() {
       .then((d) => {
         if (d?.chains) setChains(d.chains);
         if (d?.providers) setProviders(d.providers);
+        if (typeof d?.vision === 'string') setVision(d.vision);
       })
       .catch(() => {});
   }, []);
 
-  const anyKey = Boolean(providers?.openrouter || providers?.zaiPublic);
+  const anyKey = Boolean(providers?.gemini || providers?.openrouter || providers?.zaiPublic);
 
   return (
     <Card className="rounded-xl">
@@ -492,13 +495,23 @@ function AiInfoCard() {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          O tutor e o gerador de flashcards rodam em modelos <b>gratuitos</b> da OpenRouter com
-          fallback automático: se um modelo atingir o limite diário, o próximo assume
-          instantaneamente — sem erro para você.
+          O tutor, a leitura de prints e o gerador de flashcards rodam em modelos <b>gratuitos</b>{' '}
+          com fallback automático: se um atingir o limite diário, o próximo assume instantaneamente
+          — sem erro para você.
         </p>
 
         {providers && (
           <div className="flex flex-wrap items-center gap-2" aria-label="Provedores de IA configurados">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                providers.gemini
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {providers.gemini ? <CircleCheck className="size-3" aria-hidden /> : null}
+              Gemini {providers.gemini ? 'ativo' : 'inativo'}
+            </span>
             <span
               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                 providers.openrouter
@@ -524,6 +537,21 @@ function AiInfoCard() {
           </div>
         )}
 
+        {providers && (
+          <p className="text-xs text-muted-foreground">
+            <b
+              className={
+                vision && !vision.startsWith('somente')
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : ''
+              }
+            >
+              Leitura de prints (visão):
+            </b>{' '}
+            {vision ?? 'verificando…'}
+          </p>
+        )}
+
         {providers && !anyKey && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
             <p className="flex items-start gap-1.5 font-medium">
@@ -531,7 +559,20 @@ function AiInfoCard() {
               Nenhuma chave de IA configurada — o tutor só funciona em desenvolvimento.
             </p>
             <p className="mt-1 leading-relaxed">
-              Para colocar no ar: crie uma key grátis na{' '}
+              <b>Opção 1 (recomendada)</b>: key grátis do Google AI Studio em{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 underline underline-offset-2"
+              >
+                aistudio.google.com/app/apikey <ExternalLink className="size-3" aria-hidden />
+              </a>{' '}
+              → variável <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">GEMINI_API_KEY</code>.
+              Uma key só resolve texto <b>e</b> leitura de prints, com bom limite diário grátis.
+            </p>
+            <p className="mt-1 leading-relaxed">
+              <b>Opção 2</b>: key grátis na{' '}
               <a
                 href="https://openrouter.ai/keys"
                 target="_blank"
@@ -540,8 +581,8 @@ function AiInfoCard() {
               >
                 openrouter.ai/keys <ExternalLink className="size-3" aria-hidden />
               </a>{' '}
-              e adicione <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">OPENROUTER_API_KEY</code>{' '}
-              nas variáveis de ambiente (Vercel → Settings → Environment Variables).
+              → <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">OPENROUTER_API_KEY</code>.
+              Ambas vão nas Environment Variables da Vercel (Settings → Environment Variables).
             </p>
           </div>
         )}
