@@ -22,6 +22,10 @@ export const MATH_EXAM = {
     'NÚCLEO: Matrizes — operações (soma, escalar, produto), transposta, simétrica/antissimétrica e matriz inversa (Q31–35 da lista) + Lógica — proposições, conectivos, tabelas-verdade, tautologias, equivalências e argumentos. NÃO CAEM: determinantes e sistemas lineares (ainda não dados — confirmado 24/09).',
   notaPeso: 'Av1 = 33,3% da média final (escala 0-100, aprovação ≥ 70)',
   simuladoFilter: { discipline: 'TEC.1984', onlyMaterialFirst: true },
+  // Tópicos do escopo REAL da Av1 (os mesmos do preset do Simulado da Av1) —
+  // o "foco da prova" no card usa a tendência real das tentativas RECORTADA
+  // por estes tópicos para apontar onde revisar (pior primeiro).
+  topicosEscopo: ['Álgebra Matricial', 'Lógica Matemática'],
 } as const;
 
 export type PlanKind = 'estudo' | 'pratica' | 'simulado' | 'revisao' | 'prova';

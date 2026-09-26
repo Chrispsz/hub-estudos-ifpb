@@ -16,14 +16,18 @@ import {
   ChevronDown,
   CircleAlert,
   CircleCheck,
+  Crosshair,
   Dumbbell,
   GraduationCap,
   Layers,
   ListChecks,
+  Play,
   Sigma,
   Sparkles,
   Target,
   Timer,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +38,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
+import { computeTopicTrends } from '@/lib/simulado-debrief';
 import {
   buildReadinessQuestion,
   computeReadiness,
@@ -111,6 +116,20 @@ export function ExamPrepCard() {
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
   );
+
+  // FOCO DA PROVA (dados reais, material-first): pior tópico do escopo da Av1
+  // segundo a tendência das tentativas do Simulado Pro. O card deixa de ser
+  // só plano e aponta ONDE revisar — com 1 clique no drill daquele tópico.
+  // Sem tentativas com detalhes → a linha some (honesto, sem invenção).
+  const examFocus = React.useMemo(() => {
+    const trends = computeTopicTrends(sp.progress.simuladoRuns ?? []).filter(
+      (t) =>
+        t.disciplineCode === MATH_EXAM.disciplineCode &&
+        (MATH_EXAM.topicosEscopo as readonly string[]).includes(t.topic),
+    );
+    if (trends.length === 0) return null;
+    return { worst: trends[0], allGood: trends.every((t) => t.last >= 80), trends };
+  }, [sp.progress.simuladoRuns]);
 
   /** 1 toque: todos os cartões da Av1 entram no sistema Leitner (Praticar → Flashcards). */
   function addAv1Deck() {
@@ -262,6 +281,94 @@ export function ExamPrepCard() {
           </div>
         </div>
 
+        {/* FOCO DA PROVA — pior tópico do escopo segundo a tendência REAL das tentativas */}
+        {examFocus && (
+          <div className="border-t px-4 py-2.5">
+            {examFocus.allGood ? (
+              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <CircleCheck className="size-3.5 shrink-0 text-emerald-500" aria-hidden />
+                Escopo da Av1 em dia —{" "}
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  todos os tópicos ≥ 80%
+                </span>{" "}
+                na última tentativa. Manter o ritmo.
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px]">
+                <span className="flex shrink-0 items-center gap-1 font-medium text-muted-foreground">
+                  <Crosshair className="size-3.5 text-rose-500" aria-hidden /> foco da prova:
+                </span>
+                {examFocus.trends.map((t) => {
+                  const isWorst = t === examFocus.worst;
+                  const worstTone =
+                    t.last < 40
+                      ? 'border-rose-500/50 bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                      : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400';
+                  const pctTone =
+                    t.last >= 80
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : t.last >= 40
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-rose-600 dark:text-rose-400';
+                  return (
+                    <span
+                      key={t.topic}
+                      className={cn(
+                        'inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-1 font-medium',
+                        isWorst ? worstTone : 'border-border bg-muted/30 text-muted-foreground',
+                      )}
+                    >
+                      {isWorst && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openSimulado({
+                              disciplineCode: MATH_EXAM.disciplineCode,
+                              topicScope: t.topic,
+                            })
+                          }
+                          title={`Treinar só ${t.topic} no Simulado Pro (prova curta de 5 questões)`}
+                          aria-label={`Treinar só ${t.topic} no Simulado Pro`}
+                          className="inline-flex size-4.5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+                        >
+                          <Play className="size-2.5" aria-hidden />
+                        </button>
+                      )}
+                      <span className="max-w-[13rem] truncate">{t.topic}</span>
+                      <span className={cn('font-bold tabular-nums', isWorst ? '' : pctTone)}>
+                        {t.last}%
+                      </span>
+                      {t.series.length >= 2 && t.delta !== 0 && (
+                        <span
+                          title={
+                            t.delta > 0
+                              ? `Subiu ${t.delta} pp da 1ª para a última tentativa`
+                              : `Caiu ${Math.abs(t.delta)} pp da 1ª para a última tentativa`
+                          }
+                          className={cn(
+                            'flex items-center gap-0.5 text-[10px] font-semibold tabular-nums',
+                            t.delta > 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400',
+                          )}
+                        >
+                          {t.delta > 0 ? (
+                            <TrendingUp className="size-2.5" aria-hidden />
+                          ) : (
+                            <TrendingDown className="size-2.5" aria-hidden />
+                          )}
+                          {t.delta > 0 ? '+' : ''}
+                          {t.delta}pp
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MODO RECUPERAÇÃO: dias do plano que ficaram para trás */}
         {missed.length > 0 && (
           <div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
@@ -282,9 +389,28 @@ export function ExamPrepCard() {
           </div>
         )}
 
-        {/* Linha do tempo: D-7 → prova — estado do plano num relance */}
+        {/* Linha do tempo: D-7 → prova — estado do plano num relance.
+            TRILHO com preenchimento: verde no passado, rosando a prova —
+            a posição de hoje é visível na linha, não só nos pontos. */}
         <div className="border-t px-4 py-3">
-          <div className="flex items-end justify-between gap-1">
+          <div className="relative">
+            <span
+              aria-hidden
+              className="absolute top-[10px] h-0.5 rounded-full bg-muted"
+              style={{
+                left: `${100 / (MATH_EXAM_PLAN.length * 2)}%`,
+                right: `${100 / (MATH_EXAM_PLAN.length * 2)}%`,
+              }}
+            />
+            <span
+              aria-hidden
+              className="absolute top-[10px] h-0.5 rounded-full bg-gradient-to-r from-emerald-500/70 via-emerald-500/60 to-rose-500/50 transition-[width] duration-700 ease-out"
+              style={{
+                left: `${100 / (MATH_EXAM_PLAN.length * 2)}%`,
+                width: `${(todayOffset / (MATH_EXAM_PLAN.length - 1)) * (100 - 2 * (100 / (MATH_EXAM_PLAN.length * 2)))}%`,
+              }}
+            />
+            <div className="relative flex items-end justify-between gap-1">
             {MATH_EXAM_PLAN.map((d) => {
               const past = d.offset > todayOffset;
               const today = d.offset === todayOffset;
@@ -295,7 +421,7 @@ export function ExamPrepCard() {
                   <span
                     aria-hidden
                     className={cn(
-                      'grid size-5 place-items-center rounded-full border-2 text-[9px] font-bold tabular-nums transition-all',
+                      'relative z-10 grid size-5 place-items-center rounded-full border-2 text-[9px] font-bold tabular-nums transition-all',
                       prova && 'size-6 border-rose-600 bg-rose-600 text-white shadow-md shadow-rose-600/30',
                       !prova && today && 'animate-pulse border-rose-500 bg-rose-500/15 text-rose-600 dark:text-rose-400',
                       !prova && !today && complete && 'border-emerald-500 bg-emerald-500 text-white',
@@ -317,6 +443,7 @@ export function ExamPrepCard() {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
 
