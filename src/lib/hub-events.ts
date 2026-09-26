@@ -48,6 +48,14 @@ export function openPractice(detail: OpenPracticeDetail = {}): void {
   window.dispatchEvent(new CustomEvent<OpenPracticeDetail>(OPEN_PRACTICE_EVENT, { detail }));
 }
 
+export const OPEN_PROGRESS_EVENT = 'hub:open-progress';
+
+/** Dispara a troca para a aba Progresso (ex.: Caderno de Erros no card da prova). */
+export function openProgress(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(OPEN_PROGRESS_EVENT));
+}
+
 export const OPEN_TUTOR_EVENT = 'hub:open-tutor';
 
 export interface OpenTutorDetail {

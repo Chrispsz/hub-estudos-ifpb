@@ -9,6 +9,7 @@ import * as React from 'react';
 import {
   AlarmClock,
   BookOpen,
+  BookX,
   CalendarClock,
   ChevronDown,
   CircleAlert,
@@ -28,10 +29,11 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { daysUntilDate } from '@/lib/semester';
-import { openMethod, openSimulado, openTutor } from '@/lib/hub-events';
+import { openMethod, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { useStudyProgress } from '@/lib/study-progress';
+import { collectMistakes, notebookStats } from '@/lib/mistake-notebook';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
 import {
@@ -80,6 +82,8 @@ export function ExamPrepCard() {
   const [checked, setChecked] = useLocalStorage<CheckedMap>(LS_PLAN, {});
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
   const sp = useStudyProgress();
+  // Caderno de Erros: contagem ao vivo dos pontos fracos (link no diálogo).
+  const mistakeCount = React.useMemo(() => notebookStats(collectMistakes(sp.progress)).total, [sp.progress]);
   // Baralho da Av1: flag no localStorage + dedupe por frente (à prova de flag perdida).
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
@@ -539,6 +543,39 @@ export function ExamPrepCard() {
                       <Layers className="size-3.5" /> Adicionar baralho
                     </>
                   )}
+                </Button>
+              </div>
+            </section>
+
+            {/* Caderno de Erros — diagnóstico agregado (aba Progresso) */}
+            <section aria-label="Caderno de Erros">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold">
+                    <BookX className="size-3.5 text-rose-500" aria-hidden /> Caderno de Erros
+                    {mistakeCount > 0 ? (
+                      <Badge
+                        variant="outline"
+                        className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                      >
+                        {mistakeCount} {mistakeCount === 1 ? 'item' : 'itens'}
+                      </Badge>
+                    ) : null}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    {mistakeCount > 0
+                      ? 'Questões erradas nos simulados, exercícios não resolvidos e cartões errados estão no caderno — com análise de padrões pela IA. Vale a pena bater o olho antes da prova.'
+                      : 'Nenhum erro registrado ainda. Faça o simulado da prova — o que você errar vira caderno automaticamente, para a IA transformar em acerto.'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openProgress()}
+                  className="shrink-0 gap-1.5 border-rose-500/40 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
+                  aria-label="Abrir o Caderno de Erros na aba Progresso"
+                >
+                  <BookX className="size-3.5" aria-hidden /> Ver caderno
                 </Button>
               </div>
             </section>

@@ -29,6 +29,7 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
 import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
 import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { OPEN_PROGRESS_EVENT } from '@/lib/hub-events';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 
@@ -130,6 +131,21 @@ export default function Page() {
     }
     window.addEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
     return () => window.removeEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
+  }, []);
+
+  // Evento hub:open-progress (card da prova → Caderno de Erros) — abre a aba
+  // Progresso onde vive o diagnóstico agregado dos pontos fracos.
+  React.useEffect(() => {
+    function onOpenProgress() {
+      setActiveState('progress');
+      if (typeof window !== 'undefined') {
+        const newUrl = `${window.location.pathname}${window.location.search}#progress`;
+        window.history.pushState({ tab: 'progress' }, '', newUrl);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    window.addEventListener(OPEN_PROGRESS_EVENT, onOpenProgress);
+    return () => window.removeEventListener(OPEN_PROGRESS_EVENT, onOpenProgress);
   }, []);
 
   // Evento hub:open-tutor (Caderno de Erros do Praticar, links futuros) — abre a

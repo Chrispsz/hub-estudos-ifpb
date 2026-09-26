@@ -37,6 +37,7 @@ import { WeeklyReport } from './weekly-report';
 import { AchievementsCard } from './achievements-card';
 import { StudyHeatmap } from './study-heatmap';
 import { SimuladoHistory } from './simulado-history';
+import { MistakeNotebook } from './mistake-notebook';
 
 // ----- Paleta dos gráficos (tema AMOLED — sem azul/índigo) -----
 const EMERALD = '#10b981';
@@ -271,6 +272,11 @@ export function ProgressView() {
       {/* Histórico de simulados (evolução das notas) */}
       <section aria-label="Histórico de simulados">
         <SimuladoHistory />
+      </section>
+
+      {/* Caderno de erros (diagnóstico dos pontos fracos) */}
+      <section aria-label="Caderno de erros">
+        <MistakeNotebook />
       </section>
 
       {/* Conquistas (gamificação) */}
