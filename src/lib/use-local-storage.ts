@@ -11,10 +11,15 @@ import * as React from 'react';
  *   (a) entre abas/janelas (storage event nativo)
  *   (b) na MESMA aba (dispatch manual de StorageEvent ao escrever)
  *   com guard anti-loop (não reescreve nem re-aplica valor idêntico).
+ * - `deserialize` (opcional): valida/normaliza o valor lido (mount + storage
+ *   event) — dados antigos, corrompidos ou parciais chegam ao render
+ *   COMPLETOS, sem depender de efeito pós-render (que é tarde demais para
+ *   consumers que leem o objeto durante o primeiro render).
  */
 export function useLocalStorage<T>(
   key: string,
   initialValue: T,
+  deserialize?: (raw: unknown) => T,
 ): [T, (value: T | ((prev: T) => T)) => void] {
   const [value, setValue] = React.useState<T>(initialValue);
   const [hydrated, setHydrated] = React.useState(false);
@@ -24,7 +29,8 @@ export function useLocalStorage<T>(
     try {
       const item = window.localStorage.getItem(key);
       if (item != null) {
-        setValue(JSON.parse(item) as T);
+        const parsed = JSON.parse(item);
+        setValue(deserialize ? deserialize(parsed) : (parsed as T));
       }
     } catch {
       // ignore parse errors
@@ -62,7 +68,8 @@ export function useLocalStorage<T>(
           // Guard anti-loop: se já estamos com esse valor, mantém a referência
           // (evita re-render e re-write desnecessários).
           if (JSON.stringify(prev) === incoming) return prev;
-          return JSON.parse(incoming) as T;
+          const parsed = JSON.parse(incoming);
+          return deserialize ? deserialize(parsed) : (parsed as T);
         } catch {
           return prev;
         }

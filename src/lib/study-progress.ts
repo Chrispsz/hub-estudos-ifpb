@@ -410,6 +410,12 @@ export function useStudyProgress() {
   const [progress, setProgress] = useLocalStorage<StudyProgress>(
     STORAGE_KEY,
     defaultProgress,
+    // Normaliza no READ (mount + storage event): dados antigos, parciais ou
+    // corrompidos chegam ao PRIMEIRO render completos. Antes, a migração só
+    // rodava num useEffect pós-render — consumers que fazem Object.values/
+    // .filter no render crashavam com campos ausentes (bug real do 49:
+    // "Cannot convert undefined or null to object" em exerciseProgress).
+    mergeWithDefaults,
   );
 
   // Migração silenciosa: garante campos novos (fixedDisciplines, pomodoroState,
@@ -1046,8 +1052,8 @@ export function useStudyProgress() {
 
   const totalTopicsCompleted = React.useMemo(() => {
     let total = 0;
-    for (const code of Object.keys(progress.topicProgress)) {
-      for (const done of Object.values(progress.topicProgress[code])) {
+    for (const code of Object.keys(progress.topicProgress ?? {})) {
+      for (const done of Object.values(progress.topicProgress[code] ?? {})) {
         if (done) total += 1;
       }
     }
@@ -1055,11 +1061,11 @@ export function useStudyProgress() {
   }, [progress.topicProgress]);
 
   const totalExercisesTried = React.useMemo(() => {
-    return Object.values(progress.exerciseProgress).filter((e) => e.tried).length;
+    return Object.values(progress.exerciseProgress ?? {}).filter((e) => e.tried).length;
   }, [progress.exerciseProgress]);
 
   const totalExercisesSolved = React.useMemo(() => {
-    return Object.values(progress.exerciseProgress).filter((e) => e.solved).length;
+    return Object.values(progress.exerciseProgress ?? {}).filter((e) => e.solved).length;
   }, [progress.exerciseProgress]);
 
   /**

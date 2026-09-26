@@ -65,7 +65,7 @@ export function buildReviewQueue(
   progress: ReturnType<typeof useStudyProgress>['progress'],
 ): ReviewItem[] {
   const items: ReviewItem[] = [];
-  for (const [id, v] of Object.entries(progress.exerciseProgress)) {
+  for (const [id, v] of Object.entries(progress.exerciseProgress ?? {})) {
     const ex = exercises.find((e) => e.id === id);
     if (!ex) continue;
     const marked = !!v.marked;

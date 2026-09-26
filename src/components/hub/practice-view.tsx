@@ -218,7 +218,7 @@ function ExercisesPanel({
 
   const markedCount = React.useMemo(
     () =>
-      Object.values(sp.progress.exerciseProgress).filter((e) => e.marked).length,
+      Object.values(sp.progress.exerciseProgress ?? {}).filter((e) => e.marked).length,
     [sp.progress.exerciseProgress],
   );
 
@@ -232,7 +232,7 @@ function ExercisesPanel({
   const totalTried = sp.totalExercisesTried;
   const totalSolved = sp.totalExercisesSolved;
   const totalNeededHelp = React.useMemo(
-    () => Object.values(sp.progress.exerciseProgress).filter((e) => e.neededHelp).length,
+    () => Object.values(sp.progress.exerciseProgress ?? {}).filter((e) => e.neededHelp).length,
     [sp.progress.exerciseProgress],
   );
 
@@ -459,7 +459,7 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
   const [expanded, setExpanded] = React.useState(false);
 
   const mistakes = React.useMemo<MistakeItem[]>(() => {
-    return Object.entries(sp.progress.exerciseProgress)
+    return Object.entries(sp.progress.exerciseProgress ?? {})
       .filter(([, v]) => v.neededHelp || (v.tried && !v.solved))
       .map(([id, v]) => {
         const ex = exercises.find((e) => e.id === id);

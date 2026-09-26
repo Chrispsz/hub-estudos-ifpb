@@ -6,6 +6,7 @@
 // progresso das tarefas em localStorage (sobrevive a reloads).
 
 import * as React from 'react';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import {
   AlarmClock,
   BookOpen,
@@ -14,6 +15,7 @@ import {
   ChevronDown,
   CircleAlert,
   CircleCheck,
+  Dumbbell,
   GraduationCap,
   Layers,
   ListChecks,
@@ -31,6 +33,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
+import {
+  buildReadinessQuestion,
+  computeReadiness,
+  type ReadinessComponentId,
+  type ReadinessResult,
+  type ReadinessTone,
+} from '@/lib/exam-readiness';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { useStudyProgress } from '@/lib/study-progress';
 import { collectMistakes, notebookStats, pendingMistakes } from '@/lib/mistake-notebook';
@@ -91,6 +100,12 @@ export function ExamPrepCard() {
   );
   const mistakeRevised = mistakes.length - mistakePending;
   const mistakeStats = React.useMemo(() => notebookStats(mistakes), [mistakes]);
+  // Score de prontidão: recalculado AO VIVO — marcar tarefa/checklist, revisar
+  // cartão ou correr o simulado sobe o número na hora (sem reload).
+  const readiness = React.useMemo(
+    () => computeReadiness(sp.progress, checked, checklist),
+    [sp.progress, checked, checklist],
+  );
   // Baralho da Av1: flag no localStorage + dedupe por frente (à prova de flag perdida).
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
@@ -206,6 +221,13 @@ export function ExamPrepCard() {
               {daysLeft === 0 ? 'HOJE' : `${daysLeft}d`}
             </span>
             <span className="text-[11px] text-muted-foreground">01/10 · faltam</span>
+            <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium">
+              <span aria-hidden className={cn('size-1.5 rounded-full', READINESS_DOT[readiness.tone])} />
+              <span className="text-muted-foreground">prontidão</span>
+              <span className={cn('tabular-nums', READINESS_TEXT[readiness.tone])}>
+                {readiness.score === null ? '—' : `${readiness.score}%`}
+              </span>
+            </span>
           </div>
         </div>
 
@@ -396,6 +418,9 @@ export function ExamPrepCard() {
           </div>
 
           <div className="space-y-6 px-6 py-4">
+            {/* Score de prontidão — o número-norte da preparação (1º do diálogo) */}
+            <ReadinessSection readiness={readiness} daysLeft={daysLeft} />
+
             {/* Dias */}
             <section aria-label="Cronograma dia a dia">
               <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -638,5 +663,227 @@ export function ExamPrepCard() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// ---------- Score de prontidão: gauge radial + evidências + coach ----------
+
+const READINESS_DOT: Record<ReadinessTone, string> = {
+  pronto: 'bg-emerald-500',
+  quase: 'bg-amber-500',
+  atencao: 'bg-rose-500',
+};
+
+const READINESS_TEXT: Record<ReadinessTone, string> = {
+  pronto: 'text-emerald-600 dark:text-emerald-400',
+  quase: 'text-amber-600 dark:text-amber-400',
+  atencao: 'text-rose-600 dark:text-rose-400',
+};
+
+const READINESS_BADGE: Record<ReadinessTone, string> = {
+  pronto: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  quase: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  atencao: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+};
+
+const READINESS_LABEL: Record<ReadinessTone, string> = {
+  pronto: 'pronto para a prova',
+  quase: 'quase lá',
+  atencao: 'precisa de atenção',
+};
+
+/** Barras na MESMA gramática semântica dos badges de tipo do plano. */
+const COMPONENT_BAR: Record<ReadinessComponentId, string> = {
+  simulado: 'bg-amber-500',
+  exercicios: 'bg-violet-500',
+  checklist: 'bg-emerald-500',
+  baralho: 'bg-teal-500',
+  plano: 'bg-sky-500',
+};
+
+const COMPONENT_ICON_BG: Record<ReadinessComponentId, string> = {
+  simulado: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  exercicios: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+  checklist: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  baralho: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
+  plano: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+};
+
+const COMPONENT_ICON: Record<ReadinessComponentId, React.ComponentType<{ className?: string }>> = {
+  simulado: Timer,
+  exercicios: Dumbbell,
+  checklist: ListChecks,
+  baralho: Layers,
+  plano: AlarmClock,
+};
+
+const GAUGE_R = 52;
+const GAUGE_C = 2 * Math.PI * GAUGE_R;
+
+function ReadinessSection({
+  readiness,
+  daysLeft,
+}: {
+  readiness: ReadinessResult;
+  daysLeft: number;
+}) {
+  const score = readiness.score;
+
+  // Contagem animada: o número sobe junto com o arco (mesma duração).
+  const mv = useMotionValue(0);
+  const rounded = useTransform(mv, (v) => `${Math.round(v)}`);
+  React.useEffect(() => {
+    const controls = animate(mv, score ?? 0, { duration: 1.1, ease: 'easeOut' });
+    return () => controls.stop();
+  }, [score, mv]);
+
+  return (
+    <section aria-label="Score de prontidão da Av1">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Target className="size-3.5" /> Score de prontidão
+      </h3>
+
+      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
+        {/* Gauge radial — arco esmeralda→teal animado, tom do veredito fica no badge */}
+        <div className="relative mx-auto shrink-0 sm:mx-0">
+          <svg
+            viewBox="0 0 120 120"
+            className="size-28"
+            role="img"
+            aria-label={
+              score === null
+                ? 'Score de prontidão ainda sem dados'
+                : `Score de prontidão ${score} de 100 — ${READINESS_LABEL[readiness.tone]}`
+            }
+          >
+            <defs>
+              <linearGradient id="readiness-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#14b8a6" />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r={GAUGE_R} fill="none" strokeWidth="11" className="stroke-muted" />
+            <motion.circle
+              cx="60"
+              cy="60"
+              r={GAUGE_R}
+              fill="none"
+              strokeWidth="11"
+              strokeLinecap="round"
+              stroke="url(#readiness-grad)"
+              strokeDasharray={GAUGE_C}
+              initial={{ strokeDashoffset: GAUGE_C }}
+              animate={{ strokeDashoffset: score === null ? GAUGE_C : GAUGE_C * (1 - score / 100) }}
+              transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+              transform="rotate(-90 60 60)"
+            />
+          </svg>
+          <div className="absolute inset-0 grid place-items-center">
+            {score === null ? (
+              <span className="text-xl font-bold text-muted-foreground" aria-hidden>
+                —
+              </span>
+            ) : (
+              <p className="text-center leading-none" aria-hidden>
+                <motion.span className="text-2xl font-bold tabular-nums">{rounded}</motion.span>
+                <span className="text-[10px] text-muted-foreground">/100</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Evidências: 1 barra por componente, na cor do seu tipo */}
+        <div className="min-w-0 flex-1 space-y-2.5">
+          {readiness.components.map((c, i) => {
+            const Icon = COMPONENT_ICON[c.id];
+            return (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.3 }}
+                className="flex items-center gap-2.5"
+              >
+                <span
+                  className={cn(
+                    'grid size-6 shrink-0 place-items-center rounded-md',
+                    c.pct === null ? 'bg-muted text-muted-foreground/50' : COMPONENT_ICON_BG[c.id],
+                  )}
+                  aria-hidden
+                >
+                  <Icon className="size-3" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className={cn('truncate text-xs font-medium', c.pct === null && 'text-muted-foreground')}>
+                      {c.label}
+                    </p>
+                    <span
+                      className={cn(
+                        'shrink-0 text-[10px] font-semibold tabular-nums',
+                        c.pct === null ? 'font-normal text-muted-foreground/70' : READINESS_TEXT[readiness.tone],
+                      )}
+                    >
+                      {c.pct === null ? 'sem dados' : `${c.pct}%`}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                    {c.pct === null ? (
+                      <div className="h-full w-full rounded-full border border-dashed border-border/80" aria-hidden />
+                    ) : (
+                      <motion.div
+                        className={cn('h-full rounded-full', COMPONENT_BAR[c.id])}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${c.pct}%` }}
+                        transition={{ duration: 0.7, delay: 0.25 + i * 0.06, ease: 'easeOut' }}
+                      />
+                    )}
+                  </div>
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{c.detail}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {score !== null && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge className={cn('border-0 text-[10px]', READINESS_BADGE[readiness.tone])}>
+            {READINESS_LABEL[readiness.tone]}
+          </Badge>
+          <span className="text-[11px] text-muted-foreground">
+            sobe ao vivo: marcar tarefas, revisar cartões e correr o simulado
+          </span>
+        </div>
+      )}
+      {readiness.pendentesMat > 0 && (
+        <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-400">
+          Caderno de Erros: {readiness.pendentesMat} pendente(s) na Matemática — revisar sobe o score e limpa o caderno.
+        </p>
+      )}
+
+      <Button
+        variant="outline"
+        className="mt-3 w-full border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+        onClick={() =>
+          openTutor({
+            disciplineCode: MATH_EXAM.disciplineCode,
+            question: buildReadinessQuestion(daysLeft, readiness, readiness.pendentesMat),
+          })
+        }
+        aria-label="Pedir ao tutor um plano para chegar pronto na prova"
+      >
+        <Sparkles className="size-3.5" aria-hidden />
+        {score === null
+          ? 'Por onde começo para ter score? (plano do tutor)'
+          : 'Como chego 100% pronto até 01/10? (plano do tutor)'}
+      </Button>
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+        Score = média ponderada das evidências (simulado 30% · exercícios 20% · checklist 20% ·
+        baralho 15% · plano 15%). Componente sem dado não entra na conta — o score não inventa
+        prontidão.
+      </p>
+    </section>
   );
 }

@@ -428,12 +428,12 @@ function RealGradesSection() {
     });
   }, [allEvaluations, sp.progress.realGrades]);
 
-  const totalDone = Object.keys(sp.progress.realGrades).length;
+  const totalDone = Object.keys(sp.progress.realGrades ?? {}).length;
   const totalEvals = allEvaluations.length;
 
   // Próxima avaliação COM DATA OFICIAL à frente (política anti-estimativa) — memoizada.
   const nextEvaluationLabel = React.useMemo(() => {
-    const done = new Set(Object.keys(sp.progress.realGrades));
+    const done = new Set(Object.keys(sp.progress.realGrades ?? {}));
     const next = allEvaluations.find(
       (e) => !done.has(e.key) && e.date && daysUntilDate(e.date) > 0,
     );

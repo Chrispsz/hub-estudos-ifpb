@@ -165,7 +165,7 @@ export function ScheduleView() {
   // disciplineProgress → ScheduleDisciplineState (mesma estrutura, tipagem explícita)
   const discProg = React.useMemo(() => {
     const out: Record<string, ScheduleDisciplineState> = {};
-    for (const [code, v] of Object.entries(sp.progress.disciplineProgress)) {
+    for (const [code, v] of Object.entries(sp.progress.disciplineProgress ?? {})) {
       out[code] = { studiedMinutes: v.studiedMinutes, lastStudiedAt: v.lastStudiedAt };
     }
     return out;

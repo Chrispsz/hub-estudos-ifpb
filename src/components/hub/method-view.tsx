@@ -273,7 +273,7 @@ export function MethodView({
       setSmartDiscipline(bestDue[0]);
       return;
     }
-    const entries = Object.entries(sp.progress.disciplineProgress);
+    const entries = Object.entries(sp.progress.disciplineProgress ?? {});
     const studied = entries.filter(([, v]) => v.studiedMinutes > 0);
     if (studied.length >= disciplines.length && studied.length > 0) {
       // todas já estudadas → a menos recente
