@@ -6,6 +6,7 @@ import {
   Bot,
   CheckCircle2,
   Clock,
+  Code2,
   Copy,
   Download,
   History,
@@ -28,6 +29,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import {
+  CODE_LANG_LABEL,
+  UserBubbleContent,
+  detectCodeLang,
+  type ChatCodeLang,
+} from '@/components/hub/chat-code';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,7 +46,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -340,6 +347,11 @@ export function StudyView({
     },
   ]);
   const [chatInput, setChatInput] = React.useState('');
+  // Bloco de código SEPARADO da mensagem (pedido do dono) — vai para a IA formatado em ```lang
+  const [chatCode, setChatCode] = React.useState('');
+  const [codeOpen, setCodeOpen] = React.useState(false);
+  const [codeLang, setCodeLang] = React.useState<ChatCodeLang>('c');
+  const chatTaRef = React.useRef<HTMLTextAreaElement>(null);
   const [chatLoading, setChatLoading] = React.useState(false);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [chatImage, setChatImage] = React.useState<string | null>(null);
@@ -923,8 +935,25 @@ export function StudyView({
     }
   };
 
+  // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha)
+  React.useEffect(() => {
+    const el = chatTaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
+  }, [chatInput]);
+
   const sendQuestion = async (question: string) => {
-    const q = question.trim();
+    // Monta a pergunta: texto da mensagem + bloco de código (se houver) — o código
+    // chega na IA FORMATADO (```lang), e a bolha do usuário mostra os dois blocos.
+    const code = chatCode.replace(/\s+$/, '');
+    const q = [
+      question.trim(),
+      code ? '```' + codeLang + '\n' + code + '\n```' : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
     if ((!q && !chatImage) || chatLoading) return;
     const image = chatImage;
     // Memória da conversa: últimas 12 mensagens (sem bolhas de erro) — o tutor
@@ -939,6 +968,7 @@ export function StudyView({
     ]);
     setChatImage(null);
     setChatInput('');
+    setChatCode('');
     setChatLoading(true);
     setStreamText(null);
     try {
@@ -1501,7 +1531,7 @@ export function StudyView({
                 >
                   {m.role === 'user' ? (
                     <>
-                      <p className="whitespace-pre-wrap">{m.content}</p>
+                      <UserBubbleContent content={m.content} />
                       {m.image && (
                         <img
                           src={m.image}
@@ -1651,8 +1681,65 @@ export function StudyView({
                 e.target.value = '';
               }}
             />
+            {/* Bloco de código — separado da mensagem (pedido do dono): cola formatado,
+                vai para a IA em ```lang e volta como bloco igual ao da resposta. */}
+            {codeOpen && (
+              <div className="mb-2 overflow-hidden rounded-lg border border-slate-700/60 bg-slate-950 shadow-inner">
+                <div className="flex items-center gap-1.5 border-b border-slate-700/60 px-2.5 py-1.5">
+                  <Code2 className="size-3.5 shrink-0 text-emerald-300" aria-hidden />
+                  <span className="text-[11px] font-medium text-slate-300">Bloco de código</span>
+                  <span className="text-[10px] text-slate-500">· Ctrl+V cola formatado</span>
+                  <div className="ml-auto flex items-center gap-0.5">
+                    {(Object.keys(CODE_LANG_LABEL) as ChatCodeLang[]).map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setCodeLang(l)}
+                        aria-pressed={codeLang === l}
+                        className={cn(
+                          'rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors',
+                          codeLang === l
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'text-slate-500 hover:text-slate-300',
+                        )}
+                      >
+                        {CODE_LANG_LABEL[l]}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCodeOpen(false);
+                        setChatCode('');
+                      }}
+                      aria-label="Fechar bloco de código"
+                      title="Fechar bloco de código"
+                      className="ml-1 rounded p-1 text-slate-500 transition-colors hover:text-slate-200"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={chatCode}
+                  onChange={(e) => setChatCode(e.target.value)}
+                  onPaste={(e) => {
+                    const t = e.clipboardData.getData('text/plain');
+                    if (t) {
+                      const d = detectCodeLang(t);
+                      if (d) setCodeLang(d);
+                    }
+                  }}
+                  rows={6}
+                  spellCheck={false}
+                  placeholder={'Cole seu código aqui — vai formatado para a IA\n\n#include <stdio.h>\nint main() { ... }'}
+                  aria-label="Bloco de código para o tutor"
+                  className="block max-h-64 w-full resize-none overflow-y-auto bg-transparent px-3 py-2.5 font-mono text-xs leading-relaxed text-slate-100 outline-none placeholder:text-slate-600"
+                />
+              </div>
+            )}
             <form
-              className="flex gap-2"
+              className="flex items-end gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 void sendQuestion(chatInput);
@@ -1670,9 +1757,38 @@ export function StudyView({
               >
                 <ImagePlus className="size-4" />
               </Button>
-              <Input
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'shrink-0 transition-colors',
+                  codeOpen
+                    ? 'bg-emerald-500/15 text-emerald-500 hover:text-emerald-400'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => {
+                  setCodeOpen((v) => !v);
+                  if (codeOpen) setChatCode('');
+                }}
+                disabled={chatLoading}
+                aria-label={codeOpen ? 'Fechar bloco de código' : 'Anexar bloco de código'}
+                title="Bloco de código — cola formatado e vai para a IA assim"
+                aria-pressed={codeOpen}
+              >
+                <Code2 className="size-4" />
+              </Button>
+              <textarea
+                ref={chatTaRef}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter envia · Shift+Enter quebra a linha (padrão de chat)
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendQuestion(chatInput);
+                  }
+                }}
                 onPaste={(e) => {
                   const f = imageFromClipboard(e);
                   if (f) {
@@ -1680,15 +1796,17 @@ export function StudyView({
                     void attachChatImage(f);
                   }
                 }}
-                placeholder="Dúvida... (ou cole um print)"
+                rows={1}
+                placeholder="Dúvida... (Enter envia · Shift+Enter quebra linha)"
                 disabled={chatLoading}
                 aria-label="Sua pergunta para o tutor"
+                className="min-h-[36px] flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-emerald-500/60 focus-visible:ring-2 focus-visible:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               />
               <Button
                 type="submit"
                 size="icon"
                 className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
-                disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+                disabled={chatLoading || (!chatInput.trim() && !chatImage && !chatCode.trim())}
                 aria-label="Enviar mensagem"
               >
                 <Send className="size-4" />

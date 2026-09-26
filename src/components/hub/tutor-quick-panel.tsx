@@ -10,13 +10,13 @@ import { toast } from 'sonner';
 import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
+import { UserBubbleContent } from './chat-code';
 import { TutorMarkdown } from './tutor-markdown';
 
 interface ChatMessage {
@@ -257,7 +257,9 @@ export function TutorQuickPanel({
             >
               {m.role === 'user' ? (
                 <>
-                  <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                  <div className="text-sm">
+                    <UserBubbleContent content={m.content} />
+                  </div>
                   {m.image && (
                     <img
                       src={m.image}
@@ -419,9 +421,16 @@ export function TutorQuickPanel({
           >
             <ImagePlus className="size-4" />
           </Button>
-          <Input
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter envia · Shift+Enter quebra a linha (padrão do chat principal)
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
             onPaste={(e) => {
               const f = imageFromClipboard(e);
               if (f) {
@@ -429,8 +438,9 @@ export function TutorQuickPanel({
                 void attachImage(f);
               }
             }}
-            placeholder={`Dúvida sobre ${materialTitle ?? discipline}? (cole um print)`}
-            className="h-11 bg-background text-sm sm:h-9"
+            rows={1}
+            placeholder={`Dúvida sobre ${materialTitle ?? discipline}? (Shift+Enter quebra linha)`}
+            className="max-h-32 min-h-[36px] flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-emerald-500/60 focus-visible:ring-2 focus-visible:ring-emerald-500/20 sm:py-1.5"
             maxLength={2000}
             aria-label="Pergunta ao tutor"
           />
