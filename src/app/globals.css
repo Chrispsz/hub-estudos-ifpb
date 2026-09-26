@@ -178,3 +178,13 @@
     }
   }
 }
+
+/* ===== Tutor IA — matemática (KaTeX) ===== */
+/* Matrizes/frações grandes não estouram a largura do chat no celular:
+   rola horizontalmente dentro da bolha, sem empurrar o layout. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15rem 0;
+  scrollbar-width: thin;
+}

@@ -6,6 +6,7 @@ import {
   Bot,
   CheckCircle2,
   Clock,
+  Copy,
   History,
   ImagePlus,
   Loader2,
@@ -143,6 +144,17 @@ const CHAT_SUGGESTIONS = [
   'Dê um exemplo prático',
   'Quando é a próxima prova?',
   'Como está meu progresso?',
+];
+
+/**
+ * Follow-ups de continuidade: aparecem após cada resposta do tutor para o
+ * aluno continuar falando DO MESMO assunto sem redigir tudo de novo — o
+ * histórico vai junto, então a resposta conecta com a anterior.
+ */
+const FOLLOW_UPS = [
+  { label: 'Explica de outro jeito', q: 'Explica de outro jeito, mais simples, com outro exemplo.' },
+  { label: 'Exercício parecido', q: 'Me dá um exercício parecido com isso para eu treinar.' },
+  { label: 'Como cai na prova?', q: 'Como esse conteúdo costuma cair na prova?' },
 ];
 
 /** Contexto real do app enviado ao tutor — implementação única em @/lib/tutor-context. */
@@ -864,6 +876,14 @@ export function StudyView({
     }).catch(() => {});
   };
 
+  /** Copia o texto completo de uma resposta do tutor (pra colar no caderno). */
+  const copyAnswer = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => toast.success('Resposta copiada — cola no caderno ou no documento.'))
+      .catch(() => toast.error('Não consegui copiar agora.'));
+  };
+
   // ----- Render -----
 
   return (
@@ -1291,8 +1311,22 @@ export function StudyView({
                   ) : (
                     <TutorMarkdown content={m.content} />
                   )}
-                  {m.role === 'assistant' && m.model && (
-                    <p className="mt-1.5 text-[10px] text-muted-foreground/60">via {m.model}</p>
+                  {m.role === 'assistant' && (m.model || m.content.length > 80) && (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      {m.model && (
+                        <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => copyAnswer(m.content)}
+                        aria-label="Copiar resposta"
+                        title="Copiar resposta"
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
+                      >
+                        <Copy className="size-3" />
+                        copiar
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1330,6 +1364,30 @@ export function StudyView({
                 ))}
               </div>
             )}
+
+            {/* Continuidade: follow-ups após a última resposta — o aluno segue
+                falando do mesmo assunto com 1 toque, sem reexplicar a dúvida. */}
+            {!chatLoading && streamText === null && messages.length > 1 &&
+              messages[messages.length - 1]?.role === 'assistant' && (
+                <div className="pt-1">
+                  <p className="mb-1.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
+                    <Sparkles className="size-3 text-emerald-400" />
+                    Continuar nesse assunto?
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {FOLLOW_UPS.map((f) => (
+                      <button
+                        key={f.label}
+                        type="button"
+                        onClick={() => sendQuestion(f.q)}
+                        className="rounded-full border border-border bg-muted/60 px-2.5 py-1.5 text-xs transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:text-emerald-400"
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
 
           <div className="border-t border-white/10 p-4">

@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Bot, CornerDownLeft, ImagePlus, Loader2, Sparkles, User, X } from 'lucide-react';
+import { Bot, Copy, CornerDownLeft, ImagePlus, Loader2, Sparkles, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -74,6 +74,16 @@ export function TutorQuickPanel({
   );
   const chips = suggestions ?? defaultSuggestions;
   const showChips = messages.length === 0 && !loading;
+
+  /** Follow-ups de continuidade: seguir falando do material com 1 toque. */
+  const followUps = React.useMemo(
+    () => [
+      { label: 'Explica de outro jeito', q: 'Explica de outro jeito, mais simples, com outro exemplo.' },
+      { label: 'Exemplo do material', q: 'Me dá mais um exemplo tirado do próprio material.' },
+      { label: 'Exercício parecido', q: 'Me dá um exercício parecido com isso para eu treinar.' },
+    ],
+    [],
+  );
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -145,6 +155,14 @@ export function TutorQuickPanel({
     }
   }
 
+  /** Copia o texto completo de uma resposta do tutor (pra colar no caderno). */
+  const copyAnswer = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => toast.success('Resposta copiada.'))
+      .catch(() => toast.error('Não consegui copiar agora.'));
+  };
+
   return (
     <div className={cn('flex min-h-0 flex-col', className)}>
       <div
@@ -208,9 +226,21 @@ export function TutorQuickPanel({
               ) : (
                 <>
                   <TutorMarkdown content={m.content} />
-                  {m.model && (
-                    <p className="mt-1.5 text-[10px] text-muted-foreground/60">via {m.model}</p>
-                  )}
+                  <div className="mt-1.5 flex items-center gap-2">
+                    {m.model && (
+                      <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => copyAnswer(m.content)}
+                      aria-label="Copiar resposta"
+                      title="Copiar resposta"
+                      className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
+                    >
+                      <Copy className="size-3" />
+                      copiar
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -237,6 +267,30 @@ export function TutorQuickPanel({
             </div>
           </div>
         )}
+
+        {/* Continuidade: seguir no mesmo assunto com 1 toque. */}
+        {!loading && streamText === null && messages.length > 0 &&
+          messages[messages.length - 1]?.role === 'assistant' &&
+          !messages[messages.length - 1]?.content.startsWith('⚠️') && (
+            <div>
+              <p className="mb-1.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
+                <Sparkles className="size-3 text-emerald-400" />
+                Continuar nesse assunto?
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {followUps.map((f) => (
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => ask(f.q)}
+                    className="rounded-full border border-border bg-muted/60 px-2.5 py-1.5 text-xs transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:text-emerald-400"
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
       </div>
 
       <form
