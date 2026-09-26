@@ -10,6 +10,7 @@ import {
   DatabaseBackup,
   Download,
   ExternalLink,
+  ImagePlus,
   Moon,
   RotateCcw,
   Settings2,
@@ -478,6 +479,13 @@ function NumberSetting({
   );
 }
 
+/** Latência com cor semântica: verde < 1s, âmbar < 3s, vermelho acima. */
+function msTone(ms: number): string {
+  if (ms < 1000) return 'text-emerald-600 dark:text-emerald-400';
+  if (ms < 3000) return 'text-amber-600 dark:text-amber-400';
+  return 'text-destructive';
+}
+
 /** Linha de resultado do diagnóstico de IA (ping real de cada provedor). */
 function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
   if (!r) return null;
@@ -494,8 +502,8 @@ function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
       </span>
       <span
         className={cn(
-          'min-w-0 truncate text-right',
-          r.ok ? 'text-muted-foreground' : 'text-destructive',
+          'min-w-0 truncate text-right font-mono',
+          r.ok ? msTone(r.ms) : 'text-destructive',
         )}
         title={r.ok ? `${r.ms} ms` : r.error}
       >
@@ -506,6 +514,10 @@ function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
 }
 
 type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string };
+type VisionTestState =
+  | { status: 'running' }
+  | { status: 'ok'; model?: string; ms: number; transcription: string }
+  | { status: 'fail'; error: string };
 type ProbeState = {
   at: string;
   firstToAnswer: string;
@@ -527,6 +539,10 @@ function AiInfoCard() {
   const [vision, setVision] = React.useState<string | null>(null);
   const [probe, setProbe] = React.useState<ProbeState | null>(null);
   const [probing, setProbing] = React.useState(false);
+  const [visionTest, setVisionTest] = React.useState<VisionTestState | null>(null);
+  const visionInputRef = React.useRef<HTMLInputElement>(null);
+
+  const visionAtiva = Boolean(vision && !vision.startsWith('somente'));
 
   React.useEffect(() => {
     fetch('/api/tutor')
@@ -555,6 +571,62 @@ function AiInfoCard() {
   React.useEffect(() => {
     runProbe();
   }, [runProbe]);
+
+  /** Teste real de visão: lê uma imagem escolhida pelo usuário pela MESMA cadeia do tutor. */
+  const runVisionTest = React.useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Escolha um arquivo de imagem (print, foto do exercício…).');
+      return;
+    }
+    setVisionTest({ status: 'running' });
+    const reader = new FileReader();
+    reader.onload = () => {
+      const t0 = Date.now();
+      fetch('/api/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question:
+            'Transcreva EXATAMENTE o texto principal que aparece na imagem. Responda em uma linha curta, sem comentários.',
+          discipline: 'Diagnóstico',
+          disciplineCode: 'QA-VIS',
+          stream: false,
+          imageDataUrl: String(reader.result),
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          const ms = Date.now() - t0;
+          if (d?.answer) {
+            // Exibição limpa: modelos costumam responder prints com LaTeX ($$…$/$…$) —
+            // no diagnóstico mostramos o texto puro, sem delimitadores.
+            const clean = String(d.answer)
+              .trim()
+              .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
+              .replace(/\$([^$\n]+)\$/g, '$1')
+              .replace(/\\[a-zA-Z]+/g, '')
+              .replace(/\s{2,}/g, ' ')
+              .trim();
+            setVisionTest({
+              status: 'ok',
+              model: d.model,
+              ms,
+              transcription: clean,
+            });
+            toast.success('Visão funcionando — a imagem foi lida com sucesso.');
+          } else {
+            setVisionTest({
+              status: 'fail',
+              error: d?.error ?? 'A imagem não pôde ser lida agora. Tente outro print.',
+            });
+          }
+        })
+        .catch(() =>
+          setVisionTest({ status: 'fail', error: 'Falha de rede ao testar a leitura.' }),
+        );
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   const anyKey = Boolean(providers?.gemini || providers?.openrouter || providers?.zaiPublic);
 
@@ -623,6 +695,69 @@ function AiInfoCard() {
             </b>{' '}
             {vision ?? 'verificando…'}
           </p>
+        )}
+
+        {providers && visionAtiva && (
+          <div className="rounded-lg border p-3" aria-live="polite">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs font-semibold">
+                <ImagePlus className="size-3.5 text-violet-500" aria-hidden />
+                Testar leitura de prints
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2.5 text-[11px]"
+                onClick={() => visionInputRef.current?.click()}
+                disabled={visionTest?.status === 'running'}
+              >
+                {visionTest?.status === 'running' ? (
+                  <RefreshCw className="size-3 animate-spin" aria-hidden />
+                ) : (
+                  <ImagePlus className="size-3" aria-hidden />
+                )}
+                {visionTest?.status === 'running' ? 'Lendo imagem…' : 'Enviar imagem'}
+              </Button>
+            </div>
+            <input
+              ref={visionInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-label="Escolher imagem para testar a leitura"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) runVisionTest(f);
+                e.target.value = '';
+              }}
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Envie um print (foto do exercício ou do quadro) e veja em tempo real qual modelo lê e
+              o que entendeu — exatamente como será no chat.
+            </p>
+            {visionTest?.status === 'ok' && (
+              <div className="mt-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-[11px]">
+                <p className="flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+                  <CircleCheck className="size-3 shrink-0" aria-hidden />
+                  Lido por {visionTest.model ?? 'IA'} em {(visionTest.ms / 1000).toFixed(1)}s
+                </p>
+                <p
+                  className="mt-1 line-clamp-3 break-words text-muted-foreground"
+                  title={visionTest.transcription}
+                >
+                  “{visionTest.transcription}”
+                </p>
+              </div>
+            )}
+            {visionTest?.status === 'fail' && (
+              <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-[11px]">
+                <p className="flex items-start gap-1.5 font-medium text-destructive">
+                  <XCircle className="mt-0.5 size-3 shrink-0" aria-hidden />
+                  {visionTest.error}
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {providers && (
