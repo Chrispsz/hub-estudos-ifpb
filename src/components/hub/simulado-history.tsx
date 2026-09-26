@@ -2,14 +2,19 @@
 
 // Histórico de simulados — evolução das notas ao longo do semestre.
 // Alimentado pelo Simulado Pro (cada tentativa finalizada grava um SimuladoRun).
+// Tentativas são ANALISÁVEIS pela IA: chip por corrida (debriefing) e botão
+// de evolução (série completa) — o histórico deixa de ser um gráfico morto.
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, History, Target, TrendingUp, Trophy } from 'lucide-react';
+import { Award, History, Sparkles, Target, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
+import { buildRunDebriefQuestion, buildTrendQuestion } from '@/lib/simulado-debrief';
+import { openTutor } from '@/lib/hub-events';
 
 function runPct(r: SimuladoRun): number {
   return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
@@ -33,6 +38,20 @@ function fmtDur(sec: number): string {
   return `${m}min`;
 }
 
+/** Disciplina "dono" da tentativa: a mais atingida pelos erros, senão o filtro usado. */
+function runDisciplineCode(r: SimuladoRun): string | undefined {
+  if (r.questions && r.questions.length > 0) {
+    const byDisc = new Map<string, number>();
+    for (const q of r.questions) {
+      if (q.status === 'solved' || !q.disciplineCode) continue;
+      byDisc.set(q.disciplineCode, (byDisc.get(q.disciplineCode) ?? 0) + 1);
+    }
+    const worst = [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (worst) return worst;
+  }
+  return r.filters?.discipline;
+}
+
 // Estado vazio estável (mesma referência) — evita re-render do memo quando não há runs.
 const NO_RUNS: SimuladoRun[] = [];
 
@@ -46,6 +65,27 @@ const DISC_SHORT: Record<string, string> = {
   'ING.001': 'Inglês',
   'PORT.001': 'Português',
 };
+
+function getDiscShort(code: string): string {
+  return DISC_SHORT[code] ?? code;
+}
+
+/** Barra de distribuição da tentativa: emerald=consegui, rose=não consegui, muted=pulada. */
+function DistributionBar({ r, className }: { r: SimuladoRun; className?: string }) {
+  if (r.total === 0) return null;
+  const seg = (n: number) => `${(n / r.total) * 100}%`;
+  return (
+    <span
+      className={cn('flex h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted', className)}
+      title={`${r.solved} consegui · ${r.missed} não consegui · ${r.skipped} puladas`}
+      aria-hidden
+    >
+      <span className="h-full bg-emerald-500/80" style={{ width: seg(r.solved) }} />
+      <span className="h-full bg-rose-500/80" style={{ width: seg(r.missed) }} />
+      <span className="h-full bg-muted-foreground/30" style={{ width: seg(r.skipped) }} />
+    </span>
+  );
+}
 
 export function SimuladoHistory() {
   const sp = useStudyProgress();
@@ -63,6 +103,17 @@ export function SimuladoHistory() {
 
   const chartRuns = runs.slice(0, 8).reverse(); // mais antigo → mais novo
 
+  /** Disciplina de contexto para a análise de evolução: a mais recorrente nas tentativas. */
+  const trendDiscipline = React.useMemo(() => {
+    const byDisc = new Map<string, number>();
+    for (const r of runs) {
+      const code = runDisciplineCode(r);
+      if (!code) continue;
+      byDisc.set(code, (byDisc.get(code) ?? 0) + 1);
+    }
+    return [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  }, [runs]);
+
   return (
     <Card className="rounded-xl bg-card p-4 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -73,7 +124,7 @@ export function SimuladoHistory() {
           Histórico de simulados
         </h3>
         {stats && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400">
               <Trophy className="size-2.5" /> melhor {stats.best}%
             </Badge>
@@ -99,7 +150,11 @@ export function SimuladoHistory() {
             {chartRuns.map((r, i) => {
               const pct = runPct(r);
               return (
-                <div key={r.id} className="flex max-w-[56px] flex-1 flex-col items-center gap-1">
+                <div
+                  key={r.id}
+                  title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}`}
+                  className="flex max-w-[56px] flex-1 flex-col items-center gap-1"
+                >
                   <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{pct}%</span>
                   <div className="flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50">
                     <motion.div
@@ -124,6 +179,22 @@ export function SimuladoHistory() {
             })}
           </div>
 
+          {/* Análise de EVOLUÇÃO — a série inteira para o tutor ler a tendência */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              openTutor({
+                disciplineCode: trendDiscipline,
+                question: buildTrendQuestion(runs),
+              })
+            }
+            aria-label="Enviar minha evolução de simulados para a IA analisar a tendência"
+            className="mt-4 w-full border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+          >
+            <Sparkles className="size-3.5" /> Analisar evolução com IA
+          </Button>
+
           {/* Últimas tentativas */}
           <div className="mt-4 space-y-1.5">
             {runs.slice(0, 5).map((r) => {
@@ -131,7 +202,7 @@ export function SimuladoHistory() {
               return (
                 <div
                   key={r.id}
-                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs transition-colors hover:border-emerald-500/30"
+                  className="group flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/[0.03]"
                 >
                   <span
                     className={cn(
@@ -147,9 +218,10 @@ export function SimuladoHistory() {
                   >
                     {pct >= 80 ? <Award className="size-3" /> : `${pct}`}
                   </span>
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {r.solved}/{r.total} resolvidas
                   </span>
+                  <DistributionBar r={r} />
                   <Badge variant="outline" className={cn('border text-[10px]', pctTone(pct))}>
                     {pct}%
                   </Badge>
@@ -166,21 +238,48 @@ export function SimuladoHistory() {
                       {getDiscShort(r.filters.discipline)}
                     </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openTutor({
+                        disciplineCode: runDisciplineCode(r),
+                        question: buildRunDebriefQuestion(r),
+                      })
+                    }
+                    title={
+                      r.questions && r.questions.length > 0
+                        ? 'Perguntar à IA para analisar esta tentativa (debriefing completo, questão a questão)'
+                        : 'Perguntar à IA para analisar esta tentativa (só totais — corrida antiga)'
+                    }
+                    aria-label={`Perguntar à IA para analisar a tentativa de ${fmtDate(r.date)}`}
+                    className="ml-auto inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-200"
+                  >
+                    <Sparkles className="size-3" aria-hidden />
+                  </button>
                 </div>
               );
             })}
           </div>
 
-          <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Target className="size-3 shrink-0 text-emerald-500" />
-            {stats.count} simulado(s) registrado(s) · cada tentativa do Simulado Pro grava automaticamente aqui.
-          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Target className="size-3 shrink-0 text-emerald-500" />
+              {stats.count} simulado(s) registrado(s) · cada tentativa do Simulado Pro grava automaticamente aqui.
+            </p>
+            <p className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
+              <span className="flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-emerald-500/80" aria-hidden /> consegui
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-rose-500/80" aria-hidden /> não consegui
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-muted-foreground/30" aria-hidden /> puladas
+              </span>
+            </p>
+          </div>
         </>
       )}
     </Card>
   );
-}
-
-function getDiscShort(code: string): string {
-  return DISC_SHORT[code] ?? code;
 }

@@ -202,6 +202,16 @@ export interface CustomEvaluation {
   scale: 10 | 100;
 }
 
+/** Detalhe por questão de uma tentativa — permite debriefing IA de corridas antigas. */
+export interface RunQuestionDetail {
+  status: 'solved' | 'missed' | 'skipped';
+  disciplineCode?: string;
+  topic?: string;
+  difficulty?: string;
+  /** Enunciado truncado no momento da gravação (economia de localStorage). */
+  statement?: string;
+}
+
 export interface SimuladoRun {
   id: string;
   date: string; // ISO
@@ -211,6 +221,8 @@ export interface SimuladoRun {
   skipped: number;
   durationSec: number;
   filters?: { discipline?: string; difficulty?: string; durationMin?: number };
+  /** Presente em tentativas novas; antigas têm só os agregados acima. */
+  questions?: RunQuestionDetail[];
 }
 
 // ---------- Protocolo HUB (sessão guiada + Kaizen) ----------

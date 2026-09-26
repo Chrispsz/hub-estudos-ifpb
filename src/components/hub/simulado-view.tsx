@@ -48,7 +48,8 @@ import { Switch } from '@/components/ui/switch';
 import { disciplines, getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
-import { useStudyProgress } from '@/lib/study-progress';
+import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
+import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
 import { openMethod, openTutor } from '@/lib/hub-events';
 import { getExerciseStage } from '@/lib/curriculum-state';
 import {
@@ -215,6 +216,16 @@ export function SimuladoView({
   /** Registra a tentativa no histórico (progress-view exibe a evolução). */
   function recordRun() {
     if (questions.length === 0) return;
+    // Detalhes por questão: permitem "Analisar com IA" DEPOIS, no histórico,
+    // com a mesma riqueza do debriefing ao vivo (padrão material-first de dados).
+    const details: RunQuestionDetail[] = questions.map((q, i) => ({
+      status:
+        results[i].solved === true ? 'solved' : results[i].solved === false ? 'missed' : 'skipped',
+      disciplineCode: q.disciplineCode,
+      topic: q.topic,
+      difficulty: q.difficulty,
+      statement: q.statement.slice(0, 160),
+    }));
     sp.addSimuladoRun({
       total: questions.length,
       solved: results.filter((r) => r.solved === true).length,
@@ -226,6 +237,7 @@ export function SimuladoView({
         difficulty: config.difficulty === 'all' ? undefined : config.difficulty,
         durationMin: config.durationMin || undefined,
       },
+      questions: details,
     });
   }
 
@@ -857,7 +869,22 @@ function ResultsScreen({
               const worst = questions.filter((q, i) => results[i].solved !== true);
               openTutor({
                 disciplineCode: worst[0]?.disciplineCode ?? questions[0]?.disciplineCode,
-                question: buildDebriefQuestion(questions, results, pct, elapsed),
+                question: buildDebriefFromDetails({
+                  pct,
+                  elapsedSec: elapsed,
+                  details: questions.map((q, i) => ({
+                    status:
+                      results[i].solved === true
+                        ? 'solved'
+                        : results[i].solved === false
+                          ? 'missed'
+                          : 'skipped',
+                    disciplineCode: q.disciplineCode,
+                    topic: q.topic,
+                    difficulty: q.difficulty,
+                    statement: q.statement,
+                  })),
+                }),
               });
             }}
             aria-label="Enviar o resultado do simulado para a IA analisar e montar plano de revisão"
@@ -903,34 +930,6 @@ function MiniStat({
 }
 
 /* ================= helpers ================= */
-
-/**
- * Debriefing pós-simulado (pedido do dono: IA conduzindo o estudo de forma
- * organizada). Compacta o resultado — status por questão, tópico, dificuldade
- * e tempo — e pede análise de professor + plano de revisão curto.
- */
-function buildDebriefQuestion(
-  questions: Exercise[],
-  results: QuestionResult[],
-  pct: number,
-  elapsed: number,
-): string {
-  const lines = questions.map((q, i) => {
-    const status =
-      results[i].solved === true ? 'CONSEGUI' : results[i].solved === false ? 'NÃO CONSEGUI' : 'PULADA';
-    const disc = getDisciplineByCode(q.disciplineCode)?.shortName ?? q.disciplineCode;
-    return `- Q${i + 1} [${disc} · ${q.topic} · ${difficultyLabel(q.difficulty)}] ${status} — ${q.statement.slice(0, 110)}`;
-  });
-  return [
-    'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.',
-    `Aproveitamento: ${pct}% · tempo total: ${fmtClock(elapsed)}.`,
-    'Resultado por questão:',
-    ...lines,
-    '',
-    'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.',
-  ].join('\n');
-}
-
 
 /** Bipes de alerta via WebAudio (n=1 aos 60s, 2 aos 10s, 3 no fim). */
 function beep(times: number) {
