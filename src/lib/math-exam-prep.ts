@@ -265,3 +265,73 @@ export function missedPlanDays(daysLeft: number): PlanDay[] {
   if (daysLeft >= MATH_EXAM_PLAN.length) return [];
   return MATH_EXAM_PLAN.filter((d) => d.offset > daysLeft && d.offset > 0);
 }
+
+// ---------- Baralho da Av1 (flashcards Leitner) ----------
+
+/**
+ * Baralho pronto da Av1 — 1 toque adiciona ao sistema Leitner do Praticar
+ * (aba Flashcards). Frente = pergunta curta; verso = fórmula em LaTeX
+ * (renderizada com KaTeX pelo verso do cartão) + regra em português.
+ * Conteúdo 1:1 com MATH_FORMULAS e os materiais reais da disciplina.
+ */
+export const MATH_FLASHCARDS: { front: string; back: string }[] = [
+  {
+    front: 'Como se lê a ordem de uma matriz e o que é o elemento aij?',
+    back: 'Ordem **m × n** = linhas × colunas.\n$A_{m \\times n}$ — o elemento $a_{ij}$ está na **linha $i$, coluna $j$**.',
+  },
+  {
+    front: 'Como somar matrizes e multiplicar por escalar?',
+    back: 'Soma: elemento a elemento, **só existe se as ordens forem iguais**.\n$(A+B)_{ij} = a_{ij} + b_{ij}$\nEscalar: multiplica TODOS os elementos: $(kA)_{ij} = k \\cdot a_{ij}$.',
+  },
+  {
+    front: 'Quando o produto A·B existe e como calculo cada elemento?',
+    back: 'Só existe se **colunas de A = linhas de B**: $A_{m \\times n} \\cdot B_{n \\times p} = C_{m \\times p}$\n$c_{ij} = \\sum_{k=1}^{n} a_{ik} \\cdot b_{kj}$ (linha $i$ de $A$ × coluna $j$ de $B$).\n**AB ≠ BA** — produto de matrizes NÃO é comutativo!',
+  },
+  {
+    front: 'Como montar a transposta de A?',
+    back: 'Linhas viram colunas: $(A^T)_{ij} = a_{ji}$\nA 1ª linha de $A$ vira a 1ª coluna de $A^T$.',
+  },
+  {
+    front: 'O que é matriz simétrica? E antissimétrica?',
+    back: 'Simétrica: $A = A^T$ (espelho na diagonal).\nAntissimétrica: $A^T = -A$ ⇒ a **diagonal é toda zero**.',
+  },
+  {
+    front: 'Fórmula da inversa de uma matriz 2×2?',
+    back: '$A^{-1} = \\frac{1}{ad-bc}\\begin{pmatrix} d & -b \\\\ -c & a \\end{pmatrix}$\ntrocando $a \\leftrightarrow d$ e invertendo o sinal de $b$ e $c$.',
+  },
+  {
+    front: 'Quando uma matriz NÃO tem inversa? Como conferir a inversa?',
+    back: 'Se $ad - bc = 0$ ⇒ **não existe** inversa.\nSEMPRE confira: $A \\cdot A^{-1} = I$ (multiplicar tem que dar identidade).',
+  },
+  {
+    front: 'O que é proposição? Quais frases NÃO são proposições?',
+    back: 'Frase declarativa com valor lógico único: só **V ou F**.\nNão são: sentenças abertas ($x + 3 = 5$), imperativas ("Estude!"), interrogativas e paradoxos ("esta frase é falsa").',
+  },
+  {
+    front: 'Tabela da implicação p → q — quando é falsa?',
+    back: '$p \\rightarrow q$ é **F APENAS quando V → F**.\n$(V,V)=V \\; (V,F)=F \\; (F,V)=V \\; (F,F)=V$',
+  },
+  {
+    front: 'Quantas linhas tem a tabela-verdade de uma proposição com n variáveis?',
+    back: '$2^n$ linhas.\n2 variáveis → 4 linhas; 3 variáveis → 8 linhas.',
+  },
+  {
+    front: 'Tautologia, contradição e contingência — definição e exemplo?',
+    back: 'Tautologia: sempre V — $p \\lor \\neg p$.\nContradição: sempre F — $p \\land \\neg p$.\nContingência: depende dos valores — $p \\rightarrow q$.',
+  },
+  {
+    front: 'Quais são as equivalências de De Morgan?',
+    back: '$\\neg(p \\land q) \\equiv \\neg p \\lor \\neg q$\n$\\neg(p \\lor q) \\equiv \\neg p \\land \\neg q$\nNegou o E vira OU de negações (e vice-versa)!',
+  },
+  {
+    front: 'Modus Ponens, Modus Tollens e Silogismo — os esquemas?',
+    back: 'Ponens: $p \\rightarrow q,\\; p \\vdash q$\nTollens: $p \\rightarrow q,\\; \\neg q \\vdash \\neg p$\nSilogismo: $p \\rightarrow q,\\; q \\rightarrow r \\vdash p \\rightarrow r$',
+  },
+  {
+    front: 'O que NÃO cai na Av1 de Matemática (01/10)?',
+    back: 'Determinantes como TÓPICO (1.3) e Sistemas Lineares (1.4) — o professor ainda não deu (confirmado 24/09).\nO $ad - bc$ aparece só por dentro da fórmula da inversa 2×2.',
+  },
+];
+
+/** Chave no localStorage que marca que o baralho da Av1 já foi adicionado. */
+export const MATH_DECK_FLAG = 'hub:math-exam:v1:deck-added';
