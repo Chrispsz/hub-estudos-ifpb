@@ -989,13 +989,14 @@ async function probeRun(
   }
 }
 
-async function probeProviders(): Promise<Response> {
+async function probeProviders(geminiModelOverride?: string | null): Promise<Response> {
   const jobs: Record<string, Promise<ProbeResult>> = {};
 
   // — Gemini: generateContent com 10 tokens (mesmo modelo que atende as dúvidas)
   if (GEMINI.key) {
     const key = GEMINI.key;
-    const model = GEMINI.models[0];
+    // ?probe=1&geminiModel=X testa um modelo específico — descobre o que a key aceita
+    const model = geminiModelOverride || GEMINI.models[0];
     jobs.gemini = (async () => {
       const r = await probeRun(15_000, async (signal) => {
         const res = await fetch(`${GEMINI.baseUrl}/models/${model}:generateContent`, {
@@ -1009,7 +1010,7 @@ async function probeProviders(): Promise<Response> {
         });
         if (!res.ok) {
           const detail = await res.text().catch(() => '');
-          throw new Error(`HTTP ${res.status} — ${detail.slice(0, 160)}`);
+          throw new Error(`HTTP ${res.status} — ${detail.slice(0, 400)}`);
         }
         const data = await res.json();
         const text: string = (data?.candidates?.[0]?.content?.parts ?? [])
@@ -1018,7 +1019,7 @@ async function probeProviders(): Promise<Response> {
           .trim();
         if (!text) throw new Error('resposta vazia (quota esgotada ou bloqueio?)');
       });
-      return { ok: !r.error, ms: r.ms, model: prettyModelName(model), error: r.error };
+      return { ok: !r.error, ms: r.ms, model: prettyModelName(model) || model, error: r.error };
     })();
   } else {
     jobs.gemini = Promise.resolve({ ok: false, ms: 0, error: 'sem GEMINI_API_KEY' });
@@ -1101,8 +1102,9 @@ async function probeProviders(): Promise<Response> {
 
 /** GET: lista os modelos em uso + status de provedores (para exibir nas Configurações). */
 export async function GET(req: Request) {
-  // diagnóstico das chaves — Configurações → "Testar conexão agora"
-  if (new URL(req.url).searchParams.get('probe')) return probeProviders();
+  const params = new URL(req.url).searchParams;
+  // diagnóstico das chaves — Configurações → "Testar agora" (aceita &geminiModel=X p/ testar modelo específico)
+  if (params.get('probe')) return probeProviders(params.get('geminiModel'));
   const vision = visionProviderLabel();
   return Response.json({
     provider: 'gemini → openrouter → z.ai → sandbox (primeiro disponível)',
