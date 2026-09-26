@@ -14,12 +14,14 @@ import {
   CircleAlert,
   CircleCheck,
   GraduationCap,
+  Layers,
   ListChecks,
   Sigma,
   Sparkles,
   Target,
   Timer,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -28,12 +30,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openSimulado } from '@/lib/hub-events';
 import { useLocalStorage } from '@/lib/use-local-storage';
+import { useStudyProgress } from '@/lib/study-progress';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
 import {
   MATH_CHECKLIST,
+  MATH_DECK_FLAG,
   MATH_EXAM,
   MATH_EXAM_PLAN,
+  MATH_FLASHCARDS,
   MATH_FORMULAS,
   missedPlanDays,
   planDayFor,
@@ -73,6 +78,40 @@ export function ExamPrepCard() {
   const [open, setOpen] = React.useState(false);
   const [checked, setChecked] = useLocalStorage<CheckedMap>(LS_PLAN, {});
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
+  const sp = useStudyProgress();
+  // Baralho da Av1: flag no localStorage + dedupe por frente (à prova de flag perdida).
+  const [deckAdded, setDeckAdded] = React.useState(
+    () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
+  );
+
+  /** 1 toque: todos os cartões da Av1 entram no sistema Leitner (Praticar → Flashcards). */
+  function addAv1Deck() {
+    const existing = new Set(sp.progress.flashcards.map((c) => c.front));
+    const novas = MATH_FLASHCARDS.filter((c) => !existing.has(c.front));
+    if (novas.length === 0) {
+      setDeckAdded(true);
+      window.localStorage.setItem(MATH_DECK_FLAG, '1');
+      toast.info('O baralho da Av1 já está nos seus flashcards.');
+      return;
+    }
+    const now = new Date().toISOString();
+    sp.addFlashcards(
+      novas.map((c) => ({
+        disciplineCode: 'TEC.1984',
+        front: c.front,
+        back: c.back,
+        source: 'manual' as const,
+        createdAt: now,
+        box: 0,
+        dueAt: now, // vencidos já na criação — a revisão começa hoje
+        reviews: 0,
+        lapses: 0,
+      })),
+    );
+    window.localStorage.setItem(MATH_DECK_FLAG, '1');
+    setDeckAdded(true);
+    toast.success(`${novas.length} cartões da Av1 adicionados — revise na aba Praticar → Flashcards.`);
+  }
 
   // Prova passou → estado compacto, sem ruído.
   if (daysLeft < 0) {
@@ -438,6 +477,46 @@ export function ExamPrepCard() {
                     </p>
                   </Card>
                 ))}
+              </div>
+            </section>
+
+            {/* Baralho da Av1 (flashcards Leitner) */}
+            <section aria-label="Baralho da Av1">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Layers className="size-3.5" /> Baralho da Av1 (revisão espaçada)
+              </h3>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-teal-500/20 bg-teal-500/[0.04] p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold">
+                    {MATH_FLASHCARDS.length} cartões prontos — Matrizes + Lógica, 1:1 com os materiais
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    Entram no sistema Leitner (Praticar → Flashcards) já vencidos para começar hoje.
+                    Errou um cartão? O botão verde no verso manda ele para o tutor.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant={deckAdded ? 'ghost' : 'outline'}
+                  onClick={addAv1Deck}
+                  disabled={deckAdded}
+                  className={cn(
+                    'shrink-0 gap-1.5',
+                    deckAdded
+                      ? 'text-teal-600 dark:text-teal-400'
+                      : 'border-teal-500/40 bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 dark:text-teal-400',
+                  )}
+                >
+                  {deckAdded ? (
+                    <>
+                      <CircleCheck className="size-3.5" /> no seu baralho
+                    </>
+                  ) : (
+                    <>
+                      <Layers className="size-3.5" /> Adicionar baralho
+                    </>
+                  )}
+                </Button>
               </div>
             </section>
 

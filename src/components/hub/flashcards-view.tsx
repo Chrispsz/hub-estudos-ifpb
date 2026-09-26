@@ -58,6 +58,7 @@ import {
   type FlashcardGrade,
   type StudyProgressHook,
 } from '@/lib/study-progress';
+import { openTutor } from '@/lib/hub-events';
 
 // ---------- Helpers ----------
 
@@ -580,6 +581,8 @@ function ReviewSession({
   const [flipped, setFlipped] = React.useState(false);
   const [reviewed, setReviewed] = React.useState(0);
   const [againCount, setAgainCount] = React.useState(0);
+  // Cartões notas como "Errei" — alimentam o debriefing da sessão com a IA.
+  const [againCards, setAgainCards] = React.useState<Flashcard[]>([]);
   const totalPlanned = queue.length + reviewed;
 
   const current = queue[0];
@@ -590,7 +593,10 @@ function ReviewSession({
       if (!current) return;
       sp.gradeFlashcard(current.id, g);
       setReviewed((r) => r + 1);
-      if (g === 'again') setAgainCount((a) => a + 1);
+      if (g === 'again') {
+        setAgainCount((a) => a + 1);
+        setAgainCards((list) => (list.some((c) => c.id === current.id) ? list : [...list, current]));
+      }
       setQueue((q) => {
         const [, ...rest] = q;
         return g === 'again' ? [...rest, current] : rest;
@@ -599,6 +605,22 @@ function ReviewSession({
     },
     [current, sp],
   );
+
+  /** Explica o cartão atual com o tutor — a IA assume que o verso não bastou. */
+  const askAboutCurrent = React.useCallback(() => {
+    if (!current) return;
+    const discName = getDisciplineByCode(current.disciplineCode)?.shortName ?? current.disciplineCode;
+    openTutor({
+      disciplineCode: current.disciplineCode,
+      question: [
+        `Estou revisando flashcards de ${discName} no Hub e travei neste cartão:`,
+        `Frente: "${current.front}"`,
+        `Verso (resposta do Hub): "${current.back.slice(0, 220)}"`,
+        '',
+        'Me explica esse conteúdo do zero com uma abordagem DIFERENTE do verso: (1) a intuição por trás, (2) um exemplo resolvido passo a passo e (3) um macete para eu nunca mais esquecer.',
+      ].join('\n'),
+    });
+  }, [current]);
 
   // Atalhos de teclado: Espaço/Enter viram o cartão, 1-4 aplicam notas.
   // Usa fase de captura + stopPropagation para SUPRIMIR os atalhos globais
@@ -665,6 +687,40 @@ function ReviewSession({
               <p className="text-[10px] text-muted-foreground">erros</p>
             </div>
           </div>
+          {againCards.length > 0 && (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Cartões que errou: {againCards.map((c) => `“${c.front.slice(0, 44)}”`).join(' · ')}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const byDisc = new Map<string, number>();
+                  for (const c of againCards) {
+                    byDisc.set(c.disciplineCode, (byDisc.get(c.disciplineCode) ?? 0) + 1);
+                  }
+                  const worst = [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+                  openTutor({
+                    disciplineCode: worst,
+                    question: [
+                      `Acabei de terminar uma sessão de revisão de flashcards no Hub: ${reviewed} revisões, ${againCount} errei. Os cartões que ERREI foram:`,
+                      ...againCards.map(
+                        (c) =>
+                          `- [${getDisciplineByCode(c.disciplineCode)?.shortName ?? c.disciplineCode}] “${c.front}” — resposta esperada: ${c.back.slice(0, 140)}`,
+                      ),
+                      '',
+                      'Na resposta: (1) para cada cartão, o ponto que provavelmente me confundiu, (2) um exemplo rápido que conecte a ideia e (3) como esse conteúdo pode aparecer na prova — de forma diferente de como o cartão pergunta. Seja direto.',
+                    ].join('\n'),
+                  });
+                }}
+                aria-label="Enviar os cartões errados para a IA analisar"
+                className="w-full border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+              >
+                <Sparkles className="size-3.5" /> Analisar os {againCards.length} erro{againCards.length > 1 ? 's' : ''} com IA
+              </Button>
+            </>
+          )}
           <Button onClick={onExit} className="bg-emerald-600 text-white hover:bg-emerald-700">
             <RotateCcw className="size-4" /> Voltar à lista
           </Button>
@@ -757,13 +813,27 @@ function ReviewSession({
             className="absolute inset-0 flex flex-col rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-[0_0_36px_-14px_rgba(16,185,129,0.5)] [backface-visibility:hidden] [transform:rotateY(180deg)]"
             aria-hidden={!flipped}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Resposta
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Resposta
+              </p>
+              <button
+                type="button"
+                onClick={askAboutCurrent}
+                title="Não ficou claro? Perguntar ao tutor com outra abordagem"
+                aria-label="Perguntar ao tutor sobre este cartão"
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-200"
+              >
+                <Sparkles className="size-3.5" aria-hidden />
+              </button>
+            </div>
             <div className="mt-2 flex-1 overflow-y-auto [scrollbar-width:thin]">
               {/* TutorMarkdown = math em KaTeX ($..$) + negrito/listas do verso */}
               <TutorMarkdown content={current.back} accent="text-emerald-500" />
             </div>
+            <p className="mt-2 shrink-0 border-t pt-2 text-[10px] text-muted-foreground/60">
+              Não ficou claro? O botão verde manda o cartão para o tutor com a pergunta pronta.
+            </p>
           </div>
         </motion.div>
       </div>
