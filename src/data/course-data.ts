@@ -1,4 +1,4 @@
-// Dados estruturados do curso - IFPB ADS 2º Semestre 2026.2
+// Dados estruturados do curso - IFPB ADS — 1º Período • Turma 2026.2 (2ª turma ingressante do ano)
 // Fonte: https://estudante.ifpb.edu.br/cursos/12/ + ementas + PDFs do usuário + PNAAT + PDFs diversos (apresentação, CAEST, Loopis, regulamentos, PNAAT Parceiros)
 
 export type DisciplineCode =
@@ -103,7 +103,7 @@ export const course: CourseInfo = {
   nomeCurto: 'ADS',
   campus: 'Cajazeiras',
   instituicao: 'Instituto Federal da Paraíba (IFPB)',
-  periodo: '2º Semestre',
+  periodo: '1º Período — Turma 2026.2',
   semestreAtual: '2026.2',
   cargaHorariaTotal: 2550,
   periodoMinimo: 6,
@@ -1000,7 +1000,7 @@ export interface CalendarEvent {
 }
 
 export const calendarEvents: CalendarEvent[] = [
-  // 2026.2 - Semestre atual
+  // 2026.2 — turma atual do dono (2ª ingressante do ano; NÃO é um período)
   { date: '2026-09-01', dateLabel: '01-15/Set', title: 'Edital IVS - Inscrições (SUAP)', category: 'outro' },
   { date: '2026-09-15', dateLabel: '15/Set', title: 'Último dia inscrição IVS', category: 'outro' },
   { date: '2026-09-16', dateLabel: '16/Set-02/Out', title: 'IVS - Análise Socioeconômica', category: 'outro' },

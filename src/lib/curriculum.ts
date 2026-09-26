@@ -7,7 +7,11 @@
 // 1º período batem 100% com as disciplinas reais do dono.
 //
 // ⚠️ NÃO duplicar estes dados em outros arquivos. Importe daqui.
-// Toda menção a "1º Período / ADS 2026.2" no site DEVE vir de CURRENT_PERIOD_LABEL.
+// Toda menção a "1º Período / Turma 2026.2" no site DEVE vir de CURRENT_PERIOD_LABEL.
+//
+// TERMINOLOGIA (correção do dono, 26/09): "2026.2" é a TURMA de ingresso — a SEGUNDA
+// das duas turmas que o curso recebe por ano — e NÃO um período/semestre do curso.
+// O dono está no 1º PERÍODO da turma 2026.2. Nunca rotular 2026.2 como "período".
 
 /** Núcleos da matriz oficial (legenda do fluxograma). */
 export type CurriculumNucleus =
@@ -53,6 +57,10 @@ export interface CurriculumDiscipline {
   nucleus: CurriculumNucleus;
   /** Pré-requisitos oficiais (números N da matriz), quando existem. */
   prereqs?: number[];
+  /** Docente da linha na página oficial do curso (Disciplinas e Corpo Docente). */
+  docente?: string;
+  /** Titulação do docente, quando informada no portal (Doutorado/Mestrado). */
+  titulacao?: string;
   /**
    * `code` da disciplina ATIVA correspondente no Hub (course-data.ts).
    * Presente só nas disciplinas do período atual — garantia de que o conteúdo
@@ -80,76 +88,98 @@ export const COURSE_INFO = {
   chTotal: 2500,
   chOptativa: 50,
   periodsCount: 6,
+  /** O curso recebe DUAS turmas ingressantes por ano (ex.: 2026.1 e 2026.2). */
+  turmasPorAno: 2,
+  /** Coordenação do curso — página oficial (Contatos → Coordenação). */
+  coordenacao: {
+    coordenador: 'Fabio Abrantes Diniz',
+    substituto: 'Diogo Dantas Moreira',
+    email: 'cads.cz@ifpb.edu.br',
+    telefone: '(83) 3532-4100',
+  },
+  /** Formas de acesso oficiais ao curso. */
+  formasAcesso: ['PSCS', 'PSE', 'SiSU (ENEM)'],
+  /** Perfil do egresso (resumo do portal, 1 frase). */
+  perfil:
+    'O tecnólogo analisa, projeta, documenta, especifica, testa, implanta e mantém sistemas computacionais de informação, com raciocínio lógico, linguagens de programação e preocupação com qualidade, usabilidade, robustez, integridade e segurança.',
+  url: 'https://estudante.ifpb.edu.br/cursos/12/',
   /** Fontes oficiais consultadas (para honestidade/auditoria). */
   fontes: [
     'Matriz Curricular — Fluxograma (Apêndice B do PPC) — estudante.ifpb.edu.br/cursos/12',
+    'Disciplinas e Corpo Docente + Coordenação — página oficial do curso (consultada em 26/09/2026)',
     'Apresentação do curso 2026.1 (professores do 1º período) — Biblioteca do Hub',
   ],
 } as const;
 
-/** Período atual do dono do Hub. Trocar para 2 quando o semestre 2027.1 começar. */
+/** Período atual do dono do Hub. Trocar para 2 quando a turma 2026.2 avançar (2027.2). */
 export const CURRENT_PERIOD = 1;
-/** Semestre letivo atual (o mesmo do semester.ts — texto só para exibição). */
-export const CURRENT_SEMESTER_LABEL = '2026.2';
+/**
+ * TURMA de ingresso do dono do Hub — 2026.2 = SEGUNDA turma ingressante do ano
+ * (o curso recebe duas turmas por ano: 2026.1 e 2026.2). NÃO é um período:
+ * nunca rotular "2026.2" como período/semestre do curso.
+ */
+export const CURRENT_TURMA_LABEL = '2026.2';
 
 /** Rótulo composto usado em header, metadados e prompts do tutor. */
-export const CURRENT_PERIOD_LABEL = `${CURRENT_PERIOD}º Período • ADS ${CURRENT_SEMESTER_LABEL}`;
+export const CURRENT_PERIOD_LABEL = `${CURRENT_PERIOD}º Período • Turma ${CURRENT_TURMA_LABEL}`;
 /** Versão minúscula para meio de frase ("…do 1º período de ADS…"). */
 export const CURRENT_PERIOD_LOWER = `${CURRENT_PERIOD}º período de ADS`;
+/** Rótulo da turma para exibição ("turma 2026.2"). */
+export const CURRENT_TURMA_LOWER = `turma ${CURRENT_TURMA_LABEL}`;
 
 const P1: CurriculumDiscipline[] = [
-  { code: 11, name: 'Matemática Aplicada à Computação', shortName: 'Matemática', ch: 67, aulasSemanais: 4, nucleus: 'Formação Geral', hubCode: 'TEC.1984' },
-  { code: 12, name: 'Inglês Instrumental', shortName: 'Inglês', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral', hubCode: 'ING.001' },
-  { code: 13, name: 'Português Instrumental', shortName: 'Português', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral', hubCode: 'PORT.001' },
-  { code: 14, name: 'Algoritmos e Lógica de Programação', shortName: 'Algoritmos', ch: 100, aulasSemanais: 6, nucleus: 'Programação', hubCode: 'TEC.1687' },
-  { code: 15, name: 'Fundamentos da Computação', shortName: 'Fundamentos', ch: 67, aulasSemanais: 4, nucleus: 'Programação', hubCode: '53647' },
-  { code: 16, name: 'Linguagens de Marcação', shortName: 'Linguagens de Marcação', ch: 67, aulasSemanais: 4, nucleus: 'Programação para Internet', hubCode: 'TEC.1632' },
-  { code: 17, name: 'Relações Humanas no Trabalho', shortName: 'RHT', ch: 50, aulasSemanais: 3, nucleus: 'Formação Geral', hubCode: 'TEC.0953' },
+  { code: 11, name: 'Matemática Aplicada à Computação', shortName: 'Matemática', ch: 67, aulasSemanais: 4, nucleus: 'Formação Geral', hubCode: 'TEC.1984', docente: 'Antonio Eudes Ferreira' },
+  { code: 12, name: 'Inglês Instrumental', shortName: 'Inglês', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral', hubCode: 'ING.001', docente: 'Daniela Miguel de Souza Morais', titulacao: 'Mestrado' },
+  { code: 13, name: 'Português Instrumental', shortName: 'Português', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral', hubCode: 'PORT.001', docente: 'Francisco Igor Arraes Alves Rocha', titulacao: 'Mestrado' },
+  { code: 14, name: 'Algoritmos e Lógica de Programação', shortName: 'Algoritmos', ch: 100, aulasSemanais: 6, nucleus: 'Programação', hubCode: 'TEC.1687', docente: 'Fabio Gomes de Andrade', titulacao: 'Doutorado' },
+  { code: 15, name: 'Fundamentos da Computação', shortName: 'Fundamentos', ch: 67, aulasSemanais: 4, nucleus: 'Programação', hubCode: '53647', docente: 'André Lira Rolim' },
+  { code: 16, name: 'Linguagens de Marcação', shortName: 'Linguagens de Marcação', ch: 67, aulasSemanais: 4, nucleus: 'Programação para Internet', hubCode: 'TEC.1632', docente: 'Diogo Dantas Moreira', titulacao: 'Mestrado' },
+  { code: 17, name: 'Relações Humanas no Trabalho', shortName: 'RHT', ch: 50, aulasSemanais: 3, nucleus: 'Formação Geral', hubCode: 'TEC.0953', docente: 'Marília Aguiar Ribeiro do Nascimento', titulacao: 'Mestrado' },
 ];
 
 const P2: CurriculumDiscipline[] = [
-  { code: 21, name: 'Linguagens de Script para a Web', shortName: 'Script para Web', ch: 67, aulasSemanais: 4, nucleus: 'Programação para Internet', prereqs: [16] },
-  { code: 22, name: 'Estruturas de Dados', shortName: 'Estruturas de Dados', ch: 100, aulasSemanais: 6, nucleus: 'Programação', prereqs: [14] },
-  { code: 23, name: 'Sistemas Operacionais', shortName: 'Sistemas Operacionais', ch: 67, aulasSemanais: 4, nucleus: 'Banco de Dados', prereqs: [15] },
-  { code: 24, name: 'Probabilidade e Estatística Aplicada à Computação', shortName: 'Probabilidade', ch: 67, aulasSemanais: 4, nucleus: 'Formação Geral' },
-  { code: 25, name: 'Gerência de Configuração e Mudanças', shortName: 'Gerência Config.', ch: 33, aulasSemanais: 2, nucleus: 'Engenharia de Software' },
-  { code: 26, name: 'Metodologia da Pesquisa Científica', shortName: 'Metodologia', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral' },
-  { code: 27, name: 'Inclusão Tecnológica', shortName: 'Inclusão Tecnológica', ch: 50, aulasSemanais: 3, nucleus: 'Extensão' },
+  { code: 21, name: 'Linguagens de Script para a Web', shortName: 'Script para Web', ch: 67, aulasSemanais: 4, nucleus: 'Programação para Internet', prereqs: [16], docente: 'Fabio Abrantes Diniz', titulacao: 'Mestrado' },
+  { code: 22, name: 'Estruturas de Dados', shortName: 'Estruturas de Dados', ch: 100, aulasSemanais: 6, nucleus: 'Programação', prereqs: [14], docente: 'André Lira Rolim' },
+  { code: 23, name: 'Sistemas Operacionais', shortName: 'Sistemas Operacionais', ch: 67, aulasSemanais: 4, nucleus: 'Banco de Dados', prereqs: [15], docente: 'João Igor Barros Rocha' },
+  { code: 24, name: 'Probabilidade e Estatística Aplicada à Computação', shortName: 'Probabilidade', ch: 67, aulasSemanais: 4, nucleus: 'Formação Geral', docente: 'Vinicius Martins Teodosio Rocha', titulacao: 'Doutorado' },
+  { code: 25, name: 'Gerência de Configuração e Mudanças', shortName: 'Gerência Config.', ch: 33, aulasSemanais: 2, nucleus: 'Engenharia de Software', docente: 'Francisco Paulo de Freitas Neto', titulacao: 'Mestrado' },
+  { code: 26, name: 'Metodologia da Pesquisa Científica', shortName: 'Metodologia', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral', docente: 'Vanessa Belmiro dos Santos Meira', titulacao: 'Doutorado' },
+  { code: 27, name: 'Inclusão Tecnológica', shortName: 'Inclusão Tecnológica', ch: 50, aulasSemanais: 3, nucleus: 'Extensão', docente: 'Eva Maria Campos Pereira', titulacao: 'Doutorado' },
 ];
 
 const P3: CurriculumDiscipline[] = [
-  { code: 31, name: 'Programação Orientada a Objetos', shortName: 'POO', ch: 100, aulasSemanais: 6, nucleus: 'Programação', prereqs: [14] },
-  { code: 32, name: 'Bancos de Dados I', shortName: 'Bancos de Dados I', ch: 100, aulasSemanais: 6, nucleus: 'Banco de Dados' },
-  { code: 33, name: 'Relações Étnico-Raciais e Direitos Humanos', shortName: 'Étnico-Raciais', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral' },
-  { code: 34, name: 'Redes de Computadores', shortName: 'Redes', ch: 100, aulasSemanais: 6, nucleus: 'Redes de Computadores' },
-  { code: 35, name: 'Fundamentos de Engenharia de Software', shortName: 'Fund. Eng. Software', ch: 83, aulasSemanais: 5, nucleus: 'Engenharia de Software' },
+  { code: 31, name: 'Programação Orientada a Objetos', shortName: 'POO', ch: 100, aulasSemanais: 6, nucleus: 'Programação', prereqs: [14], docente: 'Francisco Paulo de Freitas Neto', titulacao: 'Mestrado' },
+  { code: 32, name: 'Bancos de Dados I', shortName: 'Bancos de Dados I', ch: 100, aulasSemanais: 6, nucleus: 'Banco de Dados', docente: 'Fabio Gomes de Andrade', titulacao: 'Doutorado' },
+  { code: 33, name: 'Relações Étnico-Raciais e Direitos Humanos', shortName: 'Étnico-Raciais', ch: 33, aulasSemanais: 2, nucleus: 'Formação Geral', docente: 'Marília Aguiar Ribeiro do Nascimento', titulacao: 'Mestrado' },
+  { code: 34, name: 'Redes de Computadores', shortName: 'Redes', ch: 100, aulasSemanais: 6, nucleus: 'Redes de Computadores', docente: 'Francisco Daladier Marques Junior', titulacao: 'Doutorado' },
+  { code: 35, name: 'Fundamentos de Engenharia de Software', shortName: 'Fund. Eng. Software', ch: 83, aulasSemanais: 5, nucleus: 'Engenharia de Software', docente: 'Janderson Ferreira Dutra', titulacao: 'Mestrado' },
 ];
 
 const P4: CurriculumDiscipline[] = [
-  { code: 41, name: 'Programação para a Web I', shortName: 'Web I', ch: 83, aulasSemanais: 5, nucleus: 'Programação para Internet', prereqs: [21] },
-  { code: 42, name: 'Gerência de Projetos de Software', shortName: 'Gerência Projetos', ch: 67, aulasSemanais: 4, nucleus: 'Engenharia de Software' },
-  { code: 43, name: 'Laboratório de Engenharia de Software', shortName: 'Lab. Eng. Software', ch: 83, aulasSemanais: 5, nucleus: 'Engenharia de Software', prereqs: [31, 35] },
-  { code: 44, name: 'Laboratório de Redes de Computadores', shortName: 'Lab. Redes', ch: 50, aulasSemanais: 3, nucleus: 'Redes de Computadores', prereqs: [34] },
-  { code: 45, name: 'Bancos de Dados II', shortName: 'Bancos de Dados II', ch: 83, aulasSemanais: 5, nucleus: 'Banco de Dados', prereqs: [31, 32] },
-  { code: 46, name: 'Testes de Software', shortName: 'Testes', ch: 50, aulasSemanais: 3, nucleus: 'Engenharia de Software' },
+  { code: 41, name: 'Programação para a Web I', shortName: 'Web I', ch: 83, aulasSemanais: 5, nucleus: 'Programação para Internet', prereqs: [21], docente: 'Fabio Abrantes Diniz', titulacao: 'Mestrado' },
+  { code: 42, name: 'Gerência de Projetos de Software', shortName: 'Gerência Projetos', ch: 67, aulasSemanais: 4, nucleus: 'Engenharia de Software', docente: 'Eva Maria Campos Pereira', titulacao: 'Doutorado' },
+  { code: 43, name: 'Laboratório de Engenharia de Software', shortName: 'Lab. Eng. Software', ch: 83, aulasSemanais: 5, nucleus: 'Engenharia de Software', prereqs: [31, 35], docente: 'Janderson Ferreira Dutra', titulacao: 'Mestrado' },
+  { code: 44, name: 'Laboratório de Redes de Computadores', shortName: 'Lab. Redes', ch: 50, aulasSemanais: 3, nucleus: 'Redes de Computadores', prereqs: [34], docente: 'Francisco Daladier Marques Junior', titulacao: 'Doutorado' },
+  { code: 45, name: 'Bancos de Dados II', shortName: 'Bancos de Dados II', ch: 83, aulasSemanais: 5, nucleus: 'Banco de Dados', prereqs: [31, 32], docente: 'Francisco Paulo de Freitas Neto', titulacao: 'Mestrado' },
+  { code: 46, name: 'Testes de Software', shortName: 'Testes', ch: 50, aulasSemanais: 3, nucleus: 'Engenharia de Software', docente: 'João Igor Barros Rocha' },
 ];
 
 const P5: CurriculumDiscipline[] = [
-  { code: 51, name: 'Programação para a Web II', shortName: 'Web II', ch: 83, aulasSemanais: 5, nucleus: 'Programação para Internet', prereqs: [41] },
-  { code: 52, name: 'Arquitetura e Padrões Projetos de Software', shortName: 'Arquitetura', ch: 83, aulasSemanais: 5, nucleus: 'Engenharia de Software', prereqs: [43] },
-  { code: 53, name: 'Segurança de Dados', shortName: 'Segurança', ch: 67, aulasSemanais: 4, nucleus: 'Redes de Computadores', prereqs: [44] },
-  { code: 54, name: 'Gestão de Tecnologia da Informação e Comunicação', shortName: 'Gestão TIC', ch: 33, aulasSemanais: 2, nucleus: 'Engenharia de Software' },
-  { code: 55, name: 'Empreendedorismo', shortName: 'Empreendedorismo', ch: 50, aulasSemanais: 3, nucleus: 'Formação Geral' },
-  { code: 56, name: 'Práticas Curriculares em Sociedade I', shortName: 'Práticas I', ch: 100, aulasSemanais: 6, nucleus: 'Extensão' },
+  { code: 51, name: 'Programação para a Web II', shortName: 'Web II', ch: 83, aulasSemanais: 5, nucleus: 'Programação para Internet', prereqs: [41], docente: 'Diogo Dantas Moreira', titulacao: 'Mestrado' },
+  { code: 52, name: 'Arquitetura e Padrões Projetos de Software', shortName: 'Arquitetura', ch: 83, aulasSemanais: 5, nucleus: 'Engenharia de Software', prereqs: [43], docente: 'Diogo Dantas Moreira', titulacao: 'Mestrado' },
+  { code: 53, name: 'Segurança de Dados', shortName: 'Segurança', ch: 67, aulasSemanais: 4, nucleus: 'Redes de Computadores', prereqs: [44], docente: 'Francisco Daladier Marques Junior', titulacao: 'Doutorado' },
+  { code: 54, name: 'Gestão de Tecnologia da Informação e Comunicação', shortName: 'Gestão TIC', ch: 33, aulasSemanais: 2, nucleus: 'Engenharia de Software', docente: 'João Igor Barros Rocha' },
+  { code: 55, name: 'Empreendedorismo', shortName: 'Empreendedorismo', ch: 50, aulasSemanais: 3, nucleus: 'Formação Geral', docente: 'Alec van de Franca Sousa', titulacao: 'Mestrado' },
+  { code: 56, name: 'Práticas Curriculares em Sociedade I', shortName: 'Práticas I', ch: 100, aulasSemanais: 6, nucleus: 'Extensão', docente: 'Fabio Gomes de Andrade' },
 ];
 
 const P6: CurriculumDiscipline[] = [
-  { code: 61, name: 'Sistemas Distribuídos', shortName: 'Sist. Distribuídos', ch: 50, aulasSemanais: 3, nucleus: 'Programação', prereqs: [44] },
-  { code: 62, name: 'Desenvolvimento de Aplicações Corporativas', shortName: 'Aplic. Corporativas', ch: 83, aulasSemanais: 5, nucleus: 'Programação para Internet', prereqs: [41] },
-  { code: 63, name: 'Interação Humano-Computador', shortName: 'IHC', ch: 67, aulasSemanais: 4, nucleus: 'Engenharia de Software' },
-  { code: 64, name: 'Programação para Dispositivos Móveis', shortName: 'Apps Móveis', ch: 67, aulasSemanais: 4, nucleus: 'Programação para Internet' },
-  { code: 65, name: 'Optativa', shortName: 'Optativa', ch: 50, aulasSemanais: 3, nucleus: 'Optativa' },
-  { code: 66, name: 'Práticas Curriculares em Sociedade II', shortName: 'Práticas II', ch: 100, aulasSemanais: 6, nucleus: 'Extensão' },
+  { code: 61, name: 'Sistemas Distribuídos', shortName: 'Sist. Distribuídos', ch: 50, aulasSemanais: 3, nucleus: 'Programação', prereqs: [44], docente: 'Cicero Aristofanio Garcia de Araujo', titulacao: 'Mestrado' },
+  { code: 62, name: 'Desenvolvimento de Aplicações Corporativas', shortName: 'Aplic. Corporativas', ch: 83, aulasSemanais: 5, nucleus: 'Programação para Internet', prereqs: [41], docente: 'Cicero Aristofanio Garcia de Araujo', titulacao: 'Mestrado' },
+  { code: 63, name: 'Interação Humano-Computador', shortName: 'IHC', ch: 67, aulasSemanais: 4, nucleus: 'Engenharia de Software', docente: 'Afonso Serafim Jacinto', titulacao: 'Mestrado' },
+  { code: 64, name: 'Programação para Dispositivos Móveis', shortName: 'Apps Móveis', ch: 67, aulasSemanais: 4, nucleus: 'Programação para Internet', docente: 'Fabio Abrantes Diniz', titulacao: 'Mestrado' },
+  { code: 65, name: 'Optativa', shortName: 'Optativa', ch: 50, aulasSemanais: 3, nucleus: 'Optativa', docente: 'Ramon da Silva Santana', titulacao: 'Mestrado' },
+  { code: 66, name: 'Práticas Curriculares em Sociedade II', shortName: 'Práticas II', ch: 100, aulasSemanais: 6, nucleus: 'Extensão', docente: 'Janderson Ferreira Dutra', titulacao: 'Mestrado' },
 ];
 
 /** Grade completa — 6 períodos, 37 componentes (7+7+5+6+6+6), 2500h. */
@@ -223,10 +253,16 @@ export function prereqShortNames(d: CurriculumDiscipline): string[] {
 /** Frase de contexto institucional para o system prompt do tutor. */
 export function tutorCourseContext(): string {
   const p = getCurrentPeriod();
-  const nomes = p.disciplines.map((d) => d.name).join(', ');
+  const nomes = p.disciplines
+    .map((d) => `${d.name}${d.docente ? ` — prof. ${d.docente}` : ''}`)
+    .join(', ');
   return (
     `O aluno está no ${p.label} do curso ${COURSE_INFO.name} (${COURSE_INFO.level}, ` +
-    `${COURSE_INFO.campus}, turma ${CURRENT_SEMESTER_LABEL}). Disciplinas dele: ${nomes}. ` +
+    `${COURSE_INFO.campus}). IMPORTANTE sobre terminologia: "${CURRENT_TURMA_LABEL}" é a ` +
+    `TURMA de ingresso dele — a segunda das ${COURSE_INFO.turmasPorAno} turmas que ingressam ` +
+    `no curso por ano — e NÃO um período do curso; o período atual dele é o ${CURRENT_PERIOD}º. ` +
+    `Disciplinas dele (com docentes do portal oficial): ${nomes}. ` +
+    `Coordenação do curso: ${COURSE_INFO.coordenacao.coordenador} (${COURSE_INFO.coordenacao.email}). ` +
     `A grade completa tem ${COURSE_INFO.periodsCount} períodos e ${COURSE_INFO.chTotal}h — ` +
     `responda sempre dentro do vocabulário e do nível de um aluno desse estágio.`
   );

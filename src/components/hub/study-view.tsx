@@ -182,7 +182,7 @@ const FOLLOW_UPS = [
 
 /** Contexto real do app enviado ao tutor — implementação única em @/lib/tutor-context. */
 
-const APP_BASE_TITLE = 'Hub de Estudos • IFPB ADS 2026.2';
+const APP_BASE_TITLE = 'Hub de Estudos • IFPB ADS — Turma 2026.2';
 
 /** Notificação nativa do SO ao concluir uma fase do Pomodoro (permissão já concedida). */
 function notifyPhaseEnd(kind: 'focus' | 'break', focusMinutes: number, disciplineShort: string) {

@@ -156,7 +156,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                 Olá! Bons estudos
               </p>
               <h2 className="mt-1 text-xl font-semibold leading-tight sm:text-2xl">
-                {course.nomeCurto} • {course.semestreAtual}
+                {course.nomeCurto} • Turma {course.semestreAtual}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {course.instituicao} — Campus {course.campus}

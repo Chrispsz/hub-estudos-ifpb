@@ -4,7 +4,13 @@ import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaRegister } from '@/components/pwa';
-import { CURRENT_PERIOD, CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER } from '@/lib/curriculum';
+import {
+  CURRENT_PERIOD,
+  CURRENT_PERIOD_LABEL,
+  CURRENT_PERIOD_LOWER,
+  CURRENT_TURMA_LOWER,
+  CURRENT_TURMA_LABEL,
+} from '@/lib/curriculum';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -19,15 +25,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Hub de Estudos • IFPB ADS 2026.2',
+  title: `Hub de Estudos • IFPB ADS — Turma ${CURRENT_TURMA_LABEL}`,
   description:
-    `Hub de estudos do ${CURRENT_PERIOD_LOWER} (IFPB Campus Cajazeiras, 2026.2) — disciplinas, biblioteca, cronograma inteligente rotativo, Pomodoro com continuidade e tutor IA.`,
+    `Hub de estudos do ${CURRENT_PERIOD_LOWER} (${CURRENT_TURMA_LABEL}, IFPB Campus Cajazeiras) — disciplinas, biblioteca, cronograma inteligente rotativo, Pomodoro com continuidade e tutor IA.`,
   keywords: [
     'IFPB',
     'ADS',
     'Análise e Desenvolvimento de Sistemas',
     'Cajazeiras',
     `${CURRENT_PERIOD}º período`,
+    CURRENT_TURMA_LABEL,
     'estudos',
     'Pomodoro',
     'cronograma',
@@ -38,9 +45,9 @@ export const metadata: Metadata = {
     locale: 'pt_BR',
     type: 'website',
     siteName: 'Hub de Estudos IFPB',
-    title: 'Hub de Estudos • IFPB ADS 2026.2',
+    title: `Hub de Estudos • IFPB ADS — Turma ${CURRENT_TURMA_LABEL}`,
     description:
-      `Disciplinas, biblioteca, cronograma inteligente, Pomodoro e tutor IA para o ${CURRENT_PERIOD_LOWER} (IFPB Campus Cajazeiras, 2026.2).`,
+      `Disciplinas, biblioteca, cronograma inteligente, Pomodoro e tutor IA para o ${CURRENT_PERIOD_LOWER} (${CURRENT_TURMA_LABEL}, IFPB Campus Cajazeiras).`,
   },
   icons: {
     icon: '/logo-ifpb.svg',

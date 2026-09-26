@@ -1,5 +1,7 @@
 // semester.ts — FONTE ÚNICA DE VERDADE do calendário acadêmico
-// IFPB Campus Cajazeiras • Cursos Superiores • Semestre 2026.2
+// IFPB Campus Cajazeiras • Cursos Superiores • Ciclo letivo 2026.2
+// ("2026.2" identifica a TURMA de ingresso — 2ª das duas turmas do ano — NÃO um período;
+//  o dono do Hub está no 1º PERÍODO dessa turma. O calendário abaixo é do ciclo letivo.)
 //
 // Fonte oficial: "Calendário Acadêmico Cursos Superiores e Subsequentes 2026"
 // (ifpb.edu.br/campus/cajazeiras/ensino/calendario-academico) — verificado em 10/09/2026.
@@ -15,16 +17,16 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 
-/** 24/08/2026 (segunda) — Início do Semestre Letivo 2026.2 (oficial). */
+/** 24/08/2026 (segunda) — Início do ciclo letivo 2026.2 (oficial). */
 export const SEMESTER_START = new Date(2026, 7, 24);
 
 /** 18/12/2026 — último dia letivo de 2026; pausa começa após. */
 export const SEMESTER_PAUSE_START = new Date(2026, 11, 18);
 
-/** 18/01/2027 (segunda) — Reinício do Semestre Letivo 2026.2. */
+/** 18/01/2027 (segunda) — Reinício do ciclo letivo 2026.2. */
 export const SEMESTER_PAUSE_END = new Date(2027, 0, 18);
 
-/** 30/01/2027 — Encerramento do semestre 2026.2 (fim das aulas). */
+/** 30/01/2027 — Encerramento do ciclo 2026.2 (fim das aulas). */
 export const SEMESTER_END = new Date(2027, 0, 30);
 
 /** 03-04/02/2027 — Provas finais 2026.2. */
@@ -167,11 +169,11 @@ export const ACADEMIC_EVENTS: AcademicEvent[] = [
   {
     date: '2026-12-18',
     title: 'Último dia letivo de 2026',
-    description: 'Pausa do semestre 2026.2 começa após esta data.',
+    description: 'Pausa do calendário 2026.2 começa após esta data.',
     kind: 'pausa',
   },
   { date: '2026-12-30', title: 'Término do ano letivo 2026', kind: 'pausa' },
-  { date: '2027-01-18', title: 'Reinício do semestre 2026.2', description: 'Volta às aulas após a pausa.', kind: 'letivo' },
+  { date: '2027-01-18', title: 'Reinício das aulas — calendário 2026.2', description: 'Volta às aulas após a pausa.', kind: 'letivo' },
   { date: '2027-01-23', title: 'Sábado letivo (ref. sexta)', kind: 'letivo' },
   { date: '2027-01-30', title: 'Encerramento das aulas 2026.2', kind: 'prazo' },
   { date: '2027-02-03', endDate: '2027-02-04', title: 'Provas finais 2026.2', kind: 'provas' },

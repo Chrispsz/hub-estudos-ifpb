@@ -2,14 +2,23 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown, GraduationCap, MapPin } from 'lucide-react';
+import {
+  ChevronDown,
+  ExternalLink,
+  GraduationCap,
+  LogIn,
+  Mail,
+  MapPin,
+  Phone,
+  UserRound,
+} from 'lucide-react';
 import { disciplines, materials, type Discipline } from '@/data/course-data';
 import { useStudyProgress } from '@/lib/study-progress';
 import {
   ADS_CURRICULUM,
   COURSE_INFO,
   CURRENT_PERIOD,
-  CURRENT_SEMESTER_LABEL,
+  CURRENT_TURMA_LABEL,
   CURRICULUM_DISCIPLINES_COUNT,
   NUCLEUS_DOT_BG,
   nucleiInMatrix,
@@ -67,7 +76,7 @@ function PeriodColumn({ periodIndex }: { periodIndex: number }) {
           variant="outline"
           className="mb-2 w-fit gap-1 border-emerald-300 bg-emerald-50 text-[9px] text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
         >
-          <MapPin className="size-2.5" aria-hidden /> você está aqui • {CURRENT_SEMESTER_LABEL}
+          <MapPin className="size-2.5" aria-hidden /> você está aqui • turma {CURRENT_TURMA_LABEL}
         </Badge>
       )}
 
@@ -79,11 +88,14 @@ function PeriodColumn({ periodIndex }: { periodIndex: number }) {
           const prereqLabel = d.prereqs?.length
             ? `Pré-requisitos: ${d.prereqs.join(', ')}`
             : 'Sem pré-requisito';
+          const docenteLabel = d.docente
+            ? ` • Docente: ${d.docente}${d.titulacao ? ` (${d.titulacao})` : ''}`
+            : '';
           return (
             <li key={d.code} className="flex min-w-0 items-center gap-1.5">
               <NucleusDot nucleus={d.nucleus} />
               <span
-                title={`${d.name} • ${d.nucleus} • ${d.ch}h • ${d.aulasSemanais} aulas/sem • ${prereqLabel}`}
+                title={`${d.name} • ${d.nucleus} • ${d.ch}h • ${d.aulasSemanais} aulas/sem • ${prereqLabel}${docenteLabel}`}
                 className={cn(
                   'min-w-0 flex-1 truncate text-[11px] leading-tight',
                   isCurrent || inHub
@@ -191,9 +203,56 @@ export function DisciplinesView() {
         <p className="mt-1 text-xs text-muted-foreground">
           Matriz oficial do curso {COURSE_INFO.name} ({COURSE_INFO.level},{' '}
           {COURSE_INFO.campus}). Ponto colorido = núcleo da matriz; ponto verde =
-          disciplina com conteúdo ativo no Hub. Passe o mouse para CH, aulas/semana e
-          pré-requisitos.
+          disciplina com conteúdo ativo no Hub. Passe o mouse para CH, aulas/semana,
+          pré-requisitos e docente.
         </p>
+
+        {/* O curso em resumo — coordenação, ingresso e página oficial (portal IFPB) */}
+        <div
+          className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg border bg-muted/30 px-3 py-2.5 text-[11px] text-muted-foreground"
+          aria-label="Informações do curso: coordenação, ingresso e página oficial"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <UserRound className="size-3 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <span>
+              <span className="font-medium text-foreground">Coordenação:</span>{' '}
+              {COURSE_INFO.coordenacao.coordenador}
+              <span className="ml-1 text-[10px]">
+                (substituto: {COURSE_INFO.coordenacao.substituto})
+              </span>
+            </span>
+          </span>
+          <a
+            href={`mailto:${COURSE_INFO.coordenacao.email}`}
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <Mail className="size-3 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            {COURSE_INFO.coordenacao.email}
+          </a>
+          <span className="inline-flex items-center gap-1.5">
+            <Phone className="size-3 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            {COURSE_INFO.coordenacao.telefone}
+          </span>
+          <span
+            className="inline-flex items-center gap-1.5"
+            title={`Formas de acesso ao curso — o curso recebe ${COURSE_INFO.turmasPorAno} turmas ingressantes por ano (ex.: 2026.1 e 2026.2)`}
+          >
+            <LogIn className="size-3 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <span>
+              <span className="font-medium text-foreground">Ingresso:</span>{' '}
+              {COURSE_INFO.formasAcesso.join(' • ')} — {COURSE_INFO.turmasPorAno} turmas/ano
+            </span>
+          </span>
+          <a
+            href={COURSE_INFO.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-medium text-emerald-700 transition-colors hover:underline dark:text-emerald-400"
+          >
+            <ExternalLink className="size-3" aria-hidden />
+            Página oficial do curso
+          </a>
+        </div>
 
         {/* Legenda dos núcleos — mesmas cores dos pontos da grade */}
         <div

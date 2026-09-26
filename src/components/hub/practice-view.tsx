@@ -51,6 +51,7 @@ import {
   type Exercise,
 } from '@/lib/exercise-extractor';
 import { SimuladoView, type SimuladoConfig } from '@/components/hub/simulado-view';
+import { ReviewModeDialog, buildReviewQueue } from '@/components/hub/review-mode-dialog';
 
 const difficultyColor: Record<Exercise['difficulty'], string> = {
   facil: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
@@ -182,6 +183,12 @@ function ExercisesPanel({
   const [simuladoInitialConfig, setSimuladoInitialConfig] = React.useState<
     Partial<SimuladoConfig> | undefined
   >(undefined);
+  // Modo Revisão: fila guiada de ★ marcadas + Caderno de Erros.
+  const [reviewOpen, setReviewOpen] = React.useState(false);
+  const reviewCount = React.useMemo(
+    () => buildReviewQueue(sp.progress).length,
+    [sp.progress],
+  );
 
   // Pedido externo (card "Foco: Prova de Matemática") → abre já configurado.
   React.useEffect(() => {
@@ -266,13 +273,35 @@ function ExercisesPanel({
         <p className="text-sm text-muted-foreground">
           {filteredExercises.length} de {ALIGN_STATS.total} exercícios no filtro atual. Marque como tentou, resolveu ou precisou de ajuda.
         </p>
-        <Button
-          size="sm"
-          onClick={() => setSimuladoOpen(true)}
-          className="group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl"
-        >
-          <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado Pro
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setReviewOpen(true)}
+            title="Revisão guiada: suas ★ marcadas + Caderno de Erros, uma por vez"
+            className={cn(
+              'group h-9 gap-2 border text-xs font-medium shadow-sm transition-all',
+              reviewCount > 0
+                ? 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 hover:bg-amber-500/15 hover:shadow-md dark:text-amber-400'
+                : 'text-muted-foreground',
+            )}
+          >
+            <NotebookPen className="size-3.5 transition-transform group-hover:scale-110" />
+            Revisão guiada
+            {reviewCount > 0 && (
+              <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white tabular-nums">
+                {reviewCount}
+              </span>
+            )}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setSimuladoOpen(true)}
+            className="group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl"
+          >
+            <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado Pro
+          </Button>
+        </div>
       </div>
 
       {/* Estatísticas */}
@@ -406,6 +435,9 @@ function ExercisesPanel({
         onOpenChange={setSimuladoOpen}
         initialConfig={simuladoInitialConfig}
       />
+
+      {/* Modo Revisão (★ + Caderno de Erros, uma questão por vez) */}
+      <ReviewModeDialog open={reviewOpen} onOpenChange={setReviewOpen} />
     </div>
   );
 }
@@ -568,6 +600,8 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
         className={cn(
           'rounded-xl bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-md',
           progress?.solved && 'border-l-4 border-l-emerald-500',
+          // ★ pendente ganha presença visual sutil (precisa de revisão)
+          progress?.marked && !progress?.solved && 'border-amber-400/50 bg-amber-500/[0.03]',
         )}
       >
         <div className="flex flex-wrap items-start gap-2">
@@ -616,7 +650,7 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             }
             title={progress?.marked ? 'Remover marcação ★' : 'Marcar questão ★ (para revisar depois)'}
             className={cn(
-              'ml-auto rounded-md p-1.5 transition-colors',
+              'ml-auto rounded-md p-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60',
               progress?.marked
                 ? 'text-amber-400 hover:bg-amber-500/10'
                 : 'text-muted-foreground/50 hover:bg-muted hover:text-foreground',

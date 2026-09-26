@@ -273,6 +273,21 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                             {matrixInfo.row.aulasSemanais}
                           </dd>
                         </div>
+                        {matrixInfo.row.docente ? (
+                          <div className="col-span-2 sm:col-span-1">
+                            <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                              Docente
+                            </dt>
+                            <dd className="mt-0.5 font-medium">
+                              {matrixInfo.row.docente}
+                              {matrixInfo.row.titulacao ? (
+                                <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                                  · {matrixInfo.row.titulacao}
+                                </span>
+                              ) : null}
+                            </dd>
+                          </div>
+                        ) : null}
                         <div className="col-span-2 sm:col-span-2">
                           <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                             Pré-requisitos na matriz
@@ -285,9 +300,10 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                         </div>
                       </dl>
                       <p className="mt-2.5 text-[11px] leading-relaxed text-muted-foreground">
-                        Dados da Matriz Curricular 2025 (PPC do curso) — a coluna
-                        &ldquo;CH oficial&rdquo; vem do fluxograma e pode diferir da CH
-                        de aulas registrada no Hub.
+                        Dados da Matriz Curricular 2025 (PPC do curso); docentes da
+                        página oficial do curso (portal do estudante IFPB, consultado
+                        em 09/2026). A coluna &ldquo;CH oficial&rdquo; vem do fluxograma
+                        e pode diferir da CH de aulas registrada no Hub.
                       </p>
                     </Section>
                   )}

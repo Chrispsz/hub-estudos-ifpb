@@ -240,7 +240,7 @@ export function SidebarNav({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold leading-tight truncate">Hub de Estudos</p>
-            <p className="text-[11px] text-muted-foreground truncate">IFPB ADS 2026.2</p>
+            <p className="text-[11px] text-muted-foreground truncate">IFPB ADS • Turma 2026.2</p>
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-3 [scrollbar-width:thin]">
