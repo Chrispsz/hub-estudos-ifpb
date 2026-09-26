@@ -151,10 +151,13 @@ const GEMINI = {
     return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
   },
   baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-  // flash-lite primeiro: limite free mais generoso (~1000 req/dia); flash é o plano B
+  // ALIASES "-latest": acompanham sempre a versão GA disponível para a key.
+  // (26/09/2026) versões fixas gemini-2.5-flash-lite/-flash retornam 404
+  // "no longer available to new users" para keys novas — aliases nunca.
+  // flash-lite primeiro: limite free mais generoso; flash é o plano B.
   models: process.env.GEMINI_MODEL
     ? [process.env.GEMINI_MODEL]
-    : ['gemini-2.5-flash-lite', 'gemini-2.5-flash'],
+    : ['gemini-flash-lite-latest', 'gemini-flash-latest'],
 };
 
 /** Modelos free da OpenRouter que aceitam IMAGEM (catálogo verificado 09/2026). */
@@ -170,6 +173,8 @@ function prettyModelName(id: string): string {
   const map: Record<string, string> = {
     'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite',
     'gemini-2.5-flash': 'Gemini 2.5 Flash',
+    'gemini-flash-lite-latest': 'Gemini Flash-Lite',
+    'gemini-flash-latest': 'Gemini Flash',
     'nvidia/nemotron-3-super-120b-a12b': 'Nemotron 3 Super',
     'nvidia/nemotron-3-ultra-550b-a55b': 'Nemotron 3 Ultra',
     'nex-agi/nex-n2.5-pro': 'Nex N2.5 Pro',
@@ -1005,7 +1010,9 @@ async function probeProviders(geminiModelOverride?: string | null): Promise<Resp
           headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text: 'Responda apenas: ok' }] }],
-            generationConfig: { maxOutputTokens: 10, temperature: 0 },
+            // 1024: modelos thinking (ex. flash-latest) gastam tokens no raciocínio —
+            // com limite pequeno a resposta visível fica vazia e o probe acusaria falha falsa
+            generationConfig: { maxOutputTokens: 1024, temperature: 0 },
           }),
         });
         if (!res.ok) {
