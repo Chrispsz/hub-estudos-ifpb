@@ -9,6 +9,7 @@ import * as React from 'react';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import {
   AlarmClock,
+  ArrowUpRight,
   BookOpen,
   BookX,
   CalendarClock,
@@ -31,7 +32,7 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { daysUntilDate } from '@/lib/semester';
-import { openMethod, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
+import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import {
   buildReadinessQuestion,
@@ -717,6 +718,15 @@ const COMPONENT_ICON: Record<ReadinessComponentId, React.ComponentType<{ classNa
   plano: AlarmClock,
 };
 
+/** Para onde cada evidência NAVEGA (null = vive neste diálogo, não navega). */
+const READINESS_TARGET: Record<ReadinessComponentId, ((disciplineCode: string) => void) | null> = {
+  simulado: (code) => openSimulado({ disciplineCode: code }),
+  exercicios: (code) => openPractice({ disciplineCode: code }),
+  baralho: (code) => openPractice({ disciplineCode: code }),
+  checklist: null,
+  plano: null,
+};
+
 const GAUGE_R = 52;
 const GAUGE_C = 2 * Math.PI * GAUGE_R;
 
@@ -792,18 +802,17 @@ function ReadinessSection({
           </div>
         </div>
 
-        {/* Evidências: 1 barra por componente, na cor do seu tipo */}
+        {/* Evidências: 1 barra por componente, na cor do seu tipo.
+            As 3 evidências com AÇÃO em OUTRA superfície (simulado, exercícios
+            e baralho) são clicáveis — o número aponta para o que o move.
+            Checklist e plano vivem DENTRO deste diálogo (não navegam). */}
         <div className="min-w-0 flex-1 space-y-2.5">
           {readiness.components.map((c, i) => {
             const Icon = COMPONENT_ICON[c.id];
-            return (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.3 }}
-                className="flex items-center gap-2.5"
-              >
+            const target = READINESS_TARGET[c.id];
+            const clickable = target !== null && c.pct !== null;
+            const row = (
+              <>
                 <span
                   className={cn(
                     'grid size-6 shrink-0 place-items-center rounded-md',
@@ -841,6 +850,39 @@ function ReadinessSection({
                   </div>
                   <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{c.detail}</p>
                 </div>
+                {clickable ? (
+                  <ArrowUpRight
+                    className="size-3.5 shrink-0 text-muted-foreground/40 transition-all group-hover/evidence:translate-x-0.5 group-hover/evidence:-translate-y-0.5 group-hover/evidence:text-foreground"
+                    aria-hidden
+                  />
+                ) : null}
+              </>
+            );
+            const rowClass = cn(
+              'flex items-center gap-2.5 rounded-lg p-1 -m-1 transition-colors',
+              clickable &&
+                'group/evidence cursor-pointer hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50',
+            );
+            return (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.3 }}
+              >
+                {clickable ? (
+                  <button
+                    type="button"
+                    className={cn(rowClass, 'w-full text-left')}
+                    onClick={() => target?.(MATH_EXAM.disciplineCode)}
+                    title={`Ir para ${c.label.toLowerCase()} — é daí que o número nasce`}
+                    aria-label={`Abrir ${c.label} (evidência do score de prontidão)`}
+                  >
+                    {row}
+                  </button>
+                ) : (
+                  <div className={rowClass}>{row}</div>
+                )}
               </motion.div>
             );
           })}

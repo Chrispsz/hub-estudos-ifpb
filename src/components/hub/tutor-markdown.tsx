@@ -7,13 +7,18 @@
 // tabelas com scroll e MATEMÁTICA RENDERIZADA (KaTeX): $x^2$, $$\begin{pmatrix}…$$.
 
 import * as React from 'react';
+import { Check, CopyPlus, Layers } from 'lucide-react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { PluggableList } from 'unified';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { extractTutorCards, makeIaCard } from '@/lib/tutor-cards';
+import { useStudyProgress } from '@/lib/study-progress';
 import { CodeBlock } from '@/components/hub/code-block';
 
 /** Concatena o texto bruto de nós React (o conteúdo do <code> é string puro). */
@@ -32,12 +37,23 @@ interface TutorMarkdownProps {
   /** Cor de destaque (tailwind text class). Padrão: esmeralda do tutor. */
   accent?: string;
   className?: string;
+  /**
+   * Opt-in: detecta cartões "FRENTE:/VERSO:" escritos pela IA e oferece
+   * "salvar no baralho" com 1 clique (ciclo erro → reensino → cartão).
+   * Ativo SÓ nas superfícies de conversa — nunca no verso do flashcard,
+   * nas fórmulas do card da prova etc. (que renderizam conteúdo já salvo).
+   */
+  enableCards?: boolean;
+  /** Disciplina que o cartão salvo herda (baralho é agrupado por disciplina). */
+  disciplineCode?: string;
 }
 
 function TutorMarkdownImpl({
   content,
   accent = 'text-emerald-400',
   className,
+  enableCards = false,
+  disciplineCode,
 }: TutorMarkdownProps) {
   // Protege o cifrão do "R$" do pareamento de math ($...$): vira escape markdown
   // (R\$) que o remark-math ignora e o CommonMark renderiza como "$" literal.
@@ -121,6 +137,97 @@ function TutorMarkdownImpl({
       >
         {prepared}
       </ReactMarkdown>
+      {enableCards ? <CardSaveBar content={content} disciplineCode={disciplineCode} /> : null}
+    </div>
+  );
+}
+
+// ---------- Salvar no baralho: a IA escreve o cartão, 1 clique arquiva ----------
+
+function CardSaveBar({
+  content,
+  disciplineCode,
+}: {
+  content: string;
+  disciplineCode?: string;
+}) {
+  const sp = useStudyProgress();
+  const [saved, setSaved] = React.useState(false);
+  const cards = React.useMemo(
+    () => extractTutorCards(content),
+    [content],
+  );
+  if (cards.length === 0) return null;
+
+  const save = () => {
+    if (!disciplineCode) return;
+    sp.addFlashcards(cards.map((c) => makeIaCard(disciplineCode, c.front, c.back)));
+    setSaved(true);
+    toast.success(
+      cards.length === 1
+        ? 'Cartão salvo no baralho — revise na aba Praticar!'
+        : `${cards.length} cartões salvos no baralho — revise na aba Praticar!`,
+    );
+  };
+
+  return (
+    <div
+      data-no-export
+      className={cn(
+        'mt-2 rounded-lg border border-dashed p-2.5 transition-colors',
+        saved
+          ? 'border-emerald-400/60 bg-emerald-500/[0.07]'
+          : 'border-teal-400/50 bg-teal-500/[0.06] hover:bg-teal-500/[0.09]',
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'flex size-6 shrink-0 items-center justify-center rounded-md',
+            saved
+              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+              : 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
+          )}
+          aria-hidden
+        >
+          {saved ? <Check className="size-3.5" /> : <Layers className="size-3.5" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium leading-snug">
+            {saved
+              ? cards.length === 1
+                ? 'Cartão salvo no baralho'
+                : `${cards.length} cartões salvos no baralho`
+              : cards.length === 1
+                ? 'O tutor preparou um cartão para o seu baralho'
+                : `O tutor preparou ${cards.length} cartões para o seu baralho`}
+          </p>
+          {!saved && cards.length > 0 ? (
+            <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={cards[0].front}>
+              {cards.length === 1 ? 'Frente: ' : '1ª frente: '}
+              {cards[0].front}
+            </p>
+          ) : null}
+        </div>
+        {!saved && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!disciplineCode}
+            onClick={save}
+            title={
+              disciplineCode
+                ? 'Salvar no baralho de revisão espaçada (aba Praticar)'
+                : 'Sem disciplina de contexto para arquivar o cartão'
+            }
+            className="h-7 shrink-0 gap-1 rounded-full border-teal-400/60 bg-transparent px-2.5 text-[11px] text-teal-700 transition-all hover:bg-teal-500/15 hover:scale-[1.03] focus-visible:ring-teal-500/50 active:scale-95 dark:border-teal-500/50 dark:text-teal-300 dark:hover:bg-teal-500/20 dark:hover:text-teal-200"
+            aria-label={`Salvar ${cards.length === 1 ? 'o cartão' : `${cards.length} cartões`} no baralho de revisão espaçada`}
+          >
+            <CopyPlus className="size-3" aria-hidden />
+            Salvar no baralho
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

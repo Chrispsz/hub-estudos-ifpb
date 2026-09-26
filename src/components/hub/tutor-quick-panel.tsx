@@ -265,7 +265,7 @@ export function TutorQuickPanel({
                 </>
               ) : (
                 <>
-                  <TutorMarkdown content={m.content} />
+                  <TutorMarkdown content={m.content} enableCards disciplineCode={disciplineCode} />
                   <div className="mt-1.5 flex items-center gap-2">
                     {m.time && <span className="text-[10px] text-muted-foreground/60">{m.time}</span>}
                     {m.model && (
@@ -321,7 +321,7 @@ export function TutorQuickPanel({
               <Bot className="size-3.5" />
             </div>
             <div className="max-w-[88%] rounded-xl bg-muted px-3 py-2">
-              <TutorMarkdown content={streamText} />
+              <TutorMarkdown content={streamText} enableCards disciplineCode={disciplineCode} />
               <span
                 className="mt-1 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-emerald-400 align-middle"
                 aria-hidden="true"

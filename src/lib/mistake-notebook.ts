@@ -22,6 +22,7 @@ import {
   type StudyProgress,
 } from './study-progress';
 import { capQuestion } from './tutor-stream';
+import { TUTOR_CARD_SUFFIX } from './tutor-cards';
 
 // ---------- Tipos ----------
 
@@ -200,7 +201,7 @@ function itemLine(it: MistakeItem, revisedMap?: { [key: string]: string } | null
   return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${it.title}${tag}`;
 }
 
-/** Chip de UM erro: reensino focado + treino imediato. */
+/** Chip de UM erro: reensino focado + treino imediato + cartão pronto p/ o baralho. */
 export function buildItemQuestion(it: MistakeItem): string {
   const label = kindLabel(it.kind);
   return [
@@ -208,6 +209,7 @@ export function buildItemQuestion(it: MistakeItem): string {
     it.topic ? `(tópico: ${it.topic})` : '',
     '',
     'Me ajuda a virar isso em acerto? Na resposta: (1) explica o conceito por trás sem pressupor que eu sei, (2) mostra a resolução passo a passo do item que errei e (3) me dá uma variação parecida para eu tentar agora e provar que aprendi.',
+    TUTOR_CARD_SUFFIX,
   ]
     .filter(Boolean)
     .join('\n');

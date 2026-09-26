@@ -1507,7 +1507,7 @@ export function StudyView({
                     </>
                   ) : (
                     <>
-                      <TutorMarkdown content={m.content} />
+                      <TutorMarkdown content={m.content} enableCards disciplineCode={discipline.code} />
                       <div className="mt-1.5 flex items-center gap-2">
                         {m.time && (
                           <span className="text-[10px] text-muted-foreground/60">{m.time}</span>
@@ -1563,7 +1563,7 @@ export function StudyView({
                   <Bot className="size-4 text-emerald-400" />
                 </div>
                 <div className="max-w-[85%] rounded-xl bg-muted px-3 py-2 text-sm text-foreground">
-                  <TutorMarkdown content={streamText} />
+                  <TutorMarkdown content={streamText} enableCards disciplineCode={discipline.code} />
                   <span
                     className="mt-1 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-emerald-400 align-middle"
                     aria-hidden="true"
