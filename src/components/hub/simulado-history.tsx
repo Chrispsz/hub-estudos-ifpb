@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
 import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
+import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
 
 function runPct(r: SimuladoRun): number {
   return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
@@ -51,6 +52,14 @@ function accentTone(pct: number): string {
   if (pct >= 60) return 'border-l-teal-500';
   if (pct >= 40) return 'border-l-amber-500';
   return 'border-l-rose-500';
+}
+
+/** O tópico pertence ao escopo REAL da Av1 (onde a meta de aprovação se aplica)? */
+function isAv1Topic(disciplineCode: string, topic: string): boolean {
+  return (
+    disciplineCode === MATH_EXAM.disciplineCode &&
+    (MATH_EXAM.topicosEscopo as readonly string[]).includes(topic)
+  );
 }
 
 /** Disciplina "dono" da tentativa: a mais atingida pelos erros, senão o filtro usado. */
@@ -175,7 +184,7 @@ export function SimuladoHistory() {
         </div>
       ) : (
         <>
-          {/* Mini gráfico de evolução (últimas 8 tentativas) */}
+          {/* Mini gráfico de evolução (últimas 8 tentativas) — com a linha da meta */}
           <div className="mt-4 flex items-end justify-start gap-2 sm:justify-between" aria-hidden>
             {chartRuns.map((r, i) => {
               const pct = runPct(r);
@@ -197,7 +206,7 @@ export function SimuladoHistory() {
                   <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{pct}%</span>
                   <div
                     className={cn(
-                      'flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50',
+                      'relative flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50',
                       isBest && 'ring-1 ring-amber-500/50 ring-offset-1 ring-offset-background',
                     )}
                   >
@@ -216,12 +225,22 @@ export function SimuladoHistory() {
                               : 'bg-gradient-to-t from-rose-600 to-rose-400',
                       )}
                     />
+                    {/* Linha da meta de aprovação — segmento em cada coluna, ao nível de 70% */}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 border-t border-dashed border-amber-500/50"
+                      style={{ bottom: `${MATH_META}%` }}
+                    />
                   </div>
                   <span className="text-[9px] text-muted-foreground/70">{fmtDate(r.date)}</span>
                 </div>
               );
             })}
           </div>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
+            <span aria-hidden className="inline-block w-5 border-t border-dashed border-amber-500/60" />
+            meta de aprovação ({MATH_META}%)
+          </p>
 
           {/* Tendência POR TÓPICO — quem sobe, quem desce entre tentativas (pior atual primeiro) */}
           {visibleTrends.length > 0 && (
@@ -249,8 +268,16 @@ export function SimuladoHistory() {
                         </span>
                         <span className="min-w-0 truncate text-[11px] font-medium">{t.topic}</span>
                       </div>
-                      {/* Micro-série: uma barrinha por tentativa em que o tópico apareceu */}
-                      <div className="mt-1 flex h-7 items-end gap-[3px]" aria-hidden>
+                      {/* Micro-série: uma barrinha por tentativa em que o tópico apareceu.
+                          Tópicos do escopo da Av1 ganham a linha da meta (≥ 70) —
+                          o olho vê na hora quem está abaixo dela. */}
+                      <div
+                        className={cn(
+                          'mt-1 flex h-7 items-end gap-[3px]',
+                          isAv1Topic(t.disciplineCode, t.topic) && 'relative pr-6',
+                        )}
+                        aria-hidden
+                      >
                         {t.series.map((p, j) => (
                           <motion.span
                             key={j}
@@ -264,10 +291,33 @@ export function SimuladoHistory() {
                             )}
                           />
                         ))}
+                        {isAv1Topic(t.disciplineCode, t.topic) && (
+                          <span
+                            className="pointer-events-none absolute inset-y-0 left-0 right-0 border-b border-dashed border-amber-500/50"
+                            style={{ bottom: `${Math.max(10, Math.round(MATH_META * 0.28))}px` }}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <span className="text-xs font-bold tabular-nums">{t.last}%</span>
+                      {/* Gap até a meta de aprovação da Av1 — só nos tópicos do escopo */}
+                      {isAv1Topic(t.disciplineCode, t.topic) &&
+                        (t.last >= MATH_META ? (
+                          <span
+                            title={`Meta de aprovação da Av1 (${MATH_META}%) batida — folga de ${t.last - MATH_META}pp`}
+                            className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-px text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"
+                          >
+                            meta ✓
+                          </span>
+                        ) : (
+                          <span
+                            title={`Faltam ${MATH_META - t.last}pp para a meta de aprovação da Av1 (${MATH_META}%)`}
+                            className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-px text-[9px] font-semibold tabular-nums text-amber-600 dark:text-amber-400"
+                          >
+                            −{MATH_META - t.last} p/ meta
+                          </span>
+                        ))}
                       {t.series.length >= 2 ? (
                         t.delta > 0 ? (
                           <Badge
@@ -327,7 +377,7 @@ export function SimuladoHistory() {
               )}
               <p className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
                 <Sparkles className="size-2.5 shrink-0" />
-                Barras = aproveitamento em cada tentativa (antiga → recente). A IA recebe esta série no botão abaixo.
+                Barras = aproveitamento em cada tentativa (antiga → recente); linha tracejada = meta de aprovação da Av1 (≥ {MATH_META}). A IA recebe esta série no botão abaixo.
               </p>
             </div>
           )}

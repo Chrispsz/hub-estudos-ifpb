@@ -18,6 +18,7 @@ import {
   MATH_CHECKLIST,
   MATH_EXAM,
   MATH_EXAM_PLAN,
+  MATH_META,
 } from './math-exam-prep';
 import { computeTopicTrends } from './simulado-debrief';
 import type { StudyProgress } from './study-progress';
@@ -57,6 +58,13 @@ export interface ReadinessResult {
    * nota geral. Undefined = sem detalhe por questão (fallback à nota geral).
    */
   topicMastery?: ReadinessTopicMastery[];
+}
+
+/** Distância até a meta de aprovação da Av1 (≥ 70): "faltam Xpp" ou "folga de Xpp". */
+export function metaGapText(pct: number): string {
+  return pct >= MATH_META
+    ? `meta batida (+${pct - MATH_META}pp de folga)`
+    : `faltam ${MATH_META - pct}pp para a meta ${MATH_META}`;
 }
 
 /** Um tópico do escopo da prova e o seu aproveitamento mais recente. */
@@ -155,14 +163,14 @@ export function computeReadiness(
         id: 'simulado',
         label: 'Simulado da prova',
         pct,
-        detail: `domínio por tópico do escopo (${attempts} tentativas c/ detalhe) · última geral: ${pctRun}%${missing.length > 0 ? ` · falta evidência: ${missing.join(', ')}` : ''}`,
+        detail: `domínio por tópico do escopo (${attempts} tentativas c/ detalhe) · última geral: ${pctRun}% · ${metaGapText(pct)}${missing.length > 0 ? ` · falta evidência: ${missing.join(', ')}` : ''}`,
       });
     } else {
       components.push({
         id: 'simulado',
         label: 'Simulado da prova',
         pct: pctRun,
-        detail: `${mathRuns.length > 0 ? 'última' : 'corrida geral'}: ${pctRun}% (${fmtDDMM(last.date)})`,
+        detail: `${mathRuns.length > 0 ? 'última' : 'corrida geral'}: ${pctRun}% (${fmtDDMM(last.date)}) · ${metaGapText(pctRun)}`,
       });
     }
   } else {
@@ -280,7 +288,9 @@ export function buildReadinessQuestion(
         daysLeft +
         ' dias para a Av1 de Matemática (prova 01/10). O Hub calculou meu SCORE DE PRONTIDÃO: ' +
         result.score +
-        '/100.';
+        '/100 (meta de aprovação da Av1: ≥ ' +
+        MATH_META +
+        ').'
 
   const linhas = result.components.map((c) => {
     const evidencia = c.pct === null ? c.detail : `${c.detail} → ${c.pct}%`;

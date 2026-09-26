@@ -18,6 +18,7 @@ import {
   Flag,
   Lightbulb,
   ListChecks,
+  Play,
   RotateCcw,
   Sparkles,
   Target,
@@ -51,7 +52,8 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
-import { openMethod, openPractice, openTutor } from '@/lib/hub-events';
+import { openMethod, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
+import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { getExerciseStage } from '@/lib/curriculum-state';
 import {
@@ -878,6 +880,14 @@ function ResultsScreen({
   }, [questions, results]);
   const multiTopic = topicStats.length > 1;
 
+  // VEREDITO DA META: corrida 100% Matemática = corrida do escopo da Av1 —
+  // compara direto com a nota de aprovação (≥ 70, MATH_META). Abaixo da meta,
+  // aplica a regra do PRÓPRIO plano D-7 ("o bloco com mais erros vira a
+  // revisão de amanhã") e oferece o drill do pior tópico a 1 clique.
+  const isAv1Run =
+    questions.length > 0 &&
+    questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode);
+
   return (
     <div>
       <div className="border-b bg-gradient-to-r from-emerald-600/15 via-teal-500/10 to-transparent px-6 py-5">
@@ -930,6 +940,66 @@ function ResultsScreen({
           <MiniStat icon={<Timer className="size-3.5" />} label="Tempo total" value={fmtClock(elapsed)} tone="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
         </div>
       </div>
+
+      {/* VEREDITO DA META — a regra do plano D-7 ("Meta: ≥ 70%") aplicada na hora */}
+      {isAv1Run && (
+        <div className="px-6 pb-1">
+          {pct >= MATH_META ? (
+            <div className="flex items-start gap-2.5 rounded-lg border border-emerald-500/40 bg-emerald-500/[0.07] px-3.5 py-3">
+              <Target className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden />
+              <p className="text-xs leading-relaxed">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  Meta da Av1 batida: {pct}%
+                </span>
+                <span className="text-muted-foreground"> (aprovação ≥ {MATH_META})</span>
+                {pct > MATH_META && (
+                  <>
+                    {' '}
+                    · <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{pct - MATH_META}pp</span> de folga
+                  </>
+                )}
+                <span className="text-muted-foreground"> — na véspera, manter o ritmo com drills curtos.</span>
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/[0.07] px-3.5 py-3">
+              <Target className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+              <div className="min-w-0 flex-1 text-xs leading-relaxed">
+                <p>
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    Faltam {MATH_META - pct}pp para a meta da Av1
+                  </span>
+                  <span className="text-muted-foreground">
+                    {' '}(você fez <span className="font-semibold tabular-nums">{pct}%</span>, aprovação ≥ {MATH_META})
+                  </span>
+                  {multiTopic && (
+                    <span className="text-muted-foreground">
+                      {' '}— pelo plano D-7, o bloco com mais erros vira a revisão de amanhã.
+                    </span>
+                  )}
+                </p>
+                {topicStats.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false);
+                      openSimulado({
+                        disciplineCode: MATH_EXAM.disciplineCode,
+                        topicScope: topicStats[0].topic,
+                      });
+                    }}
+                    title={`Abrir prova curta (5 questões) só de ${topicStats[0].topic} no Simulado Pro`}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 dark:text-amber-400"
+                  >
+                    <Play className="size-3" aria-hidden />
+                    Treinar só {topicStats[0].topic} ({topicStats[0].solved}/{topicStats[0].total})
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Desempenho por tópico — a prova vira mapa de estudo (pior primeiro) */}
       {multiTopic && (
