@@ -42,6 +42,9 @@ export interface PomodoroState {
   cycleCount: number; // focos completados no ciclo atual
   secondsLeft: number;
   running: boolean;
+  /** Epoch (ms) do fim da fase em execução — o relógio REAL. Com ele o timer
+   *  continua correto em outra aba, no reload e na retomada automática. */
+  endsAt?: number;
   runningSince?: string; // ISO — quando o tick atual começou
   updatedAt: string;     // ISO
   lastSessionSummary?: {
@@ -91,6 +94,10 @@ export interface Preferences {
   notifyPhaseEnd: boolean;
   /** Mostra o tempo restante no título da aba (ex.: "24:31 • Foco"). */
   tabTitleTimer: boolean;
+  /** Pomodoro continua correndo quando a aba vai para segundo plano
+   *  (relógio baseado em timestamp — sem drift, mesmo com a guia oculta).
+   *  Padrão LIGADO: o dono pesquisa fora do Hub e o foco segue contando. */
+  backgroundTimer: boolean;
 }
 
 // ---------- Preferências do cronograma (v2.0) ----------
@@ -121,6 +128,8 @@ export interface ExerciseProgressEntry {
   tried: boolean;
   solved: boolean;
   neededHelp: boolean;
+  /** Questão marcada pelo aluno (⭐) — ex.: para revisar com o tutor ou antes da prova. */
+  marked?: boolean;
   lastPracticedAt: string;
 }
 
@@ -289,6 +298,7 @@ export const defaultProgress: StudyProgress = {
     silentMode: false,
     notifyPhaseEnd: false,
     tabTitleTimer: true,
+    backgroundTimer: true,
   },
   studyPreferences: {
     days: defaultDayAvailability,

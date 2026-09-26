@@ -268,6 +268,29 @@ export function SettingsView() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
+                <ExternalLink
+                  className={
+                    cfg.backgroundTimer !== false
+                      ? 'size-4 text-emerald-500'
+                      : 'size-4 text-muted-foreground'
+                  }
+                  aria-hidden
+                />
+                <div>
+                  <p className="text-sm font-medium">Rodar em outra guia</p>
+                  <p className="text-xs text-muted-foreground">
+                    O foco segue contando enquanto você pesquisa fora do Hub
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={cfg.backgroundTimer !== false}
+                onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
+                aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
                 <BellRing
                   className={
                     cfg.notifyPhaseEnd ? 'size-4 text-emerald-500' : 'size-4 text-muted-foreground'

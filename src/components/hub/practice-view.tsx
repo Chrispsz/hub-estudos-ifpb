@@ -11,6 +11,7 @@ import {
   MessageCircleQuestion,
   NotebookPen,
   RotateCcw,
+  Star,
   Target,
   Trophy,
   CheckCircle2,
@@ -152,6 +153,8 @@ function ExercisesPanel({
   const sp = useStudyProgress();
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [filterTopic, setFilterTopic] = React.useState<string>('all');
+  /** Só questões MARCADAS (⭐) — revisão focada antes da prova. */
+  const [onlyMarked, setOnlyMarked] = React.useState(false);
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
   const listRef = React.useRef<HTMLDivElement>(null);
 
@@ -200,8 +203,17 @@ function ExercisesPanel({
     if (onlyAligned) {
       list = list.filter((e) => getExerciseStage(e) === 'em_sala');
     }
+    if (onlyMarked) {
+      list = list.filter((e) => sp.progress.exerciseProgress[e.id]?.marked);
+    }
     return list;
-  }, [filterDiscipline, filterTopic, onlyAligned]);
+  }, [filterDiscipline, filterTopic, onlyAligned, onlyMarked, sp.progress.exerciseProgress]);
+
+  const markedCount = React.useMemo(
+    () =>
+      Object.values(sp.progress.exerciseProgress).filter((e) => e.marked).length,
+    [sp.progress.exerciseProgress],
+  );
 
   // Tópicos disponíveis com base na disciplina selecionada
   const availableTopics = React.useMemo(() => {
@@ -335,6 +347,26 @@ function ExercisesPanel({
               </SelectContent>
             </Select>
           </div>
+          <button
+            type="button"
+            onClick={() => setOnlyMarked((v) => !v)}
+            aria-pressed={onlyMarked}
+            title="Só as questões que você marcou com ★"
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors',
+              onlyMarked
+                ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Star className={cn('size-3.5', onlyMarked && 'fill-current')} />
+            Marcadas
+            {markedCount > 0 && (
+              <span className="rounded-full bg-amber-500/20 px-1.5 text-[10px] font-semibold tabular-nums">
+                {markedCount}
+              </span>
+            )}
+          </button>
           <div className="ml-auto text-xs text-muted-foreground">
             {filteredExercises.length} exercício(s)
           </div>
@@ -568,6 +600,30 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
               <CheckCircle2 className="size-2.5" /> Resolvido
             </Badge>
           )}
+          {/* Marcar questão (⭐) — vira lista de revisão + revisita fácil com o tutor */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !progress?.marked;
+              sp.updateExerciseProgress(exercise.id, { marked: next });
+              if (next) toast.success('Questão marcada ★ — use o filtro "Marcadas" para revisar.');
+            }}
+            aria-pressed={!!progress?.marked}
+            aria-label={
+              progress?.marked
+                ? 'Remover marcação da questão'
+                : 'Marcar questão para revisar depois'
+            }
+            title={progress?.marked ? 'Remover marcação ★' : 'Marcar questão ★ (para revisar depois)'}
+            className={cn(
+              'ml-auto rounded-md p-1.5 transition-colors',
+              progress?.marked
+                ? 'text-amber-400 hover:bg-amber-500/10'
+                : 'text-muted-foreground/50 hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Star className={cn('size-4', progress?.marked && 'fill-current')} />
+          </button>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-foreground/90">{exercise.statement}</p>
         {exercise.hint && (
@@ -606,11 +662,26 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             />
             <span className="text-muted-foreground">Precisei de ajuda</span>
           </label>
+          {/* Tutor contextual: a IA recebe a questão + a dica, com o material vinculado */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto h-7 gap-1 border-emerald-500/40 px-2 text-[11px] text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            onClick={() =>
+              openTutor({
+                disciplineCode: exercise.disciplineCode,
+                materialId: exercise.linkedMaterials?.[0],
+                question: `Estou trabalhando esta questão de ${disc?.shortName ?? exercise.disciplineCode} (${exercise.topic}): "${exercise.statement}" — me guie pelo raciocínio passo a passo, sem entregar a resposta final de uma vez.${exercise.hint ? ` A dica do Hub é: "${exercise.hint}".` : ''}`,
+              })
+            }
+          >
+            <MessageCircleQuestion className="size-3" /> Perguntar ao tutor
+          </Button>
           {progress && (
             <Button
               size="sm"
               variant="ghost"
-              className="ml-auto h-11 text-xs text-muted-foreground sm:h-7"
+              className="h-7 text-xs text-muted-foreground"
               onClick={() => {
                 sp.resetExerciseProgress(exercise.id);
                 toast.info('Progresso resetado');

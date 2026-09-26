@@ -55,6 +55,8 @@ export interface OpenTutorDetail {
   question?: string;
   /** Disciplina para selecionar no tutor (troca também a memória da conversa). */
   disciplineCode?: string;
+  /** Material para abrir junto — o tutor lê o conteúdo real (resumo + trechos). */
+  materialId?: string;
 }
 
 /** Dispara a troca para a aba Estudar com o tutor recebendo a pergunta pronta. */

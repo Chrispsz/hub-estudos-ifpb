@@ -50,6 +50,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   Sheet,
   SheetContent,
@@ -72,8 +73,10 @@ import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { useTutorSpeech } from '@/lib/tutor-speech';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
+import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
+import { CodeLab } from './code-lab';
 
 // ---------- Tipos locais ----------
 
@@ -86,6 +89,9 @@ interface LiveTimer {
   secondsLeft: number;
   running: boolean;
   cycleCount: number; // nº de focos completados
+  /** Epoch (ms) do fim da fase — o relógio REAL. Definido ao rodar: a contagem
+   *  deriva dele, então fica correta mesmo com a aba em segundo plano. */
+  endsAt?: number;
   runningSince?: string;
 }
 
@@ -157,6 +163,11 @@ const CHAT_SUGGESTIONS = [
   'Quando é a próxima prova?',
   'Como está meu progresso?',
 ];
+
+/** Segundos restantes reais a partir do epoch do fim da fase. */
+function remainingFromEndsAt(endsAt: number): number {
+  return Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+}
 
 /**
  * Follow-ups de continuidade: aparecem após cada resposta do tutor para o
@@ -377,6 +388,9 @@ export function StudyView({
   const liveRef = React.useRef(live);
   const silentModeRef = React.useRef(!sp.progress.preferences.silentMode);
   silentModeRef.current = !sp.progress.preferences.silentMode;
+  /** "Rodar em outra guia" — espelho em ref para uso dentro de listeners. */
+  const backgroundTimerRef = React.useRef(sp.progress.preferences.backgroundTimer !== false);
+  backgroundTimerRef.current = sp.progress.preferences.backgroundTimer !== false;
   const ctxRef = React.useRef({
     sp,
     cfg,
@@ -388,6 +402,10 @@ export function StudyView({
   });
   const interactedRef = React.useRef(false); // só persiste depois da 1ª interação
   const focusStartedAtRef = React.useRef<string | null>(null);
+  // Fim da fase como timestamp (Date.now) — fonte da verdade quando rodando.
+  // O relógio de parede não sofre com o estrangulamento de timers de guia
+  // oculta: cada tick recalcula o restante pelo timestamp, sem drift.
+  const endTimeRef = React.useRef<number | null>(null);
   const bannerInitRef = React.useRef(false);
   const messagesRef = React.useRef<HTMLDivElement>(null);
 
@@ -433,13 +451,18 @@ export function StudyView({
   const persistNow = React.useCallback(
     (l: LiveTimer, summaryOverride?: SessionSummary | null) => {
       const ctx = ctxRef.current;
+      // Rodando: grava o tempo REAL derivado do endsAt (snapshot sempre correto,
+      // mesmo se o último tick foi atrasado pelo throttling da aba).
+      const secondsLeft =
+        l.running && typeof l.endsAt === 'number' ? remainingFromEndsAt(l.endsAt) : l.secondsLeft;
       const state: PomodoroState = {
         disciplineCode: ctx.disciplineCode,
         materialId: ctx.materialId || undefined,
         phase: l.phase,
         cycleCount: l.cycleCount,
-        secondsLeft: l.secondsLeft,
+        secondsLeft,
         running: l.running,
+        endsAt: l.endsAt,
         runningSince: l.runningSince,
         updatedAt: new Date().toISOString(),
       };
@@ -456,6 +479,7 @@ export function StudyView({
   const pauseCurrent = React.useCallback(() => {
     const l = liveRef.current;
     if (!l.running) return;
+    endTimeRef.current = null;
     const paused: LiveTimer = { ...l, running: false, runningSince: undefined };
     setLive(paused);
     interactedRef.current = true;
@@ -467,6 +491,7 @@ export function StudyView({
   const handlePhaseComplete = React.useCallback(() => {
     const l = liveRef.current;
     const ctx = ctxRef.current;
+    endTimeRef.current = null;
     playBeep(silentModeRef.current);
     if (ctx.sp.progress.preferences.notifyPhaseEnd) {
       notifyPhaseEnd(
@@ -522,18 +547,42 @@ export function StudyView({
     }
   }, [persistNow]);
 
-  // Tick de 1s enquanto roda (nunca inicia no server — só em useEffect).
+  // Tick resiliente enquanto roda: o RELÓGIO DE PAREDE é a fonte da verdade.
+  // Com a guia oculta o navegador estrangula o setInterval (chega a 1/min),
+  // então em vez de decrementar 1 por tick recalculamos o restante pelo
+  // timestamp de fim — zero drift. Um Web Worker reforça o ritmo em segundo
+  // plano (o setInterval do worker não é estrangulado), mantendo o título da
+  // aba e a transição de fase no tempo certo enquanto o dono pesquisa fora.
+  const syncFromClock = React.useCallback(() => {
+    if (!liveRef.current.running) return;
+    const end = endTimeRef.current ?? Date.now() + liveRef.current.secondsLeft * 1000;
+    endTimeRef.current = end;
+    const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    setLive((prev) =>
+      !prev.running || prev.secondsLeft === left ? prev : { ...prev, secondsLeft: left },
+    );
+  }, []);
+
   React.useEffect(() => {
     if (!live.running) return;
-    const id = window.setInterval(() => {
-      setLive((prev) => {
-        if (!prev.running) return prev;
-        const next = prev.secondsLeft - 1;
-        return next <= 0 ? { ...prev, secondsLeft: 0 } : { ...prev, secondsLeft: next };
+    syncFromClock();
+    const id = window.setInterval(syncFromClock, 1000);
+    // Worker de 1s: continua postando mesmo com a guia em segundo plano.
+    let worker: Worker | null = null;
+    try {
+      const blob = new Blob(['setInterval(function(){postMessage(0)},1000);'], {
+        type: 'text/javascript',
       });
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [live.running]);
+      worker = new Worker(URL.createObjectURL(blob));
+      worker.onmessage = () => syncFromClock();
+    } catch {
+      worker = null; // Sem worker (raro): o interval da guia cobre sozinho.
+    }
+    return () => {
+      window.clearInterval(id);
+      worker?.terminate();
+    };
+  }, [live.running, syncFromClock]);
 
   // Detecção de fim de fase (secondsLeft chegou a 0 rodando).
   React.useEffect(() => {
@@ -566,19 +615,26 @@ export function StudyView({
     return () => window.clearInterval(id);
   }, [live.running, persistNow]);
 
-  // Auto-pausar quando a aba vai para segundo plano (o usuário não quer timer escondido).
+  // Guia em segundo plano: com "Rodar em outra guia" LIGADO (padrão), o foco
+  // segue contando pelo relógio e re-sincroniza na hora quando o dono volta;
+  // a notificação de fim de fase chega normalmente. Desligado, volta a pausar
+  // automaticamente (comportamento antigo).
   React.useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden && liveRef.current.running) {
+      if (!document.hidden) {
+        if (liveRef.current.running) syncFromClock();
+        return;
+      }
+      if (!backgroundTimerRef.current && liveRef.current.running) {
         pauseCurrent();
         toast('Timer pausado', {
-          description: 'A aba ficou em segundo plano — continue quando voltar.',
+          description: 'A guia ficou em segundo plano — continue quando voltar.',
         });
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [pauseCurrent]);
+  }, [pauseCurrent, syncFromClock]);
 
   // Ao desmontar (troca de aba), pausa e salva — o banner de continuidade cuida do retorno.
   React.useEffect(() => {
@@ -600,6 +656,7 @@ export function StudyView({
       if (materialId) sp.markAccessed(materialId);
     }
     const next: LiveTimer = { ...l, running: true, runningSince: nowIso };
+    endTimeRef.current = Date.now() + next.secondsLeft * 1000;
     setLive(next);
     persistNow(next);
   };
@@ -607,6 +664,7 @@ export function StudyView({
   const pauseTimer = () => {
     if (!live.running) return;
     interactedRef.current = true;
+    endTimeRef.current = null;
     const next: LiveTimer = { ...live, running: false, runningSince: undefined };
     setLive(next);
     persistNow(next);
@@ -615,6 +673,7 @@ export function StudyView({
   const resetTimer = () => {
     interactedRef.current = true;
     focusStartedAtRef.current = null;
+    endTimeRef.current = null;
     const next: LiveTimer = {
       phase: 'focus',
       secondsLeft: durations.focus,
@@ -629,6 +688,7 @@ export function StudyView({
   const skipPhase = () => {
     interactedRef.current = true;
     focusStartedAtRef.current = null;
+    endTimeRef.current = null;
     const nextPhase: Phase = live.phase === 'focus' ? 'shortBreak' : 'focus';
     const next: LiveTimer = {
       phase: nextPhase,
@@ -750,6 +810,7 @@ export function StudyView({
       };
     }
 
+    if (next.running) endTimeRef.current = Date.now() + next.secondsLeft * 1000;
     setLive(next);
     setBanner(null);
     persistNow(next);
@@ -792,6 +853,17 @@ export function StudyView({
     const code = tutorReq.detail.disciplineCode;
     if (code && getDisciplineByCode(code) && code !== disciplineCode) {
       setDisciplineCode(code);
+    }
+    // Material pedido junto (ex.: "perguntar sobre este material" na Biblioteca):
+    // seleciona aqui para o retrieval ler o conteúdo REAL no envio. Valida contra
+    // a disciplina EFETIVA (a lista do closure pode estar defasada na troca).
+    const reqMaterial = tutorReq.detail.materialId;
+    const effCode = code && getDisciplineByCode(code) ? code : disciplineCode;
+    const effMaterials = getMaterialsByDiscipline(effCode);
+    if (reqMaterial && effMaterials.some((m) => m.id === reqMaterial)) {
+      setMaterialId(reqMaterial);
+    } else if (code && code !== disciplineCode) {
+      setMaterialId('');
     }
     if (tutorReq.detail.question) {
       setChatInput(tutorReq.detail.question);
@@ -1187,6 +1259,18 @@ export function StudyView({
               </Button>
             </div>
 
+            {/* Continuidade (GNOME-like: controle contextual onde a ação acontece) */}
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Switch
+                checked={sp.progress.preferences.backgroundTimer !== false}
+                onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
+                aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
+              />
+              <span>
+                Rodar em outra guia — o foco segue contando enquanto você pesquisa fora
+              </span>
+            </div>
+
             <Separator />
 
             {/* Mini-stats */}
@@ -1308,6 +1392,19 @@ export function StudyView({
           </CardContent>
         </Card>
       </div>
+
+      {/* ===== Laboratório de código (só disciplinas de programação) =====
+          Algoritmos: console JS para treinar lógica; LM: preview HTML ao vivo.
+          "Perguntar ao tutor" envia código + erro direto pro chat da disciplina. */}
+      {(disciplineCode === 'TEC.1687' || disciplineCode === 'TEC.1632') && (
+        <div className="lg:col-span-12">
+          <CodeLab
+            disciplineShort={discipline.shortName}
+            defaultTab={disciplineCode === 'TEC.1632' ? 'html' : 'js'}
+            onAskTutor={(q) => openTutor({ disciplineCode, question: q })}
+          />
+        </div>
+      )}
 
       {/* ===== Chat IA lateral ===== */}
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>

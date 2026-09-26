@@ -17,6 +17,7 @@ import {
   PlayCircle,
   Plus,
   RefreshCw,
+  Sparkles,
   Target,
 } from 'lucide-react';
 import {
@@ -36,7 +37,7 @@ import type { Material, Discipline } from '@/data/course-data';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { useStudyProgress } from '@/lib/study-progress';
-import { openMethod } from '@/lib/hub-events';
+import { openMethod, openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 
@@ -345,6 +346,22 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
               aria-label="Estudar este material com o Protocolo HUB (sessão guiada)"
             >
               <Target className="size-3.5" aria-hidden /> Sessão guiada (método)
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className={cn(touchBtn, 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60')}
+              onClick={() => {
+                onOpenChange(false);
+                openTutor({
+                  disciplineCode: material.disciplineCode,
+                  materialId: material.id,
+                  question: `Sobre o material "${material.title}": `,
+                });
+              }}
+              aria-label="Tirar dúvida sobre este material com o tutor IA"
+            >
+              <Sparkles className="size-3.5" aria-hidden /> Perguntar à IA
             </Button>
           </div>
         )}
