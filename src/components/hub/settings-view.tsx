@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTheme } from 'next-themes';
 import {
+  Activity,
   AppWindow,
   BellRing,
   CircleCheck,
@@ -18,10 +19,13 @@ import {
   Timer,
   Trash2,
   TriangleAlert,
+  RefreshCw,
   Upload,
   Volume2,
   VolumeX,
+  XCircle,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { usePwaInstall } from '@/components/pwa';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -474,7 +478,42 @@ function NumberSetting({
   );
 }
 
-/** Informação da IA em uso (Gemini/OpenRouter free com fallback automático). */
+/** Linha de resultado do diagnóstico de IA (ping real de cada provedor). */
+function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
+  if (!r) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 text-[11px]">
+      <span className="flex min-w-0 items-center gap-1.5">
+        {r.ok ? (
+          <CircleCheck className="size-3 shrink-0 text-emerald-500" aria-hidden />
+        ) : (
+          <XCircle className="size-3 shrink-0 text-destructive" aria-hidden />
+        )}
+        <span className="font-medium">{label}</span>
+        {r.model ? <span className="truncate text-muted-foreground">· {r.model}</span> : null}
+      </span>
+      <span
+        className={cn(
+          'min-w-0 truncate text-right',
+          r.ok ? 'text-muted-foreground' : 'text-destructive',
+        )}
+        title={r.ok ? `${r.ms} ms` : r.error}
+      >
+        {r.ok ? `${r.ms} ms` : (r.error ?? 'falhou')}
+      </span>
+    </div>
+  );
+}
+
+type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string };
+type ProbeState = {
+  at: string;
+  firstToAnswer: string;
+  gemini: ProbeResult;
+  openrouter: ProbeResult;
+  zai: ProbeResult;
+};
+
 function AiInfoCard() {
   const [chains, setChains] = React.useState<{
     tutor: { id: string; label: string }[];
@@ -486,6 +525,8 @@ function AiInfoCard() {
     zaiPublic?: boolean;
   } | null>(null);
   const [vision, setVision] = React.useState<string | null>(null);
+  const [probe, setProbe] = React.useState<ProbeState | null>(null);
+  const [probing, setProbing] = React.useState(false);
 
   React.useEffect(() => {
     fetch('/api/tutor')
@@ -497,6 +538,23 @@ function AiInfoCard() {
       })
       .catch(() => {});
   }, []);
+
+  /** Diagnóstico: ping real de cada chave (GET ?probe=1) — roda ao abrir e no botão. */
+  const runProbe = React.useCallback(() => {
+    setProbing(true);
+    fetch('/api/tutor?probe=1')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.probe) setProbe(d.probe);
+        else toast.error('Diagnóstico indisponível agora.');
+      })
+      .catch(() => toast.error('Não foi possível testar a conexão.'))
+      .finally(() => setProbing(false));
+  }, []);
+
+  React.useEffect(() => {
+    runProbe();
+  }, [runProbe]);
 
   const anyKey = Boolean(providers?.gemini || providers?.openrouter || providers?.zaiPublic);
 
@@ -565,6 +623,45 @@ function AiInfoCard() {
             </b>{' '}
             {vision ?? 'verificando…'}
           </p>
+        )}
+
+        {providers && (
+          <div className="rounded-lg border p-3" aria-live="polite">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs font-semibold">
+                <Activity className="size-3.5 text-emerald-500" aria-hidden />
+                Teste de conexão das chaves
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2.5 text-[11px]"
+                onClick={runProbe}
+                disabled={probing}
+              >
+                <RefreshCw className={cn('size-3', probing && 'animate-spin')} aria-hidden />
+                {probing ? 'Testando…' : 'Testar agora'}
+              </Button>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {probing && !probe ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Medindo latência de cada provedor…
+                </p>
+              ) : null}
+              {probe ? (
+                <>
+                  <ProbeRow label="Gemini (AI Studio)" r={probe.gemini} />
+                  <ProbeRow label="OpenRouter (cadeia free)" r={probe.openrouter} />
+                  <ProbeRow label="Z.ai (opcional)" r={probe.zai} />
+                  <p className="pt-0.5 text-[11px] text-muted-foreground">
+                    Quem responde primeiro nas dúvidas reais:{' '}
+                    <b className="font-semibold text-foreground">{probe.firstToAnswer}</b>
+                  </p>
+                </>
+              ) : null}
+            </div>
+          </div>
         )}
 
         {providers && !anyKey && (

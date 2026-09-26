@@ -962,8 +962,147 @@ async function transcribeImageSandbox(dataUrl: string, userNote: string): Promis
   return (completion?.choices?.[0]?.message?.content ?? '').trim();
 }
 
+/**
+ * Diagnóstico (GET ?probe=1): ping REAL de cada provedor com ~10 tokens —
+ * mostra nas Configurações se cada key funciona DE VERDADE (não só se existe),
+ * com latência e a mensagem de erro exata quando falha (key inválida, quota,
+ * região bloqueada…). Custo desprezível no tier grátis.
+ */
+type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string };
+
+async function probeRun(
+  ms: number,
+  run: (signal: AbortSignal) => Promise<void>,
+): Promise<{ ms: number; error?: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  const t0 = Date.now();
+  try {
+    await run(controller.signal);
+    return { ms: Date.now() - t0 };
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    const error = /abort/i.test(raw) ? `sem resposta em ${ms / 1000}s` : raw.slice(0, 200);
+    return { ms: Date.now() - t0, error };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function probeProviders(): Promise<Response> {
+  const jobs: Record<string, Promise<ProbeResult>> = {};
+
+  // — Gemini: generateContent com 10 tokens (mesmo modelo que atende as dúvidas)
+  if (GEMINI.key) {
+    const key = GEMINI.key;
+    const model = GEMINI.models[0];
+    jobs.gemini = (async () => {
+      const r = await probeRun(15_000, async (signal) => {
+        const res = await fetch(`${GEMINI.baseUrl}/models/${model}:generateContent`, {
+          method: 'POST',
+          signal,
+          headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'Responda apenas: ok' }] }],
+            generationConfig: { maxOutputTokens: 10, temperature: 0 },
+          }),
+        });
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          throw new Error(`HTTP ${res.status} — ${detail.slice(0, 160)}`);
+        }
+        const data = await res.json();
+        const text: string = (data?.candidates?.[0]?.content?.parts ?? [])
+          .map((p: { text?: string }) => p.text ?? '')
+          .join('')
+          .trim();
+        if (!text) throw new Error('resposta vazia (quota esgotada ou bloqueio?)');
+      });
+      return { ok: !r.error, ms: r.ms, model: prettyModelName(model), error: r.error };
+    })();
+  } else {
+    jobs.gemini = Promise.resolve({ ok: false, ms: 0, error: 'sem GEMINI_API_KEY' });
+  }
+
+  // — OpenRouter: 1ª posição da cadeia do tutor
+  if (process.env.OPENROUTER_API_KEY) {
+    const key = process.env.OPENROUTER_API_KEY;
+    const model = MODEL_CHAIN.tutor[0];
+    jobs.openrouter = (async () => {
+      const r = await probeRun(15_000, async (signal) => {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          signal,
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://hub-estudos-ifpb.app',
+            'X-Title': 'Hub de Estudos IFPB',
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Responda apenas: ok' }],
+          }),
+        });
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          throw new Error(`HTTP ${res.status} — ${detail.slice(0, 160)}`);
+        }
+        const data = await res.json();
+        if (!data?.choices?.[0]?.message?.content) throw new Error('resposta vazia');
+      });
+      return { ok: !r.error, ms: r.ms, model: prettyModelName(model), error: r.error };
+    })();
+  } else {
+    jobs.openrouter = Promise.resolve({ ok: false, ms: 0, error: 'sem OPENROUTER_API_KEY' });
+  }
+
+  // — Z.ai público (opcional)
+  if (process.env.ZAI_API_KEY) {
+    const key = process.env.ZAI_API_KEY;
+    jobs.zai = (async () => {
+      const r = await probeRun(15_000, async (signal) => {
+        const res = await fetch(`${ZAI_PUBLIC.baseUrl}/chat/completions`, {
+          method: 'POST',
+          signal,
+          headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: ZAI_PUBLIC.model,
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Responda apenas: ok' }],
+          }),
+        });
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          throw new Error(`HTTP ${res.status} — ${detail.slice(0, 160)}`);
+        }
+        const data = await res.json();
+        if (!data?.choices?.[0]?.message?.content) throw new Error('resposta vazia');
+      });
+      return { ok: !r.error, ms: r.ms, model: ZAI_PUBLIC.model, error: r.error };
+    })();
+  } else {
+    jobs.zai = Promise.resolve({ ok: false, ms: 0, error: 'sem ZAI_API_KEY (opcional)' });
+  }
+
+  const [gemini, openrouter, zai] = await Promise.all([jobs.gemini, jobs.openrouter, jobs.zai]);
+  const first = gemini.ok ? 'Gemini' : openrouter.ok ? 'OpenRouter' : zai.ok ? 'Z.ai' : 'nenhum (usa sandbox no dev)';
+  return Response.json({
+    probe: {
+      at: new Date().toISOString(),
+      firstToAnswer: first,
+      gemini,
+      openrouter,
+      zai,
+    },
+  });
+}
+
 /** GET: lista os modelos em uso + status de provedores (para exibir nas Configurações). */
-export async function GET() {
+export async function GET(req: Request) {
+  // diagnóstico das chaves — Configurações → "Testar conexão agora"
+  if (new URL(req.url).searchParams.get('probe')) return probeProviders();
   const vision = visionProviderLabel();
   return Response.json({
     provider: 'gemini → openrouter → z.ai → sandbox (primeiro disponível)',
