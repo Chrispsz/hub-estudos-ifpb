@@ -47,3 +47,18 @@ export function openPractice(detail: OpenPracticeDetail = {}): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent<OpenPracticeDetail>(OPEN_PRACTICE_EVENT, { detail }));
 }
+
+export const OPEN_TUTOR_EVENT = 'hub:open-tutor';
+
+export interface OpenTutorDetail {
+  /** Pergunta pronta — pré-preenche o campo do tutor (o aluno revisa e envia). */
+  question?: string;
+  /** Disciplina para selecionar no tutor (troca também a memória da conversa). */
+  disciplineCode?: string;
+}
+
+/** Dispara a troca para a aba Estudar com o tutor recebendo a pergunta pronta. */
+export function openTutor(detail: OpenTutorDetail = {}): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<OpenTutorDetail>(OPEN_TUTOR_EVENT, { detail }));
+}

@@ -4,9 +4,12 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart3,
+  ChevronDown,
   Dumbbell,
   Layers,
   Lightbulb,
+  MessageCircleQuestion,
+  NotebookPen,
   RotateCcw,
   Target,
   Trophy,
@@ -37,7 +40,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
-import { openSimulado, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { openSimulado, openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
 import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
 import {
@@ -150,6 +153,16 @@ function ExercisesPanel({
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [filterTopic, setFilterTopic] = React.useState<string>('all');
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
+  const listRef = React.useRef<HTMLDivElement>(null);
+
+  /** Foco vindo do Caderno de Erros: filtra disciplina + tópico e rola até a lista. */
+  const focarErros = (code: string, topic: string) => {
+    setFilterDiscipline(code);
+    setFilterTopic(topic);
+    requestAnimationFrame(() =>
+      listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  };
 
   // Pré-filtro de disciplina vindo de fora (ex.: card Plano de Recuperação).
   React.useEffect(() => {
@@ -286,6 +299,9 @@ function ExercisesPanel({
         />
       </div>
 
+      {/* Caderno de Erros: questões marcadas "precisei de ajuda" ou tentou/não resolveu */}
+      <MistakeNotebook onFocar={focarErros} />
+
       {/* Filtros */}
       <Card className="rounded-xl p-3 shadow-sm">
         <div className="flex flex-wrap items-end gap-3">
@@ -326,7 +342,7 @@ function ExercisesPanel({
       </Card>
 
       {/* Lista de exercícios */}
-      <div className="space-y-2">
+      <div className="space-y-2" ref={listRef}>
         {filteredExercises.length === 0 ? (
           <Card className="flex flex-col items-center gap-2 rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
             <RotateCcw className="size-6 text-muted-foreground/50" aria-hidden />
@@ -359,6 +375,145 @@ function ExercisesPanel({
         initialConfig={simuladoInitialConfig}
       />
     </div>
+  );
+}
+
+interface MistakeItem {
+  ex: Exercise;
+  kind: 'ajuda' | 'erro';
+  lastPracticedAt: string;
+}
+
+/**
+ * Caderno de Erros — todo exercício marcado como "precisei de ajuda" ou
+ * tentado e não resolvido vira uma linha aqui, mais recente primeiro.
+ * Cada linha tem 2 ações: FOCAR (filtra a lista no tópico) e PERGUNTAR AO
+ * TUTOR (abre o chat na disciplina certa com a dúvida já escrita).
+ */
+function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) => void }) {
+  const sp = useStudyProgress();
+  const [expanded, setExpanded] = React.useState(false);
+
+  const mistakes = React.useMemo<MistakeItem[]>(() => {
+    return Object.entries(sp.progress.exerciseProgress)
+      .filter(([, v]) => v.neededHelp || (v.tried && !v.solved))
+      .map(([id, v]) => {
+        const ex = exercises.find((e) => e.id === id);
+        if (!ex) return null;
+        return { ex, kind: v.neededHelp ? ('ajuda' as const) : ('erro' as const), lastPracticedAt: v.lastPracticedAt };
+      })
+      .filter((m): m is MistakeItem => m !== null)
+      .sort((a, b) => (b.lastPracticedAt || '').localeCompare(a.lastPracticedAt || ''));
+  }, [sp.progress.exerciseProgress]);
+
+  if (mistakes.length === 0) return null;
+
+  const visible = expanded ? mistakes : mistakes.slice(0, 3);
+  // Tópicos com mais erros — o "onde dói" do aluno.
+  const topicCounts = mistakes.reduce<Record<string, number>>((acc, m) => {
+    const key = `${m.ex.disciplineCode}::${m.ex.topic}`;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+  const topicoMaisErros = Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0];
+
+  return (
+    <Card className="overflow-hidden rounded-xl border-amber-500/30 bg-gradient-to-r from-amber-500/[0.06] to-transparent shadow-sm">
+      <div className="flex flex-wrap items-center gap-2 border-b border-amber-500/20 px-3.5 py-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <NotebookPen className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            Caderno de Erros
+            <Badge className="ml-2 border-0 bg-amber-500 text-[10px] text-white tabular-nums">
+              {mistakes.length}
+            </Badge>
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+            Questões que você marcou como “precisei de ajuda” ou tentou e não resolveu.
+            {topicoMaisErros && topicoMaisErros[1] > 1 && (
+              <> Mais erros em{' '}
+              <button
+                type="button"
+                className="font-medium text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+                onClick={() => {
+                  const [code, topic] = topicoMaisErros[0].split('::');
+                  onFocar(code, topic);
+                }}
+              >
+                {topicoMaisErros[0].split('::')[1]}
+              </button>
+              </>)}
+            .
+          </p>
+        </div>
+      </div>
+
+      <ul className="divide-y divide-border/60">
+        {visible.map(({ ex, kind }) => {
+          const disc = getDisciplineByCode(ex.disciplineCode);
+          const color = getColorClasses(disc?.color ?? 'slate');
+          return (
+            <li key={ex.id} className="flex flex-col gap-2 px-3.5 py-2.5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className={cn('border text-[10px]', color.badge)}>
+                    {disc?.shortName ?? ex.disciplineCode}
+                  </Badge>
+                  <Badge variant="outline" className="border-border text-[10px] text-muted-foreground">
+                    {ex.topic}
+                  </Badge>
+                  <Badge variant="outline" className={cn('text-[10px]', difficultyColor[ex.difficulty])}>
+                    {difficultyLabel[ex.difficulty]}
+                  </Badge>
+                  {kind === 'ajuda' ? (
+                    <Badge className="border-0 bg-amber-500/90 text-[9px] text-white">precisei de ajuda</Badge>
+                  ) : (
+                    <Badge className="border-0 bg-rose-500/90 text-[9px] text-white">não resolvi</Badge>
+                  )}
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">{ex.statement}</p>
+              </div>
+              <div className="flex shrink-0 gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  onClick={() => onFocar(ex.disciplineCode, ex.topic)}
+                >
+                  <RotateCcw className="size-3" /> Refazer
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 border-emerald-500/40 px-2 text-[11px] text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                  onClick={() =>
+                    openTutor({
+                      disciplineCode: ex.disciplineCode,
+                      question: `Estou travando nesta questão (${ex.topic}): "${ex.statement}" — me explica o passo a passo e o conceito por trás, como se fosse cair na prova.`,
+                    })
+                  }
+                >
+                  <MessageCircleQuestion className="size-3" /> Tutor
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {mistakes.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex w-full items-center justify-center gap-1 border-t border-amber-500/20 py-1.5 text-[11px] font-medium text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+        >
+          {expanded ? 'Mostrar menos' : `Ver todos os ${mistakes.length} erros`}
+          <ChevronDown className={cn('size-3 transition-transform', expanded && 'rotate-180')} aria-hidden />
+        </button>
+      )}
+    </Card>
   );
 }
 

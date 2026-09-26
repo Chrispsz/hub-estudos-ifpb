@@ -29,6 +29,7 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
 import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
 import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 
 const VALID_TABS: TabKey[] = [
@@ -129,6 +130,28 @@ export default function Page() {
     }
     window.addEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
     return () => window.removeEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
+  }, []);
+
+  // Evento hub:open-tutor (Caderno de Erros do Praticar, links futuros) — abre a
+  // aba Estudar com a pergunta já no campo do tutor.
+  const [tutorReq, setTutorReq] = React.useState<
+    { detail: OpenTutorDetail; nonce: number } | undefined
+  >(undefined);
+  const tutorNonce = React.useRef(0);
+  React.useEffect(() => {
+    function onOpenTutor(e: Event) {
+      const detail = (e as CustomEvent<OpenTutorDetail>).detail ?? {};
+      tutorNonce.current += 1;
+      setTutorReq({ detail, nonce: tutorNonce.current });
+      setActiveState('study');
+      if (typeof window !== 'undefined') {
+        const newUrl = `${window.location.pathname}${window.location.search}#study`;
+        window.history.pushState({ tab: 'study' }, '', newUrl);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    window.addEventListener(OPEN_TUTOR_EVENT, onOpenTutor);
+    return () => window.removeEventListener(OPEN_TUTOR_EVENT, onOpenTutor);
   }, []);
 
   const setActive = React.useCallback((k: TabKey) => {
@@ -246,7 +269,7 @@ export default function Page() {
           />
         );
       case 'study':
-        return <StudyView initialDiscipline={studyDiscipline} initialMaterial={studyMaterial} />;
+        return <StudyView initialDiscipline={studyDiscipline} initialMaterial={studyMaterial} tutorReq={tutorReq} />;
       case 'library':
         return <LibraryView />;
       case 'practice':

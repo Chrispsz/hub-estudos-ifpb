@@ -143,22 +143,79 @@ export interface FormulaCard {
   grupo: 'Matrizes' | 'Lógica';
   titulo: string;
   corpo: string; // suporta \n
+  /** Linhas em LaTeX (KaTeX) — renderizadas como matemática de verdade no card. */
+  math?: string[];
   fonte: string; // material de origem
 }
 
-/** Fórmulas-regras extraídas dos resumos IA dos materiais (formulas_regras). */
+/** Fórmulas-regras extraídas dos resumos IA dos materiais (formulas_regras).
+ *  math[] em LaTeX (KaTeX) — o card renderiza como matemática de verdade. */
 export const MATH_FORMULAS: FormulaCard[] = [
-  { grupo: 'Matrizes', titulo: 'Ordem e elemento geral', corpo: 'A com m linhas × n colunas → ordem m×n.\nElemento aij = linha i, coluna j.', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Soma e escalar', corpo: 'A + B: somar elemento a elemento (mesma ordem).\nkA: multiplicar TODOS os aij por k.', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Multiplicação', corpo: 'A(m×n) · B(n×p) = C(m×p).\nSó existe se colunas de A = linhas de B.\ncij = Σ aik · bkj (linha i de A × coluna j de B).\nAB ≠ BA (não é comutativa!).', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Transposta e simetria', corpo: 'Aᵀ: linhas viram colunas (Aᵀij = Aji).\nSimétrica: A = Aᵀ.\nAntissimétrica: Aᵀ = −A (diagonal toda zero).', fonte: 'mat-01-matrizes' },
-  { grupo: 'Matrizes', titulo: 'Inversa 2×2 (com det por dentro)', corpo: 'det(A) = a·d − b·c (só a ferramenta da inversa — determinantes como TÓPICO não caem)\nA⁻¹ = (1/det(A)) · [[d, −b], [−c, a]]\ndet(A) = 0 ⇒ NÃO existe inversa.\nTeste: A · A⁻¹ = I.', fonte: 'mat-00-matrizes' },
-  { grupo: 'Matrizes', titulo: 'PÓS-PROVA: determinantes e sistemas', corpo: 'Determinantes (3×3/Sarrus) e Sistemas Lineares (AX = B) são os tópicos 1.3 e 1.4 — o professor ainda NÃO deu (confirmado 24/09): não caem na Av1.', fonte: 'mat-00-matrizes' },
-  { grupo: 'Lógica', titulo: 'Conectivos', corpo: '¬p (não) · p ∧ q (e) · p ∨ q (ou) · p → q (se…então) · p ↔ q (se e só se).', fonte: 'mat-logica-slides' },
-  { grupo: 'Lógica', titulo: 'Tabela da implicação', corpo: 'p → q é F APENAS quando V → F.\n(V,V)=V (V,F)=F (F,V)=V (F,F)=V', fonte: 'mat-logica-slides' },
-  { grupo: 'Lógica', titulo: 'Tautologia × Contradição', corpo: 'Tautologia: sempre V (ex.: p ∨ ¬p).\nContradição: sempre F (ex.: p ∧ ¬p).\nContingência: depende dos valores.', fonte: 'mat-logica-lista' },
-  { grupo: 'Lógica', titulo: 'De Morgan', corpo: '¬(p ∧ q) ≡ ¬p ∨ ¬q\n¬(p ∨ q) ≡ ¬p ∧ ¬q\nNegou o E vira OU de negações!', fonte: 'mat-logica-slides' },
-  { grupo: 'Lógica', titulo: 'Regras de argumento', corpo: 'Modus Ponens: p→q, p ⊢ q.\nModus Tollens: p→q, ¬q ⊢ ¬p.\nSilogismo: p→q, q→r ⊢ p→r.', fonte: 'mat-logica-lista' },
+  {
+    grupo: 'Matrizes', titulo: 'Ordem e elemento geral',
+    corpo: 'A com m linhas × n colunas → ordem m×n.\nElemento aij = linha i, coluna j.',
+    math: ['A_{m \\times n},\\quad a_{ij} = \\text{linha } i,\\ \\text{coluna } j'],
+    fonte: 'mat-00-matrizes',
+  },
+  {
+    grupo: 'Matrizes', titulo: 'Soma e escalar',
+    corpo: 'A + B: somar elemento a elemento (mesma ordem).\nkA: multiplicar TODOS os aij por k.',
+    math: ['(A+B)_{ij} = a_{ij} + b_{ij},\\quad (kA)_{ij} = k \\cdot a_{ij}'],
+    fonte: 'mat-00-matrizes',
+  },
+  {
+    grupo: 'Matrizes', titulo: 'Multiplicação',
+    corpo: 'Só existe se colunas de A = linhas de B — linha i de A × coluna j de B.\nAB ≠ BA (não é comutativa!).',
+    math: ['A_{m \\times n} \\cdot B_{n \\times p} = C_{m \\times p}', 'c_{ij} = \\sum_{k=1}^{n} a_{ik} \\cdot b_{kj},\\quad AB \\neq BA'],
+    fonte: 'mat-00-matrizes',
+  },
+  {
+    grupo: 'Matrizes', titulo: 'Transposta e simetria',
+    corpo: 'Aᵀ: linhas viram colunas.\nAntissimétrica: diagonal toda zero.',
+    math: ['(A^T)_{ij} = a_{ji}', 'A = A^T \\;\\text{(simétrica)},\\quad A^T = -A \\;\\text{(antissimétrica)}'],
+    fonte: 'mat-01-matrizes',
+  },
+  {
+    grupo: 'Matrizes', titulo: 'Inversa 2×2 (com det por dentro)',
+    corpo: 'Determinantes como TÓPICO não caem — a fórmula abaixo é a única ferramenta necessária.\ndet(A) = 0 ⇒ NÃO existe inversa. SEMPRE confira A·A⁻¹ = I.',
+    math: ['A^{-1} = \\frac{1}{ad-bc}\\begin{pmatrix} d & -b \\\\ -c & a \\end{pmatrix},\\quad A \\cdot A^{-1} = I'],
+    fonte: 'mat-00-matrizes',
+  },
+  {
+    grupo: 'Matrizes', titulo: 'PÓS-PROVA: determinantes e sistemas',
+    corpo: 'Determinantes (3×3/Sarrus) e Sistemas Lineares (AX = B) são os tópicos 1.3 e 1.4 — o professor ainda NÃO deu (confirmado 24/09): não caem na Av1.',
+    fonte: 'mat-00-matrizes',
+  },
+  {
+    grupo: 'Lógica', titulo: 'Conectivos',
+    corpo: 'não · e · ou · se…então · se e só se.',
+    math: ['\\neg p,\\quad p \\land q,\\quad p \\lor q,\\quad p \\rightarrow q,\\quad p \\leftrightarrow q'],
+    fonte: 'mat-logica-slides',
+  },
+  {
+    grupo: 'Lógica', titulo: 'Tabela da implicação',
+    corpo: '(V,V)=V · (V,F)=F · (F,V)=V · (F,F)=V',
+    math: ['p \\rightarrow q \\;\\text{é F APENAS quando } V \\rightarrow F'],
+    fonte: 'mat-logica-slides',
+  },
+  {
+    grupo: 'Lógica', titulo: 'Tautologia × Contradição',
+    corpo: 'Tautologia: sempre V. Contradição: sempre F. Contingência: depende dos valores.',
+    math: ['p \\lor \\neg p \\;\\text{(tautologia)},\\quad p \\land \\neg p \\;\\text{(contradição)}'],
+    fonte: 'mat-logica-lista',
+  },
+  {
+    grupo: 'Lógica', titulo: 'De Morgan',
+    corpo: 'Negou o E vira OU de negações!',
+    math: ['\\neg(p \\land q) \\equiv \\neg p \\lor \\neg q', '\\neg(p \\lor q) \\equiv \\neg p \\land \\neg q'],
+    fonte: 'mat-logica-slides',
+  },
+  {
+    grupo: 'Lógica', titulo: 'Regras de argumento',
+    corpo: 'As três regras que validam argumentos — caem no formato "premissas → conclusão".',
+    math: ['\\text{Ponens: } p \\rightarrow q,\\ p \\vdash q', '\\text{Tollens: } p \\rightarrow q,\\ \\neg q \\vdash \\neg p', '\\text{Silogismo: } p \\rightarrow q,\\ q \\rightarrow r \\vdash p \\rightarrow r'],
+    fonte: 'mat-logica-lista',
+  },
 ];
 
 /** Checklist de domínio — marcado pelo aluno no card da prova. */

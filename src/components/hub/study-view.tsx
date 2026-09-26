@@ -66,6 +66,7 @@ import { getDisciplineTopics } from '@/lib/study-topics';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
+import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
 
@@ -253,9 +254,13 @@ function ThinkingBubble() {
 export function StudyView({
   initialDiscipline,
   initialMaterial,
+  tutorReq,
 }: {
   initialDiscipline?: string;
   initialMaterial?: string;
+  /** Pedido externo (evento hub:open-tutor — Caderno de Erros) → abre o chat
+   *  com a pergunta pronta no campo e a disciplina certa selecionada. */
+  tutorReq?: { detail: OpenTutorDetail; nonce: number };
 }) {
   const sp = useStudyProgress();
 
@@ -760,6 +765,20 @@ export function StudyView({
     setChatLoading(false);
     setStreamText(null);
   }, [disciplineShortName]);
+
+  // Pedido externo de tutor (hub:open-tutor): seleciona a disciplina, abre o
+  // chat e pré-preenche a pergunta — o aluno revisa e envia.
+  React.useEffect(() => {
+    if (!tutorReq || tutorReq.nonce === 0) return;
+    const code = tutorReq.detail.disciplineCode;
+    if (code && getDisciplineByCode(code) && code !== disciplineCode) {
+      setDisciplineCode(code);
+    }
+    if (tutorReq.detail.question) {
+      setChatInput(tutorReq.detail.question);
+    }
+    setChatOpen(true);
+  }, [tutorReq?.nonce]);
 
   // Memória: restaura a conversa salva da disciplina ao abrir o chat.
   React.useEffect(() => {

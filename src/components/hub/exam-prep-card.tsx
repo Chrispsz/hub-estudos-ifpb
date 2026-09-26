@@ -29,6 +29,7 @@ import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openSimulado } from '@/lib/hub-events';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { cn } from '@/lib/utils';
+import { TutorMarkdown } from '@/components/hub/tutor-markdown';
 import {
   MATH_CHECKLIST,
   MATH_EXAM,
@@ -107,6 +108,14 @@ export function ExamPrepCard() {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  // Linha do tempo dos 8 dias (offset 7 → 0): passado✓ verde, passado✗ âmbar,
+  // hoje pulsando em rosa, futuro cinza e prova como bandeira.
+  const todayOffset = Math.min(Math.max(daysLeft, 0), MATH_EXAM_PLAN.length - 1);
+  const doneDay = (offset: number) =>
+    MATH_EXAM_PLAN.filter((d) => d.offset === offset && d.offset !== 0).every((d) =>
+      d.tarefas.every((_, i) => checked[`${offset}-${i}`]),
+    );
+
   return (
     <>
       <Card
@@ -168,6 +177,44 @@ export function ExamPrepCard() {
             </div>
           </div>
         )}
+
+        {/* Linha do tempo: D-7 → prova — estado do plano num relance */}
+        <div className="border-t px-4 py-3">
+          <div className="flex items-end justify-between gap-1">
+            {MATH_EXAM_PLAN.map((d) => {
+              const past = d.offset > todayOffset;
+              const today = d.offset === todayOffset;
+              const prova = d.offset === 0;
+              const complete = past && doneDay(d.offset);
+              return (
+                <div key={d.offset} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'grid size-5 place-items-center rounded-full border-2 text-[9px] font-bold tabular-nums transition-all',
+                      prova && 'size-6 border-rose-600 bg-rose-600 text-white shadow-md shadow-rose-600/30',
+                      !prova && today && 'animate-pulse border-rose-500 bg-rose-500/15 text-rose-600 dark:text-rose-400',
+                      !prova && !today && complete && 'border-emerald-500 bg-emerald-500 text-white',
+                      !prova && !today && !complete && past && 'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400',
+                      !prova && !today && !past && 'border-border bg-muted text-muted-foreground/60',
+                    )}
+                  >
+                    {complete ? '✓' : prova ? '🏁' : d.offset}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[9px] font-medium tabular-nums',
+                      today ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground/70',
+                      prova && 'text-rose-600 dark:text-rose-400',
+                    )}
+                  >
+                    {prova ? 'prova' : `D-${d.offset}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Dia de hoje do plano */}
         {day && (
@@ -266,7 +313,7 @@ export function ExamPrepCard() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg">
                 <GraduationCap className="size-5 text-rose-500" />
-                Plano de 12 dias — Prova de Matemática
+                Plano até a prova — Matemática (D-7 → 01/10)
               </DialogTitle>
               <DialogDescription>
                 {MATH_EXAM.programa} · {MATH_EXAM.notaPeso}. Tudo extraído dos
@@ -356,14 +403,37 @@ export function ExamPrepCard() {
               </h3>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {MATH_FORMULAS.map((f) => (
-                  <Card key={f.titulo} className="rounded-lg bg-muted/30 p-3">
+                  <Card
+                    key={f.titulo}
+                    className={cn(
+                      'rounded-lg p-3',
+                      f.grupo === 'Matrizes'
+                        ? 'border-rose-500/20 bg-rose-500/[0.04]'
+                        : 'border-sky-500/20 bg-sky-500/[0.04]',
+                    )}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-semibold">{f.titulo}</p>
-                      <Badge variant="outline" className="border-border text-[9px] text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[9px]',
+                          f.grupo === 'Matrizes'
+                            ? 'border-rose-500/30 text-rose-600 dark:text-rose-400'
+                            : 'border-sky-500/30 text-sky-600 dark:text-sky-400',
+                        )}
+                      >
                         {f.grupo}
                       </Badge>
                     </div>
-                    <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-foreground/80">
+                    {f.math && (
+                      <div className="mt-1 rounded-md bg-background/60 px-2 py-1.5">
+                        {f.math.map((line, i) => (
+                          <TutorMarkdown key={i} content={`$$${line}$$`} className="text-xs [&_.katex-display]:my-1" />
+                        ))}
+                      </div>
+                    )}
+                    <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-foreground/70">
                       {f.corpo}
                     </p>
                   </Card>
