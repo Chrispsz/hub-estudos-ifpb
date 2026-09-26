@@ -91,25 +91,103 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
 }
 
 /**
+ * Tendência POR TÓPICO entre tentativas (a série do histórico deixa de ser
+ * só uma nota geral): agrega as questões de cada SimuladoRun que gravou
+ * `questions`, por disciplina::tópico, e devolve a sequência cronológica de
+ * aproveitamento de cada tópico — quem sobe, quem desce, quem está estagnado.
+ *
+ * Regras:
+ *  - `runs` chega na ordem de gravação (mais recente PRIMEIRO) — aqui vira
+ *    cronologia interna (reversa), então cada série é antiga → recente;
+ *  - tentativas sem detalhes por questão (antigas) simplesmente não contribuem;
+ *  - pior tópico ATUAL primeiro (o foco de revisão), tie-break: mais tentativas.
+ */
+export interface TopicTrendPoint {
+  pct: number;
+  date: string;
+}
+
+export interface TopicTrend {
+  disciplineCode: string;
+  topic: string;
+  /** Aproveitamento por tentativa em que o tópico apareceu (antiga → recente). */
+  series: TopicTrendPoint[];
+  first: number;
+  last: number;
+  /** last − first em pontos percentuais; 0 quando só há 1 tentativa. */
+  delta: number;
+}
+
+export function computeTopicTrends(runs: SimuladoRun[]): TopicTrend[] {
+  const chrono = [...runs].reverse().filter((r) => r.questions && r.questions.length > 0);
+  const m = new Map<string, { disciplineCode: string; topic: string; series: TopicTrendPoint[] }>();
+  for (const r of chrono) {
+    // Agrega por tópico DENTRO da tentativa (uma corrida pode repetir tópico).
+    const agg = new Map<string, { disc: string; topic: string; solved: number; total: number }>();
+    for (const q of r.questions!) {
+      if (!q.topic) continue;
+      const key = `${q.disciplineCode ?? ''}::${q.topic}`;
+      const rec = agg.get(key) ?? { disc: q.disciplineCode ?? '', topic: q.topic, solved: 0, total: 0 };
+      rec.total += 1;
+      if (q.status === 'solved') rec.solved += 1;
+      agg.set(key, rec);
+    }
+    for (const [key, rec] of agg) {
+      const cur = m.get(key) ?? { disciplineCode: rec.disc, topic: rec.topic, series: [] };
+      cur.series.push({ pct: Math.round((rec.solved / rec.total) * 100), date: r.date });
+      m.set(key, cur);
+    }
+  }
+  return [...m.values()]
+    .map((t) => {
+      const first = t.series[0]?.pct ?? 0;
+      const last = t.series[t.series.length - 1]?.pct ?? 0;
+      return { ...t, first, last, delta: t.series.length >= 2 ? last - first : 0 };
+    })
+    .sort((a, b) => a.last - b.last || b.series.length - a.series.length);
+}
+
+/**
  * Análise de EVOLUÇÃO: envia a série de tentativas (mais antigas → recentes)
  * para o tutor ler a tendência e apontar o foco da próxima semana — pensado
- * para a véspera de prova (Av1).
+ * para a véspera de prova (Av1). Inclui a TENDÊNCIA POR TÓPICO quando as
+ * tentativas gravaram detalhes por questão.
  */
 export function buildTrendQuestion(runs: SimuladoRun[]): string {
-  // Série completa cresce sem limite — para o prompt, as 12 mais recentes bastam.
-  const serie = runs.slice(-12).map((r) => {
+  // ATENÇÃO à ordem de gravação: runs[0] é a tentativa MAIS RECENTE —
+  // pegamos as 12 mais recentes e revertemos para cronologia real.
+  const recentes = [...runs].slice(0, 12).reverse();
+  const serie = recentes.map((r) => {
     const pct = r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
     const disc = r.filters?.discipline
       ? discShort(r.filters.discipline)
       : (r.questions && [...new Set(r.questions.map((q) => discShort(q.disciplineCode)).filter((d) => d !== '—'))].slice(0, 2).join('+')) || 'geral';
     return `- ${fmtDate(r.date)}: ${pct}% (${r.solved}/${r.total}) · ${disc} · ${fmtClockSec(r.durationSec)}`;
   });
-  return capQuestion(
-    [
-      `Essa é a minha série de simulados no Hub (${Math.min(runs.length, 12)} tentativas${runs.length > 12 ? ', das 12 mais recentes' : ''}, da mais antiga para a mais recente). Analisa minha EVOLUÇÃO como um coach de estudos:`,
-      ...serie,
+
+  // Tendência por tópico (só tentativas com detalhes por questão contribuem).
+  const trends = computeTopicTrends(runs).slice(0, 6);
+  const topicLines = trends.map((t) => {
+    const seq = t.series.map((p) => `${p.pct}%`).join(' → ');
+    const delta =
+      t.series.length >= 2 ? ` (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp)` : ' (1ª tentativa)';
+    return `- ${discShort(t.disciplineCode)} · ${t.topic}: ${seq}${delta}`;
+  });
+
+  const blocks = [
+    `Essa é a minha série de simulados no Hub (${Math.min(runs.length, 12)} tentativas${runs.length > 12 ? ', das 12 mais recentes' : ''}, da mais antiga para a mais recente). Analisa minha EVOLUÇÃO como um coach de estudos:`,
+    ...serie,
+  ];
+  if (topicLines.length > 0) {
+    blocks.push(
       '',
-      'Na resposta: (1) a tendência (estou melhorando, estagnado ou piorando — e o que isso sugere?), (2) os tópicos/disciplinas que mais aparecem nas tentativas fracas e (3) um plano curto para os próximos dias priorizando o que mais me faria subir a nota. Seja direto e honesto, sem elogio vazio.',
-    ].join('\n'),
+      'Aproveitamento POR TÓPICO entre tentativas (ordem cronológica; Δ = variação em pontos percentuais):',
+      ...topicLines,
+    );
+  }
+  blocks.push(
+    '',
+    'Na resposta: (1) a tendência geral (estou melhorando, estagnado ou piorando — e o que isso sugere?), (2) a tendência POR TÓPICO — quem sobe, quem desce, quem estagnou — e se o tópico em pior situação é o mais importante para a próxima prova, e (3) um plano curto para os próximos dias priorizando o que mais me faria subir a nota. Seja direto e honesto, sem elogio vazio.',
   );
+  return capQuestion(blocks.join('\n'));
 }

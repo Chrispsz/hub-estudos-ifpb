@@ -7,13 +7,13 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, History, Sparkles, Target, TrendingUp, Trophy } from 'lucide-react';
+import { Award, History, Minus, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
-import { buildRunDebriefQuestion, buildTrendQuestion } from '@/lib/simulado-debrief';
+import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
 
 function runPct(r: SimuladoRun): number {
@@ -36,6 +36,13 @@ function fmtDur(sec: number): string {
   if (sec < 60) return `${sec}s`;
   const m = Math.floor(sec / 60);
   return `${m}min`;
+}
+
+/** Cor sólida da barra por faixa de pct — mesma régua da tela de resultado. */
+function trendBarTone(pct: number): string {
+  if (pct >= 60) return 'bg-emerald-500';
+  if (pct >= 40) return 'bg-amber-500';
+  return 'bg-rose-500';
 }
 
 /** Disciplina "dono" da tentativa: a mais atingida pelos erros, senão o filtro usado. */
@@ -102,6 +109,14 @@ export function SimuladoHistory() {
   }, [runs]);
 
   const chartRuns = runs.slice(0, 8).reverse(); // mais antigo → mais novo
+  const bestChartPct = React.useMemo(
+    () => (chartRuns.length > 0 ? Math.max(...chartRuns.map(runPct)) : 0),
+    [chartRuns],
+  );
+
+  /** Tendência por tópico entre tentativas (só runs com detalhes por questão). */
+  const topicTrends = React.useMemo(() => computeTopicTrends(runs), [runs]);
+  const visibleTrends = topicTrends.slice(0, 6);
 
   /** Disciplina de contexto para a análise de evolução: a mais recorrente nas tentativas. */
   const trendDiscipline = React.useMemo(() => {
@@ -156,14 +171,28 @@ export function SimuladoHistory() {
           <div className="mt-4 flex items-end justify-start gap-2 sm:justify-between" aria-hidden>
             {chartRuns.map((r, i) => {
               const pct = runPct(r);
+              const isBest = pct === bestChartPct && bestChartPct > 0;
               return (
                 <div
                   key={r.id}
                   title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}`}
-                  className="flex max-w-[56px] flex-1 flex-col items-center gap-1"
+                  className="flex max-w-[56px] flex-1 flex-col items-center gap-1 transition-transform hover:scale-[1.06]"
                 >
+                  {isBest ? (
+                    <Trophy
+                      className="size-3 text-amber-500"
+                      aria-label={`Melhor tentativa: ${pct}%`}
+                    />
+                  ) : (
+                    <span className="inline-block size-3" aria-hidden />
+                  )}
                   <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{pct}%</span>
-                  <div className="flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50">
+                  <div
+                    className={cn(
+                      'flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50',
+                      isBest && 'ring-1 ring-amber-500/50 ring-offset-1 ring-offset-background',
+                    )}
+                  >
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: `${Math.max(6, pct)}%` }}
@@ -186,7 +215,81 @@ export function SimuladoHistory() {
             })}
           </div>
 
-          {/* Análise de EVOLUÇÃO — a série inteira para o tutor ler a tendência */}
+          {/* Tendência POR TÓPICO — quem sobe, quem desce entre tentativas (pior atual primeiro) */}
+          {visibleTrends.length > 0 && (
+            <div className="mt-4 rounded-lg border border-border bg-muted/10 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium">
+                  <TrendingUp className="size-3.5 text-emerald-500" /> Tendência por tópico
+                </p>
+                {topicTrends[0].last < 60 && (
+                  <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
+                    <Target className="mr-1 size-2.5" /> foco: {topicTrends[0].topic}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-2.5 space-y-2.5">
+                {visibleTrends.map((t, i) => (
+                  <div key={`${t.disciplineCode}:${t.topic}`} className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="shrink-0 text-[9px] uppercase tracking-wide text-muted-foreground/60">
+                          {getDiscShort(t.disciplineCode)}
+                        </span>
+                        <span className="min-w-0 truncate text-[11px] font-medium">{t.topic}</span>
+                      </div>
+                      {/* Micro-série: uma barrinha por tentativa em que o tópico apareceu */}
+                      <div className="mt-1 flex h-7 items-end gap-[3px]" aria-hidden>
+                        {t.series.map((p, j) => (
+                          <motion.span
+                            key={j}
+                            title={`${fmtDate(p.date)} — ${p.pct}%`}
+                            initial={{ height: 0 }}
+                            animate={{ height: `${Math.max(10, Math.round(p.pct * 0.28))}px` }}
+                            transition={{ duration: 0.4, delay: 0.15 + i * 0.06 + j * 0.05, ease: 'easeOut' }}
+                            className={cn('w-1.5 rounded-sm', trendBarTone(p.pct), 'opacity-80')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="text-xs font-bold tabular-nums">{t.last}%</span>
+                      {t.series.length >= 2 ? (
+                        t.delta > 0 ? (
+                          <Badge variant="outline" className="gap-0.5 border-emerald-500/40 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                            <TrendingUp className="size-2.5" /> +{t.delta}pp
+                          </Badge>
+                        ) : t.delta < 0 ? (
+                          <Badge variant="outline" className="gap-0.5 border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] text-rose-600 dark:text-rose-400">
+                            <TrendingDown className="size-2.5" /> {t.delta}pp
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-0.5 border-border px-1.5 text-[10px] text-muted-foreground">
+                            <Minus className="size-2.5" /> estável
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="outline" className="border-border px-1.5 text-[10px] text-muted-foreground">
+                          1ª tentativa
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {topicTrends.length > visibleTrends.length && (
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  + {topicTrends.length - visibleTrends.length} outro(s) tópico(s) nas tentativas
+                </p>
+              )}
+              <p className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                <Sparkles className="size-2.5 shrink-0" />
+                Barras = aproveitamento em cada tentativa (antiga → recente). A IA recebe esta série no botão abaixo.
+              </p>
+            </div>
+          )}
+
+          {/* Análise de EVOLUÇÃO — a série inteira (agora COM tópicos) para o tutor ler a tendência */}
           <Button
             variant="outline"
             size="sm"
