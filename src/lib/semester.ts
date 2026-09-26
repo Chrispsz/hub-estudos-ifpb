@@ -87,18 +87,6 @@ export function currentWeekOfSemester(now: Date = new Date()): number {
   );
 }
 
-/**
- * @deprecated LEGADO — deriva prazo a partir de SEMANA estimada, o que contraria
- * a política ANTI-ESTIMATIVA do app (urgência só com data oficial em `date`).
- * Mantido apenas por compatibilidade de exports; NÃO usar em código novo —
- * use `daysUntilDate` com a data oficial.
- */
-export function daysUntilEvaluation(estimatedWeek: number, now: Date = new Date()): number {
-  const target = startOfDay(weekStartDate(estimatedWeek)).getTime();
-  const t = startOfDay(now).getTime();
-  return Math.ceil((target - t) / DAY_MS);
-}
-
 /** Dias até uma data ISO 'YYYY-MM-DD' (pode ser negativo = já passou). */
 export function daysUntilDate(dateIso: string, now: Date = new Date()): number {
   const target = startOfDay(parseISODateLocal(dateIso)).getTime();
