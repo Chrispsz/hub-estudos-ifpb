@@ -27,6 +27,12 @@ export interface OpenSimuladoDetail {
   disciplineCode?: string;
   /** Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10). */
   preset?: 'math_exam';
+  /**
+   * Escopo de UM tópico (ex.: replay do pior tópico da tendência no Histórico).
+   * Abre o Simulado Pro com só esse tópico ativo — prova curta (5 questões,
+   * 15 min), no ritmo da turma.
+   */
+  topicScope?: string;
 }
 
 /** Dispara a troca para a aba Praticar com o Simulado Pro já configurado. */

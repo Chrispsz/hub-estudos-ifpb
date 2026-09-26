@@ -198,11 +198,30 @@ function ExercisesPanel({
     [sp.progress],
   );
 
-  // Pedido externo (card "Foco: Prova de Matemática") → abre já configurado.
+  // Pedido externo → abre já configurado. IMPORTANTE: TODA abertura por evento
+  // resolve o initialConfig AQUI (inclusive "sem config" → undefined), senão o
+  // preset de um pedido anterior vazava para o pedido novo (bug real: clicar no
+  // marco da Av1 e depois abrir pelo botão/Caderno aplicava o preset velho).
   React.useEffect(() => {
     if (!simuladoReq || simuladoReq.nonce === 0) return;
-    if (simuladoReq.detail.preset === 'math_exam') {
+    const d = simuladoReq.detail;
+    if (d.preset === 'math_exam') {
       setSimuladoInitialConfig(MATH_EXAM_PRESET);
+    } else if (d.topicScope) {
+      // Drill de 1 tópico (ex.: replay do pior tópico da tendência no Histórico):
+      // prova curta, no ritmo da turma, cronômetro leve — ajustável no setup.
+      setSimuladoInitialConfig({
+        discipline: d.disciplineCode ?? 'all',
+        difficulty: 'all',
+        quantity: 5,
+        durationMin: 15,
+        aligned: true,
+        topics: [d.topicScope],
+      });
+    } else if (d.disciplineCode && getDisciplineByCode(d.disciplineCode)) {
+      setSimuladoInitialConfig({ discipline: d.disciplineCode });
+    } else {
+      setSimuladoInitialConfig(undefined);
     }
     setSimuladoOpen(true);
   }, [simuladoReq?.nonce]);
@@ -304,7 +323,12 @@ function ExercisesPanel({
           </Button>
           <Button
             size="sm"
-            onClick={() => setSimuladoOpen(true)}
+            // Abertura MANUAL sempre limpa: sem isso, a pré-config de um pedido
+            // externo anterior (preset da Av1, drill de tópico) vazava para cá.
+            onClick={() => {
+              setSimuladoInitialConfig(undefined);
+              setSimuladoOpen(true);
+            }}
             className="group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl"
           >
             <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado Pro

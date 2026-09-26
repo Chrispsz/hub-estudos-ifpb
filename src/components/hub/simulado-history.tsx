@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, History, Minus, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { Award, History, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,6 +43,14 @@ function trendBarTone(pct: number): string {
   if (pct >= 60) return 'bg-emerald-500';
   if (pct >= 40) return 'bg-amber-500';
   return 'bg-rose-500';
+}
+
+/** Acento lateral das tentativas — mesma régua dos badges (pctTone). */
+function accentTone(pct: number): string {
+  if (pct >= 80) return 'border-l-emerald-500';
+  if (pct >= 60) return 'border-l-teal-500';
+  if (pct >= 40) return 'border-l-amber-500';
+  return 'border-l-rose-500';
 }
 
 /** Disciplina "dono" da tentativa: a mais atingida pelos erros, senão o filtro usado. */
@@ -230,7 +238,10 @@ export function SimuladoHistory() {
               </div>
               <div className="mt-2.5 space-y-2.5">
                 {visibleTrends.map((t, i) => (
-                  <div key={`${t.disciplineCode}:${t.topic}`} className="flex items-center gap-3">
+                  <div
+                    key={`${t.disciplineCode}:${t.topic}`}
+                    className="group -mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/40"
+                  >
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="shrink-0 text-[9px] uppercase tracking-wide text-muted-foreground/60">
@@ -247,7 +258,10 @@ export function SimuladoHistory() {
                             initial={{ height: 0 }}
                             animate={{ height: `${Math.max(10, Math.round(p.pct * 0.28))}px` }}
                             transition={{ duration: 0.4, delay: 0.15 + i * 0.06 + j * 0.05, ease: 'easeOut' }}
-                            className={cn('w-1.5 rounded-sm', trendBarTone(p.pct), 'opacity-80')}
+                            className={cn(
+                              'w-1.5 rounded-sm opacity-80 transition-opacity group-hover:opacity-100',
+                              trendBarTone(p.pct),
+                            )}
                           />
                         ))}
                       </div>
@@ -256,23 +270,52 @@ export function SimuladoHistory() {
                       <span className="text-xs font-bold tabular-nums">{t.last}%</span>
                       {t.series.length >= 2 ? (
                         t.delta > 0 ? (
-                          <Badge variant="outline" className="gap-0.5 border-emerald-500/40 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                          <Badge
+                            variant="outline"
+                            title={`Subiu ${t.delta} ponto(s) percentual(is) da 1ª para a última tentativa`}
+                            className="gap-0.5 border-emerald-500/40 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-600 dark:text-emerald-400"
+                          >
                             <TrendingUp className="size-2.5" /> +{t.delta}pp
                           </Badge>
                         ) : t.delta < 0 ? (
-                          <Badge variant="outline" className="gap-0.5 border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] text-rose-600 dark:text-rose-400">
+                          <Badge
+                            variant="outline"
+                            title={`Caiu ${Math.abs(t.delta)} ponto(s) percentual(is) da 1ª para a última tentativa`}
+                            className="gap-0.5 border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                          >
                             <TrendingDown className="size-2.5" /> {t.delta}pp
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="gap-0.5 border-border px-1.5 text-[10px] text-muted-foreground">
+                          <Badge
+                            variant="outline"
+                            title="Mesma nota na 1ª e na última tentativa"
+                            className="gap-0.5 border-border px-1.5 text-[10px] text-muted-foreground"
+                          >
                             <Minus className="size-2.5" /> estável
                           </Badge>
                         )
                       ) : (
-                        <Badge variant="outline" className="border-border px-1.5 text-[10px] text-muted-foreground">
+                        <Badge
+                          variant="outline"
+                          title="Este tópico apareceu em uma só tentativa com detalhes"
+                          className="border-border px-1.5 text-[10px] text-muted-foreground"
+                        >
                           1ª tentativa
                         </Badge>
                       )}
+                      {/* Replay do tópico: prova curta com SÓ este tópico no sorteio.
+                          Revela no hover e por teclado (padrão das micro-ações). */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openSimulado({ disciplineCode: t.disciplineCode, topicScope: t.topic })
+                        }
+                        title={`Treinar só ${t.topic} no Simulado Pro (prova curta de 5 questões)`}
+                        aria-label={`Treinar só ${t.topic} no Simulado Pro`}
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-teal-700 opacity-0 transition-opacity hover:border-teal-300 hover:bg-teal-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40 group-focus-within:opacity-100 group-hover:opacity-100 dark:border-teal-800/70 dark:bg-teal-950/50 dark:text-teal-300 dark:hover:bg-teal-900/50"
+                      >
+                        <Play className="size-3" aria-hidden />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -312,7 +355,10 @@ export function SimuladoHistory() {
               return (
                 <div
                   key={r.id}
-                  className="group flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/[0.03]"
+                  className={cn(
+                    'group flex flex-wrap items-center gap-2 rounded-lg border border-border border-l-2 bg-muted/20 px-3 py-2 text-xs transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/[0.03]',
+                    accentTone(pct),
+                  )}
                 >
                   <span
                     className={cn(

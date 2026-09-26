@@ -81,6 +81,15 @@ interface QuestionResult {
 
 type Phase = 'setup' | 'running' | 'results';
 
+/** Config padrão do setup — reconstruída a CADA abertura do diálogo. */
+const DEFAULT_SIMULADO_CONFIG: SimuladoConfig = {
+  discipline: 'all',
+  difficulty: 'all',
+  quantity: 5,
+  durationMin: 15,
+  aligned: true, // no ritmo da turma por padrão
+};
+
 const DURATION_OPTIONS = [
   { value: 0, label: 'Sem tempo (estudo)' },
   { value: 15, label: '15 minutos' },
@@ -108,13 +117,7 @@ export function SimuladoView({
   initialConfig?: Partial<SimuladoConfig>;
 }) {
   const [phase, setPhase] = React.useState<Phase>('setup');
-  const [config, setConfig] = React.useState<SimuladoConfig>({
-    discipline: 'all',
-    difficulty: 'all',
-    quantity: 5,
-    durationMin: 15,
-    aligned: true, // no ritmo da turma por padrão
-  });
+  const [config, setConfig] = React.useState<SimuladoConfig>(DEFAULT_SIMULADO_CONFIG);
   const [questions, setQuestions] = React.useState<Exercise[]>([]);
   const [idx, setIdx] = React.useState(0);
   const [results, setResults] = React.useState<QuestionResult[]>([]);
@@ -132,9 +135,14 @@ export function SimuladoView({
       setResults([]);
       setRemaining(0);
       setElapsed(0);
-      if (initialConfig && Object.keys(initialConfig).length > 0) {
-        setConfig((c) => ({ ...c, ...initialConfig }));
-      }
+      // Config SEMPRE reconstruída na abertura: sem config externa, volta ao
+      // padrão — evita escopo/preset de uma abertura anterior vazando na próxima
+      // (o estado do componente sobrevive ao fechamento do diálogo).
+      setConfig(
+        initialConfig && Object.keys(initialConfig).length > 0
+          ? { ...DEFAULT_SIMULADO_CONFIG, ...initialConfig }
+          : { ...DEFAULT_SIMULADO_CONFIG },
+      );
     }
   }, [open, initialConfig]);
 
