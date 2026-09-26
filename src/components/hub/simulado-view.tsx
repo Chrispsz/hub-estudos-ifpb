@@ -49,7 +49,7 @@ import { disciplines, getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
-import { openMethod } from '@/lib/hub-events';
+import { openMethod, openTutor } from '@/lib/hub-events';
 import { getExerciseStage } from '@/lib/curriculum-state';
 import {
   exercises,
@@ -815,8 +815,26 @@ function ResultsScreen({
           </p>
           <div className="space-y-1.5">
             {missedList.slice(0, 4).map((q) => (
-              <div key={q.id} className="truncate rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-[11px] text-muted-foreground">
-                {getDisciplineByCode(q.disciplineCode)?.shortName ?? q.disciplineCode} · {q.topic} — {q.statement.slice(0, 70)}…
+              <div key={q.id} className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 transition-colors hover:bg-muted/50">
+                <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                  {getDisciplineByCode(q.disciplineCode)?.shortName ?? q.disciplineCode} · {q.topic} — {q.statement.slice(0, 70)}…
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenChange(false);
+                    openTutor({
+                      disciplineCode: q.disciplineCode,
+                      materialId: q.linkedMaterials?.[0],
+                      question: `No simulado que acabei de fazer, NÃO CONSEGUI resolver a questão de ${getDisciplineByCode(q.disciplineCode)?.shortName ?? q.disciplineCode} (tópico: ${q.topic}): "${q.statement}". Me ensina como se resolve, passo a passo, como o professor faria na correção?`,
+                    });
+                  }}
+                  title="Perguntar à IA como resolver esta questão"
+                  aria-label="Perguntar à IA como resolver esta questão do simulado"
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-200"
+                >
+                  <Sparkles className="size-3" aria-hidden />
+                </button>
               </div>
             ))}
             {missedList.length > 4 && (
@@ -827,9 +845,27 @@ function ResultsScreen({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/30 px-6 py-4">
-        <Button variant="ghost" size="sm" onClick={onNew}>
-          <RotateCcw className="size-3.5" /> Novo simulado
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onNew}>
+            <RotateCcw className="size-3.5" /> Novo simulado
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onOpenChange(false);
+              const worst = questions.filter((q, i) => results[i].solved !== true);
+              openTutor({
+                disciplineCode: worst[0]?.disciplineCode ?? questions[0]?.disciplineCode,
+                question: buildDebriefQuestion(questions, results, pct, elapsed),
+              });
+            }}
+            aria-label="Enviar o resultado do simulado para a IA analisar e montar plano de revisão"
+            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+          >
+            <Sparkles className="size-3.5" /> Analisar com IA
+          </Button>
+        </div>
         {hasMissed && (
           <Button
             size="sm"
@@ -867,6 +903,33 @@ function MiniStat({
 }
 
 /* ================= helpers ================= */
+
+/**
+ * Debriefing pós-simulado (pedido do dono: IA conduzindo o estudo de forma
+ * organizada). Compacta o resultado — status por questão, tópico, dificuldade
+ * e tempo — e pede análise de professor + plano de revisão curto.
+ */
+function buildDebriefQuestion(
+  questions: Exercise[],
+  results: QuestionResult[],
+  pct: number,
+  elapsed: number,
+): string {
+  const lines = questions.map((q, i) => {
+    const status =
+      results[i].solved === true ? 'CONSEGUI' : results[i].solved === false ? 'NÃO CONSEGUI' : 'PULADA';
+    const disc = getDisciplineByCode(q.disciplineCode)?.shortName ?? q.disciplineCode;
+    return `- Q${i + 1} [${disc} · ${q.topic} · ${difficultyLabel(q.difficulty)}] ${status} — ${q.statement.slice(0, 110)}`;
+  });
+  return [
+    'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.',
+    `Aproveitamento: ${pct}% · tempo total: ${fmtClock(elapsed)}.`,
+    'Resultado por questão:',
+    ...lines,
+    '',
+    'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.',
+  ].join('\n');
+}
 
 
 /** Bipes de alerta via WebAudio (n=1 aos 60s, 2 aos 10s, 3 no fim). */
