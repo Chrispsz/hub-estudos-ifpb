@@ -136,12 +136,18 @@ export function PracticeView({
   );
 }
 
+/**
+ * PRESET DA AV1 (29/09 simulado · 01/10 prova) — escopo REAL da prova:
+ * Álgebra Matricial (matrizes) + Lógica Matemática. Determinantes e Sistemas
+ * Lineares NÃO entram (tópicos "—" do acervo ficam de fora do sorteio).
+ */
 const MATH_EXAM_PRESET = {
   discipline: 'TEC.1984',
   difficulty: 'all' as const,
   quantity: 10,
   durationMin: 60,
   aligned: true,
+  topics: ['Álgebra Matricial', 'Lógica Matemática'],
 };
 
 function ExercisesPanel({

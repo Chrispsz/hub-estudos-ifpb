@@ -2,7 +2,7 @@
 
 // ExamPrepCard — FOCO: Prova de Matemática (Av1, 01/10).
 // Card do Painel com plano de 12 dias material-first, fórmulas essenciais,
-// checklist de domínio e atalho para o Simulado da Prova. Persistência do
+// checklist de domínio e atalho para o Simulado da Av1. Persistência do
 // progresso das tarefas em localStorage (sobrevive a reloads).
 
 import * as React from 'react';
@@ -232,6 +232,36 @@ export function ExamPrepCard() {
           </div>
         </div>
 
+        {/* MARCOS DA SEMANA: 29/09 (simulado escopo real + S3 Algoritmos) → 01/10 (prova) */}
+        <div className="border-t px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openSimulado({ preset: 'math_exam' })}
+              className="group flex min-w-0 items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+              aria-label="Abrir Simulado da Av1 com o escopo real da prova"
+            >
+              <span
+                aria-hidden
+                className="size-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
+              />
+              <span className="truncate">
+                29/09 · <span className="font-semibold">Simulado da Av1</span> no Hub + entrega
+                S3 Algoritmos
+              </span>
+              <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </button>
+            <span
+              aria-hidden
+              className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-rose-500/40"
+            />
+            <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-400">
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-rose-500" />
+              01/10 · <span className="font-semibold">Prova Av1</span>
+            </span>
+          </div>
+        </div>
+
         {/* MODO RECUPERAÇÃO: dias do plano que ficaram para trás */}
         {missed.length > 0 && (
           <div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
@@ -364,7 +394,7 @@ export function ExamPrepCard() {
               onClick={() => openSimulado({ preset: 'math_exam' })}
               className="group h-11 flex-1 gap-1.5 bg-rose-600 text-white shadow-md shadow-rose-600/25 hover:bg-rose-700 sm:h-8 sm:flex-none"
             >
-              <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado da Prova
+              <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado da Av1
             </Button>
             <Button
               size="sm"

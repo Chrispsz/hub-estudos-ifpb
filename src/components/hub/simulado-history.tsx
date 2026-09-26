@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
 import { buildRunDebriefQuestion, buildTrendQuestion } from '@/lib/simulado-debrief';
-import { openTutor } from '@/lib/hub-events';
+import { openSimulado, openTutor } from '@/lib/hub-events';
 
 function runPct(r: SimuladoRun): number {
   return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
@@ -136,13 +136,20 @@ export function SimuladoHistory() {
       </div>
 
       {!stats ? (
-        <p className="mt-4 flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+        <div className="mt-4 flex flex-col items-center gap-2.5 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-center">
           <History className="size-5 text-muted-foreground/50" aria-hidden />
-          <span>
+          <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
             Nenhum simulado ainda. Rode o <strong className="text-emerald-500">Simulado Pro</strong> na aba
             Praticar — cada tentativa aparece aqui para acompanhar sua evolução. 🎯
-          </span>
-        </p>
+          </p>
+          <Button
+            size="sm"
+            onClick={() => openSimulado({ preset: 'math_exam' })}
+            className="h-8 gap-1.5 bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 hover:bg-emerald-700"
+          >
+            <Target className="size-3.5" /> Rodar Simulado da Av1 (escopo real)
+          </Button>
+        </div>
       ) : (
         <>
           {/* Mini gráfico de evolução (últimas 8 tentativas) */}

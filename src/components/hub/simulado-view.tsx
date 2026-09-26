@@ -66,6 +66,11 @@ export interface SimuladoConfig {
   quantity: number;
   durationMin: number; // 0 = sem tempo
   aligned: boolean; // PADRÃO MATERIAL-FIRST: só o que já foi dado em sala
+  /**
+   * Escopo por tópico (ex.: Av1 = só Álgebra Matricial + Lógica).
+   * Vazio/undefined = todos os tópicos da disciplina.
+   */
+  topics?: string[];
 }
 
 interface QuestionResult {
@@ -166,8 +171,22 @@ export function SimuladoView({
     if (config.aligned) {
       list = list.filter((e) => getExerciseStage(e) === 'em_sala');
     }
+    if (config.topics && config.topics.length > 0) {
+      list = list.filter((e) => config.topics!.includes(e.topic));
+    }
     return list;
-  }, [config.discipline, config.difficulty, config.aligned]);
+  }, [config.discipline, config.difficulty, config.aligned, config.topics]);
+
+  /** Tópicos da disciplina selecionada (com contagem no acervo) p/ chips de escopo. */
+  const topicOptions = React.useMemo(() => {
+    const src =
+      config.discipline === 'all'
+        ? exercises
+        : exercises.filter((e) => e.disciplineCode === config.discipline);
+    const counts = new Map<string, number>();
+    for (const e of src) counts.set(e.topic, (counts.get(e.topic) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
+  }, [config.discipline]);
 
   function start(cfg: SimuladoConfig = config) {
     // Sorteio com seed diferente a cada tentativa (evita repetir o mesmo conjunto)
@@ -314,6 +333,7 @@ export function SimuladoView({
             config={config}
             setConfig={setConfig}
             poolCount={pool.length}
+            topicOptions={topicOptions}
             onStart={() => start()}
           />
         )}
@@ -376,13 +396,23 @@ function SetupScreen({
   config,
   setConfig,
   poolCount,
+  topicOptions,
   onStart,
 }: {
   config: SimuladoConfig;
   setConfig: (c: SimuladoConfig) => void;
   poolCount: number;
+  topicOptions: [string, number][];
   onStart: () => void;
 }) {
+  const activeTopics = config.topics ?? [];
+  function toggleTopic(t: string) {
+    const next = activeTopics.includes(t)
+      ? activeTopics.filter((x) => x !== t)
+      : [...activeTopics, t];
+    // Todos marcados = sem filtro (equivalente a nenhum marcado).
+    setConfig({ ...config, topics: next.length === topicOptions.length ? [] : next });
+  }
   return (
     <div>
       <div className="border-b bg-gradient-to-r from-emerald-600/15 via-teal-500/10 to-transparent px-6 py-5">
@@ -496,6 +526,53 @@ function SetupScreen({
             aria-label="Sortear somente conteúdos já dados em sala"
           />
         </div>
+
+        {/* ESCOPO POR TÓPICO — chips toggle (ex.: Av1 = Matrizes + Lógica) */}
+        {topicOptions.length > 1 && (
+          <div className="rounded-lg border border-border p-3 sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label className="text-xs font-medium">Escopo por tópico</Label>
+              {activeTopics.length > 0 ? (
+                <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
+                  <Target className="mr-1 size-2.5" />
+                  escopo ativo · {activeTopics.length}/{topicOptions.length}
+                </Badge>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">todos os tópicos</span>
+              )}
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {topicOptions.map(([topic, count]) => {
+                const active = activeTopics.includes(topic);
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => toggleTopic(topic)}
+                    aria-pressed={active}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all',
+                      active
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 shadow-sm shadow-emerald-500/15 dark:text-emerald-400'
+                        : 'border-border text-muted-foreground hover:border-emerald-500/40 hover:text-foreground',
+                    )}
+                  >
+                    {active && <span aria-hidden className="size-1.5 rounded-full bg-emerald-500" />}
+                    {topic}
+                    <span className="text-[10px] font-normal tabular-nums opacity-70">
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              {activeTopics.length > 0
+                ? 'O sorteio entra SÓ nos tópicos marcados — ideal para o escopo da prova.'
+                : 'Marque tópicos para restringir o sorteio (clique de novo para liberar).'}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
