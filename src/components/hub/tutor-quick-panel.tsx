@@ -5,12 +5,14 @@
 // Envia os mesmos dados do Hub (professor, datas, progresso) que o chat da aba Estudar.
 
 import * as React from 'react';
-import { Bot, CornerDownLeft, Loader2, Sparkles, User } from 'lucide-react';
+import { toast } from 'sonner';
+import { Bot, CornerDownLeft, ImagePlus, Loader2, Sparkles, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
+import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { TutorMarkdown } from './tutor-markdown';
 
@@ -20,6 +22,8 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   model?: string;
+  /** Miniatura do print anexado (só na conversa viva — painel é efêmero). */
+  image?: string;
 }
 
 interface TutorQuickPanelProps {
@@ -48,7 +52,10 @@ export function TutorQuickPanel({
   const [loading, setLoading] = React.useState(false);
   /** Resposta em streaming (painel efêmero — não persiste no banco). */
   const [streamText, setStreamText] = React.useState<string | null>(null);
+  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
+  const [pendingImage, setPendingImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
   const nextIdRef = React.useRef(0);
 
   // Anexa mensagem com id único — chaves estáveis na lista de conversa.
@@ -72,22 +79,45 @@ export function TutorQuickPanel({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, loading, streamText]);
 
-  async function ask(question: string) {
+  /** Anexa print/foto da questão — reduzido antes de virar data URL. */
+  const attachImage = async (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Só dá para anexar imagem (print/foto).');
+      return;
+    }
+    try {
+      setPendingImage(await downscaleImageFile(file));
+    } catch {
+      toast.error('Não consegui processar a imagem. Tente outra.');
+    }
+  };
+
+  async function ask(question: string, image: string | null = null) {
     const q = question.trim();
-    if (!q || loading) return;
+    if ((!q && !image) || loading) return;
     setInput('');
-    appendMessage({ role: 'user', content: q });
+    setPendingImage(null);
+    // Memória da conversa: últimas 12 mensagens sem bolhas de erro — o tutor
+    // continua o raciocínio anterior em vez de responder algo desconexo.
+    const history = messages
+      .filter((m) => !m.content.startsWith('⚠️'))
+      .slice(-12)
+      .map(({ role, content }) => ({ role, content }));
+    appendMessage({ role: 'user', content: q || '📷 print anexado', image: image ?? undefined });
     setLoading(true);
     setStreamText(null);
     try {
       const result = await streamTutorAnswer(
         {
           question: q,
+          imageDataUrl: image ?? undefined,
           discipline,
           disciplineCode,
           topic: materialTitle ?? discipline,
           material: materialTitle,
           materialId,
+          history,
           hubContext: buildHubContext(disciplineCode ?? '', sp),
         },
         (_piece, full) => {
@@ -165,7 +195,16 @@ export function TutorQuickPanel({
               )}
             >
               {m.role === 'user' ? (
-                <p className="text-sm">{m.content}</p>
+                <>
+                  <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                  {m.image && (
+                    <img
+                      src={m.image}
+                      alt="Print anexado à dúvida"
+                      className="mt-2 max-h-40 rounded-lg"
+                    />
+                  )}
+                </>
               ) : (
                 <>
                   <TutorMarkdown content={m.content} />
@@ -201,28 +240,79 @@ export function TutorQuickPanel({
       </div>
 
       <form
-        className="flex gap-2 border-t p-2.5"
+        className="border-t p-2.5"
         onSubmit={(e) => {
           e.preventDefault();
-          ask(input);
+          ask(input, pendingImage);
         }}
       >
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={`Dúvida sobre ${materialTitle ?? discipline}?`}
-          className="h-11 bg-background text-sm sm:h-9"
-          maxLength={2000}
-          aria-label="Pergunta ao tutor"
-        />
-        <Button
-          type="submit"
-          size="sm"
-          className="h-11 shrink-0 sm:h-9"
-          disabled={loading || !input.trim()}
-        >
-          Enviar <CornerDownLeft className="size-3.5" aria-hidden />
-        </Button>
+        {pendingImage && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
+            <img
+              src={pendingImage}
+              alt="Prévia do print anexado"
+              className="size-10 rounded-md object-cover"
+            />
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+              print anexado — o tutor lê a imagem antes de responder
+            </span>
+            <button
+              type="button"
+              onClick={() => setPendingImage(null)}
+              aria-label="Remover imagem anexada"
+              className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              void attachImage(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => fileRef.current?.click()}
+            disabled={loading}
+            aria-label="Anexar print/foto da questão"
+            title="Anexar print/foto — ou cole com Ctrl+V"
+          >
+            <ImagePlus className="size-4" />
+          </Button>
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onPaste={(e) => {
+              const f = imageFromClipboard(e);
+              if (f) {
+                e.preventDefault();
+                void attachImage(f);
+              }
+            }}
+            placeholder={`Dúvida sobre ${materialTitle ?? discipline}? (cole um print)`}
+            className="h-11 bg-background text-sm sm:h-9"
+            maxLength={2000}
+            aria-label="Pergunta ao tutor"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            className="h-11 shrink-0 sm:h-9"
+            disabled={loading || (!input.trim() && !pendingImage)}
+          >
+            Enviar <CornerDownLeft className="size-3.5" aria-hidden />
+          </Button>
+        </div>
       </form>
     </div>
   );

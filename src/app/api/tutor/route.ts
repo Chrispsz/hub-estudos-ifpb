@@ -22,7 +22,7 @@ export const runtime = 'nodejs';
 
 import { db } from '@/lib/db';
 import { buildMaterialBlock, findMaterial } from '@/lib/material-retrieval';
-import { sanitizeLatex } from '@/lib/sanitize-latex';
+import { normalizeMath } from '@/lib/sanitize-latex';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -78,6 +78,8 @@ interface TutorRequestBody {
   /** id do material no course-data — liga o retrieval ao PDF/resumo certos. */
   materialId?: string;
   history?: ChatMessage[];
+  /** Print/foto anexado (data URL) — transcrita por modelo de visão antes de responder. */
+  imageDataUrl?: string;
   /** 'flashcards' → array JSON de {front, back}. 'feynman' → avaliação estruturada da técnica Feynman. */
   mode?: 'tutor' | 'flashcards' | 'feynman';
   /** true → resposta em SSE (eventos delta/final/error). Padrão: JSON. */
@@ -86,7 +88,7 @@ interface TutorRequestBody {
   hubContext?: HubContext;
 }
 
-const MAX_HISTORY = 8; // stateless por sessão — leve
+const MAX_HISTORY = 12; // stateless por sessão — contexto suficiente para continuidade
 const MODEL_TIMEOUT_MS = 35_000; // se um modelo demorar >35s, cai para o próximo
 
 /** Provedor público da Z.ai (api.z.ai) — OpenAI-compatible. Tier grátis no glm-4.5-flash. */
@@ -241,8 +243,8 @@ function buildSystemPrompt(
     'COMO ESTRUTURAR AS RESPOSTAS (markdown):',
     '- Abra com a resposta direta à pergunta (1-2 frases). Depois explique com um exemplo.',
     '- Use **negrito** para conceitos-chave e listas numeradas para passos.',
-    '- Código, pseudocódigo e fórmulas SEMPRE em bloco de código (```).',
-    '- PROIBIDO usar LaTeX/markdown matemático (cifrão simples ou duplo, colchetes de display math, comandos tipo "frac" ou "begin"): o app não renderiza. Escreva fórmulas em texto simples (ex.: det = a*d - b*c) ou em bloco de código.',
+    '- Código e pseudocódigo SEMPRE em bloco de código (```); fórmulas matemáticas NÃO — elas vão direto no markdown em LaTeX.',
+    '- MATEMÁTICA EM LATEX (o app renderiza KaTeX — use SEMPRE que aparecer matemática): inline com $...$ (ex.: $A^{-1}$, $a_{12} = 5$); blocos com $$...$$; matrizes com \begin{pmatrix} … \end{pmatrix}; frações com \frac{a}{b}; raízes com \sqrt{x}; multiplicação com \cdot. Ex.: $$A \cdot A^{-1} = I_2$$. PROIBIDO: delimitadores \( \) e \[ \]; matriz desenhada em texto corrido ([ 1 2 / 3 4 ]); fórmula complexa em texto simples quando pode ser LaTeX ($\frac{1}{|A|}$ em vez de 1/|A|).',
     '- EXEMPLOS DE CÓDIGO: em C, sempre (é a linguagem do curso desde o início). Pseudocódigo Portugol (ALGORITMO / VAR / INICIO / LEIA / ESCREVA / SE … ENTAO / ENQUANTO … FACA) só para explicar a LÓGICA abstrata ANTES do código, ou se o aluno pedir explicitamente.',
     '- CÓDIGO C ORGANIZADO (toda vez): bloco com a marcação ```c; indentação de 4 espaços (NUNCA tabulação); uma instrução por linha; chave abre na mesma linha da estrutura (if/for/while); nomes descritivos em português (mediaFinal, contadorAlunos, somaNotas) — nada de a, x, t sem sentido; comentário curto em PT-BR só onde ajuda; alinhamento vertical em atribuições repetidas quando melhorar a leitura. Programa pedido pelo aluno = código COMPLETO e compilável (#include no topo, int main, return 0).',
     '- ATIVIDADES/EXERCÍCIOS PROPOSTOS (formato fixo e legível): "Exercício." + enunciado curto em 1-2 frases; se houver entrada/saída, mostre "Entrada:" e "Saída esperada:" cada uma em bloco de código separado (sem marcação de linguagem); depois "Dica:" em UMA linha; por fim "Como conferir:" com o teste que valida a resposta. Vários exercícios? Numere (1., 2., 3.) e limite a 3.',
@@ -275,7 +277,7 @@ function buildSystemPrompt(
     '- LM — PROJETO 1ª ETAPA (Classroom, 24/09, prof. Diogo; VALE 100 pontos): proposta para um website sobre um tema de escolha do GRUPO — equipes de ATÉ 4 pessoas, FIXAS até o fim do semestre. ENTREGA 09/10 e apresentação em sala NO dia da entrega (responder no Classroom com os slides; ~5 minutos e OBRIGATÓRIO nome de todos os integrantes). A proposta deve conter: (1) Nome do website (nome próprio, como marca); (2) Tema (ex.: filmes, animais de estimação, entidade pública, evento); (3) Potenciais interessados / stakeholders (quem acessaria o conteúdo? quem se interessa?); (4) Tópicos abordados — MÍNIMO 6 (tópicos geralmente viram páginas do site; ex.: site de jogos → jogos de corrida, jogos casuais...). É a 1ª etapa do projeto A1 (estrutura HTML, peso 45%). Ajude a definir tema/nome/tópicos e a ensaiar a apresentação.',
     '- Inglês Instrumental — vídeo indicado pelo prof. Fernando Van Woensel (Classroom, 16/09): "15 partes do corpo que também são VERBOS?!" (YouTube, 16 min, na Biblioteca do Hub) — partes do corpo em inglês que também funcionam como verbos com outro significado (fenômeno comum: hand/entregar, eye/observar, head/liderar são exemplos clássicos do tema). Sugira anotar os pares substantivo/verbo no glossário pessoal.',
     '- PROVA DE ALGORITMOS — Prova 1, SEXTA-FEIRA 30/10/2026 (formato confirmado pelo dono em 24/09): 3 QUESTÕES — uma FÁCIL, uma MÉDIA e uma DIFÍCIL — valendo 33,3% da média (0-100, aprovação ≥ 70). Os programas PODEM VIR da Lista de Exercícios da disciplina (289 questões, no Hub: seções Q1–57 entrada/saída, Q58–97 desvios condicionais, Q98–157 repetição, Q158–208 vetores/matrizes, Q209–289 subprogramas/ponteiros). Escopo da Prova 1 = Unidades 1 e 2 → as seções Q1–97 da Lista são o treino mais direto. Estratégia: dominar as Semanas 1–3 do Classroom (S1 já feita pelo aluno; S2 e S3 pendentes) e depois atacar a Lista nas seções 1 e 2. Questões típicas da lista: médias, conversões, processamento de dígitos, maior de N valores, validações com if/else.',
-    '- RHT — ARTIGO TELETRABALHO (profa. Marília, Classroom 15/09, base da PROPOSTA DE ATIVIDADE I; material na Biblioteca): Vilarinho, Paschoal e Demo (RSP 72(1), 2021) estudam o teletrabalho no Serpro (pioneiro: Projeto-Lar 1985, piloto 2005, Lei 12.551/2011). Método: estudo de caso único, transversal, quali+quanti (Iramuteq, ANOVA, Mann-Whitney); amostra 45 teletrabalhadores + 62 colegas + 23 chefias. Positivos: produtividade e qualidade de vida; Negativos: dificuldades técnicas e convívio/isolamento social; teletrabalhadores ainda relatam preconceito/desconfiança de chefes e colegas. Tabela 1: teletrabalhadores avaliaram MELHOR que colegas TODAS as variáveis (ex.: afeto positivo 8,00 vs. 6,16; afeto negativo 2,01 vs. 3,88). Cuidados: dados pré-pandemia; estudo transversal = associação, NÃO causalidade; os % dos quadros representam o discurso do grupo, não nº de respondentes. Ajude o aluno a preparar a atividade com esses dados exatos.',
+    '- RHT — ARTIGO TELETRABALHO (profa. Marília, Classroom 15/09, base da PROPOSTA DE ATIVIDADE I; material na Biblioteca): Vilarinho, Paschoal e Demo (RSP 72(1), 2021) estudam o teletrabalho no Serpro (pioneiro: Projeto-Lar 1985, piloto 2005, Lei 12.551/2011). Método: estudo de caso único, transversal, quali+quanti (Iramuteq, ANOVA, Mann-Whitney); amostra 45 teletrabalhadores + 62 colegas + 23 chefias. Positivos: produtividade e qualidade de vida; Negativos: dificuldades técnicas e convívio/isolamento social; teletrabalhadores ainda relatam preconceito/desconfiança de chefes e colegas. Tabela 1: teletrabalhadores avaliaram MELHOR que colegas TODAS as variáveis (ex.: afeto positivo 8,00 vs. 6,16; afeto negativo 2,01 vs. 3,88). Cuidados: dados pré-pandemia; estudo transversal = associação, NÃO causalidade; os % dos quadros representam o discurso do grupo, não nº de respondentes. REGRA DE OURO deste estudo: QUALQUER resposta sobre os resultados/método/amostra DEVE citar TODOS OS TRÊS números da amostra — 45 teletrabalhadores, 62 colegas e 23 chefias (um a um, na resposta) — e pelo menos um valor da Tabela 1; citar só 45/62 sem o 23 = resposta incompleta. Ajude o aluno a preparar a atividade com esses dados exatos.',
     '',
     'PROVA DE MATEMÁTICA — Av1, QUARTA-FEIRA 01/10/2026 (data confirmada pelo dono; FONTE DA VERDADE: card "Foco: Prova de Matemática" no Painel do Hub):',
     '- Programa da Av1 (ATUALIZADO 24/09, correção do dono): Matrizes como NÚCLEO — definição/tipos, soma e escalar, multiplicação e não-comutatividade, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I (Q31–35 da lista) + Lógica proposicional — proposições, conectivos, tabelas-verdade, tautologia/contradição, De Morgan, Modus Ponens/Tollens e argumentos (a Lista de Lógica tem os encadeamentos estilo múltipla escolha). NÃO CAEM: determinantes (tópico 1.3) e sistemas lineares (1.4) — o professor ainda não deu; se perguntarem, explique que são pós-prova.',
@@ -295,6 +297,8 @@ function buildSystemPrompt(
     '- Perguntas sobre DATAS: só confirme o que está em "Próximas avaliações COM DATA OFICIAL" (Av1 de Matemática 01/10, Projeto LM 1ª etapa 09/10 e Prova 1 de Algoritmos 30/10). Para as demais avaliações (Av de Fundamentos, A2/A3 de LM, seminário, N1/N2), diga que a data ainda não foi divulgada e sugira confirmar com o professor/SUAP — NUNCA estime semana ou prazo (estimativa engana o aluno).',
     '- SOBRE PESSOAS REAIS (professor, colegas): cite APENAS o que está no CONTEXTO DO HUB (nome, título, carga horária). NUNCA invente biografia, pesquisas, experiências ou opiniões que não estejam ali.',
     '- Dúvidas do conteúdo da disciplina: sua prioridade. Conecte com o tópico/material atual quando fizer sentido.',
+    '- CONTINUIDADE DA CONVERSA (crítico): o HISTÓRICO DA CONVERSA traz as mensagens anteriores. Se a mensagem atual for continuação ("e isso?", "por quê?", "não entendi", "e a questão 2?", "outro exemplo", "continua"), conecte com o que você já respondeu e CONTINUE o raciocínio — NÃO trate como pergunta solta, NÃO mude de assunto, NÃO re-explique do zero. Refira-se naturalmente ao que foi dito antes ("como mostrei acima…"). Só trate como tópico novo se ela realmente introduzir um assunto diferente.',
+    '- IMAGENS ANEXADAS: quando a pergunta trouxer o bloco "IMAGEM ANEXADA" (transcrição do print/foto), trate-o como a questão LITERAL do aluno — resolva com base nele, citando os números exatos da transcrição. Se a transcrição estiver incompleta ou ambígua, diga o que faltou e pergunte ao aluno.',
     '- Assuntos gerais/paralelos (ferramentas, carreira, curiosidades, esporte, música, cultura pop): você é um TUTOR AMIGO, não um assistente corporativo restrito. Responda de forma BREVE, leve e divertida — se pedirem palpite, dê um com humor e humildade ("sou só uma IA, mas..."). Depois conecte com os estudos (ex.: "agora bora canalizar essa energia num exercício"). PROIBIDO: dizer "meu papel é exclusivamente", "não posso falar sobre isso", "conforme o contexto fornecido" ou dar sermão sobre foco. NUNCA recuse de forma seca.',
     '- Não invente dados institucionais ausentes do contexto (sala, e-mail, notas, plantão). Se pedirem algo que não está lá, diga o que sabe e aponte o canal certo (SUAP, Classroom ou o professor).',
     '- Se não souber um conteúdo específico, admita com honestidade e sugira revisar o material aberto ou o PDF da disciplina.',
@@ -586,6 +590,43 @@ async function callZAIRetry(
   throw lastErr instanceof Error ? lastErr : new Error('ZAI esgotou as retentativas');
 }
 
+/**
+ * Transcreve a imagem anexada (print/foto da questão) com o modelo de visão do
+ * SDK Z-AI (glm-4.5v). A transcrição vira a "pergunta efetiva" — assim qualquer
+ * provedor de TEXTO da cadeia responde com a questão na mão, e ela também entra
+ * no retrieval (buildMaterialBlock usa a transcrição como consulta).
+ * Só funciona em dev/sandbox (SDK interno); na Vercel cai no catch e o aluno
+ * recebe aviso para digitar em texto.
+ */
+async function transcribeImage(dataUrl: string, userNote: string): Promise<string> {
+  const dynamicImport = new Function("return import('z-ai-web-dev-sdk')") as () => Promise<any>;
+  const mod = await dynamicImport();
+  const ZAI = mod.default;
+  const zai = await ZAI.create();
+  const instruction = [
+    'Você é o transcritor oficial do Hub de Estudos. Transcreva a imagem anexa para texto em português brasileiro, com fidelidade TOTAL:',
+    '- Enunciados, questões, alternativas, números, matrizes e unidades EXATAMENTE como aparecem (não invente, não corrija, não resolva).',
+    '- Matemática em LaTeX: $...$ inline; $$...$$ para blocos; matrizes com \\begin{pmatrix}…\\end{pmatrix}.',
+    '- Código C na imagem → bloco de código ```c.',
+    '- Comece direto com a transcrição (sem preâmbulo). Se a imagem não tiver relação com estudo, descreva o que ela mostra em 1-2 frases.',
+    userNote ? `Contexto: o aluno escreveu junto: "${userNote.slice(0, 300)}".` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const completion = await zai.chat.completions.createVision({
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: instruction },
+          { type: 'image_url', image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+  });
+  return (completion?.choices?.[0]?.message?.content ?? '').trim();
+}
+
 /** GET: lista os modelos free em uso (para exibir nas Configurações). */
 export async function GET() {
   return Response.json({
@@ -603,9 +644,8 @@ export async function GET() {
 }
 
 /**
- * Converte LaTeX simples (que o tutor-markdown NÃO renderiza) em texto legível.
- * Modelos free costumam escapar para \[...\]/\begin{matrix} em perguntas de matemática;
- * o sanitizador garante que o aluno sempre leia a fórmula, independente do modelo.
+ * normalizeMath: normaliza \[...\]/\(...\) para $$...$$/$...$ — o tutor-markdown
+ * AGORA renderiza LaTeX com KaTeX, então a matemática segue matemática.
  */
 
 /** Limites da memória por disciplina — economia de armazenamento. */
@@ -652,7 +692,14 @@ export async function POST(req: Request) {
     const isFeynmanMode = body.mode === 'feynman';
     const useStream = !isFlashcardsMode && !isFeynmanMode && body.stream === true;
 
-    if (!question) {
+    const imageDataUrl =
+      typeof body.imageDataUrl === 'string' &&
+      body.imageDataUrl.startsWith('data:image/') &&
+      body.imageDataUrl.length <= 8_000_000
+        ? body.imageDataUrl
+        : undefined;
+
+    if (!question && !imageDataUrl) {
       return Response.json({ error: 'Pergunta vazia.' }, { status: 400 });
     }
     if (question.length > 2000) {
@@ -660,6 +707,48 @@ export async function POST(req: Request) {
         { error: 'Pergunta muito longa (máx. 2000 caracteres).' },
         { status: 400 },
       );
+    }
+
+    // ----- Imagem anexada (print/foto da questão) → transcrição com visão ------
+    // A transcrição vira a pergunta efetiva: o provedor de TEXTO resolve a partir
+    // dela e o retrieval encontra o material certo pela transcrição.
+    let effectiveQuestion = question;
+    let savedQuestion = question;
+    if (imageDataUrl && !isFlashcardsMode && !isFeynmanMode) {
+      const t0v = Date.now();
+      try {
+        const transcript = (await transcribeImage(imageDataUrl, question)).slice(0, 4000);
+        if (transcript) {
+          effectiveQuestion = [
+            question || 'Resolva e explique passo a passo a questão da imagem anexada.',
+            '',
+            '=== IMAGEM ANEXADA (transcrição fiel do print — trate como a questão literal do aluno) ===',
+            transcript,
+            '=== FIM DA IMAGEM ===',
+          ].join('\n');
+          savedQuestion = `[print anexado] ${question || transcript.slice(0, 280)}`;
+          console.log(
+            `[api/tutor] imagem transcrita em ${Date.now() - t0v}ms (${transcript.length} chars)`,
+          );
+        } else if (!question) {
+          return Response.json(
+            { error: 'Não consegui ler a imagem agora. Tente de novo ou digite sua dúvida em texto.' },
+            { status: 502 },
+          );
+        }
+      } catch (err) {
+        console.warn(
+          '[api/tutor] transcrição de imagem falhou:',
+          err instanceof Error ? err.message : err,
+        );
+        if (!question) {
+          return Response.json(
+            { error: 'A leitura de imagem falhou agora. Digite sua dúvida em texto ou tente de novo em instantes.' },
+            { status: 502 },
+          );
+        }
+        // com texto digitado, segue sem a imagem
+      }
     }
 
     const history: ChatMessage[] =
@@ -686,7 +775,9 @@ export async function POST(req: Request) {
     const materialEntry = !isFlashcardsMode
       ? findMaterial(body.materialId || material)
       : undefined;
-    const materialBlock = materialEntry ? await buildMaterialBlock(materialEntry, question) : '';
+    const materialBlock = materialEntry
+      ? await buildMaterialBlock(materialEntry, effectiveQuestion)
+      : '';
 
     const systemPrompt = isFlashcardsMode
       ? buildFlashcardsPrompt(discipline, topic || question)
@@ -731,7 +822,7 @@ export async function POST(req: Request) {
                     apiKeyStream,
                     systemPrompt,
                     history,
-                    question,
+                    effectiveQuestion,
                     (piece) => send({ t: 'delta', v: piece }),
                   );
                   usedModel = prettyModelName(model);
@@ -753,7 +844,7 @@ export async function POST(req: Request) {
                   zaiPubStream,
                   systemPrompt,
                   history,
-                  question,
+                  effectiveQuestion,
                   (piece) => send({ t: 'delta', v: piece }),
                 );
                 usedModel = `Z.ai (${ZAI_PUBLIC.model})`;
@@ -769,7 +860,7 @@ export async function POST(req: Request) {
             // 3º: fallback Z-AI do sandbox (stream se o SDK permitir)
             if (!answer && Date.now() <= deadline - 8_000) {
               try {
-                answer = await callZAIRetry(systemPrompt, history, question, (piece) =>
+                answer = await callZAIRetry(systemPrompt, history, effectiveQuestion, (piece) =>
                   send({ t: 'delta', v: piece }),
                 );
                 usedModel = 'Z-AI (fallback)';
@@ -787,12 +878,12 @@ export async function POST(req: Request) {
               return;
             }
 
-            // versão autoritativa sanitizada (LaTeX → texto legível)
-            answer = sanitizeLatex(answer);
+            // normaliza \[..\]/\(..\) → $$..$$/$..$ (KaTeX renderiza)
+            answer = normalizeMath(answer);
 
             // memória: salva a dupla pergunta+resposta (falha aqui não quebra a resposta)
             try {
-              await saveTurn(disciplineKey, question, answer, usedModel);
+              await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
             } catch (err) {
               console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
             }
@@ -825,7 +916,7 @@ export async function POST(req: Request) {
       for (const model of MODEL_CHAIN[isFlashcardsMode ? 'flashcards' : isFeynmanMode ? 'feynman' : 'tutor']) {
         const t0 = Date.now();
         try {
-          answer = await callOpenRouter(model, apiKey, systemPrompt, history, question);
+          answer = await callOpenRouter(model, apiKey, systemPrompt, history, effectiveQuestion);
           usedModel = prettyModelName(model);
           console.log(`[api/tutor] ${model} → ${Date.now() - t0}ms`);
           break;
@@ -842,7 +933,7 @@ export async function POST(req: Request) {
     if (!answer && zaiPubKey) {
       const t0 = Date.now();
       try {
-        answer = await callZAIPublic(zaiPubKey, systemPrompt, history, question);
+        answer = await callZAIPublic(zaiPubKey, systemPrompt, history, effectiveQuestion);
         usedModel = `Z.ai (${ZAI_PUBLIC.model})`;
         console.log(`[api/tutor] zai-public ${ZAI_PUBLIC.model} → ${Date.now() - t0}ms`);
       } catch (err) {
@@ -856,15 +947,15 @@ export async function POST(req: Request) {
     // 3º: fallback Z-AI do sandbox (com retry — sobrevive a rajadas de 429)
     if (!answer) {
       try {
-        answer = await callZAIRetry(systemPrompt, history, question);
+        answer = await callZAIRetry(systemPrompt, history, effectiveQuestion);
         usedModel = 'Z-AI (fallback)';
       } catch (err) {
         console.error('[api/tutor] fallback ZAI falhou:', err instanceof Error ? err.message : err);
       }
     }
 
-    // Sanitiza LaTeX que o markdown do app não renderiza (todas as respostas)
-    answer = sanitizeLatex(answer);
+    // Normaliza delimitadores que o KaTeX não entende de fábrica (todas as respostas)
+    answer = normalizeMath(answer);
 
     if (!answer) {
       console.error(
@@ -883,7 +974,7 @@ export async function POST(req: Request) {
     // memória: salva a dupla pergunta+resposta (JSON — flashcards e feynman não persistem)
     if (!isFlashcardsMode && !isFeynmanMode) {
       try {
-        await saveTurn(disciplineKey, question, answer, usedModel);
+        await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
       } catch (err) {
         console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
       }

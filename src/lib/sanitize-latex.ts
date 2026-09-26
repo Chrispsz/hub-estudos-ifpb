@@ -1,6 +1,24 @@
-// sanitize-latex — converte LaTeX que modelos free soltam em texto/markdown legível.
-// Usada no POST /api/tutor (resposta nova) e no GET /api/tutor/history (auto-cura
-// de mensagens antigas salvas antes das correções).
+// sanitize-latex — helpers de LaTeX para o Tutor IA.
+//  • normalizeMath — NORMALIZA delimitadores que o KaTeX (tutor-markdown) não
+//    entende de fábrica: \[...\] → $$...$$ e \(...\) → $...$. Aplicada em toda
+//    resposta nova (POST /api/tutor) e na leitura do histórico — o app AGORA
+//    RENDERIZA LaTeX com KaTeX, então a matemática não é mais "achatada" em texto.
+//  • sanitizeLatex — (legado) achata LaTeX em texto legível; mantida só como
+//    fallback para superfícies sem KaTeX.
+
+export function normalizeMath(input: string): string {
+  let out = input;
+
+  // \[...\] (display) → $$...$$ — com quebras de linha para virar bloco markdown
+  out = out.replace(/\\\[([\s\S]*?)\\\]/g, (_m, body: string) => `\n$$\n${body.trim()}\n$$\n`);
+  // \(...\) (inline) → $...$
+  out = out.replace(/\\\(([\s\S]*?)\\\)/g, (_m, body: string) => `$${body.trim()}$`);
+
+  // Modelos às vezes escapam o cifrão fora de math (\$) — CommonMark já
+  // renderiza \$ como "$", então deixamos como está.
+
+  return out;
+}
 
 export function sanitizeLatex(input: string): string {
   let out = input;

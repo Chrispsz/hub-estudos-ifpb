@@ -3,11 +3,16 @@
 // Renderizador de markdown compartilhado do Tutor IA — usado no chat da aba
 // Estudar, no painel rápido dos PDFs e em qualquer nova superfície do tutor.
 // Garante saída estruturada e consistente: negrito em destaque, blocos de código
-// ricos (CodeBlock: sintaxe C/Portugol/HTML + copiar + linhas), listas legíveis
-// e tabelas com scroll.
+// ricos (CodeBlock: sintaxe C/Portugol/HTML + copiar + linhas), listas legíveis,
+// tabelas com scroll e MATEMÁTICA RENDERIZADA (KaTeX): $x^2$, $$\begin{pmatrix}…$$.
 
 import * as React from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import type { PluggableList } from 'unified';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { cn } from '@/lib/utils';
 import { CodeBlock } from '@/components/hub/code-block';
 
@@ -34,6 +39,18 @@ function TutorMarkdownImpl({
   accent = 'text-emerald-400',
   className,
 }: TutorMarkdownProps) {
+  // Protege o cifrão do "R$" do pareamento de math ($...$): vira escape markdown
+  // (R\$) que o remark-math ignora e o CommonMark renderiza como "$" literal.
+  const prepared = React.useMemo(() => content.replace(/R\$/g, 'R\\$'), [content]);
+
+  const remarkPlugins = React.useMemo<PluggableList>(() => [remarkGfm, remarkMath], []);
+  // Opções do plugin em TUPLA aninhada ([plugin, options]) — no formato plano o
+  // react-markdown interpreta o objeto de opções como "preset" e quebra.
+  const rehypePlugins = React.useMemo<PluggableList>(
+    () => [[rehypeKatex, { throwOnError: false, errorColor: '#f87171', strict: false }]],
+    [],
+  );
+
   // Mapa de componentes memoizado: sem isso ele é recriado a cada render,
   // forçando o ReactMarkdown a re-renderizar toda a árvore de nós.
   const components = React.useMemo<Components>(
@@ -97,7 +114,13 @@ function TutorMarkdownImpl({
 
   return (
     <div className={cn('text-sm', className)}>
-      <ReactMarkdown components={components}>{content}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
+        components={components}
+      >
+        {prepared}
+      </ReactMarkdown>
     </div>
   );
 }

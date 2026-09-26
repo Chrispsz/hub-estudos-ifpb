@@ -49,6 +49,7 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { TutorMarkdown } from './tutor-markdown';
 import {
   flashcardBoxLabel,
   flashcardNextIntervalLabel,
@@ -760,9 +761,8 @@ function ReviewSession({
               Resposta
             </p>
             <div className="mt-2 flex-1 overflow-y-auto [scrollbar-width:thin]">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-                {current.back}
-              </p>
+              {/* TutorMarkdown = math em KaTeX ($..$) + negrito/listas do verso */}
+              <TutorMarkdown content={current.back} accent="text-emerald-500" />
             </div>
           </div>
         </motion.div>

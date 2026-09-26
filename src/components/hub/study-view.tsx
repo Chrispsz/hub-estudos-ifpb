@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   History,
+  ImagePlus,
   Loader2,
   Maximize2,
   Minimize2,
@@ -62,6 +63,7 @@ import { DisciplineIcon } from '@/lib/discipline-icons';
 import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { buildHubContext } from '@/lib/tutor-context';
+import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
@@ -85,6 +87,8 @@ interface ChatMessage {
   content: string;
   /** Modelo free que gerou a resposta (OpenRouter) — exibido discretamente. */
   model?: string;
+  /** Miniatura do print anexado (só na conversa viva — não persiste no banco). */
+  image?: string;
 }
 
 interface BannerSnapshot {
@@ -293,6 +297,9 @@ export function StudyView({
   ]);
   const [chatInput, setChatInput] = React.useState('');
   const [chatLoading, setChatLoading] = React.useState(false);
+  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
+  const [chatImage, setChatImage] = React.useState<string | null>(null);
+  const chatFileRef = React.useRef<HTMLInputElement>(null);
   /** Texto da resposta em streaming (bubble viva). null = nada em transmissão. */
   const [streamText, setStreamText] = React.useState<string | null>(null);
 
@@ -781,11 +788,35 @@ export function StudyView({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, chatLoading, chatOpen, streamText]);
 
+  /** Anexa print/foto da questão — reduzido antes de virar data URL. */
+  const attachChatImage = async (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Só dá para anexar imagem (print/foto).');
+      return;
+    }
+    try {
+      setChatImage(await downscaleImageFile(file));
+    } catch {
+      toast.error('Não consegui processar a imagem. Tente outra.');
+    }
+  };
+
   const sendQuestion = async (question: string) => {
     const q = question.trim();
-    if (!q || chatLoading) return;
-    const history = messages.slice(-6).map(({ role, content }) => ({ role, content }));
-    setMessages((prev) => [...prev, { role: 'user', content: q }]);
+    if ((!q && !chatImage) || chatLoading) return;
+    const image = chatImage;
+    // Memória da conversa: últimas 12 mensagens (sem bolhas de erro) — o tutor
+    // usa isso para CONTINUAR o raciocínio em vez de recomeçar o assunto.
+    const history = messages
+      .filter((m) => !m.content.startsWith('⚠️'))
+      .slice(-12)
+      .map(({ role, content }) => ({ role, content }));
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: q || '📷 print anexado', image: image ?? undefined },
+    ]);
+    setChatImage(null);
     setChatInput('');
     setChatLoading(true);
     setStreamText(null);
@@ -793,6 +824,7 @@ export function StudyView({
       const result = await streamTutorAnswer(
         {
           question: q,
+          imageDataUrl: image ?? undefined,
           discipline: discipline.name,
           disciplineCode,
           topic: chatTopic,
@@ -1245,7 +1277,20 @@ export function StudyView({
                       : 'bg-muted text-foreground',
                   )}
                 >
-                  {m.role === 'user' ? m.content : <TutorMarkdown content={m.content} />}
+                  {m.role === 'user' ? (
+                    <>
+                      <p className="whitespace-pre-wrap">{m.content}</p>
+                      {m.image && (
+                        <img
+                          src={m.image}
+                          alt="Print anexado à dúvida"
+                          className="mt-2 max-h-44 rounded-lg"
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <TutorMarkdown content={m.content} />
+                  )}
                   {m.role === 'assistant' && m.model && (
                     <p className="mt-1.5 text-[10px] text-muted-foreground/60">via {m.model}</p>
                   )}
@@ -1288,6 +1333,36 @@ export function StudyView({
           </div>
 
           <div className="border-t border-white/10 p-4">
+            {chatImage && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
+                <img
+                  src={chatImage}
+                  alt="Prévia do print anexado"
+                  className="size-12 rounded-md object-cover"
+                />
+                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                  print anexado — o tutor lê a imagem antes de responder
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setChatImage(null)}
+                  aria-label="Remover imagem anexada"
+                  className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            )}
+            <input
+              ref={chatFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                void attachChatImage(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
             <form
               className="flex gap-2"
               onSubmit={(e) => {
@@ -1295,10 +1370,29 @@ export function StudyView({
                 void sendQuestion(chatInput);
               }}
             >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => chatFileRef.current?.click()}
+                disabled={chatLoading}
+                aria-label="Anexar print/foto da questão"
+                title="Anexar print/foto — ou cole com Ctrl+V"
+              >
+                <ImagePlus className="size-4" />
+              </Button>
               <Input
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Digite sua dúvida..."
+                onPaste={(e) => {
+                  const f = imageFromClipboard(e);
+                  if (f) {
+                    e.preventDefault();
+                    void attachChatImage(f);
+                  }
+                }}
+                placeholder="Dúvida... (ou cole um print)"
                 disabled={chatLoading}
                 aria-label="Sua pergunta para o tutor"
               />
@@ -1306,7 +1400,7 @@ export function StudyView({
                 type="submit"
                 size="icon"
                 className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
-                disabled={chatLoading || !chatInput.trim()}
+                disabled={chatLoading || (!chatInput.trim() && !chatImage)}
                 aria-label="Enviar mensagem"
               >
                 <Send className="size-4" />
