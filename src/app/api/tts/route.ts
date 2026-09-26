@@ -3,11 +3,39 @@
 // O cliente manda UM pedaço de texto (≤ 900 chars — ele mesmo fatia a resposta
 // em frases) e recebe um wav pronto para <audio>. Formato: 'wav' é o único
 // aceito pelo provedor ('mp3' retorna erro 1214 — testado em QA).
-// Voz: 'tongtong' (mais natural disponível). Sem stream (wav não suporta).
+// Voz: 'tongtong'. Speed 1.15 (a voz base lê pt-BR devagar demais).
+//
+// IMPORTANTE (deploy): o z-ai-web-dev-sdk lê credenciais de um ARQUIVO
+// (.z-ai-config em cwd/home/etc). No sandbox existe (/etc) e funciona;
+// em deploys serverless sem o arquivo, respondemos 503 com uma mensagem
+// clara — o cliente exibe e o usuário fica sabendo que a voz do navegador
+// é o caminho (a nativa cobre os navegadores reais).
 
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs/promises';
 
 const MAX_CHARS = 900;
+
+/** O SDK exige um arquivo de config — detectamos a ausência ANTES para
+ *  devolver 503 didático em vez de 500 genérico. */
+async function configAvailable(): Promise<boolean> {
+  const paths = [
+    `${process.cwd()}/.z-ai-config`,
+    `${process.env.HOME ?? ''}/.z-ai-config`,
+    '/etc/.z-ai-config',
+  ];
+  for (const p of paths) {
+    if (!p || p === '/.z-ai-config') continue;
+    try {
+      const raw = await fs.readFile(p, 'utf-8');
+      const cfg = JSON.parse(raw) as { baseUrl?: string; apiKey?: string };
+      if (cfg.baseUrl && cfg.apiKey) return true;
+    } catch {
+      // arquivo ausente/inválido — tenta o próximo
+    }
+  }
+  return false;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +49,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: `Texto longo demais para um pedaço (máx. ${MAX_CHARS} caracteres).` },
         { status: 400 },
+      );
+    }
+
+    if (!(await configAvailable())) {
+      return NextResponse.json(
+        {
+          error:
+            'A voz IA (servidor) não está configurada neste deploy — use a voz do navegador, que cobre os navegadores atuais.',
+        },
+        { status: 503 },
       );
     }
 

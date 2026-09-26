@@ -169,12 +169,15 @@ export function useTutorSpeech() {
   }, []);
 
   /** Voz nativa: retorna false se nem conseguiu começar. Erro assíncrono
-   *  (voz ausente etc.) dispara o fallback do servidor dentro do onerror. */
+   *  (voz ausente etc.) dispara o fallback do servidor dentro do onerror.
+   *  CUIDADO Chrome: speak() no MESMO tick de cancel() engole a fala — só
+   *  cancelamos se algo está tocando, e nesse caso falamos 150ms depois. */
   const startNativeSpeech = React.useCallback(
     (id: number, text: string): boolean => {
       try {
         const synth = window.speechSynthesis;
-        synth.cancel();
+        const hadOngoing = synth.speaking || synth.pending;
+        if (hadOngoing) synth.cancel();
         const u = new SpeechSynthesisUtterance(text);
         const voice = pickVoice();
         if (voice) u.voice = voice;
@@ -201,9 +204,13 @@ export function useTutorSpeech() {
             void startServerSpeech(id, text);
           }
         };
-        activeIdRef.current = id;
-        setSpeakingId(id);
-        synth.speak(u);
+        const doSpeak = () => {
+          activeIdRef.current = id;
+          setSpeakingId(id);
+          synth.speak(u);
+        };
+        if (hadOngoing) window.setTimeout(doSpeak, 150);
+        else doSpeak();
         // Watchdog: alguns navegadores falham EM SILÊNCIO (nenhum onerror) —
         // se após 2,5s nada estiver tocando, cai para a voz do servidor.
         window.setTimeout(() => {
