@@ -347,6 +347,11 @@ export function SimuladoView({
             timeInfo={timeInfo}
             barColor={barColor}
             timePct={timePct}
+            paceMin={
+              config.durationMin > 0
+                ? Math.max(1, Math.round(config.durationMin / questions.length))
+                : undefined
+            }
             onHintToggle={() => setHintVisible((v) => !v)}
             onMark={mark}
             onNavigate={(i) => {
@@ -575,11 +580,19 @@ function SetupScreen({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
-        <p className="text-xs text-muted-foreground">
-          <ListChecks className="mr-1 inline size-3.5" />
-          {poolCount} questão(ões) no filtro · dicas liberadas durante a prova
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
+        <div className="min-w-0 text-xs text-muted-foreground">
+          <p>
+            <ListChecks className="mr-1 inline size-3.5" />
+            {poolCount} questão(ões) no filtro · dicas liberadas durante a prova
+          </p>
+          {activeTopics.length > 0 && (
+            <p className="mt-0.5 truncate pl-5 text-[11px]">
+              <span className="font-medium text-amber-600 dark:text-amber-400">escopo:</span>{' '}
+              {activeTopics.join(' + ')}
+            </p>
+          )}
+        </div>
         <Button
           onClick={onStart}
           disabled={poolCount === 0}
@@ -602,6 +615,7 @@ function ExamScreen({
   timeInfo,
   barColor,
   timePct,
+  paceMin,
   onHintToggle,
   onMark,
   onNavigate,
@@ -614,6 +628,8 @@ function ExamScreen({
   timeInfo: { label: string; value: string };
   barColor: string;
   timePct: number;
+  /** Ritmo alvo por questão (min) — só com cronômetro ativo. */
+  paceMin?: number;
   onHintToggle: () => void;
   onMark: (solved: boolean) => void;
   onNavigate: (i: number) => void;
@@ -652,6 +668,12 @@ function ExamScreen({
             transition={{ duration: 0.4 }}
           />
         </div>
+        {paceMin !== undefined && paceMin >= 1 && (
+          <p className="mt-1.5 text-right text-[10px] text-muted-foreground">
+            ritmo alvo ≈ <span className="font-semibold tabular-nums">{paceMin} min</span> por
+            questão
+          </p>
+        )}
       </div>
 
       <div className="px-4 py-5 sm:px-6">
@@ -825,6 +847,21 @@ function ResultsScreen({
           ? { label: 'Continue praticando', tone: 'text-amber-500', icon: Target }
           : { label: 'Hora de revisar', tone: 'text-rose-500', icon: RotateCcw };
 
+  // Desempenho por tópico: onde o foco deve estar antes da prova (pior primeiro).
+  const topicStats = React.useMemo(() => {
+    const m = new Map<string, { solved: number; total: number }>();
+    questions.forEach((q, i) => {
+      const rec = m.get(q.topic) ?? { solved: 0, total: 0 };
+      rec.total += 1;
+      if (results[i].solved === true) rec.solved += 1;
+      m.set(q.topic, rec);
+    });
+    return [...m.entries()]
+      .map(([topic, v]) => ({ topic, ...v, pct: Math.round((v.solved / v.total) * 100) }))
+      .sort((a, b) => a.pct - b.pct || b.total - a.total);
+  }, [questions, results]);
+  const multiTopic = topicStats.length > 1;
+
   return (
     <div>
       <div className="border-b bg-gradient-to-r from-emerald-600/15 via-teal-500/10 to-transparent px-6 py-5">
@@ -877,6 +914,61 @@ function ResultsScreen({
           <MiniStat icon={<Timer className="size-3.5" />} label="Tempo total" value={fmtClock(elapsed)} tone="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
         </div>
       </div>
+
+      {/* Desempenho por tópico — a prova vira mapa de estudo (pior primeiro) */}
+      {multiTopic && (
+        <div className="px-6 pb-1">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Desempenho por tópico
+            </p>
+            {topicStats[0].pct < 60 && (
+              <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
+                <Target className="mr-1 size-2.5" /> foco: {topicStats[0].topic}
+              </Badge>
+            )}
+          </div>
+          <div className="space-y-2.5">
+            {topicStats.map((t, i) => (
+              <div key={t.topic}>
+                <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+                  <span className="min-w-0 truncate font-medium">{t.topic}</span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {t.solved}/{t.total} ·{' '}
+                    <span
+                      className={cn(
+                        'font-semibold',
+                        t.pct >= 60
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : t.pct >= 40
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-rose-600 dark:text-rose-400',
+                      )}
+                    >
+                      {t.pct}%
+                    </span>
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <motion.div
+                    className={cn(
+                      'h-full rounded-full',
+                      t.pct >= 60
+                        ? 'bg-emerald-500'
+                        : t.pct >= 40
+                          ? 'bg-amber-500'
+                          : 'bg-rose-500',
+                    )}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(t.pct, 4)}%` }}
+                    transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 + i * 0.1 }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasMissed && (
         <div className="px-6 pb-2">
