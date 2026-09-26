@@ -10,6 +10,7 @@ import {
   Download,
   History,
   ImagePlus,
+  Lightbulb,
   Loader2,
   Maximize2,
   Minimize2,
@@ -19,9 +20,11 @@ import {
   Send,
   SkipForward,
   Sparkles,
+  Square,
   Target,
   Timer,
   Trash2,
+  Volume2,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,6 +70,7 @@ import { getDisciplineTopics } from '@/lib/study-topics';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
+import { useTutorSpeech } from '@/lib/tutor-speech';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
@@ -245,11 +249,15 @@ function ThinkingBubble() {
   return (
     <div className="flex items-center gap-2" role="status" aria-live="polite">
       <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10">
-        <Loader2 className="size-4 animate-spin text-emerald-400" />
+        <Bot className="size-4 text-emerald-400" />
       </div>
-      <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
-        <Loader2 className="size-3.5 animate-spin" />
-        Pensando...
+      <div className="flex items-center gap-2.5 rounded-2xl rounded-tl-sm border border-border/60 bg-muted px-3 py-2.5 text-sm text-muted-foreground shadow-sm">
+        <span className="flex items-center gap-1" aria-hidden>
+          <span className="animate-dot size-1.5 rounded-full bg-emerald-400 [animation-delay:0ms]" />
+          <span className="animate-dot size-1.5 rounded-full bg-emerald-400 [animation-delay:160ms]" />
+          <span className="animate-dot size-1.5 rounded-full bg-emerald-400 [animation-delay:320ms]" />
+        </span>
+        Pensando
         <span className="tabular-nums text-xs opacity-70">{secs}s</span>
       </div>
     </div>
@@ -326,6 +334,10 @@ export function StudyView({
   const chatFileRef = React.useRef<HTMLInputElement>(null);
   /** Texto da resposta em streaming (bubble viva). null = nada em transmissão. */
   const [streamText, setStreamText] = React.useState<string | null>(null);
+  /** Modo dica: tutor socrático — pistas antes da solução completa (estudo real). */
+  const [chatHints, setChatHints] = React.useState(false);
+  /** Ouvir resposta — TTS nativo do navegador (voz pt-BR). */
+  const { speakingId, toggle: toggleSpeech, supported: ttsSupported } = useTutorSpeech();
 
   // ----- Derivados -----
   const discipline = getDisciplineByCode(disciplineCode) ?? disciplines[0];
@@ -869,6 +881,7 @@ export function StudyView({
           material: selectedMaterial?.title,
           materialId: selectedMaterial?.id,
           history,
+          hintMode: chatHints,
           hubContext: buildHubContext(disciplineCode, sp),
         },
         (_piece, full) => {
@@ -1313,6 +1326,26 @@ export function StudyView({
               <Button
                 variant="ghost"
                 size="icon"
+                className={cn(
+                  'size-8 shrink-0 transition-colors',
+                  chatHints
+                    ? 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25 hover:text-amber-400'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => setChatHints((v) => !v)}
+                aria-pressed={chatHints}
+                aria-label="Modo dica"
+                title={
+                  chatHints
+                    ? 'Modo dica LIGADO — o tutor dá pistas antes da solução (clique p/ desligar)'
+                    : 'Modo dica — tutor dá pistas antes de resolver (bom pra treinar)'
+                }
+              >
+                <Lightbulb className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 className="size-8 shrink-0"
                 onClick={exportChat}
                 disabled={messages.length <= 1}
@@ -1394,6 +1427,27 @@ export function StudyView({
                           >
                             <Copy className="size-3" />
                             copiar
+                          </button>
+                        )}
+                        {ttsSupported && m.content.length > 80 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleSpeech(i, m.content)}
+                            aria-label={speakingId === i ? 'Parar leitura' : 'Ouvir resposta'}
+                            title={speakingId === i ? 'Parar leitura' : 'Ouvir resposta em voz alta'}
+                            className={cn(
+                              'flex items-center gap-1 text-[10px] transition-colors',
+                              speakingId === i
+                                ? 'text-emerald-500'
+                                : 'text-muted-foreground/60 hover:text-foreground',
+                            )}
+                          >
+                            {speakingId === i ? (
+                              <Square className="size-3" />
+                            ) : (
+                              <Volume2 className="size-3" />
+                            )}
+                            {speakingId === i ? 'parar' : 'ouvir'}
                           </button>
                         )}
                       </div>

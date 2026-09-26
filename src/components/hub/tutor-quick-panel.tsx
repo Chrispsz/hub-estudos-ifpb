@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Bot, Copy, CornerDownLeft, ImagePlus, Loader2, Sparkles, User, X } from 'lucide-react';
+import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Square, User, Volume2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
+import { useTutorSpeech } from '@/lib/tutor-speech';
 import { TutorMarkdown } from './tutor-markdown';
 
 interface ChatMessage {
@@ -63,6 +64,10 @@ export function TutorQuickPanel({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const nextIdRef = React.useRef(0);
+  /** Modo dica: tutor socrático — pistas antes da solução completa. */
+  const [hintMode, setHintMode] = React.useState(false);
+  /** Ouvir resposta — TTS nativo do navegador. */
+  const { speakingId, toggle: toggleSpeech, supported: ttsSupported } = useTutorSpeech();
 
   // Anexa mensagem com id único — chaves estáveis na lista de conversa.
   const appendMessage = React.useCallback((msg: Omit<ChatMessage, 'id'>) => {
@@ -139,6 +144,7 @@ export function TutorQuickPanel({
           material: materialTitle,
           materialId,
           history,
+          hintMode,
           hubContext: buildHubContext(disciplineCode ?? '', sp),
         },
         (_piece, full) => {
@@ -259,6 +265,23 @@ export function TutorQuickPanel({
                       <Copy className="size-3" />
                       copiar
                     </button>
+                    {ttsSupported && m.content.length > 80 && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSpeech(m.id, m.content)}
+                        aria-label={speakingId === m.id ? 'Parar leitura' : 'Ouvir resposta'}
+                        title={speakingId === m.id ? 'Parar leitura' : 'Ouvir resposta em voz alta'}
+                        className={cn(
+                          'flex items-center gap-1 text-[10px] transition-colors',
+                          speakingId === m.id
+                            ? 'text-emerald-500'
+                            : 'text-muted-foreground/60 hover:text-foreground',
+                        )}
+                      >
+                        {speakingId === m.id ? <Square className="size-3" /> : <Volume2 className="size-3" />}
+                        {speakingId === m.id ? 'parar' : 'ouvir'}
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -350,6 +373,28 @@ export function TutorQuickPanel({
               e.target.value = '';
             }}
           />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'shrink-0 transition-colors',
+              hintMode
+                ? 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25 hover:text-amber-400'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => setHintMode((v) => !v)}
+            disabled={loading}
+            aria-pressed={hintMode}
+            aria-label="Modo dica"
+            title={
+              hintMode
+                ? 'Modo dica LIGADO — o tutor dá pistas antes da solução (clique p/ desligar)'
+                : 'Modo dica — tutor dá pistas antes de resolver (bom pra treinar)'
+            }
+          >
+            <Lightbulb className="size-4" />
+          </Button>
           <Button
             type="button"
             variant="ghost"

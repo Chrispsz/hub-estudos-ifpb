@@ -92,6 +92,8 @@ interface TutorRequestBody {
   mode?: 'tutor' | 'flashcards' | 'feynman';
   /** true → resposta em SSE (eventos delta/final/error). Padrão: JSON. */
   stream?: boolean;
+  /** true → tutor socrático: dá pistas antes da solução completa (modo dica). */
+  hintMode?: boolean;
   /** Dados do app (professor, datas, progresso) para respostas precisas. */
   hubContext?: HubContext;
 }
@@ -283,6 +285,7 @@ function buildSystemPrompt(
   material?: string,
   hub?: HubContext,
   materialBlock = '',
+  hintMode = false,
 ): string {
   return [
     `Você é o tutor IA do Hub de Estudos — o app de estudos de um aluno do 2º período de ADS no IFPB Campus Cajazeiras (ensino médio integrado ao superior), turma 2026.2. Você conversa em português brasileiro.`,
@@ -291,6 +294,18 @@ function buildSystemPrompt(
     material ? `Material aberto: "${material}".` : '',
     materialBlock,
     buildHubBlock(hub),
+    hintMode
+      ? [
+          'MODO DICA ATIVADO (pedagógico — o aluno quer APRENDER, não copiar):',
+          '- Para EXERCÍCIO ou problema enviado: NÃO entregue a solução completa de primeira. Responda em 3 estágios curtos:',
+          '  1) Uma pergunta-guia que ative o que o aluno já sabe sobre o problema;',
+          '  2) A dica principal — o caminho/conceito-chave, SEM o resultado final;',
+          '  3) Feche oferecendo: "Quando tentar, me conta onde travou — ou pede que eu resolvo passo a passo."',
+          '- PROIBIDO no 1º turno do modo dica: código completo, o resultado final, a resolução numérica ou a matriz/fórmula pronta. Mesmo que pareça útil — a solução completa SÓ sai quando o aluno tentar e travar ou pedir explicitamente de novo (veja no HISTÓRICO).',
+          '- Se o aluno insistir (pediu de novo, já tentou e travou), aí sim resolva COMPLETO, passo a passo.',
+          '- Dúvida CONCEITUAL (definição, teoria, datas, explicação): responda normalmente — o modo dica vale para exercícios e problemas, não para explicar teoria.',
+        ].join('\n')
+      : '',
     'COMO ESTRUTURAR AS RESPOSTAS (markdown):',
     '- Abra com a resposta direta à pergunta (1-2 frases). Depois explique com um exemplo.',
     '- Use **negrito** para conceitos-chave e listas numeradas para passos.',
@@ -1129,7 +1144,14 @@ export async function POST(req: Request) {
           (materialBlock
             ? `\n\n=== TRECHO OFICIAL DO MATERIAL (fonte da verdade) ===\n${materialBlock}\n=== FIM DO TRECHO ===`
             : '')
-        : buildSystemPrompt(discipline, topic, material, hub, materialBlock);
+        : buildSystemPrompt(
+            discipline,
+            topic,
+            material,
+            hub,
+            materialBlock,
+            body.hintMode === true,
+          );
 
     // ---------- MODO STREAMING (SSE) — chat do tutor ----------
     if (useStream) {

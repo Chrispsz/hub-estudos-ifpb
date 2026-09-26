@@ -210,3 +210,20 @@
 ::selection {
   background-color: color-mix(in oklab, var(--primary) 28%, transparent);
 }
+
+/* Pontinhos do "Pensando..." — sobem e desce em sequência. */
+@keyframes dot-bounce {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  35% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.animate-dot {
+  animation: dot-bounce 1.1s ease-in-out infinite;
+}
