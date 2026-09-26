@@ -20,11 +20,10 @@ import {
   Send,
   SkipForward,
   Sparkles,
-  Square,
   Target,
   Timer,
   Trash2,
-  Volume2,
+  TriangleAlert,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -72,7 +71,6 @@ import { buildHubContext } from '@/lib/tutor-context';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
-import { useTutorSpeech } from '@/lib/tutor-speech';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
@@ -105,6 +103,8 @@ interface ChatMessage {
   image?: string;
   /** Hora local (HH:MM) da mensagem — referência discreta de quando estudou. */
   time?: string;
+  /** true → mensagem de erro (falha do provedor/sem key) — estilo rosa + sem ações. */
+  error?: boolean;
 }
 
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
@@ -348,8 +348,6 @@ export function StudyView({
   const [streamText, setStreamText] = React.useState<string | null>(null);
   /** Modo dica: tutor socrático — pistas antes da solução completa (estudo real). */
   const [chatHints, setChatHints] = React.useState(false);
-  /** Ouvir resposta — TTS nativo do navegador (voz pt-BR). */
-  const { speakingId, preparingId, toggle: toggleSpeech } = useTutorSpeech();
 
   // ----- Derivados -----
   const discipline = getDisciplineByCode(disciplineCode) ?? disciplines[0];
@@ -971,6 +969,14 @@ export function StudyView({
       const partial = err instanceof TutorStreamError ? err.partial : '';
       if (partial.trim()) {
         setMessages((prev) => [...prev, { role: 'assistant', content: partial, time: hhmm() }]);
+      } else {
+        // Sem resposta nenhuma (deploy sem key de IA, falha total): o motivo PRECISA
+        // ficar visível no próprio chat — toast some em 4s e fica fora do diálogo.
+        const msg = err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.';
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: msg, time: hhmm(), error: true },
+        ]);
       }
       toast.error(err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.');
     } finally {
@@ -1480,7 +1486,7 @@ export function StudyView({
               >
                 {m.role === 'assistant' && (
                   <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10">
-                    <Bot className="size-4 text-emerald-400" />
+                    <Bot className={cn('size-4', m.error ? 'text-rose-400' : 'text-emerald-400')} />
                   </div>
                 )}
                 <div
@@ -1488,7 +1494,9 @@ export function StudyView({
                     'max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm',
                     m.role === 'user'
                       ? 'whitespace-pre-wrap rounded-tr-sm bg-gradient-to-br from-emerald-600 to-teal-600 text-white'
-                      : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
+                      : m.error
+                        ? 'rounded-tl-sm border border-rose-500/30 bg-rose-500/5 text-foreground'
+                        : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
                   )}
                 >
                   {m.role === 'user' ? (
@@ -1507,7 +1515,14 @@ export function StudyView({
                     </>
                   ) : (
                     <>
-                      <TutorMarkdown content={m.content} enableCards disciplineCode={discipline.code} />
+                      {m.error ? (
+                        <div className="flex items-start gap-1.5">
+                          <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-rose-500" />
+                          <p className="whitespace-pre-wrap">{m.content}</p>
+                        </div>
+                      ) : (
+                        <TutorMarkdown content={m.content} enableCards disciplineCode={discipline.code} />
+                      )}
                       <div className="mt-1.5 flex items-center gap-2">
                         {m.time && (
                           <span className="text-[10px] text-muted-foreground/60">{m.time}</span>
@@ -1515,7 +1530,7 @@ export function StudyView({
                         {m.model && (
                           <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
                         )}
-                        {m.content.length > 80 && (
+                        {m.content.length > 80 && !m.error && (
                           <button
                             type="button"
                             onClick={() => copyAnswer(m.content)}
@@ -1525,27 +1540,6 @@ export function StudyView({
                           >
                             <Copy className="size-3" />
                             copiar
-                          </button>
-                        )}
-                        {m.content.length > 80 && (
-                          <button
-                            type="button"
-                            onClick={() => toggleSpeech(i, m.content)}
-                            aria-label={speakingId === i ? 'Parar leitura' : 'Ouvir resposta'}
-                            title={speakingId === i ? 'Parar leitura' : 'Ouvir resposta em voz alta'}
-                            className={cn(
-                              'flex items-center gap-1 text-[10px] transition-colors',
-                              speakingId === i || preparingId === i
-                                ? 'text-emerald-500'
-                                : 'text-muted-foreground/60 hover:text-foreground',
-                            )}
-                          >
-                            {speakingId === i || preparingId === i ? (
-                              <Square className={cn('size-3', preparingId === i && 'animate-pulse')} />
-                            ) : (
-                              <Volume2 className="size-3" />
-                            )}
-                            {speakingId === i ? 'parar' : preparingId === i ? 'gerando…' : 'ouvir'}
                           </button>
                         )}
                       </div>

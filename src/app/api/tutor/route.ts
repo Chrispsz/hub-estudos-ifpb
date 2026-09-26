@@ -8,8 +8,9 @@
 //                                            Resolve texto E leitura de print na Vercel.
 //  2º OpenRouter (se OPENROUTER_API_KEY)   — 1 key grátis → dezenas de modelos free (texto + visão)
 //  3º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
-//  4º SDK Z-AI do sandbox (dinâmico)       — funciona só em dev/sandbox (baseUrl interno),
-//                                            na Vercel falha silenciosamente e é ignorado
+//  4º SDK Z-AI do sandbox (dinâmico)      — FORA do package.json (pedido do dono:
+//                                            "nada que dependa da zai em prod"). Só
+//                                            ativa se existir em node_modules (dev).
 //
 // Configure no .env local e nas Environment Variables da Vercel — UMA key já ativa tudo;
 // GEMINI_API_KEY é a única que dá leitura de imagem + texto com UMA key só.
@@ -654,7 +655,11 @@ async function callZAIPublic(
   }
 }
 
-/** Fallback final: SDK Z-AI — import dinâmico protegido p/ portabilidade (Vercel-safe).
+/** Fallback final: SDK Z-AI — import dinâmico protegido p/ portabilidade.
+ *  O pacote NÃO está mais no package.json (pedido do dono: "nada que dependa da zai") —
+ *  só funciona em sandboxes de desenvolvimento que o tenham instalado localmente.
+ *  Em qualquer outro ambiente (Vercel, servidor próprio) o import falha e cai no
+ *  catch da chamadora, devolvendo '' sem erro — o tutor usa só provedores com key.
  *  Com onDelta tenta stream:true; se o backend não iterar, entrega inteiro — nunca quebra. */
 async function callZAI(
   systemPrompt: string,
@@ -663,7 +668,7 @@ async function callZAI(
   onDelta?: (piece: string) => void,
 ): Promise<string> {
   // new Function impede o bundler de resolver o pacote no build — se não existir
-  // no ambiente (ex.: deploy na Vercel), cai no catch e devolve '' sem erro.
+  // no ambiente (node_modules), cai no catch e devolve '' sem erro.
   const dynamicImport = new Function("return import('z-ai-web-dev-sdk')") as () => Promise<any>;
   const mod = await dynamicImport();
   const ZAI = mod.default;
@@ -952,7 +957,9 @@ async function callZAIVision(
   }
 }
 
-/** Transcrição com o SDK Z-AI do sandbox (glm-4.5v) — só funciona em dev. */
+/** Transcrição com o SDK Z-AI do sandbox (glm-4.5v) — só funciona em dev.
+ *  Pacote fora do package.json (pedido do dono) — em produção o import falha
+ *  e a chamadora ignora este caminho (visão vem de Gemini/OpenRouter com key). */
 async function transcribeImageSandbox(dataUrl: string, userNote: string): Promise<string> {
   const dynamicImport = new Function("return import('z-ai-web-dev-sdk')") as () => Promise<any>;
   const mod = await dynamicImport();
@@ -1314,6 +1321,7 @@ export async function POST(req: Request) {
     if (useStream) {
       const apiKeyStream = process.env.OPENROUTER_API_KEY;
       const zaiPubStream = ZAI_PUBLIC.key;
+      const hasAnyKeyStream = Boolean(GEMINI.key || apiKeyStream || zaiPubStream);
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           const enc = new TextEncoder();
@@ -1420,8 +1428,11 @@ export async function POST(req: Request) {
             if (!answer) {
               send({
                 t: 'error',
-                message:
-                  'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). Tente novamente em instantes.',
+                message: hasAnyKeyStream
+                  ? 'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). Tente novamente em instantes.'
+                  : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
+                    '(key grátis em aistudio.google.com/app/apikey) nas variáveis de ambiente do deploy ' +
+                    '(Vercel ou servidor próprio) — em seguida o tutor funciona completo, incluindo leitura de prints. 💪',
               });
               return;
             }
@@ -1535,7 +1546,8 @@ export async function POST(req: Request) {
             ? 'O tutor IA está sobrecarregado agora (muitas perguntas em pouco tempo). ' +
               'Aguarde ~1 minuto e tente de novo — volta rapidinho. 💪'
             : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
-              '(key grátis em aistudio.google.com/app/apikey) nas variáveis da Vercel — em seguida o tutor ' +
+              '(key grátis em aistudio.google.com/app/apikey) nas variáveis de ambiente do deploy ' +
+              '(Vercel ou servidor próprio) — em seguida o tutor ' +
               'funciona completo, incluindo leitura de prints. 💪',
         },
         { status: 502 },

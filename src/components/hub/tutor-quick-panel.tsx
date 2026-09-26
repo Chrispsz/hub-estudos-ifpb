@@ -6,7 +6,9 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Square, Target, User, Volume2, X } from 'lucide-react';
+
+import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, TriangleAlert, User, X } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -14,7 +16,6 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
-import { useTutorSpeech } from '@/lib/tutor-speech';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { TutorMarkdown } from './tutor-markdown';
 
@@ -28,6 +29,8 @@ interface ChatMessage {
   image?: string;
   /** Hora local (HH:MM) — referência discreta na conversa. */
   time?: string;
+  /** true → mensagem de erro (falha do provedor/sem key) — estilo rosa + sem ações. */
+  error?: boolean;
 }
 
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
@@ -67,8 +70,6 @@ export function TutorQuickPanel({
   const nextIdRef = React.useRef(0);
   /** Modo dica: tutor socrático — pistas antes da solução completa. */
   const [hintMode, setHintMode] = React.useState(false);
-  /** Ouvir resposta — TTS nativo do navegador. */
-  const { speakingId, preparingId, toggle: toggleSpeech } = useTutorSpeech();
 
   // Anexa mensagem com id único — chaves estáveis na lista de conversa.
   const appendMessage = React.useCallback((msg: Omit<ChatMessage, 'id'>) => {
@@ -163,8 +164,9 @@ export function TutorQuickPanel({
           role: 'assistant',
           content:
             err instanceof Error
-              ? `⚠️ ${err.message}`
-              : '⚠️ Não consegui responder agora. Tente novamente.',
+              ? err.message
+              : 'Não consegui responder agora. Tente novamente.',
+          error: true,
         });
       }
     } finally {
@@ -248,7 +250,9 @@ export function TutorQuickPanel({
                 'max-w-[88%] rounded-2xl px-3 py-2 shadow-sm',
                 m.role === 'user'
                   ? 'whitespace-pre-wrap rounded-tr-sm bg-gradient-to-br from-emerald-600 to-teal-600 text-white'
-                  : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
+                  : m.error
+                    ? 'rounded-tl-sm border border-rose-500/30 bg-rose-500/5 text-foreground'
+                    : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
               )}
             >
               {m.role === 'user' ? (
@@ -265,41 +269,29 @@ export function TutorQuickPanel({
                 </>
               ) : (
                 <>
-                  <TutorMarkdown content={m.content} enableCards disciplineCode={disciplineCode} />
+                  {m.error ? (
+                    <div className="flex items-start gap-1.5">
+                      <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-rose-500" />
+                      <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                    </div>
+                  ) : (
+                    <TutorMarkdown content={m.content} enableCards disciplineCode={disciplineCode} />
+                  )}
                   <div className="mt-1.5 flex items-center gap-2">
                     {m.time && <span className="text-[10px] text-muted-foreground/60">{m.time}</span>}
                     {m.model && (
                       <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => copyAnswer(m.content)}
-                      aria-label="Copiar resposta"
-                      title="Copiar resposta"
-                      className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
-                    >
-                      <Copy className="size-3" />
-                      copiar
-                    </button>
-                    {m.content.length > 80 && (
+                    {!m.error && (
                       <button
                         type="button"
-                        onClick={() => toggleSpeech(m.id, m.content)}
-                        aria-label={speakingId === m.id ? 'Parar leitura' : 'Ouvir resposta'}
-                        title={speakingId === m.id ? 'Parar leitura' : 'Ouvir resposta em voz alta'}
-                        className={cn(
-                          'flex items-center gap-1 text-[10px] transition-colors',
-                          speakingId === m.id || preparingId === m.id
-                            ? 'text-emerald-500'
-                            : 'text-muted-foreground/60 hover:text-foreground',
-                        )}
+                        onClick={() => copyAnswer(m.content)}
+                        aria-label="Copiar resposta"
+                        title="Copiar resposta"
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
                       >
-                        {speakingId === m.id || preparingId === m.id ? (
-                          <Square className={cn('size-3', preparingId === m.id && 'animate-pulse')} />
-                        ) : (
-                          <Volume2 className="size-3" />
-                        )}
-                        {speakingId === m.id ? 'parar' : preparingId === m.id ? 'gerando…' : 'ouvir'}
+                        <Copy className="size-3" />
+                        copiar
                       </button>
                     )}
                   </div>
