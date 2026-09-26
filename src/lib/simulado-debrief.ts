@@ -11,6 +11,7 @@
 
 import { getDisciplineByCode } from '@/data/course-data';
 import type { RunQuestionDetail, SimuladoRun } from '@/lib/study-progress';
+import { capQuestion } from '@/lib/tutor-stream';
 
 export function fmtClockSec(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -47,14 +48,16 @@ export function buildDebriefFromDetails(input: {
       q.status === 'solved' ? 'CONSEGUI' : q.status === 'missed' ? 'NÃO CONSEGUI' : 'PULADA';
     return `- Q${i + 1} [${discShort(q.disciplineCode)} · ${q.topic || '—'} · ${difficultyLabel(q.difficulty)}] ${status} — ${(q.statement || '').slice(0, 110)}`;
   });
-  return [
-    'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.',
-    `Aproveitamento: ${pct}% · tempo total: ${fmtClockSec(elapsedSec)}.`,
-    'Resultado por questão:',
-    ...lines,
-    '',
-    'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.',
-  ].join('\n');
+  return capQuestion(
+    [
+      'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.',
+      `Aproveitamento: ${pct}% · tempo total: ${fmtClockSec(elapsedSec)}.`,
+      'Resultado por questão:',
+      ...lines,
+      '',
+      'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.',
+    ].join('\n'),
+  );
 }
 
 /**
@@ -101,10 +104,12 @@ export function buildTrendQuestion(runs: SimuladoRun[]): string {
       : (r.questions && [...new Set(r.questions.map((q) => discShort(q.disciplineCode)).filter((d) => d !== '—'))].slice(0, 2).join('+')) || 'geral';
     return `- ${fmtDate(r.date)}: ${pct}% (${r.solved}/${r.total}) · ${disc} · ${fmtClockSec(r.durationSec)}`;
   });
-  return [
-    `Essa é a minha série de simulados no Hub (${Math.min(runs.length, 12)} tentativas${runs.length > 12 ? ', das 12 mais recentes' : ''}, da mais antiga para a mais recente). Analisa minha EVOLUÇÃO como um coach de estudos:`,
-    ...serie,
-    '',
-    'Na resposta: (1) a tendência (estou melhorando, estagnado ou piorando — e o que isso sugere?), (2) os tópicos/disciplinas que mais aparecem nas tentativas fracas e (3) um plano curto para os próximos dias priorizando o que mais me faria subir a nota. Seja direto e honesto, sem elogio vazio.',
-  ].join('\n');
+  return capQuestion(
+    [
+      `Essa é a minha série de simulados no Hub (${Math.min(runs.length, 12)} tentativas${runs.length > 12 ? ', das 12 mais recentes' : ''}, da mais antiga para a mais recente). Analisa minha EVOLUÇÃO como um coach de estudos:`,
+      ...serie,
+      '',
+      'Na resposta: (1) a tendência (estou melhorando, estagnado ou piorando — e o que isso sugere?), (2) os tópicos/disciplinas que mais aparecem nas tentativas fracas e (3) um plano curto para os próximos dias priorizando o que mais me faria subir a nota. Seja direto e honesto, sem elogio vazio.',
+    ].join('\n'),
+  );
 }

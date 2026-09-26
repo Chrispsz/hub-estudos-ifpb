@@ -1198,9 +1198,12 @@ export async function POST(req: Request) {
     if (!question && !imageDataUrl) {
       return Response.json({ error: 'Pergunta vazia.' }, { status: 400 });
     }
-    if (question.length > 2000) {
+    // 6000: os construtores de debriefing (simulado/caderno de erros) mandam
+    // listas longas de itens — o limite antigo de 2000 rejeitava prompts
+    // legítimos com 400 e o aluno via a mensagem morrer sem resposta.
+    if (question.length > 6000) {
       return Response.json(
-        { error: 'Pergunta muito longa (máx. 2000 caracteres).' },
+        { error: 'Pergunta muito longa (máx. 6000 caracteres).' },
         { status: 400 },
       );
     }

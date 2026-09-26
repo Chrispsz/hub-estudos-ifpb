@@ -254,6 +254,8 @@ export interface KaizenEntry {
 }
 
 export interface StudyProgress {
+  /** Caderno de Erros: chave do item → ISO em que foi marcado como revisado. */
+  notebookRevised?: { [key: string]: string };
   recentMaterials: RecentMaterial[];
   completedMaterials: string[];
   materialProgress: { [materialId: string]: MaterialProgress };
@@ -327,6 +329,7 @@ export const defaultProgress: StudyProgress = {
   flashcards: [],
   focusSessions: [],
   kaizenEntries: [],
+  notebookRevised: {},
 };
 
 /**
@@ -594,6 +597,32 @@ export function useStudyProgress() {
     [setProgress],
   );
 
+  // ----- Caderno de Erros (ciclo de resolução: errar → reensinar → marcar) -----
+
+  /** Marca um item do caderno como revisado (fecha o ciclo daquele erro). */
+  const markNotebookRevised = React.useCallback(
+    (key: string) => {
+      setProgress((prev) => ({
+        ...prev,
+        notebookRevised: { ...(prev.notebookRevised ?? {}), [key]: new Date().toISOString() },
+      }));
+    },
+    [setProgress],
+  );
+
+  /** Reabre um item revisado (voltou a errar, ou marcou sem querer). */
+  const unmarkNotebookRevised = React.useCallback(
+    (key: string) => {
+      setProgress((prev) => {
+        if (!prev.notebookRevised || !(key in prev.notebookRevised)) return prev;
+        const next = { ...prev.notebookRevised };
+        delete next[key];
+        return { ...prev, notebookRevised: next };
+      });
+    },
+    [setProgress],
+  );
+
   const addPomodoroSession = React.useCallback(
     (session: Omit<PomodoroSession, 'date' | 'completedAt'>) => {
       setProgress((prev) => {
@@ -826,15 +855,17 @@ export function useStudyProgress() {
           neededHelp: false,
           lastPracticedAt: '',
         };
+        const next = { ...cur, ...partial, lastPracticedAt: new Date().toISOString() };
+        // Caderno de Erros: se o exercício voltou a ficar pendente (tentou e
+        // não resolveu de novo), o item REABRE sozinho no caderno.
+        const revised = { ...(prev.notebookRevised ?? {}) };
+        if (next.tried && !next.solved) delete revised[`ex:${exerciseId}`];
         return {
           ...prev,
+          notebookRevised: revised,
           exerciseProgress: {
             ...prev.exerciseProgress,
-            [exerciseId]: {
-              ...cur,
-              ...partial,
-              lastPracticedAt: new Date().toISOString(),
-            },
+            [exerciseId]: next,
           },
         };
       });
@@ -936,28 +967,35 @@ export function useStudyProgress() {
     [setProgress],
   );
 
-  /** Aplica a nota da revisão e reagenda o cartão (Leitner: box 0..5). */
+  /** Aplica a nota da revisão e reagenda o cartão (Leitner: box 0..5).
+   *  Se errou de novo ('again'), o item correspondente do Caderno de Erros
+   *  REABRE sozinho — o caderno reflete o estado real, não a última marcação. */
   const gradeFlashcard = React.useCallback(
     (id: string, grade: FlashcardGrade) => {
-      setProgress((prev) => ({
-        ...prev,
-        flashcards: (Array.isArray(prev.flashcards) ? prev.flashcards : []).map((c) => {
-          if (c.id !== id) return c;
-          const nextBox = flashcardNextBox(c.box, grade);
-          const dueMs =
-            nextBox === 0
-              ? (grade === 'hard' ? 10 : 5) * 60_000
-              : FLASHCARD_BOX_DAYS[nextBox] * 86_400_000;
-          return {
-            ...c,
-            box: nextBox,
-            dueAt: new Date(Date.now() + dueMs).toISOString(),
-            reviews: c.reviews + 1,
-            lapses: grade === 'again' ? c.lapses + 1 : c.lapses,
-            lastReviewedAt: new Date().toISOString(),
-          };
-        }),
-      }));
+      setProgress((prev) => {
+        const revised = { ...(prev.notebookRevised ?? {}) };
+        if (grade === 'again') delete revised[`fc:${id}`];
+        return {
+          ...prev,
+          notebookRevised: revised,
+          flashcards: (Array.isArray(prev.flashcards) ? prev.flashcards : []).map((c) => {
+            if (c.id !== id) return c;
+            const nextBox = flashcardNextBox(c.box, grade);
+            const dueMs =
+              nextBox === 0
+                ? (grade === 'hard' ? 10 : 5) * 60_000
+                : FLASHCARD_BOX_DAYS[nextBox] * 86_400_000;
+            return {
+              ...c,
+              box: nextBox,
+              dueAt: new Date(Date.now() + dueMs).toISOString(),
+              reviews: c.reviews + 1,
+              lapses: grade === 'again' ? c.lapses + 1 : c.lapses,
+              lastReviewedAt: new Date().toISOString(),
+            };
+          }),
+        };
+      });
     },
     [setProgress],
   );
@@ -1161,6 +1199,8 @@ export function useStudyProgress() {
       addFocusSession,
       addKaizenEntry,
       removeKaizenEntry,
+      markNotebookRevised,
+      unmarkNotebookRevised,
       // selectors
       sessionsToday,
       minutesToday,
@@ -1211,6 +1251,8 @@ export function useStudyProgress() {
       addFocusSession,
       addKaizenEntry,
       removeKaizenEntry,
+      markNotebookRevised,
+      unmarkNotebookRevised,
       sessionsToday,
       minutesToday,
       sessionsLast7d,

@@ -14,6 +14,45 @@ export interface TutorStreamResult {
   model?: string;
 }
 
+/**
+ * Limite PRÁTICO do prompt do aluno (o API aceita até 6000 — aqui fica uma
+ * margem de segurança). Os construtores de perguntas (debriefing, evolução,
+ * caderno) usam capQuestion() para garantir o envio sem 400.
+ */
+export const TUTOR_QUESTION_SAFE_MAX = 5500;
+
+/**
+ * Corta o prompt em `max` caracteres REMOVENDO linhas de lista ("- ...") do
+ * fim (os itens mais antigos) — nunca no meio de uma frase. Insere um aviso
+ * honesto do que ficou de fora. Head e instruções finais são sempre mantidos.
+ */
+export function capQuestion(question: string, max = TUTOR_QUESTION_SAFE_MAX): string {
+  if (question.length <= max) return question;
+  const lines = question.split('\n');
+  const listIdx: number[] = [];
+  lines.forEach((l, i) => {
+    if (/^\s*-\s/.test(l)) listIdx.push(i);
+  });
+  if (listIdx.length === 0) return `${question.slice(0, max - 1)}…`;
+  const head = lines.slice(0, listIdx[0]);
+  const tail = lines.slice(listIdx[listIdx.length - 1] + 1);
+  const build = (n: number) => {
+    const kept = listIdx.slice(0, n).map((i) => lines[i]);
+    const omitted = listIdx.length - n;
+    return [
+      ...head,
+      ...kept,
+      ...(omitted > 0
+        ? [`(+ ${omitted} ${omitted === 1 ? 'item omitido' : 'itens omitidos'} — os mais antigos — para caber no limite do tutor)`]
+        : []),
+      ...tail,
+    ].join('\n');
+  };
+  let n = listIdx.length;
+  while (n > 3 && build(n).length > max) n -= 1;
+  return build(n);
+}
+
 export class TutorStreamError extends Error {
   /** Texto parcial recebido antes da falha (pode ser ''). */
   partial: string;

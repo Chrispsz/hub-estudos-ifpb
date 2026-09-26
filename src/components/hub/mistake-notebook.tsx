@@ -13,10 +13,12 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   BookX,
+  Check,
   CircleDashed,
   ClipboardList,
   Copy,
   Dumbbell,
+  RotateCcw,
   Target,
   type LucideIcon,
 } from 'lucide-react';
@@ -31,6 +33,7 @@ import {
   collectMistakes,
   groupByDiscipline,
   notebookStats,
+  pendingMistakes,
   type MistakeItem,
   type MistakeKind,
 } from '@/lib/mistake-notebook';
@@ -73,7 +76,30 @@ export function MistakeNotebook() {
   const sp = useStudyProgress();
   const items = React.useMemo(() => collectMistakes(sp.progress), [sp.progress]);
   const stats = React.useMemo(() => notebookStats(items), [items]);
-  const groups = React.useMemo(() => groupByDiscipline(items), [items]);
+  const revisedMap = sp.progress.notebookRevised ?? {};
+  const pendentes = React.useMemo(
+    () => pendingMistakes(items, revisedMap),
+    [items, revisedMap],
+  );
+  // Grupos por disciplina — dentro de cada grupo, pendentes primeiro (recência),
+  // revisados afundam no fim (resolvidos não disputam atenção na véspera).
+  const groups = React.useMemo(
+    () =>
+      groupByDiscipline(items).map(({ disciplineCode, items: list }) => ({
+        disciplineCode,
+        items: [...list].sort((a, b) => {
+          const ra = revisedMap[a.key] ? 1 : 0;
+          const rb = revisedMap[b.key] ? 1 : 0;
+          if (ra !== rb) return ra - rb;
+          const ta = a.when ? new Date(a.when).getTime() : 0;
+          const tb = b.when ? new Date(b.when).getTime() : 0;
+          return tb - ta;
+        }),
+      })),
+    [items, revisedMap],
+  );
+  const revisedCount = items.length - pendentes.length;
+  const donePct = items.length === 0 ? 0 : Math.round((revisedCount / items.length) * 100);
 
   if (items.length === 0) {
     return (
@@ -104,7 +130,7 @@ export function MistakeNotebook() {
     );
   }
 
-  const notebookQuestion = buildNotebookQuestion(items);
+  const notebookQuestion = buildNotebookQuestion(items, revisedMap);
 
   return (
     <Card className="overflow-hidden rounded-xl bg-card shadow-sm">
@@ -135,6 +161,39 @@ export function MistakeNotebook() {
         <p className="mt-1.5 text-xs text-muted-foreground">
           Tudo que você errou ou ainda não consolidou, num só lugar — o mais recente primeiro.
         </p>
+        {/* Barra do ciclo: pendentes → revisados (o caderno que você resolve) */}
+        <div className="mt-3 max-w-md">
+          <div className="flex items-center justify-between text-[11px]">
+            <span
+              className={cn(
+                'flex items-center gap-1 font-medium',
+                pendentes.length === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground',
+              )}
+            >
+              <Check className="size-3" aria-hidden />
+              {revisedCount} de {stats.total} revisados
+              {pendentes.length === 0 ? ' — caderno em dia!' : ''}
+            </span>
+            <span className="tabular-nums text-muted-foreground">
+              {pendentes.length} {pendentes.length === 1 ? 'pendente' : 'pendentes'}
+            </span>
+          </div>
+          <div
+            className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={stats.total}
+            aria-valuenow={revisedCount}
+            aria-label="Progresso de revisão do caderno de erros"
+          >
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+              initial={{ width: 0 }}
+              animate={{ width: `${donePct}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Grupos por disciplina (borda na cor da disciplina, como na Biblioteca) */}
@@ -142,6 +201,7 @@ export function MistakeNotebook() {
         {groups.map(({ disciplineCode, items: list }, gi) => {
           const disc = getDisciplineByCode(disciplineCode);
           const color = getColorClasses(disc?.color ?? 'slate');
+          const pendNoGrupo = list.filter((x) => !revisedMap[x.key]).length;
           return (
             <div key={disciplineCode} className={cn('border-l-2 pl-4 pr-5 py-4', color.border)}>
               <motion.div
@@ -152,17 +212,25 @@ export function MistakeNotebook() {
                 <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <span className={cn('size-2 rounded-full', color.dot)} aria-hidden />
                   {disc?.name ?? disciplineCode}
-                  <span className="tabular-nums font-normal normal-case">· {list.length}</span>
+                  <span className="tabular-nums font-normal normal-case">
+                    {pendNoGrupo === list.length
+                      ? `· ${list.length}`
+                      : `· ${pendNoGrupo}/${list.length} pendentes`}
+                  </span>
                 </h3>
                 <ul className="mt-2 space-y-2.5">
                   {list.map((it) => {
                     const meta = KIND_META[it.kind];
                     const Icon = meta.icon;
                     const when = fmtWhen(it.when);
+                    const revisedAt = revisedMap[it.key];
                     return (
                       <li
                         key={it.key}
-                        className="group rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/40"
+                        className={cn(
+                          'group rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/40',
+                          revisedAt && 'opacity-65 hover:opacity-100 transition-opacity',
+                        )}
                       >
                         <div className="flex items-start gap-2.5">
                           <span
@@ -173,16 +241,23 @@ export function MistakeNotebook() {
                           </span>
                           <div className="min-w-0 flex-1">
                             <p className="flex items-start gap-1.5 text-sm leading-snug">
-                              {isFresh(it.when) ? (
+                              {!revisedAt && isFresh(it.when) ? (
                                 <span
                                   className="mt-1.5 size-1.5 shrink-0 rounded-full bg-rose-500 ring-3 ring-rose-500/20"
                                   title="Erro recente — fresco na memória"
                                   aria-label="Erro recente"
                                 />
                               ) : null}
-                              <span>{it.title}</span>
+                              <span className={cn(revisedAt && 'line-through decoration-emerald-600/60')}>
+                                {it.title}
+                              </span>
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                              {revisedAt ? (
+                                <span className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
+                                  <Check className="size-3" aria-hidden /> Revisado {fmtWhen(revisedAt)}
+                                </span>
+                              ) : null}
                               {it.topic ? (
                                 <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5">
                                   {it.topic}
@@ -202,18 +277,41 @@ export function MistakeNotebook() {
                               {when ? <span className="tabular-nums">· {when}</span> : null}
                             </div>
                           </div>
-                          {/* Chip IA individual — padrão emerald dos chips 42/43 */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openTutor({ disciplineCode: it.disciplineCode, question: buildItemQuestion(it) })
-                            }
-                            title="Perguntar à IA para reensinar exatamente este erro"
-                            aria-label={`Perguntar à IA sobre o erro: ${it.title.slice(0, 60)}`}
-                            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/60 bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 active:scale-95 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-                          >
-                            <BookX className="size-3.5" aria-hidden />
-                          </button>
+                          <div className="mt-0.5 flex shrink-0 items-center gap-1.5">
+                            {/* Chip IA individual — padrão emerald dos chips 42/43 */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openTutor({ disciplineCode: it.disciplineCode, question: buildItemQuestion(it) })
+                              }
+                              title="Perguntar à IA para reensinar exatamente este erro"
+                              aria-label={`Perguntar à IA sobre o erro: ${it.title.slice(0, 60)}`}
+                              className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/60 bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 active:scale-95 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                            >
+                              <BookX className="size-3.5" aria-hidden />
+                            </button>
+                            {revisedAt ? (
+                              <button
+                                type="button"
+                                onClick={() => sp.unmarkNotebookRevised(it.key)}
+                                title="Reabrir erro — voltou a acontecer ou marcou sem querer"
+                                aria-label={`Reabrir o erro: ${it.title.slice(0, 60)}`}
+                                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted/50 text-muted-foreground transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 focus-visible:ring-offset-1 active:scale-95 dark:hover:border-rose-500/40 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+                              >
+                                <RotateCcw className="size-3.5" aria-hidden />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => sp.markNotebookRevised(it.key)}
+                                title="Marcar como revisado — sai da lista de pendentes"
+                                aria-label={`Marcar como revisado: ${it.title.slice(0, 60)}`}
+                                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-500 bg-emerald-500 text-white shadow-sm transition-all hover:bg-emerald-600 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 active:scale-95"
+                              >
+                                <Check className="size-3.5" aria-hidden />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </li>
                     );
@@ -237,12 +335,14 @@ export function MistakeNotebook() {
             aria-label="Enviar o caderno de erros completo para a IA analisar padrões e priorizar"
           >
             <ClipboardList className="size-3.5" aria-hidden />
-            Analisar o caderno completo com IA ({stats.total}
-            {stats.total === 1 ? '' : ' erros'})
+            {pendentes.length === 0
+              ? `Conferir o caderno zerado com IA (${revisedCount} revisados)`
+              : `Analisar o caderno completo com IA (${pendentes.length} pendentes)`}
           </Button>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            A IA procura o padrão por trás dos erros e sugere o que revisar primeiro — e o que não
-            vale a pena antes da prova.
+            {pendentes.length === 0
+              ? 'Tudo revisado — a IA confirma se é seguro deixar de lado e sugere um mini-drill relâmpago de prova.'
+              : 'A IA procura o padrão por trás dos erros e sugere o que revisar primeiro — e o que não vale a pena antes da prova.'}
           </p>
         </div>
       ) : null}

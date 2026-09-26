@@ -21,6 +21,7 @@ import {
   flashcardBoxLabel,
   type StudyProgress,
 } from './study-progress';
+import { capQuestion } from './tutor-stream';
 
 // ---------- Tipos ----------
 
@@ -186,13 +187,17 @@ function kindLabel(kind: MistakeKind): string {
   }
 }
 
-function itemLine(it: MistakeItem): string {
+function itemLine(it: MistakeItem, revisedMap?: { [key: string]: string } | null): string {
   const parts = [discShort(it.disciplineCode), it.topic || '—'];
   if (it.difficulty) {
     parts.push(it.difficulty === 'facil' ? 'Fácil' : it.difficulty === 'medio' ? 'Médio' : 'Difícil');
   }
   if (it.note) parts.push(it.note);
-  return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${it.title}`;
+  const revisedAt = revisedMap?.[it.key];
+  const tag = revisedAt
+    ? ` [JÁ REVISADO em ${fmtDate(revisedAt)} — reestudei este ponto]`
+    : ' [PENDENTE]';
+  return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${it.title}${tag}`;
 }
 
 /** Chip de UM erro: reensino focado + treino imediato. */
@@ -208,21 +213,39 @@ export function buildItemQuestion(it: MistakeItem): string {
     .join('\n');
 }
 
+/** Itens ainda pendentes (não marcados como revisados no caderno). */
+export function pendingMistakes(
+  items: MistakeItem[],
+  revisedMap?: { [key: string]: string } | null,
+): MistakeItem[] {
+  if (!revisedMap) return items;
+  return items.filter((it) => !revisedMap[it.key]);
+}
+
 const NOTEBOOK_MAX = 40;
 
 /**
  * Análise do caderno INTEIRO. Capped em 40 itens (custo de token, como a
  * análise de evolução capped em 12 corridas) — se estourar, prioriza os
- * mais recentes.
+ * mais recentes. Recebe o mapa de revisados para a IA saber o que já foi
+ * reestudado (ciclo de resolução) e focar nos pendentes.
  */
-export function buildNotebookQuestion(items: MistakeItem[]): string | null {
+export function buildNotebookQuestion(
+  items: MistakeItem[],
+  revisedMap?: { [key: string]: string } | null,
+): string | null {
   if (items.length === 0) return null;
   const chosen = items.slice(0, NOTEBOOK_MAX);
   const extra = items.length - chosen.length;
   const stats = notebookStats(items);
+  const pendentes = pendingMistakes(items, revisedMap).length;
+  const revisados = items.length - pendentes;
   const head = [
     `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} até agora`,
     `(${stats.simulado} de simulados, ${stats.exercicio} de exercícios, ${stats.flashcard} de flashcards).`,
+    revisados > 0
+      ? `Desse total, ${revisados} já marquei como revisados e ${pendentes} ${pendentes === 1 ? 'continua pendente' : 'continuam pendentes'}.`
+      : '',
     extra > 0 ? `Listando os ${chosen.length} mais recentes.` : '',
     'Analisa como um professor que acompanha minha preparação — prova de Matemática em 01/10 e simulado em 29/09.',
     'Lista dos erros (do mais recente):',
@@ -230,10 +253,17 @@ export function buildNotebookQuestion(items: MistakeItem[]): string | null {
   ]
     .filter(Boolean)
     .join(' ');
-  return [
-    head,
-    ...chosen.map(itemLine),
-    '',
-    'Na resposta: (1) os PADRÕES que conectam esses erros (tema recorrente? descuido? conteúdo que faltou de base?), (2) o que priorizar para a Av1 de Matemática — e o que NÃO vale a pena revisar agora, (3) uma ordem de revisão concreta citando materiais, listas ou simulados do próprio Hub.',
-  ].join('\n');
+  const pendentesAll = pendentes === 0;
+  return capQuestion(
+    [
+      head,
+      ...chosen.map((it) => itemLine(it, revisedMap)),
+      '',
+      pendentesAll
+        ? 'Na resposta: (1) confirme se é SEGURO deixar de lado os itens que já revisei (ou se algum merece uma última passada antes da prova), (2) um mini-drill relâmpago (2–3 perguntas rápidas) para eu provar que os erros viraram acerto, (3) o que eu deveria fazer HOJE com o tempo que sobrou até a prova.'
+        : revisados > 0
+          ? 'Na resposta: (1) os PADRÕES que conectam os erros PENDENTES (os [JÁ REVISADO] eu já reestudei — comente só se continuar crítico), (2) o que priorizar para a Av1 de Matemática — e o que NÃO vale a pena revisar agora, (3) uma ordem de revisão concreta citando materiais, listas ou simulados do próprio Hub.'
+          : 'Na resposta: (1) os PADRÕES que conectam esses erros (tema recorrente? descuido? conteúdo que faltou de base?), (2) o que priorizar para a Av1 de Matemática — e o que NÃO vale a pena revisar agora, (3) uma ordem de revisão concreta citando materiais, listas ou simulados do próprio Hub.',
+    ].join('\n'),
+  );
 }

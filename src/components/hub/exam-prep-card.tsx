@@ -33,7 +33,7 @@ import { openMethod, openProgress, openSimulado, openTutor } from '@/lib/hub-eve
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { useStudyProgress } from '@/lib/study-progress';
-import { collectMistakes, notebookStats } from '@/lib/mistake-notebook';
+import { collectMistakes, notebookStats, pendingMistakes } from '@/lib/mistake-notebook';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
 import {
@@ -82,8 +82,15 @@ export function ExamPrepCard() {
   const [checked, setChecked] = useLocalStorage<CheckedMap>(LS_PLAN, {});
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
   const sp = useStudyProgress();
-  // Caderno de Erros: contagem ao vivo dos pontos fracos (link no diálogo).
-  const mistakeCount = React.useMemo(() => notebookStats(collectMistakes(sp.progress)).total, [sp.progress]);
+  // Caderno de Erros: contagem ao vivo dos PENDENTES (revisados não disputam
+  // atenção na véspera — o card mostra o que ainda pede trabalho).
+  const mistakes = React.useMemo(() => collectMistakes(sp.progress), [sp.progress]);
+  const mistakePending = React.useMemo(
+    () => pendingMistakes(mistakes, sp.progress.notebookRevised).length,
+    [mistakes, sp.progress.notebookRevised],
+  );
+  const mistakeRevised = mistakes.length - mistakePending;
+  const mistakeStats = React.useMemo(() => notebookStats(mistakes), [mistakes]);
   // Baralho da Av1: flag no localStorage + dedupe por frente (à prova de flag perdida).
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
@@ -553,19 +560,28 @@ export function ExamPrepCard() {
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-xs font-semibold">
                     <BookX className="size-3.5 text-rose-500" aria-hidden /> Caderno de Erros
-                    {mistakeCount > 0 ? (
+                    {mistakePending > 0 ? (
                       <Badge
                         variant="outline"
                         className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
                       >
-                        {mistakeCount} {mistakeCount === 1 ? 'item' : 'itens'}
+                        {mistakePending} {mistakePending === 1 ? 'pendente' : 'pendentes'}
+                      </Badge>
+                    ) : mistakes.length > 0 ? (
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
+                      >
+                        ✓ {mistakeRevised} {mistakeRevised === 1 ? 'erro revisado' : 'erros revisados'}
                       </Badge>
                     ) : null}
                   </p>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {mistakeCount > 0
-                      ? 'Questões erradas nos simulados, exercícios não resolvidos e cartões errados estão no caderno — com análise de padrões pela IA. Vale a pena bater o olho antes da prova.'
-                      : 'Nenhum erro registrado ainda. Faça o simulado da prova — o que você errar vira caderno automaticamente, para a IA transformar em acerto.'}
+                    {mistakePending > 0
+                      ? `Questões erradas nos simulados, exercícios não resolvidos e cartões errados estão no caderno${mistakeStats.topDisciplineCode === 'TEC.1984' ? ' — e tocam a prova de Matemática' : ''}. Com reensino pela IA: resolva cada erro e marque como revisado.`
+                      : mistakes.length > 0
+                        ? 'Tudo que você errou já foi revisado — caderno em dia para a prova. Se errar de novo, o item reabre sozinho.'
+                        : 'Nenhum erro registrado ainda. Faça o simulado da prova — o que você errar vira caderno automaticamente, para a IA transformar em acerto.'}
                   </p>
                 </div>
                 <Button
