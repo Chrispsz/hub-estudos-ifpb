@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { disciplines, materials, type Discipline } from '@/data/course-data';
 import { getColorClasses, priorityClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
+import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER } from '@/lib/curriculum';
 import { DisciplinesView } from './disciplines-view';
 import { MaterialsList } from './materials-list';
 
@@ -110,8 +111,7 @@ export function LibraryView() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Biblioteca</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Disciplinas, materiais e resumos gerados por IA — 2º período ADS
-            2026.2
+            Disciplinas, materiais e resumos gerados por IA — {CURRENT_PERIOD_LOWER}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2" aria-label="Resumo da biblioteca">

@@ -9,6 +9,7 @@ import { ClockWidget } from './clock-widget';
 import { DownloadsDialog } from './downloads-dialog';
 import { PaletteTriggerButton } from './command-palette';
 import { getNextEvaluation } from '@/lib/semester';
+import { CURRENT_PERIOD_LABEL } from '@/lib/curriculum';
 
 export function Header({ activeTab }: { activeTab?: string }) {
   const { theme, setTheme } = useTheme();
@@ -38,7 +39,7 @@ export function Header({ activeTab }: { activeTab?: string }) {
             Hub de Estudos IFPB
           </h1>
           <span className="text-[11px] text-muted-foreground truncate">
-            2º Período • ADS 2026.2
+            {CURRENT_PERIOD_LABEL}
           </span>
         </div>
 

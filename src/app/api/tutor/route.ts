@@ -27,10 +27,14 @@
 //  ❌ thinkingmachines/inkling:free           — exige harness agentic (removido)
 
 export const runtime = 'nodejs';
+// Cadeia Gemini(35s) → OpenRouter(13s+) precisa de teto explícito: o padrão da
+// plataforma pode matar a função antes do fallback responder (504 pro usuário).
+export const maxDuration = 60;
 
 import { db } from '@/lib/db';
 import { buildMaterialBlock, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
+import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER, tutorCourseContext } from '@/lib/curriculum';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -197,7 +201,7 @@ function visionProviderLabel(): string | null {
 
 function buildFlashcardsPrompt(discipline: string, topic: string): string {
   return [
-    `Você cria flashcards de revisão espaçada para um aluno do 2º período de ADS no IFPB, na disciplina ${discipline}.`,
+    `Você cria flashcards de revisão espaçada para um aluno do ${CURRENT_PERIOD_LOWER} no IFPB, na disciplina ${discipline}.`,
     `Tema solicitado: "${topic}".`,
     'Regras OBRIGATÓRIAS:',
     '- Responda APENAS com um array JSON válido. Sem texto antes ou depois, sem markdown, sem blocos de código.',
@@ -293,7 +297,8 @@ function buildSystemPrompt(
   hintMode = false,
 ): string {
   return [
-    `Você é o tutor IA do Hub de Estudos — o app de estudos de um aluno do 2º período de ADS no IFPB Campus Cajazeiras (ensino médio integrado ao superior), turma 2026.2. Você conversa em português brasileiro.`,
+    `Você é o tutor IA do Hub de Estudos — o app de estudos de um aluno do ${CURRENT_PERIOD_LOWER} no IFPB Campus Cajazeiras, turma 2026.2. Você conversa em português brasileiro.`,
+    tutorCourseContext(),
     `Disciplina atual: ${discipline}.`,
     topic ? `Tópico em estudo agora: "${topic}".` : '',
     material ? `Material aberto: "${material}".` : '',

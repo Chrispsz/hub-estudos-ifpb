@@ -9,7 +9,6 @@ import {
   ExternalLink,
   FileText,
   Image as ImageIcon,
-  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -85,7 +84,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
       <DialogContent className="max-w-4xl gap-0 p-0 sm:max-w-4xl">
         <div
           className={cn(
-            'flex items-center gap-3 border-b p-4',
+            'flex items-center gap-3 border-b p-4 pr-12',
             color.bgSoft,
             color.borderAll,
           )}
@@ -110,15 +109,6 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
               <span className="hidden sm:inline">{TYPE_LABEL[material.type]}</span>
             </DialogDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Fechar"
-            className="ml-auto"
-            onClick={() => onOpenChange(false)}
-          >
-            <X className="size-4" aria-hidden />
-          </Button>
         </div>
 
         <div className="flex flex-wrap gap-2 border-b bg-muted/40 p-3">

@@ -50,6 +50,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import type { Discipline, Material } from '@/data/course-data';
 import { getMaterialsByDiscipline, evaluationPeriods } from '@/data/course-data';
+import {
+  NUCLEUS_DOT_BG,
+  CURRENT_PERIOD,
+  getCurriculumInfo,
+  prereqShortNames,
+} from '@/lib/curriculum';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import {
   getColorClasses,
@@ -129,6 +135,11 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
         : [],
     [discipline],
   );
+  // Ficha oficial da matriz curricular (curriculum.ts — fonte única do curso).
+  const matrixInfo = React.useMemo(
+    () => (discipline ? getCurriculumInfo(discipline.code) : undefined),
+    [discipline],
+  );
 
   if (!discipline) return null;
 
@@ -182,6 +193,17 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                   <GraduationCap className="size-3" /> {discipline.professor}
                   {discipline.professorTitle ? ` · ${discipline.professorTitle}` : ''}
                 </Badge>
+                {matrixInfo && (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
+                  >
+                    <GraduationCap className="size-3" aria-hidden />
+                    Matriz: {matrixInfo.period.label}
+                    {matrixInfo.period.period === CURRENT_PERIOD ? ' (atual)' : ''} •{' '}
+                    {matrixInfo.row.ch}h
+                  </Badge>
+                )}
               </div>
             </DialogHeader>
           </div>
@@ -200,6 +222,76 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
             <ScrollArea className="max-h-[60vh]">
               <div className="p-5 sm:p-6">
                 <TabsContent value="overview" className="mt-0 space-y-5 outline-none">
+                  {matrixInfo && (
+                    <Section
+                      icon={<LayoutList className="size-4" />}
+                      title="Na matriz oficial do curso"
+                      color={color.text}
+                    >
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm sm:grid-cols-3">
+                        <div>
+                          <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Período
+                          </dt>
+                          <dd className="mt-0.5 font-medium">
+                            {matrixInfo.period.label}
+                            {matrixInfo.period.period === CURRENT_PERIOD ? (
+                              <span className="ml-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                • atual
+                              </span>
+                            ) : null}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Núcleo
+                          </dt>
+                          <dd className="mt-0.5 inline-flex items-center gap-1.5 font-medium">
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'size-2 rounded-full',
+                                NUCLEUS_DOT_BG[matrixInfo.row.nucleus],
+                              )}
+                            />
+                            {matrixInfo.row.nucleus}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            CH oficial
+                          </dt>
+                          <dd className="mt-0.5 font-medium tabular-nums">
+                            {matrixInfo.row.ch}h
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Aulas/semana
+                          </dt>
+                          <dd className="mt-0.5 font-medium tabular-nums">
+                            {matrixInfo.row.aulasSemanais}
+                          </dd>
+                        </div>
+                        <div className="col-span-2 sm:col-span-2">
+                          <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Pré-requisitos na matriz
+                          </dt>
+                          <dd className="mt-0.5 font-medium">
+                            {prereqShortNames(matrixInfo.row).length
+                              ? prereqShortNames(matrixInfo.row).join(' + ')
+                              : 'Nenhum'}
+                          </dd>
+                        </div>
+                      </dl>
+                      <p className="mt-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                        Dados da Matriz Curricular 2025 (PPC do curso) — a coluna
+                        &ldquo;CH oficial&rdquo; vem do fluxograma e pode diferir da CH
+                        de aulas registrada no Hub.
+                      </p>
+                    </Section>
+                  )}
+
                   <Section icon={<BookOpen className="size-4" />} title="Ementa" color={color.text}>
                     <p className="text-sm leading-relaxed text-foreground/90">
                       {discipline.ementa}
