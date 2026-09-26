@@ -69,6 +69,7 @@ import { DisciplineIcon } from '@/lib/discipline-icons';
 import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { buildHubContext } from '@/lib/tutor-context';
+import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { useTutorSpeech } from '@/lib/tutor-speech';
@@ -163,7 +164,6 @@ const CHAT_SUGGESTIONS = [
   'Quando é a próxima prova?',
   'Como está meu progresso?',
 ];
-
 /** Segundos restantes reais a partir do epoch do fim da fase. */
 function remainingFromEndsAt(endsAt: number): number {
   return Math.max(0, Math.round((endsAt - Date.now()) / 1000));
@@ -178,6 +178,7 @@ const FOLLOW_UPS = [
   { label: 'Explica de outro jeito', q: 'Explica de outro jeito, mais simples, com outro exemplo.' },
   { label: 'Exercício parecido', q: 'Me dá um exercício parecido com isso para eu treinar.' },
   { label: 'Como cai na prova?', q: 'Como esse conteúdo costuma cair na prova?' },
+  { label: 'Me testa outra vez', q: 'Me testa outra vez com uma questão NOVA, no mesmo estilo da rodada anterior (uma por vez, esperando minha resposta).' },
 ];
 
 /** Contexto real do app enviado ao tutor — implementação única em @/lib/tutor-context. */
@@ -1573,6 +1574,19 @@ export function StudyView({
 
             {messages.length <= 1 && !chatLoading && (
               <div className="flex flex-wrap gap-2 pt-2">
+                {/* Chip de INVERSÃO DE PAPEL: o tutor passa a perguntar (recall ativo). */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-violet-400/50 bg-violet-500/10 text-xs text-violet-600 transition-colors hover:bg-violet-500/20 hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
+                  onClick={() =>
+                    sendQuestion(
+                      buildQuizPrompt({ disciplineName: discipline.shortName }),
+                    )
+                  }
+                >
+                  <Target className="size-3.5 text-violet-500" /> Me testa — recall ativo
+                </Button>
                 {CHAT_SUGGESTIONS.map((s) => (
                   <Button
                     key={s}

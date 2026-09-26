@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Square, User, Volume2, X } from 'lucide-react';
+import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Square, Target, User, Volume2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { useTutorSpeech } from '@/lib/tutor-speech';
+import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { TutorMarkdown } from './tutor-markdown';
 
 interface ChatMessage {
@@ -195,6 +196,21 @@ export function TutorQuickPanel({
               Pergunte ao tutor sobre este material — ele conhece o professor, as datas e seu progresso.
             </p>
             <div className="flex flex-wrap gap-1.5">
+              {/* Chip de INVERSÃO DE PAPEL: o tutor pergunta, o aluno responde. */}
+              <button
+                type="button"
+                onClick={() =>
+                  ask(
+                    buildQuizPrompt({
+                      disciplineName: discipline,
+                      materialTitle,
+                    }),
+                  )
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-violet-400/50 bg-violet-500/10 px-3 py-2 text-xs text-violet-600 transition-all hover:bg-violet-500/20 hover:text-violet-700 active:scale-[0.97] dark:text-violet-300 dark:hover:text-violet-200 sm:py-1.5"
+              >
+                <Target className="size-3.5 text-violet-500" /> Me testa — recall ativo
+              </button>
               {chips.map((s) => (
                 <button
                   key={s}

@@ -28,7 +28,8 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { daysUntilDate } from '@/lib/semester';
-import { openMethod, openSimulado } from '@/lib/hub-events';
+import { openMethod, openSimulado, openTutor } from '@/lib/hub-events';
+import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { useStudyProgress } from '@/lib/study-progress';
 import { cn } from '@/lib/utils';
@@ -343,6 +344,28 @@ export function ExamPrepCard() {
             </Button>
           </div>
         </div>
+
+        {/* Treino de recall ativo: a IA PERGUNTA, o dono responde — véspera de prova. */}
+        <button
+          type="button"
+          onClick={() =>
+            openTutor({
+              disciplineCode: MATH_EXAM.disciplineCode,
+              question: buildQuizPrompt({
+                disciplineName: 'Matemática',
+                scope: MATH_EXAM.programa,
+                count: 5,
+              }),
+            })
+          }
+          className="flex w-full items-center gap-2 border-t border-dashed border-violet-400/40 bg-violet-500/[0.04] px-4 py-2.5 text-left text-xs font-medium text-violet-700 transition-colors hover:bg-violet-500/10 dark:text-violet-300"
+        >
+          <Sparkles className="size-3.5 shrink-0 text-violet-500" />
+          <span className="min-w-0 flex-1 truncate">
+            Treino de véspera: a IA me testa no conteúdo da prova (recall ativo, 5 questões)
+          </span>
+          <span className="shrink-0 text-[10px] text-muted-foreground">Estudar →</span>
+        </button>
       </Card>
 
       {/* Dialog: plano completo + fórmulas + checklist */}
