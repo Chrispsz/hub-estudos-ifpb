@@ -201,6 +201,21 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
     if (material) loadSummary(material, true);
   }, [material, loadSummary]);
 
+  // Chip "IA" por questão: fecha o resumo e abre o tutor com a pergunta pronta
+  // + contexto do material (o tutor lê o resumo/trechos reais via materialId).
+  const handleAskAi = React.useCallback(
+    (question: string) => {
+      if (!material) return;
+      onOpenChange(false);
+      openTutor({
+        disciplineCode: material.disciplineCode,
+        materialId: material.id,
+        question,
+      });
+    },
+    [material, onOpenChange],
+  );
+
   return (
     <Dialog open={open && !pdfOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl gap-0 p-0 sm:max-w-3xl">
@@ -273,9 +288,11 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 summary={summary}
                 color={color}
                 materialId={material?.id ?? ''}
+                materialTitle={material?.title ?? ''}
                 checks={checksForMaterial}
                 onToggle={handleToggleCheck}
                 onReload={handleReload}
+                onAskAi={handleAskAi}
                 answeredCount={answeredCount}
                 totalQuestions={totalQuestions}
               />
@@ -406,18 +423,22 @@ const SummaryBody = React.memo(function SummaryBody({
   summary,
   color,
   materialId,
+  materialTitle,
   checks,
   onToggle,
   onReload,
+  onAskAi,
   answeredCount,
   totalQuestions,
 }: {
   summary: AiSummary;
   color: ReturnType<typeof getColorClasses>;
   materialId: string;
+  materialTitle: string;
   checks: { [k: number]: boolean };
   onToggle: (i: number) => void;
   onReload: () => void;
+  onAskAi: (question: string) => void;
   answeredCount: number;
   totalQuestions: number;
 }) {
@@ -498,10 +519,18 @@ const SummaryBody = React.memo(function SummaryBody({
             {erros.map((e, i) => (
               <li
                 key={i}
-                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
+                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900 transition-colors hover:bg-amber-100/70 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/60"
               >
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {e}
+                <span className="flex-1">{e}</span>
+                <AskAiChip
+                  onAsk={() =>
+                    onAskAi(
+                      `Sobre o material "${materialTitle}": o erro comum "${e}" — por que ele acontece e como eu evito? Me dá um exemplo certo vs. errado.`,
+                    )
+                  }
+                  label={`Perguntar à IA sobre o erro comum ${i + 1}`}
+                />
               </li>
             ))}
           </ul>
@@ -510,14 +539,25 @@ const SummaryBody = React.memo(function SummaryBody({
 
       {exercicios.length > 0 && (
         <Section icon={<ListOrdered className="size-4" />} title="Exercícios Sugeridos" color={color.text}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            O botão de estrelas envia o exercício ao tutor com o material em mãos.
+          </p>
           <ol className="grid gap-1.5">
             {exercicios.map((ex, i) => (
               <li
                 key={i}
-                className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-2.5 text-sm text-foreground/85"
+                className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-2.5 text-sm text-foreground/85 transition-colors hover:bg-muted/50"
               >
                 <span className={cn('font-semibold', color.text)}>{i + 1}.</span>
-                {ex}
+                <span className="flex-1">{ex}</span>
+                <AskAiChip
+                  onAsk={() =>
+                    onAskAi(
+                      `Sobre o material "${materialTitle}": me explica o exercício "${ex}" passo a passo, como o professor faria?`,
+                    )
+                  }
+                  label={`Perguntar à IA sobre o exercício ${i + 1}`}
+                />
               </li>
             ))}
           </ol>
@@ -540,12 +580,12 @@ const SummaryBody = React.memo(function SummaryBody({
       {perguntas.length > 0 && (
         <Section icon={<CircleHelp className="size-4" />} title="Perguntas de Autoavaliação" color={color.text}>
           <p className="mb-2 text-xs text-muted-foreground">
-            Marque quando souber responder com confiança. Suas respostas ficam salvas.
+            Marque quando souber responder com confiança. O botão de estrelas envia a pergunta ao tutor. Suas respostas ficam salvas.
           </p>
           <ul className="grid gap-1.5">
             {perguntas.map((p, i) => (
-              <li key={i}>
-                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/30 p-3 text-sm hover:bg-muted/50 sm:p-2.5">
+              <li key={i} className="flex items-start gap-2">
+                <label className="flex flex-1 cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/30 p-3 text-sm hover:bg-muted/50 sm:p-2.5">
                   <Checkbox
                     checked={!!checks[i]}
                     onCheckedChange={() => onToggle(i)}
@@ -560,6 +600,15 @@ const SummaryBody = React.memo(function SummaryBody({
                     {p}
                   </span>
                 </label>
+                <AskAiChip
+                  className="mt-1.5"
+                  onAsk={() =>
+                    onAskAi(
+                      `Sobre o material "${materialTitle}": me ajuda a responder esta pergunta de autoavaliação — "${p}"? Quero entender, não só a resposta.`,
+                    )
+                  }
+                  label={`Perguntar à IA sobre a pergunta de autoavaliação ${i + 1}`}
+                />
               </li>
             ))}
           </ul>
@@ -580,3 +629,38 @@ const SummaryBody = React.memo(function SummaryBody({
     </div>
   );
 });
+
+/**
+ * Chip "IA" por questão (pedido do dono: "chips IA por questão nos resumos").
+ * Botão redondo discreto, estilo GNOME: aparece sem ruído, respira no hover,
+ * com anel de foco visível para navegação por teclado.
+ */
+function AskAiChip({
+  onAsk,
+  label,
+  className,
+}: {
+  onAsk: () => void;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onAsk}
+      title={label}
+      aria-label={label}
+      className={cn(
+        'inline-flex size-7 shrink-0 items-center justify-center rounded-full',
+        'border border-emerald-200 bg-emerald-50 text-emerald-700',
+        'transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-900',
+        'active:scale-95',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1',
+        'dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-200',
+        className,
+      )}
+    >
+      <Sparkles className="size-3.5" aria-hidden />
+    </button>
+  );
+}
