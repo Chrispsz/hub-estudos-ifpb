@@ -10,6 +10,7 @@ import {
   AlarmClock,
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   CheckCircle2,
   ChevronRight,
   Eye,
@@ -50,7 +51,8 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
-import { openMethod, openTutor } from '@/lib/hub-events';
+import { openMethod, openPractice, openTutor } from '@/lib/hub-events';
+import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { getExerciseStage } from '@/lib/curriculum-state';
 import {
   exercises,
@@ -849,15 +851,21 @@ function ResultsScreen({
 
   // Desempenho por tópico: onde o foco deve estar antes da prova (pior primeiro).
   const topicStats = React.useMemo(() => {
-    const m = new Map<string, { solved: number; total: number }>();
+    const m = new Map<
+      string,
+      { disciplineCode: string; topic: string; solved: number; total: number }
+    >();
     questions.forEach((q, i) => {
-      const rec = m.get(q.topic) ?? { solved: 0, total: 0 };
+      const key = `${q.disciplineCode}::${q.topic}`;
+      const rec =
+        m.get(key) ??
+        { disciplineCode: q.disciplineCode, topic: q.topic, solved: 0, total: 0 };
       rec.total += 1;
       if (results[i].solved === true) rec.solved += 1;
-      m.set(q.topic, rec);
+      m.set(key, rec);
     });
-    return [...m.entries()]
-      .map(([topic, v]) => ({ topic, ...v, pct: Math.round((v.solved / v.total) * 100) }))
+    return [...m.values()]
+      .map((v) => ({ ...v, pct: Math.round((v.solved / v.total) * 100) }))
       .sort((a, b) => a.pct - b.pct || b.total - a.total);
   }, [questions, results]);
   const multiTopic = topicStats.length > 1;
@@ -930,22 +938,60 @@ function ResultsScreen({
           </div>
           <div className="space-y-2.5">
             {topicStats.map((t, i) => (
-              <div key={t.topic}>
+              <div key={`${t.disciplineCode}:${t.topic}`} className="group">
                 <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
                   <span className="min-w-0 truncate font-medium">{t.topic}</span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">
-                    {t.solved}/{t.total} ·{' '}
-                    <span
-                      className={cn(
-                        'font-semibold',
-                        t.pct >= 60
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : t.pct >= 40
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-rose-600 dark:text-rose-400',
-                      )}
-                    >
-                      {t.pct}%
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <span className="tabular-nums text-muted-foreground">
+                      {t.solved}/{t.total} ·{' '}
+                      <span
+                        className={cn(
+                          'font-semibold',
+                          t.pct >= 60
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : t.pct >= 40
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-rose-600 dark:text-rose-400',
+                        )}
+                      >
+                        {t.pct}%
+                      </span>
+                    </span>
+                    {/* Micro-ações do tópico: aparecem no hover, sempre acessíveis por teclado */}
+                    <span className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onOpenChange(false);
+                          openPractice({ disciplineCode: t.disciplineCode, topic: t.topic });
+                        }}
+                        title={`Filtrar exercícios de ${t.topic} em Praticar`}
+                        aria-label={`Filtrar exercícios de ${t.topic} em Praticar`}
+                        className="inline-flex size-6 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 transition-colors hover:border-sky-300 hover:bg-sky-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 dark:border-sky-800/70 dark:bg-sky-950/50 dark:text-sky-300 dark:hover:bg-sky-900/50"
+                      >
+                        <BookOpen className="size-3" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onOpenChange(false);
+                          openTutor({
+                            disciplineCode: t.disciplineCode,
+                            question: buildQuizPrompt({
+                              disciplineName:
+                                getDisciplineByCode(t.disciplineCode)?.shortName ??
+                                t.disciplineCode,
+                              scope: `somente o tópico "${t.topic}" (conteúdo já dado em sala)`,
+                              count: 5,
+                            }),
+                          });
+                        }}
+                        title={`Me testa em ${t.topic} (recall ativo, 5 questões)`}
+                        aria-label={`Me testa em ${t.topic} com recall ativo`}
+                        className="inline-flex size-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
+                      >
+                        <Sparkles className="size-3" aria-hidden />
+                      </button>
                     </span>
                   </span>
                 </div>

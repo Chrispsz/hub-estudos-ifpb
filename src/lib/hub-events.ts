@@ -40,6 +40,8 @@ export const OPEN_PRACTICE_EVENT = 'hub:open-practice';
 export interface OpenPracticeDetail {
   /** Disciplina para pré-filtrar a lista de exercícios. */
   disciplineCode?: string;
+  /** Tópico para pré-filtrar além da disciplina (ex.: foco pós-simulado). */
+  topic?: string;
 }
 
 /** Dispara a troca para a aba Praticar com o filtro de disciplina aplicado. */

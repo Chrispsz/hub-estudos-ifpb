@@ -174,12 +174,14 @@ function ExercisesPanel({
     );
   };
 
-  // Pré-filtro de disciplina vindo de fora (ex.: card Plano de Recuperação).
+  // Pré-filtro de disciplina (+ tópico opcional) vindo de fora
+  // (ex.: card Plano de Recuperação; foco por tópico pós-simulado).
   React.useEffect(() => {
-    const code = practiceReq?.detail.disciplineCode;
+    const req = practiceReq?.detail;
+    const code = req?.disciplineCode;
     if (code && getDisciplineByCode(code)) {
       setFilterDiscipline(code);
-      setFilterTopic('all');
+      setFilterTopic(req.topic ?? 'all');
     }
   }, [practiceReq?.nonce, practiceReq]);
   // PADRÃO MATERIAL-FIRST: por padrão só aparece o que já foi dado em sala.
