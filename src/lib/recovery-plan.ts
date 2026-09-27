@@ -10,7 +10,7 @@
 // trilha muda sozinha (topicosCobertos/material-first) — aqui a fonte é a
 // conversa + arquivo autoral, então o estado é declarado explicitamente.
 
-import { MATH_EXAM, MATH_EXAM_PLAN, planDayFor } from './math-exam-prep';
+import { MATH_EXAM, MATH_EXAM_PLAN, MATH_META, planDayFor } from './math-exam-prep';
 import { daysUntilDate } from './semester';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -289,9 +289,38 @@ export function matTrackStatusFor(daysToExam: number): TrackStatus {
   return daysToExam < 0 ? 'feito' : 'pendente';
 }
 
+// ---------------------------------------------------------------------------
+// A NOTA REGISTRADA FALA — o registro da Calculadora é a FONTE ÚNICA da nota
+// real da Av1 (grade-calculator grava realGrades['TEC.1984-Av1']). Antes, a
+// fila pedia 'Anotar a nota' PARA SEMPRE — mesmo com a nota já registrada —
+// e o resumo dizia 'falta a nota' com a nota anotada (dupla verdade, o mesmo
+// vício que as rodadas 83/84 mataram no plano e na fila).
+// ---------------------------------------------------------------------------
+
+/** Forma mínima de uma nota real — genérico evita importar study-progress (módulo puro). */
+type RealGradeLike = { grade?: number };
+
+/**
+ * A NOTA REAL da Av1, se o aluno já a registrou na Calculadora de Médias.
+ * Mesma derivação de chave do grade-calculator: `${disciplineCode}-${evaluationName}`.
+ * Retorna o valor na ESCALA NATURAL da disciplina (0–10 ou 0–100) — normalizar
+ * para comparação com a meta é responsabilidade de quem exibe.
+ */
+export function findNotaRealAv1<T extends Record<string, RealGradeLike>>(
+  realGrades: T | undefined | null,
+): number | null {
+  const entry = realGrades?.[`${MATH_EXAM.disciplineCode}-Av1`];
+  return typeof entry?.grade === 'number' ? entry.grade : null;
+}
+
 /** Resumo da trilha Matemática: o 'Faltam 7 dias' congelado mentia — agora fala o dia real. */
-export function matTrackResumoFor(daysToExam: number): string {
+export function matTrackResumoFor(daysToExam: number, notaReal: number | null = null): string {
   if (daysToExam < 0) {
+    if (notaReal !== null) {
+      return notaReal >= MATH_META
+        ? `Prova de Matemática realizada — nota ${notaReal} registrada ✓ acima da meta de aprovação (≥ ${MATH_META}). Av2 e Av3 seguem o plano; a fila agora é do Projeto LM (09/10) e da Prova de Algoritmos (30/10).`
+        : `Prova de Matemática realizada — nota ${notaReal} registrada, abaixo da meta de aprovação (≥ ${MATH_META}). Av2 e Av3 ainda abrem caminho: o plano segue — revise com o caderno de erros e o simulado.`;
+    }
     return 'Prova de Matemática realizada — falta a nota. Confira a média na Calculadora (aba Progresso) e siga a fila: Projeto LM 09/10 e Prova de Algoritmos 30/10.';
   }
   return `Prova focada no conteúdo dado: as duas listas impressas cobrem tudo — Matrizes (Q1–35) e Lógica (Q1–18) — e faltam ${daysToExam} dia(s). O dia a dia (D-${daysToExam}) vive no card da prova; determinantes e sistemas lineares NÃO caem (confirmado 24/09).`;
@@ -305,8 +334,14 @@ export function matTrackResumoFor(daysToExam: number): string {
  * a nota na Calculadora. Sem dia de plano (D-9+) → null (a fila segue
  * com as outras trilhas, honesta).
  */
-export function matTodayActionFor(daysToExam: number): RecoveryAction | null {
+export function matTodayActionFor(
+  daysToExam: number,
+  notaReal: number | null = null,
+): RecoveryAction | null {
   if (daysToExam < 0) {
+    // Nota JÁ REGISTRADA na Calculadora → a fila larga o 'Anotar a nota':
+    // o registro vence o checkbox (a verdade do registro, padrão da 83/84).
+    if (notaReal !== null) return null;
     return {
       id: 'mat-pos-prova-nota',
       texto: 'Anotar a nota da Av1 na Calculadora de Médias e conferir quanto falta para a média final',
@@ -332,14 +367,17 @@ export function matTodayActionFor(daysToExam: number): RecoveryAction | null {
  */
 export function todayRecoveryActions(
   done: Record<string, boolean> = {},
+  realGrades?: Record<string, { grade?: number }> | null,
 ): { track: RecoveryTrack; action: RecoveryAction }[] {
   const out: { track: RecoveryTrack; action: RecoveryAction }[] = [];
   const daysToExam = daysUntilDate(MATH_EXAM.date);
+  // A nota REAL lida do REGISTRO (fonte única — a Calculadora fala e a fila obedece).
+  const notaReal = findNotaRealAv1(realGrades);
   for (const track of RECOVERY_TRACKS.filter((t) => t.status !== 'adiado').slice(0, 3)) {
     if (track.id === 'mat') {
-      // Pós-prova com a nota já anotada → a trilha sai da lista (feita é feita).
-      if (daysToExam < 0 && done['mat-pos-prova-nota']) continue;
-      const action = matTodayActionFor(daysToExam);
+      // Pós-prova com a nota registrada OU marcada como feita → a trilha sai da lista.
+      if (daysToExam < 0 && (done['mat-pos-prova-nota'] || notaReal !== null)) continue;
+      const action = matTodayActionFor(daysToExam, notaReal);
       if (action) out.push({ track, action });
       continue;
     }

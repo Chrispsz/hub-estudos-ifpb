@@ -25,8 +25,10 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useLocalStorage } from '@/lib/use-local-storage';
+import { useStudyProgress } from '@/lib/study-progress';
 import { openMethod, openPractice, openProgress } from '@/lib/hub-events';
 import {
+  findNotaRealAv1,
   fmtDate,
   getClassWeekInfo,
   matTrackResumoFor,
@@ -36,7 +38,7 @@ import {
   TRACK_STATUS_LABEL,
   type TrackStatus,
 } from '@/lib/recovery-plan';
-import { MATH_EXAM } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 
 const STATUS_STYLE: Record<TrackStatus, string> = {
@@ -70,11 +72,25 @@ const LS_KEY = 'hub:recovery:v1:done';
 
 export function RecoveryCard() {
   const [done, setDone] = useLocalStorage<DoneMap>(LS_KEY, {});
+  // A nota real vive no REGISTRO da Calculadora (realGrades) — a fila e o
+  // badge precisam lê-la, senão pediriam 'Anotar a nota' para sempre
+  // (dupla verdade, o vício que as 83/84 mataram no plano e na fila).
+  const sp = useStudyProgress();
   const [expanded, setExpanded] = React.useState<string | null>(null);
 
   const week = React.useMemo(() => getClassWeekInfo(), []);
   const daysToExam = daysUntilDate(MATH_EXAM.date);
-  const todayItems = React.useMemo(() => todayRecoveryActions(done), [done]);
+  // TEC.1984 é escala 100 (course-data) — a nota bruta do registro compara
+  // direto com MATH_META, mesma normalização do grade-calculator para esta
+  // disciplina (scale===10 → grade*10; aqui scale=100 → grade puro).
+  const notaReal = React.useMemo(
+    () => findNotaRealAv1(sp.progress.realGrades),
+    [sp.progress.realGrades],
+  );
+  const todayItems = React.useMemo(
+    () => todayRecoveryActions(done, sp.progress.realGrades),
+    [done, sp.progress.realGrades],
+  );
   const allActions = React.useMemo(
     () => RECOVERY_TRACKS.flatMap((t) => t.acoes.map((a) => ({ track: t, action: a }))),
     [],
@@ -115,18 +131,44 @@ export function RecoveryCard() {
               </p>
             </div>
           </div>
+          {/* O badge da prova agora distingue TRÊS pós-provas: falta a nota
+              (rose = pendente), nota ≥ meta (emerald = a cor que o Hub já
+              consagrou para done) e nota < meta (amber = informativo, não
+              alarmante — Av2 e Av3 abrem caminho). Cor = significado. */}
           <Badge
             variant="outline"
-            className="w-fit shrink-0 gap-1.5 border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400"
+            className={cn(
+              'w-fit shrink-0 gap-1.5 px-2.5 py-1 text-xs font-semibold',
+              daysToExam >= 0
+                ? 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                : notaReal !== null && notaReal >= MATH_META
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : notaReal !== null
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+            )}
           >
             <Clock4 className="size-3" aria-hidden />{' '}
-            {daysToExam < 0
-              ? 'Prova de Matemática realizada — falta a nota'
-              : daysToExam === 0
-                ? 'Prova de Matemática hoje — boa prova!'
-                : daysToExam === 1
-                  ? 'Prova de Matemática amanhã'
-                  : `Prova de Matemática em ${daysToExam}d`}
+            {daysToExam < 0 ? (
+              notaReal !== null ? (
+                <>
+                  Realizada — nota <span className="font-bold tabular-nums">{notaReal}</span>
+                  {notaReal >= MATH_META ? (
+                    <> · meta {MATH_META} ✓</>
+                  ) : (
+                    <> · meta {MATH_META}</>
+                  )}
+                </>
+              ) : (
+                'Prova de Matemática realizada — falta a nota'
+              )
+            ) : daysToExam === 0 ? (
+              'Prova de Matemática hoje — boa prova!'
+            ) : daysToExam === 1 ? (
+              'Prova de Matemática amanhã'
+            ) : (
+              `Prova de Matemática em ${daysToExam}d`
+            )}
           </Badge>
         </div>
 
@@ -251,7 +293,7 @@ export function RecoveryCard() {
               const status: TrackStatus =
                 track.id === 'mat' ? matTrackStatusFor(daysToExam) : track.status;
               const resumo =
-                track.id === 'mat' ? matTrackResumoFor(daysToExam) : track.resumo;
+                track.id === 'mat' ? matTrackResumoFor(daysToExam, notaReal) : track.resumo;
               return (
                 <li key={track.id} className="rounded-lg border border-border">
                   <button
