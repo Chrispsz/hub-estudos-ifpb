@@ -1539,3 +1539,129 @@ export function formatTravadas(travadas: Record<string, boolean>): string {
     .filter((p): p is string => p !== null)
     .join(' · ');
 }
+
+// ---------------------------------------------------------------------------
+// O ENSAIO NÃO É A NOTA (rodada 108) — a Calculadora é o destino do pós-prova
+// (CTA do card pós-prova, rodada 77) e a fila lê realGrades['TEC.1984-Av1']
+// como FONTE ÚNICA da nota real (findNotaRealAv1). Mas a seção "Minhas notas
+// reais" convida a "registrar as notas reais das avaliações que você JÁ FEZ"
+// e, na noite do simulado (29/09, meta 70%), o % do ensaio é exatamente o
+// número que pede para ser digitado na linha Av1. Registro ANTES do evento
+// não é nota real (ordem do tempo, lição 107): apagava a prova do radar
+// ("Próxima prova" da própria calculadora) e, depois da prova, viraria
+// "nota 70 registrada ✓ acima da meta" fabricada pelo ensaio.
+// ---------------------------------------------------------------------------
+
+/** Forma mínima de um registro de nota real (study-progress realGrades). */
+export interface RealGradeRecordLike {
+  grade?: number;
+  doneAt?: string;
+}
+
+/** Chave do registro da nota real da Av1 — a MESMA gramática da Calculadora. */
+export const MATH_NOTA_REAL_KEY = `${MATH_EXAM.disciplineCode}-${MATH_EXAM.evaluationName}`;
+
+/** Data da prova em 'dd/mm' — a voz da calculadora cita o dia sem hardcode. */
+export const MATH_EXAM_DATE_SHORT = `${MATH_EXAM.date.slice(8, 10)}/${MATH_EXAM.date.slice(5, 7)}`;
+
+/** Dias até a prova a partir de now (âncora local 00:00, mesma regra do daysUntilDate). */
+function daysToExamFrom(now: Date): number {
+  const exam = new Date(`${MATH_EXAM.date}T00:00:00`);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((exam.getTime() - today.getTime()) / 86400000);
+}
+
+/**
+ * A ordem do tempo manda (lição 107): nota REAL da Av1 só existe DEPOIS do
+ * dia da prova. Um registro lançado antes (ex.: o % do simulado de 29/09
+ * digitado na mesma noite) não vira nota — a fila não comemora, a média real
+ * não o herda, o radar da calculadora não perde a prova. Registros sem
+ * timestamp pós-prova valem (benefício da dúvida: dados antigos não provam a
+ * ordem, e o leitor não inventa uma culpa que não sabe que existe).
+ */
+export function notaRealAv1Valida(
+  registro?: RealGradeRecordLike | null,
+  now: Date = new Date(),
+): boolean {
+  if (registro == null || typeof registro.grade !== 'number') return false;
+  if (daysToExamFrom(now) >= 0) return false; // a prova ainda não aconteceu
+  if (!registro.doneAt) return true;
+  return new Date(registro.doneAt).getTime() >= new Date(`${MATH_EXAM.date}T00:00:00`).getTime();
+}
+
+export interface GradeTableExamStrip {
+  tone: 'amber' | 'rose' | 'emerald';
+  /** Chip tabular ('D-2' | 'D-1' | 'hoje') — pós-prova fala pelo título, sem chip. */
+  chip: string;
+  title: string;
+  text: string;
+}
+
+export interface GradeTableExamBrief {
+  daysLeft: number;
+  examHasHappened: boolean;
+  /** Existe registro com nota numérica na linha Av1. */
+  typed: boolean;
+  /** Registro existe mas não vale como nota real (ordem do tempo) — a linha mostra 'confira'. */
+  suspectEnsaio: boolean;
+  /** Voz da semana da seção (janela honesta: simulado/vespera/prova + pós-prova sem nota). */
+  strip: GradeTableExamStrip | null;
+}
+
+/**
+ * FONTE ÚNICA da voz da semana na Calculadora (seção "Minhas notas reais").
+ * Regras: dentro da janela (D-2 simulado → D-0 prova) a faixa SEMPRE fala —
+ * a prevenção é mais necessária exatamente quando um registro suspeito
+ * aparece (a linha mostra o 'confira', a faixa mostra a semana). Pós-prova
+ * sem nota → convite honesto (a promessa do CTA da 77). Pós-prova com
+ * registro válido → silêncio (a linha celebra). Registro suspeito pós-prova
+ * → faixa âmbar apontando a linha. Fora da janela → silêncio (regra da 88:
+ * calculadora é ferramenta, quem fala da semana são o kit e o cronograma).
+ */
+export function gradeTableExamBriefFor(
+  registro?: RealGradeRecordLike | null,
+  now: Date = new Date(),
+): GradeTableExamBrief {
+  const daysLeft = daysToExamFrom(now);
+  const examHasHappened = daysLeft < 0;
+  const typed = registro != null && typeof registro.grade === 'number';
+  const suspectEnsaio = typed && !notaRealAv1Valida(registro, now);
+  let strip: GradeTableExamStrip | null = null;
+  if (!examHasHappened && daysLeft === 2) {
+    strip = {
+      tone: 'amber',
+      chip: 'D-2',
+      title: 'Hoje é o simulado — nada para lançar aqui',
+      text: `o % do ensaio mora no histórico e no kit da véspera — a nota real da Av1 entra nesta tabela só depois da prova de ${MATH_EXAM_DATE_SHORT}`,
+    };
+  } else if (!examHasHappened && daysLeft === 1) {
+    strip = {
+      tone: 'amber',
+      chip: 'D-1',
+      title: 'Av1 amanhã — a tabela espera a nota real',
+      text: 'nenhum % de ensaio vira nota aqui; hoje o kit da véspera leva o que importa — quando a Av1 sair, o lugar dela é nesta tabela',
+    };
+  } else if (!examHasHappened && daysLeft === 0) {
+    strip = {
+      tone: 'rose',
+      chip: 'hoje',
+      title: 'Prova hoje — a tabela fica em silêncio',
+      text: `quando a nota sair, lance no componente Av1 abaixo: a situação real, a média e a fila acordam na hora (a prova é de ${MATH_EXAM_DATE_SHORT})`,
+    };
+  } else if (examHasHappened && typed && suspectEnsaio) {
+    strip = {
+      tone: 'amber',
+      chip: '',
+      title: 'A nota lançada é anterior à prova',
+      text: `o registro da Av1 foi feito antes do dia da prova (${MATH_EXAM_DATE_SHORT}) — se é o % do simulado, apague: ensaio mora no histórico; a nota real entra quando sair`,
+    };
+  } else if (examHasHappened && !typed) {
+    strip = {
+      tone: 'emerald',
+      chip: '',
+      title: 'A Av1 aconteceu — a nota mora aqui',
+      text: `a prova de ${MATH_EXAM_DATE_SHORT} ficou para trás — quando o resultado sair, lance a nota no componente Av1 e a fila larga o "anotar a nota" na hora`,
+    };
+  }
+  return { daysLeft, examHasHappened, typed, suspectEnsaio, strip };
+}

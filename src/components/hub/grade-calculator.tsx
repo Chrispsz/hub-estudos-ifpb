@@ -3,13 +3,17 @@
 import * as React from 'react';
 import {
   Calculator,
+  CalendarCheck,
+  CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   Eraser,
   Plus,
   RotateCcw,
   Save,
   Scale,
+  TriangleAlert,
   TrendingDown,
   TrendingUp,
   AlertTriangle,
@@ -54,6 +58,11 @@ import {
   statusLabel,
 } from '@/lib/grade-calc';
 import { useStudyProgress } from '@/lib/study-progress';
+import {
+  MATH_NOTA_REAL_KEY,
+  gradeTableExamBriefFor,
+  notaRealAv1Valida,
+} from '@/lib/math-exam-prep';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { daysUntilDate } from '@/lib/semester';
@@ -379,6 +388,15 @@ function RealGradesSection() {
   const sp = useStudyProgress();
   const [addCustomOpen, setAddCustomOpen] = React.useState(false);
 
+  // A SEMANA NA CALCULADORA (fonte única: gradeTableExamBriefFor) — a seção
+  // que recebe o aluno pós-prova sabe dizer "hoje é o simulado, nada para
+  // lançar", "a prova foi, lance a nota" e "esse registro é anterior à prova".
+  // Render-time puro (lição 79): relógio lido NO render via o default do módulo.
+  const examBrief = React.useMemo(
+    () => gradeTableExamBriefFor(sp.progress.realGrades[MATH_NOTA_REAL_KEY]),
+    [sp.progress.realGrades],
+  );
+
   // Lista todas as avaliações (padrão + customizadas)
   const allEvaluations = React.useMemo(() => {
     const standard = evaluationPeriods.map((e) => ({
@@ -411,6 +429,10 @@ function RealGradesSection() {
     for (const ev of allEvaluations) {
       const gradeEntry = sp.progress.realGrades[ev.key];
       if (gradeEntry) {
+        // O ENSAIO NÃO É A NOTA (rodada 108): registro da Av1 anterior ao dia
+        // da prova não entra na média real — a linha mostra 'confira' e o
+        // resumo segue honesto (o mesmo relógio de notaRealAv1Valida).
+        if (ev.key === MATH_NOTA_REAL_KEY && !notaRealAv1Valida(gradeEntry)) continue;
         const arr = map.get(ev.disciplineCode)?.real ?? [];
         // Normaliza para 100
         const disc = getDisciplineByCode(ev.disciplineCode);
@@ -432,11 +454,17 @@ function RealGradesSection() {
   const totalEvals = allEvaluations.length;
 
   // Próxima avaliação COM DATA OFICIAL à frente (política anti-estimativa) — memoizada.
+  // O RELÓGIO MANDA (rodada 108, lição 107): avaliação datada à frente é radar
+  // enquanto o dia não passa — um registro lançado ANTES do evento (ex.: o %
+  // do simulado digitado como nota da Av1) não apaga a prova do radar; quem
+  // decide se o registro vale é notaRealAv1Valida, não a presença dele.
+  // E O RADAR ERA O PRÓXIMO NO ARRAY, NÃO NO TEMPO: o primeiro item datado da
+  // lista (Algoritmos 30/10) vencia a prova mais próxima (Matemática 01/10)
+  // só porque a disciplina vem antes — 'Próxima' que não olha o relógio mente.
   const nextEvaluationLabel = React.useMemo(() => {
-    const done = new Set(Object.keys(sp.progress.realGrades ?? {}));
-    const next = allEvaluations.find(
-      (e) => !done.has(e.key) && e.date && daysUntilDate(e.date) > 0,
-    );
+    const next = allEvaluations
+      .filter((e): e is typeof e & { date: string } => !!e.date && daysUntilDate(e.date) > 0)
+      .sort((a, b) => new Date(`${a.date}T00:00:00`).getTime() - new Date(`${b.date}T00:00:00`).getTime())[0];
     if (!next) {
       return 'Nenhuma data oficial à frente (demais avaliações: aguarde divulgação ou adicione uma customizada).';
     }
@@ -451,7 +479,7 @@ function RealGradesSection() {
       month: '2-digit',
     });
     return `${disc?.shortName} • ${next.name} — ${when} (em ${days} dias)`;
-  }, [allEvaluations, sp.progress.realGrades]);
+  }, [allEvaluations]);
 
   function setRealGrade(key: string, value: string, scale: 10 | 100) {
     const v = parseFloat(value.replace(',', '.'));
@@ -485,6 +513,71 @@ function RealGradesSection() {
         Registre as notas reais das avaliações que você já fez. Compare com a média alvo e veja sua situação real.
       </p>
 
+      {/* A VOZ DA SEMANA (rodada 108 — fonte única: gradeTableExamBriefFor):
+          a faixa fala DENTRO da janela (simulado/vespera/prova) e no pós-prova
+          sem nota — fora dela a calculadora é só calculadora (regra da 88).
+          Mesma gramática das faixas da casa: medalhão + chip tabular + tinta sólida. */}
+      {examBrief.strip && (
+        <div
+          role="status"
+          aria-label={`Semana da Av1 na calculadora: ${examBrief.strip.title}`}
+          className={cn(
+            'mb-3 flex flex-col gap-2.5 rounded-lg border-l-4 p-3 sm:flex-row sm:items-center',
+            examBrief.strip.tone === 'amber' &&
+              'border-l-amber-500 bg-amber-50 dark:border-l-amber-500/60 dark:bg-amber-500/10',
+            examBrief.strip.tone === 'rose' &&
+              'border-l-rose-500 bg-rose-50 dark:border-l-rose-500/60 dark:bg-rose-500/10',
+            examBrief.strip.tone === 'emerald' &&
+              'border-l-emerald-500 bg-emerald-50 dark:border-l-emerald-500/60 dark:bg-emerald-500/10',
+          )}
+        >
+          <span
+            aria-hidden
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-full',
+              examBrief.strip.tone === 'amber' &&
+                'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+              examBrief.strip.tone === 'rose' &&
+                'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
+              examBrief.strip.tone === 'emerald' &&
+                'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+            )}
+          >
+            {examBrief.strip.tone === 'amber' && <CalendarClock className="size-4" />}
+            {examBrief.strip.tone === 'rose' && <CalendarCheck className="size-4" />}
+            {examBrief.strip.tone === 'emerald' && <ClipboardCheck className="size-4" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p
+              className={cn(
+                'text-xs font-semibold',
+                examBrief.strip.tone === 'amber' && 'text-amber-900 dark:text-amber-200',
+                examBrief.strip.tone === 'rose' && 'text-rose-900 dark:text-rose-200',
+                examBrief.strip.tone === 'emerald' && 'text-emerald-900 dark:text-emerald-200',
+              )}
+            >
+              {examBrief.strip.title}
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              {examBrief.strip.text}
+            </p>
+          </div>
+          {examBrief.strip.chip && (
+            <span
+              className={cn(
+                'shrink-0 self-start rounded-md border px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:self-center',
+                examBrief.strip.tone === 'amber' &&
+                  'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-200',
+                examBrief.strip.tone === 'rose' &&
+                  'border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/20 dark:text-rose-200',
+              )}
+            >
+              {examBrief.strip.chip}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="max-h-[420px] overflow-y-auto rounded-md border border-border [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-card">
         <Table>
           <TableHeader>
@@ -511,8 +604,20 @@ function RealGradesSection() {
               const target = disc?.approvalThreshold ?? 70;
               const normalized = gradeEntry && scale === 10 ? gradeEntry.grade * 10 : gradeEntry?.grade;
               const passed = normalized != null && normalized >= target;
+              // O ENSAIO NÃO É A NOTA (rodada 108): registro da Av1 que não
+              // sobrevive à ordem do tempo não vira celebração — a linha diz
+              // 'confira' e nomeia a regra, o valor fica (nada é apagado
+              // escondido; quem decide é o dono do registro).
+              const isExamRow = ev.key === MATH_NOTA_REAL_KEY;
+              const suspect = isExamRow && examBrief.suspectEnsaio;
               return (
-                <TableRow key={ev.key} className={cn(isDone && 'bg-emerald-50/30 dark:bg-emerald-500/5')}>
+                <TableRow
+                  key={ev.key}
+                  className={cn(
+                    isDone && !suspect && 'bg-emerald-50/30 dark:bg-emerald-500/5',
+                    suspect && 'bg-amber-50/50 dark:bg-amber-500/10',
+                  )}
+                >
                   <TableCell>
                     <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', color.text)}>
                       <span className={cn('size-2 rounded-full', color.dot)} />
@@ -522,6 +627,14 @@ function RealGradesSection() {
                   <TableCell>
                     <p className="text-xs font-semibold">{ev.name}</p>
                     <p className="text-[10px] text-muted-foreground line-clamp-1">{ev.description}</p>
+                    {suspect && (
+                      <p className="mt-1 flex items-start gap-1 text-[10px] leading-snug text-amber-700 dark:text-amber-400">
+                        <TriangleAlert className="mt-px size-3 shrink-0" aria-hidden />
+                        <span>
+                          lançada antes da prova — se é o % do simulado, apague: ensaio mora no histórico
+                        </span>
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-[11px] text-muted-foreground">
                     {ev.isCustom && ev.customDate
@@ -549,7 +662,15 @@ function RealGradesSection() {
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    {!isDone ? (
+                    {suspect ? (
+                      <Badge
+                        variant="outline"
+                        title="Registro anterior ao dia da prova — nota real só existe depois do evento"
+                        className="border-amber-200 bg-amber-50 text-amber-700 text-[9px] dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                      >
+                        confira
+                      </Badge>
+                    ) : !isDone ? (
                       <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[9px] dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400">
                         pendente
                       </Badge>
@@ -570,8 +691,9 @@ function RealGradesSection() {
         </Table>
       </div>
 
-      {/* Resumo por disciplina */}
-      {totalDone > 0 && (
+      {/* Resumo por disciplina — só quando ALGUMA média real sobrevive à
+          ordem do tempo (registro suspeito não rende cabeçalho vazio) */}
+      {totalDone > 0 && summaryByDiscipline.some((s) => s.count > 0) && (
         <div className="mt-3 space-y-1.5">
           <p className="text-xs font-semibold text-muted-foreground">Média real por disciplina</p>
           {summaryByDiscipline

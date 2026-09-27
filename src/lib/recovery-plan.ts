@@ -14,8 +14,10 @@ import {
   MATH_EXAM,
   MATH_EXAM_PLAN,
   MATH_META,
+  MATH_NOTA_REAL_KEY,
   MATH_SIMULADO_DATE,
   findMathSimuladoRunOficial,
+  notaRealAv1Valida,
   planDayFor,
 } from './math-exam-prep';
 import { daysUntilDate } from './semester';
@@ -378,22 +380,31 @@ export function matTrackStatusFor(daysToExam: number): TrackStatus {
 // fila pedia 'Anotar a nota' PARA SEMPRE — mesmo com a nota já registrada —
 // e o resumo dizia 'falta a nota' com a nota anotada (dupla verdade, o mesmo
 // vício que as rodadas 83/84 mataram no plano e na fila).
+// A ORDEM DO TEMPO MANDA (rodada 108, lição 107): a validade do registro é
+// TEMPORAL — nota real da Av1 só existe DEPOIS do dia da prova; um registro
+// lançado antes (ex.: o % do simulado de 29/09 digitado na mesma noite) não
+// vira nota e a fila segue pedindo a nota verdadeira em vez de celebrar um
+// ensaio. Fonte única: notaRealAv1Valida no math-exam-prep (o kit, a fila e
+// a calculadora obedecem ao mesmo relógio).
 // ---------------------------------------------------------------------------
 
 /** Forma mínima de uma nota real — genérico evita importar study-progress (módulo puro). */
-type RealGradeLike = { grade?: number };
+type RealGradeLike = { grade?: number; doneAt?: string };
 
 /**
- * A NOTA REAL da Av1, se o aluno já a registrou na Calculadora de Médias.
+ * A NOTA REAL da Av1, se o aluno já a registrou na Calculadora de Médias —
+ * e o registro SOBREVIVE à ordem do tempo (notaRealAv1Valida: pós-prova e,
+ * com timestamp, lançado a partir do dia da prova).
  * Mesma derivação de chave do grade-calculator: `${disciplineCode}-${evaluationName}`.
  * Retorna o valor na ESCALA NATURAL da disciplina (0–10 ou 0–100) — normalizar
  * para comparação com a meta é responsabilidade de quem exibe.
  */
 export function findNotaRealAv1<T extends Record<string, RealGradeLike>>(
   realGrades: T | undefined | null,
+  now: Date = new Date(),
 ): number | null {
-  const entry = realGrades?.[`${MATH_EXAM.disciplineCode}-Av1`];
-  return typeof entry?.grade === 'number' ? entry.grade : null;
+  const entry = realGrades?.[MATH_NOTA_REAL_KEY];
+  return notaRealAv1Valida(entry, now) ? (entry?.grade as number) : null;
 }
 
 /** Resumo da trilha Matemática: o 'Faltam 7 dias' congelado mentia — agora fala o dia real. */
