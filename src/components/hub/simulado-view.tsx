@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   Flag,
+  History,
   Lightbulb,
   ListChecks,
   Play,
@@ -61,6 +62,14 @@ import {
   pickRandomExercises,
   type Exercise,
 } from '@/lib/exercise-extractor';
+import {
+  clearInProgress,
+  loadInProgress,
+  rebuildQuestions,
+  saveInProgress,
+  validateSaved,
+  type InProgressRun,
+} from '@/lib/simulado-resume';
 
 type DifficultyFilter = 'all' | Exercise['difficulty'];
 
@@ -108,6 +117,15 @@ function fmtClock(totalSec: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+/** "pausada há …" — rótulo relativo curto para o banner de retomada. */
+function pausedWhenLabel(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return 'menos de 1 min';
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  return mins % 60 > 0 ? `${h}h ${mins % 60} min` : `${h}h`;
+}
+
 export function SimuladoView({
   open,
   onOpenChange,
@@ -126,6 +144,8 @@ export function SimuladoView({
   const [hintVisible, setHintVisible] = React.useState(false);
   const [remaining, setRemaining] = React.useState(0);
   const [elapsed, setElapsed] = React.useState(0);
+  /** Tentativa pausada encontrada no storage ao abrir (banner de retomada). */
+  const [resumeRun, setResumeRun] = React.useState<InProgressRun | null>(null);
 
   // Reset quando abre o diálogo (e aplica pré-config externa, se houver)
   React.useEffect(() => {
@@ -145,12 +165,23 @@ export function SimuladoView({
           ? { ...DEFAULT_SIMULADO_CONFIG, ...initialConfig }
           : { ...DEFAULT_SIMULADO_CONFIG },
       );
+      // Retomada: tentativa pausada (F5, queda de aba, X acidental) sobrevive
+      // no storage — banner no setup oferece Retomar ou Descartar.
+      const saved = loadInProgress();
+      if (saved && validateSaved(saved)) {
+        setResumeRun(saved);
+      } else {
+        if (saved) clearInProgress(); // corrompida/órfã → autodestrói
+        setResumeRun(null);
+      }
     }
   }, [open, initialConfig]);
 
-  // Cronômetro (contagem regressiva ou progressiva)
+  // Cronômetro (contagem regressiva ou progressiva) — PAUSA REAL: só corre
+  // com o diálogo aberto; fechou, congela (a retomada continua do segundo
+  // exato — a pausa não pune o aluno).
   React.useEffect(() => {
-    if (phase !== 'running') return;
+    if (phase !== 'running' || !open) return;
     const t = setInterval(() => {
       setElapsed((e) => e + 1);
       if (config.durationMin > 0) {
@@ -161,7 +192,35 @@ export function SimuladoView({
       }
     }, 1000);
     return () => clearInterval(t);
-  }, [phase, config.durationMin]);
+  }, [phase, open, config.durationMin]);
+
+  // Persistência da tentativa em andamento — sobrevive a F5, queda de aba e
+  // X acidental. Grava a cada mudança relevante (inclui o tick do cronômetro;
+  // payload pequeno, escrita local — barata). Deps incluem `open`: o fechamento
+  // dispara a última gravação (com o cronômetro já congelado).
+  React.useEffect(() => {
+    if (phase !== 'running' || questions.length === 0) return;
+    saveInProgress({
+      config,
+      qids: questions.map((q) => q.id),
+      results,
+      idx,
+      remaining,
+      elapsed,
+    });
+  }, [phase, open, config, questions, results, idx, remaining, elapsed]);
+
+  // Guarda de saída da PÁGINA durante a prova: navegador pergunta antes de
+  // fechar/recarregar (o estado já está salvo, mas evitar o acidente é melhor).
+  React.useEffect(() => {
+    if (phase !== 'running') return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = ''; // requerido pelo Chrome
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [phase]);
 
   // Alertas sonoros: 1 bip aos 60s, 2 bips aos 10s, 3 bips no tempo esgotado
   React.useEffect(() => {
@@ -212,6 +271,7 @@ export function SimuladoView({
       toast.error('Nenhum exercício com esses filtros. Ajuste a seleção.');
       return;
     }
+    setResumeRun(null); // nova prova substitui a pausada (o efeito persiste já grava esta)
     setQuestions(picked);
     setResults(picked.map(() => ({ solved: null })));
     setIdx(0);
@@ -240,8 +300,40 @@ export function SimuladoView({
 
   function finish() {
     recordRun();
+    clearInProgress(); // tentativa registrada no histórico — o rascunho se aposenta
     beep(3);
     setPhase('results');
+  }
+
+  /** Retoma a tentativa pausada exatamente de onde parou. */
+  function resumeSaved() {
+    const saved = resumeRun;
+    if (!saved) return;
+    const qs = rebuildQuestions(saved.qids);
+    if (qs.length === 0) {
+      clearInProgress();
+      setResumeRun(null);
+      return;
+    }
+    // Config veio do storage (JSON): a forma é a mesma, mas difficulty chega
+    // como string — o cast é seguro porque só foi gravado de um SimuladoConfig válido.
+    setConfig({ ...DEFAULT_SIMULADO_CONFIG, ...saved.config } as SimuladoConfig);
+    setQuestions(qs);
+    setResults(saved.results.map((r) => ({ solved: r.solved })));
+    setIdx(Math.min(saved.idx, qs.length - 1));
+    setRemaining(saved.remaining);
+    setElapsed(saved.elapsed);
+    setHintVisible(false);
+    setResumeRun(null); // o efeito de persistência regrava já no próximo tick
+    setPhase('running');
+    toast.success('Tentativa retomada de onde você parou.');
+  }
+
+  /** Descarta a tentativa pausada (decisão explícita do aluno). */
+  function discardSaved() {
+    clearInProgress();
+    setResumeRun(null);
+    toast.info('Tentativa pausada descartada.');
   }
 
   /** Registra a tentativa no histórico (progress-view exibe a evolução). */
@@ -339,7 +431,18 @@ export function SimuladoView({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto overflow-x-hidden rounded-xl p-0 sm:max-w-3xl">
+      <DialogContent
+        className="max-h-[92dvh] max-w-3xl overflow-y-auto overflow-x-hidden rounded-xl p-0 sm:max-w-3xl"
+        // Prova em andamento não fecha por ESC nem clique fora — acidente
+        // clássico que apagava a tentativa inteira. O X (fechar explícito)
+        // continua funcionando e vira PAUSA: a retomada está no setup.
+        onEscapeKeyDown={(e) => {
+          if (phase === 'running') e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (phase === 'running') e.preventDefault();
+        }}
+      >
         {phase === 'setup' && (
           <SetupScreen
             config={config}
@@ -347,6 +450,9 @@ export function SimuladoView({
             poolCount={pool.length}
             topicOptions={topicOptions}
             onStart={() => start()}
+            resume={resumeRun}
+            onResume={resumeSaved}
+            onDiscard={discardSaved}
           />
         )}
 
@@ -419,14 +525,32 @@ function SetupScreen({
   poolCount,
   topicOptions,
   onStart,
+  resume,
+  onResume,
+  onDiscard,
 }: {
   config: SimuladoConfig;
   setConfig: (c: SimuladoConfig) => void;
   poolCount: number;
   topicOptions: [string, number][];
   onStart: () => void;
+  /** Tentativa pausada (storage) — banner de retomada quando presente. */
+  resume: InProgressRun | null;
+  onResume: () => void;
+  onDiscard: () => void;
 }) {
   const activeTopics = config.topics ?? [];
+
+  // ---- Banner de retomada: métricas pré-computadas (nada no render basta) ----
+  const answeredCount = resume ? resume.results.filter((r) => r.solved !== null).length : 0;
+  const answeredPct = resume ? Math.round((answeredCount / resume.qids.length) * 100) : 0;
+  const savedWhen = resume ? pausedWhenLabel(resume.savedAt) : '';
+  const pausedTimeLabel = resume
+    ? resume.config.durationMin > 0
+      ? `${fmtClock(resume.remaining)} no cronômetro`
+      : `${fmtClock(resume.elapsed)} decorridos`
+    : '';
+
   function toggleTopic(t: string) {
     const next = activeTopics.includes(t)
       ? activeTopics.filter((x) => x !== t)
@@ -449,6 +573,62 @@ function SetupScreen({
           </DialogDescription>
         </DialogHeader>
       </div>
+
+      {resume && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          role="status"
+          className="mx-6 mt-5 overflow-hidden rounded-lg border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent shadow-sm"
+        >
+          <div className="flex items-start gap-3 p-4">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/30 dark:text-amber-400">
+              <History className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                  Tentativa pausada encontrada
+                </p>
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/40 px-1.5 text-[10px] text-amber-700 dark:text-amber-400"
+                >
+                  {answeredCount}/{resume.qids.length} respondidas
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Pausada há {savedWhen} · {pausedTimeLabel} · a retomada continua do
+                segundo exato em que você parou.
+              </p>
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-[width] duration-500"
+                  style={{ width: `${answeredPct}%` }}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                  onClick={onResume}
+                >
+                  <Play className="size-3.5" /> Retomar de onde parou
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600"
+                  onClick={onDiscard}
+                >
+                  Descartar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
         <div className="space-y-1.5">
