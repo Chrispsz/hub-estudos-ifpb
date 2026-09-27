@@ -13,6 +13,7 @@ import {
   Backpack,
   BookOpen,
   BookX,
+  Calculator,
   CalendarClock,
   ChevronDown,
   CircleAlert,
@@ -197,20 +198,31 @@ export function ExamPrepCard() {
     toast.success(`${novas.length} cartões da Av1 adicionados — revise na aba Praticar → Flashcards.`);
   }
 
-  // Prova passou → estado compacto, sem ruído.
+  // Prova passou → estado compacto, sem ruído — mas com o próximo passo real:
+  // a nota vai para a Calculadora (deep-link, não só menção no texto).
   if (daysLeft < 0) {
     return (
       <Card className="rounded-xl border-rose-500/20 bg-gradient-to-r from-rose-500/5 to-transparent p-4 shadow-sm">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-500/15 text-rose-500">
             <CircleCheck className="size-4.5" />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">Prova de Matemática (Av1) realizada</p>
             <p className="text-xs text-muted-foreground">
-              Registre a nota na Calculadora quando sair o resultado. Boa sorte! 🍀
+              Registre a nota na Calculadora quando sair o resultado — a média do semestre
+              acompanha na hora.
             </p>
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => openProgress()}
+            className="h-9 shrink-0 gap-1.5 border-rose-500/30 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 sm:h-8"
+            aria-label="Abrir a Calculadora de notas na aba Progresso"
+          >
+            <Calculator className="size-3.5" /> Abrir a Calculadora
+          </Button>
         </div>
       </Card>
     );
