@@ -73,9 +73,10 @@ import {
   countTravadas,
   formatTravadas,
   isVesperaWindow,
-  missedPlanDays,
   normalizeTravadas,
+  planDayChecked,
   planDayFor,
+  planDaysBehind,
   type PlanDay,
   type PlanKind,
 } from '@/lib/math-exam-prep';
@@ -171,16 +172,26 @@ export function ExamPrepCard() {
   }, [sp.progress.simuladoRuns]);
 
   // O DIA DO SIMULADO SABE QUANDO ELE JÁ ACONTECEU: uma prova de Matemática
-  // encerrada HOJE vira estado "feito" no chip do marco e no kit — a noite da
-  // terça pede a CORREÇÃO, não um convite para começar de novo. Render-time
-  // (sem effect/interval, lição da 79): reage a mock de relógio no mesmo frame
-  // e a runs novas no mesmo re-render (storage event). Sem prova de Matemática
-  // hoje → undefined (o chip continua convidando a fazer — estado honesto).
-  const simuladoRunToday = React.useMemo(() => {
-    const hoje = new Date().toDateString();
+  // encerrada no DIA OFICIAL do plano vira estado "feito" no chip do marco,
+  // no kit, na linha do tempo e no modo recuperação — a noite da terça pede a
+  // CORREÇÃO, não um convite para começar de novo; e a véspera (30/09) não
+  // acusa o simulado de "ter ficado para trás" quando ele foi feito. Render-
+  // time (sem effect/interval, lição da 79): reage a mock de relógio no mesmo
+  // frame e a runs novas no mesmo re-render (storage event). Sem prova de
+  // Matemática no dia oficial → undefined (o chip continua convidando —
+  // estado honesto).
+  const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
+  const simuladoRunOnPlanDate = React.useMemo(() => {
+    const diaOficial = MATH_SIMULADO_DATE;
     return (sp.progress.simuladoRuns ?? []).find((r) => {
       if (r.mode !== 'prova') return false;
-      if (new Date(r.date).toDateString() !== hoje) return false;
+      // T12 no parse: 'yyyy-mm-dd' puro viria como UTC meia-noite e cairia
+      // no dia anterior em fuso negativo — meio-dia local é o dia inteiro.
+      if (
+        new Date(r.date).toDateString() !==
+        new Date(`${diaOficial}T12:00:00`).toDateString()
+      )
+        return false;
       // Só prova de MATEMÁTICA conta: pelo filtro do preset OU pelas questões.
       if (r.filters?.discipline) return r.filters.discipline === MATH_EXAM.disciplineCode;
       return r.questions?.length
@@ -188,7 +199,16 @@ export function ExamPrepCard() {
         : false;
     });
   }, [sp.progress.simuladoRuns]);
-  const simuladoDoneToday = !!simuladoRunToday;
+  const simuladoDoneOnPlanDate = !!simuladoRunOnPlanDate;
+  // "Feito HOJE" é mais estreito: só no próprio dia (o kit da 80 fala do
+  // simulado de hoje; na véspera o run é de ONTEM e o badge volta ao default).
+  const simuladoDoneToday = simuladoDaysLeft === 0 && simuladoDoneOnPlanDate;
+
+  // O PLANO NÃO MENTE: dias "para trás" = só os pendentes de verdade (tarefas
+  // não marcadas E, no dia do simulado, sem run oficial). Antes, TODO dia
+  // passado era acusado — "SIMULADO ficou para trás" na véspera com a prova
+  // feita era a mentira mais cara da semana.
+  const behind = planDaysBehind(daysLeft, checked, simuladoDoneOnPlanDate);
 
   /** 1 toque: todos os cartões da Av1 entram no sistema Leitner (Praticar → Flashcards). */
   function addAv1Deck() {
@@ -250,7 +270,6 @@ export function ExamPrepCard() {
   }
 
   const day = planDayForDaysLeft(daysLeft);
-  const missed = missedPlanDays(daysLeft);
   const totalTasks = MATH_EXAM_PLAN.reduce((a, d) => a + d.tarefas.length, 0);
   const doneTasks = Object.values(checked).filter(Boolean).length;
   const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
@@ -274,9 +293,10 @@ export function ExamPrepCard() {
   // Linha do tempo dos 8 dias (offset 7 → 0): passado✓ verde, passado✗ âmbar,
   // hoje pulsando em rosa, futuro cinza e prova como bandeira.
   const todayOffset = Math.min(Math.max(daysLeft, 0), MATH_EXAM_PLAN.length - 1);
+  // Fonte única da conta (a mesma do banner e do diálogo): planDayChecked.
   const doneDay = (offset: number) =>
     MATH_EXAM_PLAN.filter((d) => d.offset === offset && d.offset !== 0).every((d) =>
-      d.tarefas.every((_, i) => checked[`${offset}-${i}`]),
+      planDayChecked(d, checked),
     );
 
   return (
@@ -346,21 +366,21 @@ export function ExamPrepCard() {
               para a linha de baixo */}
           <div className="flex flex-wrap items-center gap-2">
             {(() => {
-              const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
               const isSimuladoDay = simuladoDaysLeft === 0;
               const isSimuladoEve = simuladoDaysLeft === 1;
-              // Feito no dia: a prova de Matemática de hoje já foi encerrada —
-              // o chip deixa de convidar a começar e vira o próximo passo real
-              // do plano D-2 (refazer no papel o que errou → a correção ajuda).
-              const isSimuladoDone = isSimuladoDay && simuladoDoneToday;
+              // Feito no dia: a prova de Matemática do dia oficial já foi
+              // encerrada — o chip deixa de convidar a começar e vira o
+              // próximo passo real do plano D-2 (refazer no papel o que
+              // errou → a correção ajuda).
+              const isSimuladoDone = isSimuladoDay && simuladoDoneOnPlanDate;
               return (
                 <button
                   type="button"
                   onClick={
-                    isSimuladoDone && simuladoRunToday
+                    isSimuladoDone && simuladoRunOnPlanDate
                       ? () =>
                           openTutor({
-                            question: buildRunDebriefQuestion(simuladoRunToday),
+                            question: buildRunDebriefQuestion(simuladoRunOnPlanDate),
                             disciplineCode: MATH_EXAM.disciplineCode,
                           })
                       : () => openSimulado({ preset: 'math_exam' })
@@ -551,17 +571,32 @@ export function ExamPrepCard() {
           </div>
         )}
 
-        {/* MODO RECUPERAÇÃO: dias do plano que ficaram para trás */}
-        {missed.length > 0 && (
+        {/* MODO RECUPERAÇÃO: só os dias PENDENTES de verdade (o simulado feito
+            no dia oficial e as tarefas marcadas saem da conta — o plano não mente). */}
+        {behind.length > 0 && (
           <div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <div className="flex items-start gap-2">
               <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  Modo recuperação: {missed.length} dia(s) do plano ficaram para trás
+                  Modo recuperação: {behind.length} dia(s) do plano seguem pendentes
+                  {(() => {
+                    // O banner também PROVA progresso: dias passados já cumpridos
+                    // aparecem em emerald ao lado do que pende — recuperação sem
+                    // culpa, com o crédito que o esforço merece.
+                    const pastCount = MATH_EXAM_PLAN.filter(
+                      (d) => d.offset > daysLeft && d.offset > 0,
+                    ).length;
+                    const doneCount = pastCount - behind.length;
+                    return doneCount > 0 ? (
+                      <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                        {' '}· {doneCount} já cumprido(s) ✓
+                      </span>
+                    ) : null;
+                  })()}
                 </p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80 dark:text-amber-300/80">
-                  {missed.map((m) => m.titulo).join(' · ')}. O conteúdo CONTINUA na prova —
+                  {behind.map((m) => m.titulo).join(' · ')}. O conteúdo CONTINUA na prova —
                   faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da
                   Lista 01) antes do dia de hoje. A fila certa está no card “Plano de
                   Recuperação”.
@@ -597,7 +632,10 @@ export function ExamPrepCard() {
               const past = d.offset > todayOffset;
               const today = d.offset === todayOffset;
               const prova = d.offset === 0;
-              const complete = past && doneDay(d.offset);
+              // Feito = tarefas marcadas OU, no dia do simulado, a prova
+              // oficial encerrada (o run é o registro — checkboxes são opcional).
+              const complete =
+                past && (doneDay(d.offset) || (d.kind === 'simulado' && simuladoDoneOnPlanDate));
               return (
                 <div key={d.offset} className="flex min-w-0 flex-1 flex-col items-center gap-1">
                   <span
@@ -641,6 +679,22 @@ export function ExamPrepCard() {
                 <Timer className="size-3" /> {day.minutos} min
               </span>
             </div>
+            {/* Reconhecimento honesto do simulado feito: a noite da terça vê
+                o resultado no PRÓPRIO dia do plano (as checkboxes continuam
+                lá — registro manual — mas o run já diz o que aconteceu). */}
+            {day.kind === 'simulado' && simuladoRunOnPlanDate && (
+              <div className="mt-2.5 flex items-start gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/[0.07] px-2.5 py-2">
+                <CircleCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                <p className="min-w-0 text-[11px] leading-relaxed text-emerald-800 dark:text-emerald-200/90">
+                  <span className="font-semibold">Simulado feito hoje ✓</span>{' '}
+                  <span className="tabular-nums font-semibold text-emerald-700 dark:text-emerald-300">
+                    {Math.round((simuladoRunOnPlanDate.solved / Math.max(simuladoRunOnPlanDate.total, 1)) * 100)}%
+                  </span>{' '}
+                  ({simuladoRunOnPlanDate.solved}/{simuladoRunOnPlanDate.total} resolvidas) — agora é
+                  refazer no papel o que errou; a correção comentada está no chip verde acima.
+                </p>
+              </div>
+            )}
             <ul className="mt-2.5 space-y-1.5">
               {day.tarefas.map((t, i) => {
                 const key = `${day.offset}-${i}`;
@@ -817,7 +871,7 @@ export function ExamPrepCard() {
                     key={d.offset}
                     className={cn(
                       'rounded-lg border p-3',
-                      d.offset === Math.min(Math.max(daysLeft - 1, 0), MATH_EXAM_PLAN.length - 1)
+                      d.offset === todayOffset
                         ? 'border-rose-500/40 bg-rose-500/5'
                         : 'border-border',
                     )}
@@ -829,7 +883,20 @@ export function ExamPrepCard() {
                       <Badge variant="outline" className={cn('border text-[10px]', KIND_STYLE[d.kind])}>
                         {KIND_LABEL[d.kind]}
                       </Badge>
-                      {missed.some((m) => m.offset === d.offset) && (
+                      {d.offset === todayOffset && (
+                        <Badge className="border-0 bg-rose-500 text-[9px] text-white">hoje</Badge>
+                      )}
+                      {/* Estados honestos do passado: feito ✓ (tarefas marcadas
+                          ou simulado oficial feito) em emerald — a cor que o Hub
+                          já consagrou para done; atrasado só no que PENDE de verdade. */}
+                      {d.offset > todayOffset &&
+                        d.offset > 0 &&
+                        (doneDay(d.offset) || (d.kind === 'simulado' && simuladoDoneOnPlanDate)) && (
+                          <Badge className="border-0 bg-emerald-600 text-[9px] text-white">
+                            feito ✓
+                          </Badge>
+                        )}
+                      {behind.some((m) => m.offset === d.offset) && (
                         <Badge className="border-0 bg-amber-500 text-[9px] text-white">atrasado</Badge>
                       )}
                       <p className="min-w-0 flex-1 text-sm font-medium">{d.titulo}</p>

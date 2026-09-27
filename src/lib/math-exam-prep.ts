@@ -294,13 +294,46 @@ export function planDayFor(daysLeft: number): PlanDay | undefined {
 }
 
 /**
- * Dias do plano que ficaram PARA TRÁS (modo recuperação).
- * O plano tem 8 dias (offset 7..0); se o aluno começar com menos dias,
- * os offsets acima de daysLeft são os dias pulados — catch-up condensado.
+ * Offset do dia do SIMULADO no plano — fonte única derivada do PRÓPRIO plano
+ * (mesma filosofia do MATH_SIMULADO_DATE): mudou o plano, muda o offset junto.
  */
-export function missedPlanDays(daysLeft: number): PlanDay[] {
+export const MATH_SIMULADO_OFFSET =
+  MATH_EXAM_PLAN.find((d) => d.kind === 'simulado')?.offset ?? 2;
+
+/**
+ * Um dia do plano está FEITO quando todas as suas tarefas estão marcadas.
+ * (A mesma conta que a linha do tempo usa — extraída para o banner e o
+ * diálogo do plano completo não divergirem da timeline.)
+ */
+export function planDayChecked(
+  d: PlanDay,
+  checked: Record<string, boolean>,
+): boolean {
+  return d.tarefas.every((_, i) => checked[`${d.offset}-${i}`] === true);
+}
+
+/**
+ * Dias do plano que ficaram PARA TRÁS — só os PENDENTES de verdade.
+ * O antigo missedPlanDays contava TODO dia passado: com o plano em curso,
+ * o card acusava dias cumpridos ("SIMULADO — prova completa ficou para
+ * trás" na véspera, mesmo com a prova feita no Hub). Um dia passado deixa
+ * de ser pendente quando: (a) todas as tarefas estão marcadas, OU (b) é o
+ * dia do simulado e a prova de Matemática do dia oficial já existe no
+ * histórico — o run é o registro verdadeiro; as checkboxes são opcional.
+ */
+export function planDaysBehind(
+  daysLeft: number,
+  checked: Record<string, boolean>,
+  simuladoFeitoNoDiaOficial: boolean,
+): PlanDay[] {
   if (daysLeft >= MATH_EXAM_PLAN.length) return [];
-  return MATH_EXAM_PLAN.filter((d) => d.offset > daysLeft && d.offset > 0);
+  return MATH_EXAM_PLAN.filter(
+    (d) =>
+      d.offset > daysLeft &&
+      d.offset > 0 &&
+      !planDayChecked(d, checked) &&
+      !(d.kind === 'simulado' && simuladoFeitoNoDiaOficial),
+  );
 }
 
 // ---------- Baralho da Av1 (flashcards Leitner) ----------
