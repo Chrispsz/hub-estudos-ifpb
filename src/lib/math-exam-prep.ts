@@ -472,6 +472,105 @@ export function practiceExamBriefFor(
   return null;
 }
 
+// ---------- Biblioteca fala a semana da Av1 ----------
+
+/**
+ * OS MATERIAIS DO ESCOPO DA AV1 — a Biblioteca é a asa TEÓRICA da semana
+ * (os chips 'material' do plano abrem aqui) e era a única superfície cega ao
+ * calendário: 52 materiais sem um sinal de quais 4 são a prova. Esta lista é
+ * a FONTE ÚNICA do escopo teórico — os mesmos 4 do cabeçalho do módulo e do
+ * plano (as listas impressas têm gêmeas digitais aqui). Ordem = ordem do
+ * plano (Matrizes primeiro, Lógica depois — 85/86: uma ordem só).
+ */
+export const MATH_SCOPE_MATERIALS: {
+  id: string;
+  /** Rótulo curto do chip — o título completo mora no dialog do material. */
+  short: string;
+  kind: 'teoria' | 'lista';
+  topico: 'Álgebra Matricial' | 'Lógica Matemática';
+}[] = [
+  { id: 'mat-00-matrizes', short: 'Matrizes — teoria da Aula 00', kind: 'teoria', topico: 'Álgebra Matricial' },
+  { id: 'mat-01-matrizes', short: 'Matrizes — lista (Q1–35)', kind: 'lista', topico: 'Álgebra Matricial' },
+  { id: 'mat-logica-slides', short: 'Lógica — slides (47p)', kind: 'teoria', topico: 'Lógica Matemática' },
+  { id: 'mat-logica-lista', short: 'Lógica — lista (Q1–18)', kind: 'lista', topico: 'Lógica Matemática' },
+];
+
+export interface LibraryExamBrief {
+  /** 'semana' = dias de lista (D-7..D-3); os outros = marcos do calendário. */
+  kind: 'semana' | 'simulado-hoje' | 'vespera' | 'prova-hoje';
+  daysLeft: number;
+  /** Título curto — ex.: 'Semana da Av1 · faltam 4 dias'. */
+  titulo: string;
+  /** Uma linha honesta — o QUE a teoria faz neste dia (sem pânico, sem inventar). */
+  linha: string;
+  /** Quantos materiais do escopo já foram lidos (completedMaterials real). */
+  lidos: number;
+  total: number;
+}
+
+/**
+ * O BRIEF DA SEMANA DA AV1 PARA A BIBLIOTECA — espelho dos briefs do
+ * Praticar (practiceExamBriefFor) e do caderno (notebookExamBriefFor), na
+ * MESMA gramática: janela honesta (silêncio fora do D-7..D-0), linguagem de
+ * calma no D-0 e NENHUMA invenção de estado (lidos vem do progresso real).
+ * `daysLeft` entra como PARÂMETRO (daysUntilDate do chamador) — este módulo
+ * segue puro, sem importar o calendário (a mesma divisão do kit/veredito).
+ */
+export function libraryExamBriefFor(
+  daysLeft: number,
+  completedIds: readonly string[] | undefined | null,
+): LibraryExamBrief | null {
+  // Janela = a do PLANO (D-7 → D-0): antes dela a Biblioteca não tem nada a
+  // dizer (o semestre manda); depois da prova, silêncio (regra da fila da 88).
+  if (daysLeft < 0 || daysLeft > 7) return null;
+
+  const done = new Set(completedIds ?? []);
+  const lidos = MATH_SCOPE_MATERIALS.filter((m) => done.has(m.id)).length;
+  const total = MATH_SCOPE_MATERIALS.length;
+
+  if (daysLeft === 0) {
+    return {
+      kind: 'prova-hoje',
+      daysLeft,
+      titulo: 'É hoje: Prova da Av1',
+      linha: 'hoje é o dia — só reler e respirar; nada novo entra agora',
+      lidos,
+      total,
+    };
+  }
+  if (daysLeft === 1) {
+    return {
+      kind: 'vespera',
+      daysLeft,
+      titulo: 'Véspera da prova',
+      linha: 'a folha e o kit mandam hoje — a teoria fica aqui só para consulta',
+      lidos,
+      total,
+    };
+  }
+  if (daysLeft === MATH_SIMULADO_OFFSET) {
+    return {
+      kind: 'simulado-hoje',
+      daysLeft,
+      titulo: 'É hoje: Simulado da Av1',
+      linha: 'a teoria abre só para conferir o que travou — o ensaio é no Praticar',
+      lidos,
+      total,
+    };
+  }
+  const planoHoje = planDayFor(daysLeft);
+  return {
+    kind: 'semana',
+    daysLeft,
+    titulo: `Semana da Av1 · faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}`,
+    linha: planoHoje
+      ? `o plano de hoje é "${planoHoje.titulo}" — a teoria do escopo fica a 1 clique`
+      : 'a teoria do escopo da Av1 fica a 1 clique',
+    lidos,
+    total,
+  };
+}
+
 export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)

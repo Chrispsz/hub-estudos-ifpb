@@ -16,6 +16,7 @@ import { getColorClasses, priorityClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER } from '@/lib/curriculum';
 import { DisciplinesView } from './disciplines-view';
+import { LibraryExamStrip } from './library-exam-strip';
 import { MaterialsList } from './materials-list';
 
 type CategoryFilter = 'todos' | Discipline['category'];
@@ -129,6 +130,10 @@ export function LibraryView() {
           </Badge>
         </div>
       </header>
+
+      {/* A semana da Av1 vista pela Biblioteca: escopo a 1 clique + D-N
+          honesto (janela D-7 → D-0 — fora dela a faixa cala, regra da 88). */}
+      <LibraryExamStrip />
 
       <Tabs
         value={tab}
