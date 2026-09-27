@@ -790,17 +790,54 @@ function AcademicAgenda() {
           .toLocaleDateString('pt-BR', { month: 'short' })
           .replace('.', '')
           .toUpperCase();
+        // A casa nomeia o dia da semana em toda superfície de calendário
+        // (Agenda 'Seg', mapa 'Dom', strip) — a caixa de data da agenda não
+        // podia ser a exceção: TER em cima do número.
+        const weekdayLabel = d
+          .toLocaleDateString('pt-BR', { weekday: 'short' })
+          .replace('.', '')
+          .toUpperCase();
+        // Rampa de urgência SÓ para prazos (feriado 'hoje' não é urgência):
+        // mesma família do badge do header — hoje = sólido amber + pulso,
+        // a ≤2d = o tom do 'amanhã' do header, longe = a identidade do kind.
+        // NO DIA do prazo o upcomingEvents marca ongoing=true (hoje ∈
+        // [start,end]) — mas prazo de UM dia 'em andamento' É o 'hoje' da
+        // casa: o sólido amber vence o 'agora' genérico (a janela em curso
+        // de vários dias, tipo matrícula, continua no tom do kind).
+        const singleDayPrazo =
+          ev.kind === 'prazo' && (!ev.endDate || ev.endDate === ev.date);
+        const urgHoje = singleDayPrazo && ev.daysLeft === 0;
+        const urgPerto =
+          ev.kind === 'prazo' && !ev.ongoing && ev.daysLeft > 0 && ev.daysLeft <= 2;
+        const badgeCls = urgHoje
+          ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900'
+          : urgPerto
+            ? 'border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300'
+            : style.badge;
         return (
           <Card
             key={`${ev.date}-${ev.title}`}
             className={cn(
               'flex-row items-center gap-3 rounded-xl border p-3 shadow-sm',
-              ev.ongoing && 'ring-2 ring-emerald-500/40',
+              // O anel do dia segue a família do marco (amber), não o 'agora'
+              // genérico — mesma gramática dos dias-marco da Agenda (96).
+              urgHoje && 'ring-2 ring-amber-500/40',
+              ev.ongoing && !urgHoje && 'ring-2 ring-emerald-500/40',
             )}
           >
-            <div className="grid w-12 shrink-0 place-items-center rounded-lg bg-muted/60 py-1.5">
-              <span className="text-sm font-bold leading-none">{dayLabel}</span>
-              <span className="text-[10px] uppercase text-muted-foreground">{monthLabel}</span>
+            <div
+              className={cn(
+                'grid w-12 shrink-0 place-items-center rounded-lg py-1.5',
+                urgHoje ? 'bg-amber-500/15' : ev.ongoing ? 'bg-emerald-500/15' : 'bg-muted/60',
+              )}
+            >
+              <span className="text-[9px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">
+                {weekdayLabel}
+              </span>
+              <span className="mt-0.5 text-sm font-bold leading-none tabular-nums">{dayLabel}</span>
+              <span className="mt-0.5 text-[10px] uppercase leading-none text-muted-foreground">
+                {monthLabel}
+              </span>
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{ev.title}</p>
@@ -808,8 +845,22 @@ function AcademicAgenda() {
                 <p className="truncate text-[11px] text-muted-foreground">{ev.description}</p>
               )}
             </div>
-            <Badge variant="outline" className={cn('shrink-0 border text-[10px]', style.badge)}>
-              {ev.ongoing ? 'agora' : ev.daysLeft === 0 ? 'hoje' : `em ${ev.daysLeft}d`}
+            <Badge
+              variant="outline"
+              className={cn(
+                'shrink-0 gap-1 border tabular-nums text-[10px]',
+                badgeCls,
+                urgHoje && 'font-semibold',
+              )}
+            >
+              <span className={cn('inline-flex', urgHoje && 'animate-pulse')}>{style.icon}</span>
+              {urgHoje
+                ? 'hoje'
+                : ev.ongoing
+                  ? 'agora'
+                  : ev.daysLeft === 0
+                    ? 'hoje'
+                    : `em ${ev.daysLeft}d`}
             </Badge>
           </Card>
         );
