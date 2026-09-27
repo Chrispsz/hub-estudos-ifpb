@@ -339,7 +339,7 @@ export function SimuladoView({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto overflow-x-hidden rounded-xl p-0">
+      <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto overflow-x-hidden rounded-xl p-0 sm:max-w-3xl">
         {phase === 'setup' && (
           <SetupScreen
             config={config}
@@ -384,9 +384,13 @@ export function SimuladoView({
             pct={pct}
             elapsed={elapsed}
             onOpenChange={onOpenChange}
-            onRetryMissed={() => {
-              const missed = questions.filter((q, i) => results[i].solved !== true);
-              // reinicia com apenas as questões erradas/puladas
+            onRetryMissed={(topic) => {
+              const missed = questions.filter(
+                (q, i) =>
+                  results[i].solved !== true && (!topic || q.topic === topic),
+              );
+              if (missed.length === 0) return;
+              // reinicia com apenas as questões erradas/puladas (opcionalmente só de 1 tópico)
               setQuestions(missed);
               setResults(missed.map(() => ({ solved: null })));
               setIdx(0);
@@ -844,7 +848,8 @@ function ResultsScreen({
   skippedCount: number;
   pct: number;
   elapsed: number;
-  onRetryMissed: () => void;
+  /** Reinicia com as erradas/puladas — com tópico, só as daquele tópico. */
+  onRetryMissed: (topic?: string) => void;
   onNew: () => void;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -889,7 +894,9 @@ function ResultsScreen({
     questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode);
 
   return (
-    <div>
+    // min-w-0: como item do grid do DialogContent, permite o conteúdo encolher
+    // abaixo do min-content (linhas com truncate/nowrap não podem estourar a caixa).
+    <div className="min-w-0">
       <div className="border-b bg-gradient-to-r from-emerald-600/15 via-teal-500/10 to-transparent px-6 py-5">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
@@ -1035,8 +1042,20 @@ function ResultsScreen({
                         {t.pct}%
                       </span>
                     </span>
-                    {/* Micro-ações do tópico: aparecem no hover, sempre acessíveis por teclado */}
+                    {/* Micro-ações do tópico: aparecem no hover, sempre acessíveis por teclado.
+                        1º Refazer as erradas DESTE tópico (só quando existe erro nele). */}
                     <span className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                      {t.total - t.solved > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onRetryMissed(t.topic)}
+                          title={`Refazer agora as ${t.total - t.solved} que não consegui em ${t.topic}`}
+                          aria-label={`Refazer as questões erradas de ${t.topic}`}
+                          className="inline-flex size-6 items-center justify-center rounded-full border border-violet-200 bg-violet-50 text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 dark:border-violet-800/70 dark:bg-violet-950/50 dark:text-violet-300 dark:hover:bg-violet-900/50"
+                        >
+                          <RotateCcw className="size-3" aria-hidden />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -1189,7 +1208,7 @@ function ResultsScreen({
         {hasMissed && (
           <Button
             size="sm"
-            onClick={onRetryMissed}
+            onClick={() => onRetryMissed()}
             className="bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700"
           >
             <Target className="size-4" /> Refazer só os errados ({missedList.length})

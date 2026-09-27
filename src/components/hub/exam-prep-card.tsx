@@ -242,13 +242,20 @@ export function ExamPrepCard() {
               {daysLeft === 0 ? 'HOJE' : `${daysLeft}d`}
             </span>
             <span className="text-[11px] text-muted-foreground">01/10 · faltam</span>
-            <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              title="Abrir o plano completo e as evidências do score de prontidão"
+              aria-label="Abrir plano completo com as evidências do score de prontidão"
+              className="mt-0.5 -mx-1 flex items-center gap-1 rounded-md px-1 py-0.5 text-[11px] font-medium transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+            >
               <span aria-hidden className={cn('size-1.5 rounded-full', READINESS_DOT[readiness.tone])} />
               <span className="text-muted-foreground">prontidão</span>
               <span className={cn('tabular-nums', READINESS_TEXT[readiness.tone])}>
                 {readiness.score === null ? '—' : `${readiness.score}%`}
               </span>
-            </span>
+              <ChevronDown className="size-2.5 text-muted-foreground/70" aria-hidden />
+            </button>
           </div>
         </div>
 
@@ -562,7 +569,7 @@ export function ExamPrepCard() {
 
       {/* Dialog: plano completo + fórmulas + checklist */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-xl p-0">
+        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-xl p-0 sm:max-w-2xl">
           <div className="border-b bg-gradient-to-r from-rose-500/10 to-transparent px-6 py-4">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg">
