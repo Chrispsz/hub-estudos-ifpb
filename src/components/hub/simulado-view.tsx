@@ -553,6 +553,7 @@ export function SimuladoView({
       statement: q.statement.slice(0, 160),
     }));
     sp.addSimuladoRun({
+      mode: attemptMode, // o histórico sabe o que foi: prova, treino ou tópico
       total: questions.length,
       solved: results.filter((r) => r.solved === true).length,
       missed: results.filter((r) => r.solved === false).length,
@@ -1743,6 +1744,7 @@ function ResultsScreen({
               openTutor({
                 disciplineCode: worst[0]?.disciplineCode ?? questions[0]?.disciplineCode,
                 question: buildDebriefFromDetails({
+                  mode, // prop do ResultsScreen — a IA sabe se foi prova ou treino
                   pct,
                   elapsedSec: elapsed,
                   details: questions.map((q, i) => ({

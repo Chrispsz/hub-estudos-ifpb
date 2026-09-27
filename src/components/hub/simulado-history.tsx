@@ -7,12 +7,13 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, History, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { Award, Dumbbell, History, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
+import { normalizeMode } from '@/lib/simulado-resume';
 import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
@@ -74,6 +75,34 @@ function runDisciplineCode(r: SimuladoRun): string | undefined {
     if (worst) return worst;
   }
   return r.filters?.discipline;
+}
+
+/**
+ * Rótulo de MODO da tentativa no histórico — só os EXCEPCIONAIS ganham badge:
+ * prova é o default e fica sem rótulo (a ausência É o padrão, a linha respira);
+ * treino (rose) e treino de tópico (sky) usam o MESMO código de cores do
+ * diálogo (rodada 73) — a cor continua sendo o rótulo, em toda superfície.
+ */
+function runModeBadge(r: SimuladoRun) {
+  const mode = normalizeMode(r.mode);
+  if (mode === 'prova') return null;
+  return mode === 'treino' ? (
+    <Badge
+      variant="outline"
+      title="Treino do Caderno de Erros — repetição dos erros, não conta como simulado da prova"
+      className="gap-0.5 border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] font-semibold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
+    >
+      <Dumbbell className="size-2.5" aria-hidden /> Treino
+    </Badge>
+  ) : (
+    <Badge
+      variant="outline"
+      title="Treino curto de um único tópico (replay) — não conta como simulado da prova"
+      className="gap-0.5 border-sky-300/60 bg-sky-500/[0.07] px-1.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-400"
+    >
+      <Target className="size-2.5" aria-hidden /> Treino de tópico
+    </Badge>
+  );
 }
 
 // Estado vazio estável (mesma referência) — evita re-render do memo quando não há runs.
@@ -431,6 +460,7 @@ export function SimuladoHistory() {
                   <Badge variant="outline" className={cn('border text-[10px]', pctTone(pct))}>
                     {pct}%
                   </Badge>
+                  {runModeBadge(r)}
                   <span className="text-muted-foreground">
                     {fmtDate(r.date)} · {fmtDur(r.durationSec)}
                   </span>
@@ -470,7 +500,18 @@ export function SimuladoHistory() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <Target className="size-3 shrink-0 text-emerald-500" />
-              {stats.count} simulado(s) registrado(s) · cada tentativa do Simulado Pro grava automaticamente aqui.
+              {(() => {
+                // Contagem HONESTA: treinos não viram "simulados" na fala —
+                // a régua da meta se aplica às provas; treinos são repetição.
+                const provas = runs.filter((r) => normalizeMode(r.mode) === 'prova').length;
+                const treinos = runs.length - provas;
+                return (
+                  <>
+                    {stats.count} tentativa(s): {provas} simulado(s)
+                    {treinos > 0 ? ` · ${treinos} treino(s)` : ''} · cada tentativa do Simulado Pro grava automaticamente aqui.
+                  </>
+                );
+              })()}
             </p>
             <p className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
               <span className="flex items-center gap-1">

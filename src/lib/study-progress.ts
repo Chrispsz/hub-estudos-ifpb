@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
+import type { AttemptMode } from './simulado-resume';
 
 const STORAGE_KEY = 'hub-estudos-ifpb:v2';
 
@@ -221,6 +222,8 @@ export interface RunQuestionDetail {
 export interface SimuladoRun {
   id: string;
   date: string; // ISO
+  /** Natureza da tentativa (opcional p/ compat com runs antigos) — histórico e IA honestos. */
+  mode?: AttemptMode;
   total: number;
   solved: number;
   missed: number;

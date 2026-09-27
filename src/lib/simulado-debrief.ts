@@ -11,6 +11,7 @@
 
 import { getDisciplineByCode } from '@/data/course-data';
 import type { RunQuestionDetail, SimuladoRun } from '@/lib/study-progress';
+import { normalizeMode, type AttemptMode } from '@/lib/simulado-resume';
 import { capQuestion } from '@/lib/tutor-stream';
 
 export function fmtClockSec(totalSec: number): string {
@@ -38,11 +39,21 @@ function discShort(code?: string): string {
  * tópico, dificuldade e enunciado truncado — e pede análise de professor.
  */
 export function buildDebriefFromDetails(input: {
+  mode?: AttemptMode;
   pct: number;
   elapsedSec: number;
   details: RunQuestionDetail[];
 }): string {
   const { pct, elapsedSec, details } = input;
+  const mode = normalizeMode(input.mode);
+  // A abertura declara a NATUREZA — a IA analisa um treino como treino
+  // (feedback de repetição) e não como prova (simulação de exam day).
+  const abertura =
+    mode === 'treino'
+      ? 'Acabei de terminar um TREINO no Hub (drill do Caderno de Erros — repetição dos meus erros, não prova). Analisa como um professor faria na correção e monta um plano de revisão CURTO e organizado.'
+      : mode === 'topico'
+        ? 'Acabei de terminar um treino CURTO de um único tópico no Hub (replay de tópico, não prova completa). Analisa como um professor faria na correção e monta um plano de revisão CURTO e organizado.'
+        : 'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.';
   const lines = details.map((q, i) => {
     const status =
       q.status === 'solved' ? 'CONSEGUI' : q.status === 'missed' ? 'NÃO CONSEGUI' : 'PULADA';
@@ -50,7 +61,7 @@ export function buildDebriefFromDetails(input: {
   });
   return capQuestion(
     [
-      'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.',
+      abertura,
       `Aproveitamento: ${pct}% · tempo total: ${fmtClockSec(elapsedSec)}.`,
       'Resultado por questão:',
       ...lines,
@@ -66,13 +77,17 @@ export function buildDebriefFromDetails(input: {
  * trabalha com os agregados gravados — honesto sobre o que sabe.
  */
 export function buildRunDebriefQuestion(run: SimuladoRun): string {
+  const mode = normalizeMode(run.mode);
   if (run.questions && run.questions.length > 0) {
     return buildDebriefFromDetails({
+      mode,
       pct: run.total > 0 ? Math.round((run.solved / run.total) * 100) : 0,
       elapsedSec: run.durationSec,
       details: run.questions,
     });
   }
+  const natureza =
+    mode === 'treino' ? 'um TREINO (drill do caderno)' : mode === 'topico' ? 'um treino de tópico' : 'um simulado';
   const partes = [
     `aproveitamento ${run.total > 0 ? Math.round((run.solved / run.total) * 100) : 0}%`,
     `${run.solved}/${run.total} resolvidas`,
@@ -84,7 +99,7 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
   if (run.filters?.discipline) filtros.push(discShort(run.filters.discipline));
   if (run.filters?.difficulty) filtros.push(run.filters.difficulty);
   return [
-    `Este simulado foi feito em ${fmtDate(run.date)} (antes de o Hub gravar os detalhes por questão), então só tenho os totais: ${partes.join(' · ')}${filtros.length ? ` · filtros: ${filtros.join(', ')}` : ''}.`,
+    `Este registro é de ${natureza} feito em ${fmtDate(run.date)} (antes de o Hub gravar os detalhes por questão), então só tenho os totais: ${partes.join(' · ')}${filtros.length ? ` · filtros: ${filtros.join(', ')}` : ''}.`,
     '',
     'Como professor, me diz: o que esses números indicam sobre minhas dificuldades, e qual plano de revisão CURTO você sugere a partir daqui? Se precisar, me sugira um novo simulado focado no ponto fraco provável.',
   ].join('\n');
