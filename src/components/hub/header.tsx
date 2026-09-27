@@ -5,7 +5,7 @@ import { CalendarClock, CircleCheck, Download, GraduationCap, Moon, Sun } from '
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ClockWidget } from './clock-widget';
+import { ClockWidget, useNow } from './clock-widget';
 import { DownloadsDialog } from './downloads-dialog';
 import { PaletteTriggerButton } from './command-palette';
 import { daysUntilDate, getNextEvaluation } from '@/lib/semester';
@@ -17,7 +17,6 @@ import { useStudyProgress } from '@/lib/study-progress';
 export function Header({ activeTab }: { activeTab?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
-  const [nextEval, setNextEval] = React.useState<ReturnType<typeof getNextEvaluation>>(null);
   const [downloadsOpen, setDownloadsOpen] = React.useState(false);
   // O badge persistente precisa conhecer o REGISTRO do simulado oficial —
   // senão na noite de terça (29/09) seguiria gritando "É hoje" com a prova
@@ -29,11 +28,16 @@ export function Header({ activeTab }: { activeTab?: string }) {
     [sp.progress.simuladoRuns],
   );
 
+  // O TICK ÚNICO (113/115): o badge do header lê o useNow (60s) — o
+  // setInterval próprio saiu (mais um loop a menos no mundo); o contrato
+  // null-até-mount continua o mesmo (o servidor não sabe a hora).
+  const nowTick = useNow(60_000);
+  const nextEval = React.useMemo(
+    () => (nowTick ? getNextEvaluation(nowTick) : null),
+    [nowTick],
+  );
   React.useEffect(() => {
     setMounted(true);
-    setNextEval(getNextEvaluation());
-    const id = setInterval(() => setNextEval(getNextEvaluation()), 60_000);
-    return () => clearInterval(id);
   }, []);
 
   const toggleTheme = React.useCallback(() => {

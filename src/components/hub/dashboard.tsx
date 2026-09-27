@@ -44,6 +44,7 @@ import { MaterialSummaryDialog } from './material-summary-dialog';
 import type { Discipline, Material } from '@/data/course-data';
 import { studyStrategy } from '@/data/course-data';
 import { TodayStudyCard } from './today-study-card';
+import { useNow } from './clock-widget';
 import { ExamPrepCard } from './exam-prep-card';
 import { RecoveryCard } from './recovery-card';
 import { SemesterProjection } from './semester-projection';
@@ -79,26 +80,27 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
   const [recentMaterial, setRecentMaterial] = React.useState<Material | null>(null);
   const [recentOpen, setRecentOpen] = React.useState(false);
 
-  // Próximas 3 avaliações (só no cliente — APENAS datas oficiais; sem estimativas)
-  const [upcoming, setUpcoming] = React.useState<typeof evaluationPeriods>([]);
-  React.useEffect(() => {
-    const now = new Date();
-    setUpcoming(
-      [...evaluationPeriods]
-        .filter((e) => !e.conditional && e.date)
-        .filter((e) => daysUntilDate(e.date as string, now) >= 0)
-        .sort((a, b) => daysUntilDate(a.date as string, now) - daysUntilDate(b.date as string, now))
-        .slice(0, 3),
-    );
-  }, []);
+  // Próximas 3 avaliações (só no cliente — APENAS datas oficiais; sem estimativas).
+  // VIVA (115): recalcula a cada tick do useNow — a tab aberta na virada do
+  // dia não dorme no relógio (antes: mount-once, o '3d' virava mentira à
+  // meia-noite até um reload).
+  const nowMin = useNow(60_000);
+  const upcoming = React.useMemo(() => {
+    if (!nowMin) return [] as typeof evaluationPeriods;
+    return [...evaluationPeriods]
+      .filter((e) => !e.conditional && e.date)
+      .filter((e) => daysUntilDate(e.date as string, nowMin) >= 0)
+      .sort((a, b) => daysUntilDate(a.date as string, nowMin) - daysUntilDate(b.date as string, nowMin))
+      .slice(0, 3);
+  }, [nowMin]);
 
-  // Próxima avaliação em destaque (só no cliente)
-  const [nextEval, setNextEval] = React.useState<ReturnType<typeof getNextEvaluationShared>>(null);
-  React.useEffect(() => {
-    setNextEval(getNextEvaluationShared());
-    const id = setInterval(() => setNextEval(getNextEvaluationShared()), 60_000);
-    return () => clearInterval(id);
-  }, []);
+  // Próxima avaliação em destaque (só no cliente) — o TICK ÚNICO (113):
+  // o useNow alimenta o hero; o setInterval próprio do dashboard saiu
+  // (a árvore inteira já re-renderizava a cada 60s — agora com UMA fonte).
+  const nextEval = React.useMemo(
+    () => (nowMin ? getNextEvaluationShared(nowMin) : null),
+    [nowMin],
+  );
 
   // O run do simulado oficial (29/09) — mesma fonte única do card da prova
   // (85): se o dia do simulado já aconteceu com prova registrada, o chip do
@@ -138,9 +140,11 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
   const totalTopicsDone = countTotalTopicsDone(sp.progress.topicProgress);
   const disciplinesOnTrack = countDisciplinesOnTrack(sp.progress.topicProgress);
 
-  // Linhas derivadas das próximas avaliações (memoizado — evita criar Date/agregar no render)
+  // Linhas derivadas das próximas avaliações (memoizado) — o nowMin entra
+  // como chave: virou o dia, a linha recalcula no mesmo frame (lição 79).
   const upcomingRows = React.useMemo(() => {
-    const now = new Date();
+    if (!nowMin) return [];
+    const now = nowMin;
     return upcoming.map((e) => {
       const disc = getDisciplineByCode(e.disciplineCode);
       const color = getColorClasses(disc?.color ?? 'slate');
@@ -158,7 +162,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
         : 'A definir';
       return { e, disc, color, daysLeft, pct, onTrack: pct >= ON_TRACK_PCT, dateLabel };
     });
-  }, [upcoming, sp.progress.topicProgress]);
+  }, [upcoming, nowMin, sp.progress.topicProgress]);
 
   return (
     <div className="space-y-6">
@@ -456,12 +460,37 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     >
                       <DisciplineIcon name={disc?.icon ?? 'BookOpen'} className="size-3.5" />
                     </span>
-                    <Badge
-                      variant="outline"
-                      className={cn('ml-auto border text-[11px]', color.badge)}
-                    >
-                      {daysLeft > 0 ? `${daysLeft}d` : 'hoje'}
-                    </Badge>
+                    {/* A MESMA RAMPA da agenda acadêmica (114): prova HOJE =
+                        sólido amber + pulso (o 'É hoje' do header), a ≤2d = o
+                        tom do 'amanhã', longe = a identidade da disciplina —
+                        a fileira de avaliações e a agenda falam a mesma língua. */}
+                    {(() => {
+                      const urgHoje = daysLeft === 0;
+                      const urgPerto = daysLeft > 0 && daysLeft <= 2;
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'ml-auto border text-[11px] tabular-nums',
+                            urgHoje
+                              ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900'
+                              : urgPerto
+                                ? 'border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300'
+                                : color.badge,
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'inline-flex',
+                              urgHoje && 'animate-pulse',
+                            )}
+                          >
+                            <CalendarCheck className="size-3" aria-hidden />
+                          </span>
+                          {urgHoje ? 'hoje' : `${daysLeft}d`}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                   <p className={cn('mt-2 text-[11px] font-medium uppercase tracking-wide', color.text)}>
                     {disc?.shortName} • {dateLabel}
@@ -766,10 +795,14 @@ const EVENT_STYLES: Record<
 
 /** Agenda acadêmica real (fonte: calendário oficial IFPB Cajazeiras 2026). */
 function AcademicAgenda() {
-  const [events, setEvents] = React.useState<ReturnType<typeof upcomingEvents>>([]);
-  React.useEffect(() => {
-    setEvents(upcomingEvents(new Date(), 4));
-  }, []);
+  // VIVA (115): o useNow alimenta a lista — a tab aberta na virada do dia
+  // flipa 'em 2d' → 'em 1d' → 'hoje' sem reload (antes: mount-once, o badge
+  // mentia até o próximo refresh da página).
+  const nowTick = useNow(60_000);
+  const events = React.useMemo(
+    () => (nowTick ? upcomingEvents(nowTick, 4) : []),
+    [nowTick],
+  );
 
   if (events.length === 0) {
     return (
