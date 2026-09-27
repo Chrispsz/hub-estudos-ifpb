@@ -636,6 +636,68 @@ export function libraryExamBriefFor(
   };
 }
 
+// ---------- A disciplina fala a semana da Av1 (card + dialog) ----------
+
+/**
+ * BRIEF DA DISCIPLINA — a camada DISCIPLINA da Biblioteca (card na grade e
+ * dialog de detalhes, aba Avaliação) era a última superfície grande cega à
+ * reta final: a Av1 aparecia como uma linha estática de data (fonte honesta
+ * de course-data, mas sem dias restantes, sem marco e sem ponte para o
+ * plano). Este brief é a FONTE ÚNICA da voz da semana na disciplina.
+ *
+ * Janela HONESTA (regra da 88): D-7 → D-0; fora dela e pós-prova = null
+ * (silêncio — a nota de 02/10 mora na calculadora, não aqui). `daysLeft`
+ * entra como PARÂMETRO (daysUntilDate do chamador, mesma divisão da 98) —
+ * o módulo segue PURO, sem ler relógio nem storage.
+ *
+ * Marcos derivados de MATH_EXAM.date: D-2 = dia do simulado oficial,
+ * D-1 = véspera, D-0 = prova. Gramática de cor decidida pelo chamador
+ * (kind): amber nos dias de semana/ensaio, rose só no dia da prova.
+ */
+export interface DisciplineExamBrief {
+  kind: 'semana' | 'simulado' | 'vespera' | 'prova';
+  daysLeft: number;
+  /** Chip curto do card — ex.: 'Av1 · faltam 4 dias' / 'Av1 · é hoje'. */
+  chip: string;
+  /** Linha honesta do dialog (1 frase, sem duplicar o plano do Painel). */
+  linha: string;
+}
+
+export function disciplineExamBriefFor(daysLeft: number): DisciplineExamBrief | null {
+  if (daysLeft < 0 || daysLeft > 7) return null;
+  if (daysLeft === 0) {
+    return {
+      kind: 'prova',
+      daysLeft,
+      chip: 'Av1 · é hoje',
+      linha: 'a prova é hoje — levar o kit, chegar cedo e respirar',
+    };
+  }
+  const dias = daysLeft === 1 ? '1 dia' : `${daysLeft} dias`;
+  if (daysLeft === MATH_SIMULADO_OFFSET) {
+    return {
+      kind: 'simulado',
+      daysLeft,
+      chip: `Av1 · faltam ${dias}`,
+      linha: 'hoje é o dia do simulado oficial (ensaio real no Praticar) — o run alimenta o kit da véspera',
+    };
+  }
+  if (daysLeft === 1) {
+    return {
+      kind: 'vespera',
+      daysLeft,
+      chip: `Av1 · falta ${dias}`,
+      linha: 'véspera — revisão leve: o kit da véspera tem o roteiro (folha, fórmulas e só as travadas)',
+    };
+  }
+  return {
+    kind: 'semana',
+    daysLeft,
+    chip: `Av1 · faltam ${dias}`,
+    linha: 'a semana da Av1 vive no Painel — plano do dia, apoio e teoria a 1 clique',
+  };
+}
+
 export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)

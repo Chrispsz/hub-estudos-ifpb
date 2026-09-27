@@ -18,6 +18,11 @@ import {
   Sparkles,
   SquareCode,
 } from 'lucide-react';
+import { daysUntilDate } from '@/lib/semester';
+import {
+  disciplineExamBriefFor,
+  MATH_EXAM,
+} from '@/lib/math-exam-prep';
 import {
   Dialog,
   DialogContent,
@@ -134,6 +139,19 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
         : [],
     [discipline],
   );
+  // Próxima avaliação datada (genérica, qualquer disciplina): 1ª com data
+  // real no futuro — condicionais fora (política anti-estimativa do course-
+  // data: sem data = sem destaque de prazo em lugar nenhum). SEM useMemo de
+  // propósito: o relógio entra no cálculo e NÃO é dependência declarável —
+  // memoizado, o valor ficava velho quando o relógio cruzava a data entre
+  // aberturas do dialog (lição 79: ler o relógio NO render, sem cache).
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate(),
+  ).padStart(2, '0')}`;
+  const nextEvalIdx = discipline
+    ? evals.findIndex((e) => e.date && e.date >= todayIso && !e.conditional)
+    : -1;
   // Ficha oficial da matriz curricular (curriculum.ts — fonte única do curso).
   const matrixInfo = React.useMemo(
     () => (discipline ? getCurriculumInfo(discipline.code) : undefined),
@@ -143,6 +161,14 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
   if (!discipline) return null;
 
   const color = getColorClasses(discipline.color);
+
+  // Voz da semana na disciplina (fonte única: disciplineExamBriefFor no
+  // módulo puro) — só a disciplina da prova fala; o relógio é lido AQUI no
+  // render (mesma divisão da 98: daysLeft entra como parâmetro no módulo).
+  const examBrief =
+    discipline.code === MATH_EXAM.disciplineCode
+      ? disciplineExamBriefFor(daysUntilDate(MATH_EXAM.date))
+      : null;
 
   return (
     <>
@@ -469,20 +495,78 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                   {evals.length > 0 && (
                     <Section icon={<CalendarDays className="size-4" />} title="Períodos de avaliação" color={color.text}>
                       <ul className="grid gap-1.5">
-                        {evals.map((e, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
-                            <Badge variant="outline" className={cn('shrink-0 border text-[11px]', color.badge)}>
-                              {e.date
-                                ? new Date(`${e.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-                                : 'A definir'}
-                            </Badge>
-                            <span>
-                              <span className="font-medium">{e.evaluationName}</span>
-                              {' — '}
-                              {e.description}
-                            </span>
-                          </li>
-                        ))}
+                        {evals.map((e, i) => {
+                          const isExamEval =
+                            !!examBrief &&
+                            e.date === MATH_EXAM.date &&
+                            e.evaluationName === MATH_EXAM.evaluationName;
+                          const isProva = isExamEval && examBrief!.kind === 'prova';
+                          const isNext = !isExamEval && i === nextEvalIdx;
+                          return (
+                            <li
+                              key={i}
+                              className={cn(
+                                'flex flex-col gap-1.5 rounded-md border px-2.5 py-2 text-sm transition-colors',
+                                isExamEval
+                                  ? isProva
+                                    ? 'border-rose-500/50 bg-rose-500/[0.07] dark:border-rose-500/40 dark:bg-rose-500/[0.08]'
+                                    : 'border-amber-500/50 bg-amber-500/[0.07] dark:border-amber-500/40 dark:bg-amber-500/[0.08]'
+                                  : isNext
+                                    ? 'border-border bg-muted/40'
+                                    : 'border-transparent',
+                              )}
+                            >
+                              <div className="flex items-start gap-2 text-foreground/85">
+                                <Badge variant="outline" className={cn('shrink-0 border text-[11px]', color.badge)}>
+                                  {e.date
+                                    ? new Date(`${e.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                    : 'A definir'}
+                                </Badge>
+                                <span className="min-w-0">
+                                  <span className="font-medium">{e.evaluationName}</span>
+                                  {' — '}
+                                  {e.description}
+                                </span>
+                                {isExamEval && (
+                                  <span
+                                    className={cn(
+                                      'ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
+                                      isProva
+                                        ? 'border-rose-500/50 bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                                        : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                                    )}
+                                  >
+                                    {isProva && (
+                                      <span aria-hidden className="relative flex size-1.5 shrink-0">
+                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
+                                        <span className="relative inline-flex size-1.5 rounded-full bg-rose-500" />
+                                      </span>
+                                    )}
+                                    {examBrief!.chip}
+                                  </span>
+                                )}
+                                {isNext && (
+                                  <span className="ml-auto inline-flex shrink-0 items-center rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                    próxima
+                                  </span>
+                                )}
+                              </div>
+                              {isExamEval && (
+                                <p
+                                  className={cn(
+                                    'flex items-start gap-1.5 text-xs font-medium',
+                                    isProva
+                                      ? 'text-rose-700 dark:text-rose-400'
+                                      : 'text-amber-700 dark:text-amber-400',
+                                  )}
+                                >
+                                  <CalendarDays aria-hidden className="mt-0.5 size-3 shrink-0" />
+                                  {examBrief!.linha}
+                                </p>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                       {evals.some((e) => !e.date) && (
                         <p className="mt-2 text-xs text-muted-foreground">

@@ -25,6 +25,11 @@ import {
 } from '@/lib/curriculum';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
+import { daysUntilDate } from '@/lib/semester';
+import {
+  disciplineExamBriefFor,
+  MATH_EXAM,
+} from '@/lib/math-exam-prep';
 import { DisciplineCard } from './discipline-card';
 import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -130,6 +135,11 @@ export function DisciplinesView() {
   const [open, setOpen] = React.useState(false);
   const [curriculumOpen, setCurriculumOpen] = React.useState(false);
 
+  // Semana da Av1 — render-time puro (lição 79): relógio mockado e storage
+  // event reagem no MESMO re-render. Janela honesta D-7→D-0 no módulo puro;
+  // só a disciplina da prova recebe o chip (as outras ficam em silêncio).
+  const mathExamBrief = disciplineExamBriefFor(daysUntilDate(MATH_EXAM.date));
+
   return (
     <div className="space-y-5">
       <div>
@@ -159,6 +169,7 @@ export function DisciplinesView() {
                 discipline={d}
                 materialsCount={mats.length}
                 completedCount={completed}
+                examChip={d.code === MATH_EXAM.disciplineCode ? mathExamBrief : null}
                 onSelect={(dd) => {
                   setSelected(dd);
                   setOpen(true);
