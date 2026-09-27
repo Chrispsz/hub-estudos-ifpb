@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  CalendarCheck,
   CheckCircle2,
   CheckCheck,
   ChevronRight,
@@ -57,7 +58,8 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
+import { daysUntilDate } from '@/lib/semester';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { getExerciseStage } from '@/lib/curriculum-state';
@@ -792,6 +794,12 @@ function SetupScreen({
 }) {
   const activeTopics = config.topics ?? [];
 
+  // O SETUP CONHECE O DIA OFICIAL — 29/09 é o dia do simulado da Av1 (e 28/09
+  // a véspera). Render-time via daysUntilDate (sem estado nem interval): reage
+  // a mock de relógio no mesmo frame, lição da rodada 79. Outros dias: nada
+  // (honesto — sem ruído quando o dia é qualquer outro).
+  const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
+
   // ---- Banner de retomada: métricas pré-computadas (nada no render basta) ----
   const answeredCount = resume ? resume.results.filter((r) => r.solved !== null).length : 0;
   const answeredPct = resume ? Math.round((answeredCount / resume.qids.length) * 100) : 0;
@@ -826,6 +834,67 @@ function SetupScreen({
           </DialogDescription>
         </DialogHeader>
       </div>
+
+      {/* DIA OFICIAL DO SIMULADO — banner do setup (mesma gramática visual do
+          banner de retomada, família âmbar do "É hoje" do card da prova): o
+          compromisso do dia falado no exato momento do clique em Iniciar. */}
+      {(simuladoDaysLeft === 0 || simuladoDaysLeft === 1) && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          role="status"
+          className="mx-6 mt-5 overflow-hidden rounded-lg border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent shadow-sm"
+        >
+          <div className="flex items-start gap-3 p-4">
+            <span
+              className={cn(
+                'grid size-9 shrink-0 place-items-center rounded-lg ring-1',
+                simuladoDaysLeft === 0
+                  ? 'bg-amber-500/15 text-amber-600 ring-amber-500/30 dark:text-amber-400'
+                  : 'bg-amber-500/10 text-amber-600/80 ring-amber-500/20 dark:text-amber-400/80',
+              )}
+            >
+              <CalendarCheck className="size-4" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              {simuladoDaysLeft === 0 ? (
+                <>
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                    É hoje o simulado oficial da Av1
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                    Se esta for a tentativa oficial, condições de prova: sem
+                    consultar nada antes de responder — o bloco com mais erros
+                    vira a revisão de amanhã.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {['Sem consulta', 'Meta ≥ 70%', 'Erro vira revisão de amanhã'].map((c) => (
+                      <Badge
+                        key={c}
+                        variant="outline"
+                        className="border-amber-500/40 px-1.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"
+                      >
+                        {c}
+                      </Badge>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-amber-700/90 dark:text-amber-400/90">
+                    Amanhã é o simulado oficial da Av1
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                    Prepare hoje o lugar e o papel — e dormir cedo faz parte do
+                    plano. O setup de amanhã já fica pronto com o escopo real.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {resume && (
         <motion.div

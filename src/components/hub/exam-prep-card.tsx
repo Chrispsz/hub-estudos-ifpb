@@ -424,6 +424,10 @@ export function ExamPrepCard() {
             />
             {(() => {
               const isProvaDay = daysLeft === 0;
+              // Véspera da prova (30/09): o chip da prova também reconhece o
+              // "amanhã" — simetria com o chip do simulado, estado via copy
+              // (família rose contornada intacta: a urgência sólida é só do dia).
+              const isProvaEve = daysLeft === 1;
               return (
                 <span
                   className={cn(
@@ -443,6 +447,10 @@ export function ExamPrepCard() {
                   {isProvaDay ? (
                     <>
                       É hoje · <span className="font-bold">Prova Av1</span>
+                    </>
+                  ) : isProvaEve ? (
+                    <>
+                      Amanhã · <span className="font-semibold">Prova Av1</span>
                     </>
                   ) : (
                     <>
