@@ -236,6 +236,20 @@ export function SimuladoView({
 
   const sp = useStudyProgress();
 
+  // REVISÃO DIRIGIDA — os erros REAIS do aluno (Caderno de Erros): exercícios
+  // tentados e NÃO resolvidos, mais recentes primeiro, máx. 15. Material-first
+  // do próprio histórico — nada sorteado, nada inventado.
+  const mistakeExercises = React.useMemo(() => {
+    const entries = sp.progress.exerciseProgress ?? {};
+    const byId = new Map(exercises.map((e) => [e.id, e]));
+    return Object.entries(entries)
+      .filter(([, v]) => v.tried && !v.solved)
+      .sort((a, b) => (b[1].lastPracticedAt || '').localeCompare(a[1].lastPracticedAt || ''))
+      .map(([id]) => byId.get(id))
+      .filter((e): e is Exercise => Boolean(e))
+      .slice(0, 15);
+  }, [sp.progress.exerciseProgress]);
+
   const pool = React.useMemo(() => {
     let list = exercises;
     if (config.discipline !== 'all') {
@@ -332,6 +346,29 @@ export function SimuladoView({
     setResumeRun(null); // o efeito de persistência regrava já no próximo tick
     setPhase('running');
     toast.success('Tentativa retomada de onde você parou.');
+  }
+
+  /** Revisão dirigida: prova só com os ERROS do aluno (Caderno de Erros). */
+  function startMistakes() {
+    if (mistakeExercises.length === 0) return;
+    const qty = mistakeExercises.length;
+    setResumeRun(null); // nova prova substitui a pausada
+    setConfig({
+      ...DEFAULT_SIMULADO_CONFIG,
+      discipline: 'all',
+      difficulty: 'all',
+      quantity: qty,
+      durationMin: Math.max(5, Math.min(45, qty * 3)), // ritmo alvo do app: 3 min/questão
+      aligned: true,
+      topics: [],
+    });
+    setQuestions(mistakeExercises);
+    setResults(mistakeExercises.map(() => ({ solved: null })));
+    setIdx(0);
+    setHintVisible(false);
+    setRemaining(Math.max(5, Math.min(45, qty * 3)) * 60);
+    setElapsed(0);
+    setPhase('running');
   }
 
   /** Descarta a tentativa pausada (decisão explícita do aluno). */
@@ -458,6 +495,8 @@ export function SimuladoView({
             resume={resumeRun}
             onResume={resumeSaved}
             onDiscard={discardSaved}
+            mistakesCount={mistakeExercises.length}
+            onStartMistakes={startMistakes}
           />
         )}
 
@@ -539,6 +578,8 @@ function SetupScreen({
   resume,
   onResume,
   onDiscard,
+  mistakesCount,
+  onStartMistakes,
 }: {
   config: SimuladoConfig;
   setConfig: (c: SimuladoConfig) => void;
@@ -549,6 +590,9 @@ function SetupScreen({
   resume: InProgressRun | null;
   onResume: () => void;
   onDiscard: () => void;
+  /** Erros pendentes do Caderno de Erros — card de revisão dirigida quando > 0. */
+  mistakesCount: number;
+  onStartMistakes: () => void;
 }) {
   const activeTopics = config.topics ?? [];
 
@@ -637,6 +681,46 @@ function SetupScreen({
                 </Button>
               </div>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {mistakesCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: resume ? 0.1 : 0 }}
+          className="mx-6 mt-3 overflow-hidden rounded-lg border border-rose-500/30 bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent"
+        >
+          <div className="flex items-center gap-3 p-4">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-500/15 text-rose-600 ring-1 ring-rose-500/30 dark:text-rose-400">
+              <RotateCcw className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                  Revisão dirigida: só os seus erros
+                </p>
+                <Badge
+                  variant="outline"
+                  className="border-rose-500/40 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                >
+                  {mistakesCount} pendente{mistakesCount > 1 ? 's' : ''}
+                </Badge>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Do Caderno de Erros: as que você marcou “não consegui” — mais
+                recentes primeiro, máx. 15, {Math.max(5, Math.min(45, mistakesCount * 3))} min no
+                cronômetro.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={onStartMistakes}
+              className="h-11 shrink-0 gap-1.5 bg-rose-600 text-white hover:bg-rose-700 sm:h-8"
+            >
+              <Play className="size-3.5" /> Treinar
+            </Button>
           </div>
         </motion.div>
       )}
