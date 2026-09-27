@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Brain,
+  CalendarCheck,
   CheckCircle2,
   ChevronRight,
   Eye,
@@ -53,6 +54,8 @@ import {
 } from '@/lib/study-progress';
 import { cn } from '@/lib/utils';
 import { openMethod, OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
+import { MATH_EXAM, methodExamBriefFor } from '@/lib/math-exam-prep';
+import { daysUntilDate } from '@/lib/semester';
 
 // ---------- Tipos locais ----------
 
@@ -195,6 +198,11 @@ export function MethodView({
   initialTopic,
 }: MethodViewProps) {
   const sp = useStudyProgress();
+
+  // A semana da Av1 no método — o relógio é lido NO render (lição 79/100/101:
+  // trocar de aba re-renderiza a view → data fresca). Feature é date-pura:
+  // NÃO lê storage (a higiene do QA é: runs 0, poke 0).
+  const methodBrief = methodExamBriefFor(daysUntilDate(MATH_EXAM.date));
 
   // ----- Sessão -----
   const [phase, setPhase] = React.useState<Phase>('plan');
@@ -543,6 +551,44 @@ export function MethodView({
         </div>
       </Card>
 
+      {/* SEMANA DA AV1 — faixa da reta final (janela D-7→D-0, regra da 88):
+          âmbar nos dias de estudo com o TEMA DO PLANO a 1 clique; nos dias em
+          que o método não é a ferramenta (ensaio/véspera/prova) a faixa diz
+          POR QUE cala e a sugestão some. Pulso só no é-hoje (gramática da 93). */}
+      {methodBrief && (
+        <Card
+          role="status"
+          className="overflow-hidden rounded-xl border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 shadow-sm"
+        >
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <CalendarCheck
+                className={cn(
+                  'size-4',
+                  (methodBrief.kind === 'simulado' || methodBrief.kind === 'prova') &&
+                    'animate-pulse',
+                )}
+                aria-hidden="true"
+              />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                <span className="text-amber-700 dark:text-amber-400">{methodBrief.heading}</span>
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/40 px-1 font-mono text-[10px] tabular-nums text-amber-700 dark:text-amber-400"
+                >
+                  D-{methodBrief.daysLeft}
+                </Badge>
+              </h2>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                {methodBrief.linha}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* KPIs do método */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
@@ -676,6 +722,27 @@ export function MethodView({
                     placeholder="Ex.: Estruturas de repetição"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
+                  {methodBrief?.sugestao && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!methodBrief.sugestao) return;
+                        setTopic(methodBrief.sugestao.tema);
+                        setDisciplineCode(methodBrief.sugestao.disciplinaCode);
+                        // MESMO contrato da escolha manual (onValueChange): o
+                        // Select exibe `smartDiscipline ?? disciplineCode` —
+                        // escrever só disciplineCode deixava o Select em
+                        // 'Algoritmos' com o tema de Matemática (bug real
+                        // caçado pelo QA da 102).
+                        setSmartDiscipline(methodBrief.sugestao.disciplinaCode);
+                      }}
+                      title="Preenche o tema e a disciplina com o dia de hoje do plano da Av1"
+                      className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+                    >
+                      <CalendarCheck className="size-3 shrink-0" aria-hidden="true" />
+                      <span className="truncate">plano de hoje: {methodBrief.sugestao.tema}</span>
+                    </button>
+                  )}
                   {topicSuggestions.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {topicSuggestions.slice(0, 5).map((t) => (

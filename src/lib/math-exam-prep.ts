@@ -835,6 +835,73 @@ export function paletteExamBriefFor(
   };
 }
 
+// ---------- O método sabe a semana (Sessão Guiada) ----------
+
+/**
+ * BRIEF da semana da Av1 para o Método (Sessão Guiada): a última superfície
+ * grande de fluxo natural que ainda não falava a semana. A MESMA janela
+ * honesta D-7→D-0 da Biblioteca (98) e da disciplina (100) — fora dela e
+ * pós-prova = null (regra da 88). `daysLeft` entra como PARÂMETRO
+ * (daysUntilDate do chamador — mesma divisão da 98/100/101).
+ *
+ * A SUGESTÃO é o fechamento do loop material-first: em dias de estudo
+ * (D-7→D-3, todos 'pratica' no plano), o tema do plano de hoje (o título do
+ * dia — ex.: 'Lista de Lógica — Parte 1 (Q1–12)') vira a sessão guiada a
+ * 1 clique — planejar/recuperar/explicar EXATAMENTE a lista que cai. Nos
+ * dias em que o método NÃO é a ferramenta certa, a sugestão CALA (honesto):
+ * D-2 o dia é do ensaio real no Praticar, D-1 é do kit da véspera, D-0 é
+ * de chegar cedo e respirar.
+ */
+export interface MethodExamBrief {
+  kind: 'semana' | 'simulado' | 'vespera' | 'prova';
+  daysLeft: number;
+  /** Título da faixa — a MESMA voz da semana (gramática da 93). */
+  heading: string;
+  /** Linha honesta — o que o método é (ou não é) HOJE. */
+  linha: string;
+  /** Tema do plano de hoje — presente só nos dias de estudo (D-7→D-3). */
+  sugestao?: { tema: string; disciplinaCode: string };
+}
+
+export function methodExamBriefFor(daysLeft: number): MethodExamBrief | null {
+  if (daysLeft < 0 || daysLeft > 7) return null;
+  if (daysLeft === 0) {
+    return {
+      kind: 'prova',
+      daysLeft,
+      heading: 'É hoje: Prova da Av1',
+      linha: 'hoje não é dia de sessão — levar o kit, chegar cedo e respirar',
+    };
+  }
+  if (daysLeft === MATH_SIMULADO_OFFSET) {
+    return {
+      kind: 'simulado',
+      daysLeft,
+      heading: 'É hoje: Simulado da Av1',
+      linha: 'hoje o dia é do ensaio real no Praticar — o método espera',
+    };
+  }
+  if (daysLeft === 1) {
+    return {
+      kind: 'vespera',
+      daysLeft,
+      heading: 'Véspera da prova',
+      linha: 'a véspera é do kit da véspera — folha, fórmulas e só as travadas',
+    };
+  }
+  const dias = `${daysLeft} dias`;
+  const plano = planDayFor(daysLeft);
+  return {
+    kind: 'semana',
+    daysLeft,
+    heading: `Semana da Av1 · faltam ${dias}`,
+    linha: 'a sessão guiada rende mais com o tema do plano — planeje, recupere e explique a lista que cai',
+    sugestao: plano
+      ? { tema: plano.titulo, disciplinaCode: MATH_EXAM.disciplineCode }
+      : undefined,
+  };
+}
+
 export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)
