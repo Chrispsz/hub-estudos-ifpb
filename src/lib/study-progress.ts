@@ -6,6 +6,14 @@ import type { AttemptMode } from './simulado-resume';
 
 const STORAGE_KEY = 'hub-estudos-ifpb:v2';
 
+/**
+ * Chave pública do progresso para LEITURAS SÓ-LEITURA (ex.: Folha de Revisão
+ * lendo simuladoRuns para imprimir o foco do simulado). NUNCA escreva nesta
+ * chave fora do useStudyProgress — o objeto inteiro (runs, flashcards, notas,
+ * caderno) vive aqui, e um write parcial destruiria o resto.
+ */
+export const STUDY_PROGRESS_KEY = STORAGE_KEY;
+
 // ---------- Tipos ----------
 export interface RecentMaterial {
   id: string;

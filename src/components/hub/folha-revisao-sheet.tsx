@@ -11,6 +11,9 @@
  *   3. Checklist de domínio (MATH_CHECKLIST) — sincronizado com o card da
  *      prova (mesma chave hub:math-exam:v1:checklist e mesmas keys)
  *   4. Kit do dia da prova (MATH_EXAM_KIT) + plano da véspera (D-1 do plano)
+ *   + FOCO DO SIMULADO (useSimuladoFoco): o tópico mais fraco da tentativa
+ *      de prova mais recente — a promessa "o bloco com mais erros vira a
+ *      revisão de amanhã" impressa — e o bloco "refazer primeiro" das travadas.
  * QUEBRA DE PÁGINA DETERMINÍSTICA: página 1 = cabeçalho + fórmulas; página 2 =
  * checklist + kit + véspera (break-before-page na seção do checklist).
  * A folha é SEMPRE "papel" (fundo branco, tinta escura) — WYSIWYG: o que se
@@ -35,9 +38,84 @@ import {
   formatTravadas,
   normalizeTravadas,
 } from '@/lib/math-exam-prep';
+import { STUDY_PROGRESS_KEY, type SimuladoRun } from '@/lib/study-progress';
 
 type CheckedMap = Record<string, boolean>;
 const LS_CHECK = 'hub:math-exam:v1:checklist';
+
+/**
+ * FOCO DO SIMULADO NA FOLHA — a promessa do plano D-2 ("o bloco com mais
+ * erros vira a revisão de amanhã") hoje morre na tela: a folha impressa da
+ * véspera não sabia o resultado. Aqui a tentativa de prova de Matemática
+ * mais recente (mode 'prova' + escopo TEC.1984, com detalhes por questão)
+ * vira UM bloco em papel: o tópico mais fraco, a conta exata e a instrução.
+ * Leitura SÓ-LEITURA do storage v2 — NUNCA usar o useLocalStorage nesta
+ * chave: o hook persistiria o valor derivado POR CIMA do objeto completo
+ * (runs, flashcards, notas, caderno) e destruiria o progresso.
+ */
+function useSimuladoFoco(): {
+  date: string;
+  worst: { topic: string; solved: number; total: number; pct: number };
+  topics: { topic: string; pct: number }[];
+  allGood: boolean;
+} | null {
+  const [runs, setRuns] = React.useState<SimuladoRun[]>([]);
+  React.useEffect(() => {
+    function read() {
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(STUDY_PROGRESS_KEY) || 'null');
+        const candidate = parsed?.progress ?? parsed;
+        const arr = candidate?.simuladoRuns;
+        setRuns(Array.isArray(arr) ? arr : []);
+      } catch {
+        setRuns([]); // storage corrompido → folha sem foco (honesto, sem invenção)
+      }
+    }
+    function onStorage(e: StorageEvent) {
+      if (e.key === STUDY_PROGRESS_KEY) read();
+    }
+    read();
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  return React.useMemo(() => {
+    const run = runs.find((r) => {
+      if (r.mode !== 'prova') return false;
+      if (r.filters?.discipline) return r.filters.discipline === MATH_EXAM.disciplineCode;
+      return r.questions?.length
+        ? r.questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode)
+        : false;
+    });
+    if (!run?.questions?.length) return null; // run antiga sem detalhes → não dá para saber o bloco
+    const m = new Map<string, { solved: number; total: number }>();
+    for (const q of run.questions) {
+      if (!q.topic || !(MATH_EXAM.topicosEscopo as readonly string[]).includes(q.topic)) continue;
+      const rec = m.get(q.topic) ?? { solved: 0, total: 0 };
+      rec.total += 1;
+      if (q.status === 'solved') rec.solved += 1;
+      m.set(q.topic, rec);
+    }
+    if (m.size === 0) return null;
+    const topics = [...m.entries()].map(([topic, v]) => ({
+      topic,
+      solved: v.solved,
+      total: v.total,
+      pct: Math.round((v.solved / v.total) * 100),
+    }));
+    const worst = [...topics].sort((a, b) => a.pct - b.pct || b.total - a.total)[0];
+    return {
+      date: run.date,
+      worst,
+      topics: topics.map(({ topic, pct }) => ({ topic, pct })),
+      allGood: topics.every((t) => t.pct >= 80),
+    };
+  }, [runs]);
+}
+
+function fmtDayBR(iso: string): string {
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(iso));
+}
 
 export function FolhaRevisaoSheet() {
   // MESMA chave e MESMAS keys do card da prova (checklist vive uma vez só):
@@ -53,6 +131,7 @@ export function FolhaRevisaoSheet() {
   );
   const travadasCount = countTravadas(travadas);
   const travadasTexto = formatTravadas(travadas);
+  const simuladoFoco = useSimuladoFoco();
 
   // Data de impressão só no cliente (evita mismatch de hidratação).
   const [printedAt, setPrintedAt] = React.useState('');
@@ -214,8 +293,36 @@ export function FolhaRevisaoSheet() {
 
           {/* 4. Véspera + kit do dia */}
           <section aria-label="Véspera e kit do dia da prova" className="mt-5 border-t border-zinc-200 pt-3">
+            {/* Foco do simulado — o resultado da prova de ontem vira a ordem do
+                dia (mesma promessa do plano D-2, agora no papel). Acima das
+                travadas: o simulado aconteceu DEPOIS das listas, é o sinal mais
+                fresco. Some quando não há tentativa com detalhes (economia de papel). */}
+            {simuladoFoco && (
+              <div className="mb-3 break-inside-avoid rounded-md border border-zinc-300 border-l-4 border-l-zinc-900 bg-zinc-100 px-3 py-2">
+                <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900">
+                  Foco do simulado · {fmtDayBR(simuladoFoco.date)}
+                  <span className="rounded-full bg-zinc-900 px-1.5 py-px text-[9px] font-bold tabular-nums text-white">
+                    {simuladoFoco.worst.pct}%
+                  </span>
+                </p>
+                {simuladoFoco.allGood ? (
+                  <p className="mt-1 text-[11px] leading-snug text-zinc-800">
+                    Escopo em dia — todos os tópicos ≥ 80% (
+                    {simuladoFoco.topics.map((t) => `${t.topic} ${t.pct}%`).join(' · ')}). Manter o
+                    ritmo com os flashcards e a revisão leve da véspera.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] leading-snug text-zinc-800">
+                    <strong>{simuladoFoco.worst.topic}</strong> — {simuladoFoco.worst.solved} de{' '}
+                    {simuladoFoco.worst.total} resolvidas ({simuladoFoco.worst.pct}%). Comece a
+                    véspera por ele: refaça no papel as que errou, com os cards de fórmulas
+                    fechados.
+                  </p>
+                )}
+              </div>
+            )}
             {travadasCount > 0 && travadasTexto && (
-              <div className="mb-3 break-inside-avoid rounded-md border border-zinc-300 bg-zinc-100 px-3 py-2">
+              <div className="mb-3 break-inside-avoid rounded-md border border-zinc-300 border-l-4 border-l-zinc-400 bg-zinc-100 px-3 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900">
                   Refazer primeiro · travadas ({travadasCount})
                 </p>
