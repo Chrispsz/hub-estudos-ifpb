@@ -98,6 +98,10 @@ export interface RecoveryAction {
   minutos: number;
   /** Material da Biblioteca a abrir (openMethod). */
   materialId?: string;
+  /** Conjunto material-first da ação: o chip 'praticar' abre o Praticar
+   *  pré-filtrado no conjunto EXATO de questões ligadas ao material
+   *  (ex.: a folha da S3 → as 8 questões que saíram dela). */
+  linkedMaterial?: string;
   /** Aba para navegar (ex.: 'practice' | 'progress'). */
   tab?: 'practice' | 'progress';
   /** false = item-POINTER (sem checkbox): o registro vive em outro card
@@ -131,6 +135,8 @@ const S3_ENTREGA_HOJE: RecoveryAction = {
     'PRAZO HOJE: entrega da S3 — as 8 questões if/else (bissexto, quadrantes, triângulo retângulo, regra do 0,7) estão no Praticar; resolva e envie os programas no Classroom',
   minutos: 100,
   tab: 'practice',
+  materialId: 'alg-questoes-semana3',
+  linkedMaterial: 'alg-questoes-semana3',
   prazoHoje: true,
 };
 
@@ -246,6 +252,8 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
         texto: 'Fazer as 8 questões da Semana 3 no Praticar (if/else puro: bissexto, quadrantes, triângulo retângulo, regra do 0,7) — treino direto da Prova 1',
         minutos: 100,
         tab: 'practice',
+        materialId: 'alg-questoes-semana3',
+        linkedMaterial: 'alg-questoes-semana3',
       },
       {
         id: 'alg-lista-q1-97',

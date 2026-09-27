@@ -303,7 +303,12 @@ export function RecoveryCard() {
                         {action.tab === 'practice' && (
                           <button
                             type="button"
-                            onClick={() => openPractice({ disciplineCode: track.disciplineCode })}
+                            onClick={() =>
+                              openPractice({
+                                disciplineCode: track.disciplineCode,
+                                linkedMaterial: action.linkedMaterial,
+                              })
+                            }
                             className="inline-flex items-center gap-0.5 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 font-medium text-violet-700 transition-colors hover:bg-violet-500/20 dark:text-violet-300"
                           >
                             <Dumbbell className="size-2.5" aria-hidden /> praticar

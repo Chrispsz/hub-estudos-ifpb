@@ -17,6 +17,7 @@ import {
   Star,
   Target,
   Trophy,
+  X,
   Zap,
   CheckCircle2,
   HandHeart,
@@ -39,6 +40,7 @@ import { toast } from 'sonner';
 import {
   disciplines,
   getDisciplineByCode,
+  materials as allMaterials,
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
@@ -285,6 +287,9 @@ function ExercisesPanel({
   const sp = useStudyProgress();
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [filterTopic, setFilterTopic] = React.useState<string>('all');
+  /** Conjunto material-first (ex.: a folha da S3 → as 8 questões que saíram
+   *  dela): só as questões ligadas ao material ficam na lista. 'all' = off. */
+  const [filterMaterial, setFilterMaterial] = React.useState<string>('all');
   /** Só questões MARCADAS (⭐) — revisão focada antes da prova. */
   const [onlyMarked, setOnlyMarked] = React.useState(false);
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
@@ -299,14 +304,17 @@ function ExercisesPanel({
     );
   };
 
-  // Pré-filtro de disciplina (+ tópico opcional) vindo de fora
-  // (ex.: card Plano de Recuperação; foco por tópico pós-simulado).
+  // Pré-filtro de disciplina (+ tópico opcional + conjunto material-first)
+  // vindo de fora (ex.: card Plano de Recuperação; foco por tópico
+  // pós-simulado; folha da S3 → as 8 questões). Pedido SEM conjunto limpa o
+  // anterior (a abertura manual sempre limpa — lição do vazamento da 82).
   React.useEffect(() => {
     const req = practiceReq?.detail;
     const code = req?.disciplineCode;
     if (code && getDisciplineByCode(code)) {
       setFilterDiscipline(code);
       setFilterTopic(req.topic ?? 'all');
+      setFilterMaterial(req.linkedMaterial ?? 'all');
     }
   }, [practiceReq?.nonce, practiceReq]);
   // PADRÃO MATERIAL-FIRST: por padrão só aparece o que já foi dado em sala.
@@ -367,6 +375,9 @@ function ExercisesPanel({
     if (filterTopic !== 'all') {
       list = list.filter((e) => e.topic === filterTopic);
     }
+    if (filterMaterial !== 'all') {
+      list = list.filter((e) => (e.linkedMaterials ?? []).includes(filterMaterial));
+    }
     if (onlyAligned) {
       list = list.filter((e) => getExerciseStage(e) === 'em_sala');
     }
@@ -374,7 +385,14 @@ function ExercisesPanel({
       list = list.filter((e) => sp.progress.exerciseProgress[e.id]?.marked);
     }
     return list;
-  }, [filterDiscipline, filterTopic, onlyAligned, onlyMarked, sp.progress.exerciseProgress]);
+  }, [
+    filterDiscipline,
+    filterTopic,
+    filterMaterial,
+    onlyAligned,
+    onlyMarked,
+    sp.progress.exerciseProgress,
+  ]);
 
   const markedCount = React.useMemo(
     () =>
@@ -609,6 +627,38 @@ function ExercisesPanel({
               </span>
             )}
           </button>
+          {/* Chip do CONJUNTO material-first — aparece quando um pedido externo
+              pediu o conjunto exato de um material (ex.: a folha da S3 → as 8
+              questões). Família violeta (a mesma do chip 'praticar' que o
+              criou), contagem ao vivo e X para limpar — o filtro nunca prende
+              o aluno: um clique devolve a lista completa do filtro atual. */}
+          {filterMaterial !== 'all' &&
+            (() => {
+              const mat = allMaterials.find((m) => m.id === filterMaterial);
+              return (
+                <div
+                  className="flex items-center gap-1.5 rounded-lg border border-violet-500/50 bg-violet-500/10 px-2.5 py-2 text-xs font-medium text-violet-700 dark:text-violet-300"
+                  title="Conjunto de questões ligadas ao material — X para limpar"
+                >
+                  <Layers className="size-3.5 shrink-0" aria-hidden />
+                  <span className="max-w-52 truncate sm:max-w-64">
+                    Conjunto:{' '}
+                    <span className="font-semibold">{mat?.title ?? filterMaterial}</span>
+                  </span>
+                  <span className="rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums">
+                    {filteredExercises.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFilterMaterial('all')}
+                    aria-label="Limpar o filtro de conjunto"
+                    className="rounded-full p-0.5 transition-colors hover:bg-violet-500/20"
+                  >
+                    <X className="size-3" aria-hidden />
+                  </button>
+                </div>
+              );
+            })()}
           <div className="ml-auto text-xs text-muted-foreground">
             {filteredExercises.length} exercício(s)
           </div>
