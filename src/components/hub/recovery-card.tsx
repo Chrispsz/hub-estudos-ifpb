@@ -10,9 +10,11 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
+  Calculator,
   ChevronDown,
   CircleCheck,
   Clock4,
+  CornerDownRight,
   Dumbbell,
   ListRestart,
   Route,
@@ -23,15 +25,18 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useLocalStorage } from '@/lib/use-local-storage';
-import { openMethod, openPractice } from '@/lib/hub-events';
+import { openMethod, openPractice, openProgress } from '@/lib/hub-events';
 import {
   fmtDate,
   getClassWeekInfo,
+  matTrackResumoFor,
+  matTrackStatusFor,
   RECOVERY_TRACKS,
   todayRecoveryActions,
   TRACK_STATUS_LABEL,
   type TrackStatus,
 } from '@/lib/recovery-plan';
+import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 
 const STATUS_STYLE: Record<TrackStatus, string> = {
@@ -51,6 +56,15 @@ const PRIORITY_LABEL = [
   'Adiado',
 ];
 
+// Identidade visual por trilha no "Faça hoje" — cada número usa a família
+// de cor que a trilha já tem no Hub (prova rose, prática violeta, revisão teal).
+const TRACK_CHIP: Record<string, string> = {
+  mat: 'bg-rose-500/20 text-rose-700 dark:text-rose-300',
+  alg: 'bg-violet-500/20 text-violet-700 dark:text-violet-300',
+  lm: 'bg-teal-500/20 text-teal-700 dark:text-teal-300',
+};
+const TRACK_CHIP_DEFAULT = 'bg-amber-500/20 text-amber-700 dark:text-amber-300';
+
 type DoneMap = Record<string, boolean>;
 const LS_KEY = 'hub:recovery:v1:done';
 
@@ -59,8 +73,8 @@ export function RecoveryCard() {
   const [expanded, setExpanded] = React.useState<string | null>(null);
 
   const week = React.useMemo(() => getClassWeekInfo(), []);
-  const daysToExam = daysUntilDate('2026-10-01');
-  const todayItems = React.useMemo(() => todayRecoveryActions(), []);
+  const daysToExam = daysUntilDate(MATH_EXAM.date);
+  const todayItems = React.useMemo(() => todayRecoveryActions(done), [done]);
   const allActions = React.useMemo(
     () => RECOVERY_TRACKS.flatMap((t) => t.acoes.map((a) => ({ track: t, action: a }))),
     [],
@@ -121,74 +135,105 @@ export function RecoveryCard() {
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             <ListRestart className="size-3.5" aria-hidden /> Faça hoje, nesta ordem
           </p>
-          <ul className="mt-2 space-y-1.5">
-            {todayItems.map(({ track, action }, i) => {
-              const isDone = !!done[action.id];
-              return (
-                <li
-                  key={action.id}
-                  className={cn(
-                    'flex items-start gap-2 rounded-lg border p-2.5 transition-colors',
-                    isDone
-                      ? 'border-emerald-500/25 bg-emerald-500/5'
-                      : 'border-border bg-muted/20',
-                  )}
-                >
-                  <span
+          {todayItems.length === 0 ? (
+            <p className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <CircleCheck className="size-4 shrink-0" aria-hidden /> Todas as prioridades de hoje
+              concluídas — manter o ritmo com os flashcards e o Praticar.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {todayItems.map(({ track, action }, i) => {
+                const isDone = !!done[action.id];
+                const isPointer = action.checkable === false;
+                return (
+                  <li
+                    key={action.id}
                     className={cn(
-                      'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold',
+                      'flex items-start gap-2 rounded-lg border p-2.5 transition-colors',
                       isDone
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+                        ? 'border-emerald-500/25 bg-emerald-500/5'
+                        : isPointer
+                          ? 'border-rose-500/25 bg-rose-500/[0.04]'
+                          : 'border-border bg-muted/20',
                     )}
-                    aria-hidden
                   >
-                    {i + 1}
-                  </span>
-                  <Checkbox
-                    id={`rec-${action.id}`}
-                    checked={isDone}
-                    onCheckedChange={() => toggle(action.id)}
-                    className="mt-0.5"
-                    aria-label={`Marcar "${action.texto}" como feito`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <label
-                      htmlFor={`rec-${action.id}`}
+                    <span
                       className={cn(
-                        'cursor-pointer text-xs font-medium leading-relaxed',
-                        isDone && 'text-muted-foreground line-through',
+                        'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold',
+                        isDone
+                          ? 'bg-emerald-500 text-white'
+                          : TRACK_CHIP[track.id] ?? TRACK_CHIP_DEFAULT,
                       )}
+                      aria-hidden
                     >
-                      {action.texto}
-                    </label>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-                      <span>{track.title}</span>
-                      <span>· {action.minutos} min</span>
-                      {action.materialId && (
-                        <button
-                          type="button"
-                          onClick={() => openMethod({ materialId: action.materialId })}
-                          className="inline-flex items-center gap-0.5 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+                      {i + 1}
+                    </span>
+                    {isPointer ? (
+                      // Item-POINTER: o registro vive no card da prova — aqui é
+                      // só a fila apontando (sem checkbox, sem dupla verdade).
+                      <CornerDownRight className="mt-0.5 size-4 shrink-0 text-rose-400" aria-hidden />
+                    ) : (
+                      <Checkbox
+                        id={`rec-${action.id}`}
+                        checked={isDone}
+                        onCheckedChange={() => toggle(action.id)}
+                        className="mt-0.5"
+                        aria-label={`Marcar "${action.texto}" como feito`}
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      {isPointer ? (
+                        <p className="text-xs font-medium leading-relaxed text-foreground/90">
+                          {action.texto}
+                        </p>
+                      ) : (
+                        <label
+                          htmlFor={`rec-${action.id}`}
+                          className={cn(
+                            'cursor-pointer text-xs font-medium leading-relaxed',
+                            isDone && 'text-muted-foreground line-through',
+                          )}
                         >
-                          <BookOpen className="size-2.5" aria-hidden /> material
-                        </button>
+                          {action.texto}
+                        </label>
                       )}
-                      {action.tab === 'practice' && (
-                        <button
-                          type="button"
-                          onClick={() => openPractice({ disciplineCode: track.disciplineCode })}
-                          className="inline-flex items-center gap-0.5 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 font-medium text-violet-700 transition-colors hover:bg-violet-500/20 dark:text-violet-300"
-                        >
-                          <Dumbbell className="size-2.5" aria-hidden /> praticar
-                        </button>
-                      )}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+                        <span>{track.title}</span>
+                        <span>· {action.minutos} min</span>
+                        {action.materialId && (
+                          <button
+                            type="button"
+                            onClick={() => openMethod({ materialId: action.materialId })}
+                            className="inline-flex items-center gap-0.5 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+                          >
+                            <BookOpen className="size-2.5" aria-hidden /> material
+                          </button>
+                        )}
+                        {action.tab === 'practice' && (
+                          <button
+                            type="button"
+                            onClick={() => openPractice({ disciplineCode: track.disciplineCode })}
+                            className="inline-flex items-center gap-0.5 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 font-medium text-violet-700 transition-colors hover:bg-violet-500/20 dark:text-violet-300"
+                          >
+                            <Dumbbell className="size-2.5" aria-hidden /> praticar
+                          </button>
+                        )}
+                        {action.tab === 'progress' && (
+                          <button
+                            type="button"
+                            onClick={() => openProgress()}
+                            className="inline-flex items-center gap-0.5 rounded border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 font-medium text-sky-700 transition-colors hover:bg-sky-500/20 dark:text-sky-300"
+                          >
+                            <Calculator className="size-2.5" aria-hidden /> calculadora
+                          </button>
+                        )}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
 
         {/* Fila de prioridades (trilhas) */}
@@ -201,6 +246,12 @@ export function RecoveryCard() {
               const isOpen = expanded === track.id;
               const trackMinutes = track.acoes.reduce((a, x) => a + x.minutos, 0);
               const allTrackDone = track.acoes.every((a) => done[a.id]);
+              // A trilha Matemática é VIVA: pós-prova vira 'feito' — a fila
+              // não acusa o que já aconteceu (mesma honestidade da 83).
+              const status: TrackStatus =
+                track.id === 'mat' ? matTrackStatusFor(daysToExam) : track.status;
+              const resumo =
+                track.id === 'mat' ? matTrackResumoFor(daysToExam) : track.resumo;
               return (
                 <li key={track.id} className="rounded-lg border border-border">
                   <button
@@ -224,12 +275,14 @@ export function RecoveryCard() {
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn('shrink-0 border text-[9px]', STATUS_STYLE[track.status])}
+                      className={cn('shrink-0 border text-[9px]', STATUS_STYLE[status])}
                     >
-                      {allTrackDone && track.status !== 'adiado' ? (
+                      {(allTrackDone || status === 'feito') && status !== 'adiado' ? (
                         <CircleCheck className="size-2.5" aria-hidden />
                       ) : null}
-                      {allTrackDone && track.status !== 'adiado' ? 'Feito' : TRACK_STATUS_LABEL[track.status]}
+                      {(allTrackDone || status === 'feito') && status !== 'adiado'
+                        ? 'Feito'
+                        : TRACK_STATUS_LABEL[status]}
                     </Badge>
                     {trackMinutes > 0 && (
                       <span className="hidden shrink-0 text-[10px] tabular-nums text-muted-foreground sm:block">
@@ -246,7 +299,7 @@ export function RecoveryCard() {
                   </button>
                   {isOpen && (
                     <div className="border-t px-3 py-2.5">
-                      <p className="text-[11px] leading-relaxed text-foreground/80">{track.resumo}</p>
+                      <p className="text-[11px] leading-relaxed text-foreground/80">{resumo}</p>
                       <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                         <span className="font-semibold">{PRIORITY_LABEL[track.prioridade]}:</span>{' '}
                         {track.porQue}

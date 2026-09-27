@@ -10,7 +10,8 @@
 // trilha muda sozinha (topicosCobertos/material-first) — aqui a fonte é a
 // conversa + arquivo autoral, então o estado é declarado explicitamente.
 
-import { MATH_EXAM } from './math-exam-prep';
+import { MATH_EXAM, MATH_EXAM_PLAN, planDayFor } from './math-exam-prep';
+import { daysUntilDate } from './semester';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -90,8 +91,11 @@ export interface RecoveryAction {
   minutos: number;
   /** Material da Biblioteca a abrir (openMethod). */
   materialId?: string;
-  /** Aba para navegar (ex.: 'practice'). */
-  tab?: 'practice';
+  /** Aba para navegar (ex.: 'practice' | 'progress'). */
+  tab?: 'practice' | 'progress';
+  /** false = item-POINTER (sem checkbox): o registro vive em outro card
+   *  (ex.: o plano D-N vive no card da prova — duplicar seria dupla verdade). */
+  checkable?: boolean;
 }
 
 export interface RecoveryTrack {
@@ -115,13 +119,13 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
     disciplineCode: MATH_EXAM.disciplineCode,
     status: 'pendente',
     resumo:
-      'Até 24/09 foi só leitura e aula — a hora é FAZER as listas impressas: Lista de Matrizes (35Q, 3 blocos) → Lista de Lógica (18Q, 2 partes) → simulado no D-2. Faltam 7 dias.',
+      'Prova focada no conteúdo dado: as duas listas impressas cobrem tudo — Matrizes (Q1–35, 3 blocos) e Lógica (Q1–18, 2 partes) — e o dia a dia (D-N) vive no card da prova. Determinantes e sistemas lineares NÃO caem (confirmado 24/09).',
     porQue:
       'Único compromisso com DATA. A prova é focada no conteúdo dado: as duas listas cobrem tudo — determinantes e sistemas lineares NÃO caem (confirmado 24/09).',
     acoes: [
       {
         id: 'mat-lista-b1',
-        texto: 'HOJE — Lista de Matrizes, Bloco 1 (Q1–16): construir, igualdade, soma e equações — teoria Aula 00 ao lado só para consultar',
+        texto: '24/09 — Lista de Matrizes, Bloco 1 (Q1–16): construir, igualdade, soma e equações — teoria Aula 00 ao lado só para consultar',
         minutos: 90,
         materialId: 'mat-01-matrizes',
       },
@@ -276,11 +280,70 @@ export function recoveryTotalMinutes(): number {
   );
 }
 
-/** Ações "faça hoje": 1ª ação pendente das 3 primeiras trilhas (ordem de prioridade). */
-export function todayRecoveryActions(): { track: RecoveryTrack; action: RecoveryAction }[] {
+// ---------------------------------------------------------------------------
+// TRILHA MAT — ESTADO VIVO (a prova fala o dia; a fila não diverge do card)
+// ---------------------------------------------------------------------------
+
+/** Status da trilha Matemática: pós-prova ela vira 'feito' (a fila não acusa). */
+export function matTrackStatusFor(daysToExam: number): TrackStatus {
+  return daysToExam < 0 ? 'feito' : 'pendente';
+}
+
+/** Resumo da trilha Matemática: o 'Faltam 7 dias' congelado mentia — agora fala o dia real. */
+export function matTrackResumoFor(daysToExam: number): string {
+  if (daysToExam < 0) {
+    return 'Prova de Matemática realizada — falta a nota. Confira a média na Calculadora (aba Progresso) e siga a fila: Projeto LM 09/10 e Prova de Algoritmos 30/10.';
+  }
+  return `Prova focada no conteúdo dado: as duas listas impressas cobrem tudo — Matrizes (Q1–35) e Lógica (Q1–18) — e faltam ${daysToExam} dia(s). O dia a dia (D-${daysToExam}) vive no card da prova; determinantes e sistemas lineares NÃO caem (confirmado 24/09).`;
+}
+
+/**
+ * Ação de HOJE da trilha Matemática — VIVA, derivada do PLANO DA PROVA
+ * (fonte única: MATH_EXAM_PLAN, a mesma verdade do card da prova):
+ * pré-prova = pointer para o dia D-N do plano (sem checkbox — o registro
+ * das tarefas vive lá, duplicar seria dupla verdade); pós-prova = anotar
+ * a nota na Calculadora. Sem dia de plano (D-9+) → null (a fila segue
+ * com as outras trilhas, honesta).
+ */
+export function matTodayActionFor(daysToExam: number): RecoveryAction | null {
+  if (daysToExam < 0) {
+    return {
+      id: 'mat-pos-prova-nota',
+      texto: 'Anotar a nota da Av1 na Calculadora de Médias e conferir quanto falta para a média final',
+      minutos: 10,
+      tab: 'progress',
+    };
+  }
+  const day = planDayFor(Math.min(Math.max(daysToExam, 0), MATH_EXAM_PLAN.length - 1));
+  if (!day) return null;
+  return {
+    id: `mat-plano-d${day.offset}`,
+    texto: `Plano da prova (D-${day.offset}): ${day.titulo} — o passo a passo com as tarefas está no card da prova, acima`,
+    minutos: day.minutos,
+    materialId: day.tarefas.find((t) => t.materialId)?.materialId,
+    checkable: false,
+  };
+}
+
+/**
+ * Ações "faça hoje": 1ª ação PENDENTE das 3 primeiras trilhas (ordem de
+ * prioridade) — antes pegava sempre a acoes[0], mesmo feita; e a trilha
+ * Matemática agora entra com o item VIVO (plano do dia / Calculadora).
+ */
+export function todayRecoveryActions(
+  done: Record<string, boolean> = {},
+): { track: RecoveryTrack; action: RecoveryAction }[] {
   const out: { track: RecoveryTrack; action: RecoveryAction }[] = [];
+  const daysToExam = daysUntilDate(MATH_EXAM.date);
   for (const track of RECOVERY_TRACKS.filter((t) => t.status !== 'adiado').slice(0, 3)) {
-    const action = track.acoes[0];
+    if (track.id === 'mat') {
+      // Pós-prova com a nota já anotada → a trilha sai da lista (feita é feita).
+      if (daysToExam < 0 && done['mat-pos-prova-nota']) continue;
+      const action = matTodayActionFor(daysToExam);
+      if (action) out.push({ track, action });
+      continue;
+    }
+    const action = track.acoes.find((a) => !done[a.id]);
     if (action) out.push({ track, action });
   }
   return out;
