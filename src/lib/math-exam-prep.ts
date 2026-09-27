@@ -159,6 +159,71 @@ export function findMathSimuladoRunOficial<T extends SimuladoRunLike>(
   });
 }
 
+// ---------- O dia comum cede a vez (card 'O que estudar hoje') ----------
+
+/**
+ * BRIEF do dia-marco para o card 'O que estudar hoje' (TodayStudyCard):
+ * o cronograma rotativo é a voz padrão do dia, mas nos TRÊS dias da reta
+ * final (simulado, véspera, prova) o cronograma cede a vez ao plano da Av1
+ * — o ExamPrepCard mora logo acima. Fora desses 3 dias: null (silêncio
+ * honesto — regra da 88: nenhuma superfície grita fora da janela).
+ *
+ * FONTE ÚNICA: examWeekMilestoneFor dá o marco (mesma voz da Agenda) e
+ * findMathSimuladoRunOficial diz se o simulado JÁ foi — registro vence
+ * relógio (lição 85/86): na noite do 29 o strip flipa 'feito ✓' ao vivo
+ * (storage event → re-render, lição 79). O % do chip vem do veredito da
+ * 95 — zero segunda fonte.
+ */
+export interface TodayStudyExamBrief {
+  kind: 'simulado' | 'vespera' | 'prova';
+  /** Título do marco — a mesma voz do strip da Agenda. */
+  titulo: string;
+  /** A linha que refrata o dia (defere ao plano / informa o registro). */
+  linha: string;
+  /** Simulado oficial já realizado (só faz sentido no kind 'simulado'). */
+  feito: boolean;
+  /** % do veredito quando feito — null fora disso (nada inventado). */
+  pct: number | null;
+}
+
+export function todayStudyExamBriefFor(
+  date: Date,
+  runs?: (SimuladoRunLike & VerdictRunLike)[] | null,
+): TodayStudyExamBrief | null {
+  const m = examWeekMilestoneFor(date);
+  if (!m) return null;
+  if (m.kind === 'simulado') {
+    const run = findMathSimuladoRunOficial(runs);
+    const feito = Boolean(run);
+    const pct = feito ? simuladoVerdictFor(run)?.pct ?? null : null;
+    return {
+      kind: 'simulado',
+      titulo: `É hoje: ${m.titulo}`,
+      feito,
+      pct,
+      linha: feito
+        ? 'feito ✓ — o kit da véspera já lê seu resultado (card acima)'
+        : 'o dia é do ensaio real (+ S3 de Algoritmos) — depois do run, o kit lê o resultado',
+    };
+  }
+  if (m.kind === 'vespera') {
+    return {
+      kind: 'vespera',
+      titulo: m.titulo,
+      feito: false,
+      pct: null,
+      linha: 'revisão leve: o plano manda — folha, fórmulas e só as travadas (card acima)',
+    };
+  }
+  return {
+    kind: 'prova',
+    titulo: `É hoje: ${m.titulo}`,
+    feito: false,
+    pct: null,
+    linha: 'boa prova! O dia é do exame — chegue cedo e leve o kit',
+  };
+}
+
 // ---------- O veredito do simulado oficial ----------
 
 /**
