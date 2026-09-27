@@ -71,6 +71,7 @@ import {
   MATH_SIMULADO_DATE,
   MATH_TRAVADAS_KEY,
   countTravadas,
+  findMathSimuladoRunOficial,
   formatTravadas,
   isVesperaWindow,
   normalizeTravadas,
@@ -181,24 +182,14 @@ export function ExamPrepCard() {
   // Matemática no dia oficial → undefined (o chip continua convidando —
   // estado honesto).
   const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
-  const simuladoRunOnPlanDate = React.useMemo(() => {
-    const diaOficial = MATH_SIMULADO_DATE;
-    return (sp.progress.simuladoRuns ?? []).find((r) => {
-      if (r.mode !== 'prova') return false;
-      // T12 no parse: 'yyyy-mm-dd' puro viria como UTC meia-noite e cairia
-      // no dia anterior em fuso negativo — meio-dia local é o dia inteiro.
-      if (
-        new Date(r.date).toDateString() !==
-        new Date(`${diaOficial}T12:00:00`).toDateString()
-      )
-        return false;
-      // Só prova de MATEMÁTICA conta: pelo filtro do preset OU pelas questões.
-      if (r.filters?.discipline) return r.filters.discipline === MATH_EXAM.disciplineCode;
-      return r.questions?.length
-        ? r.questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode)
-        : false;
-    });
-  }, [sp.progress.simuladoRuns]);
+  // Fonte única (85): a MESMA função que o hero do dashboard usa — a verdade
+  // "simulado feito no dia oficial" não pode divergir entre superfícies.
+  // Render-time (sem effect/interval, lição da 79): reage a mock de relógio
+  // no mesmo frame e a runs novas no mesmo re-render (storage event).
+  const simuladoRunOnPlanDate = React.useMemo(
+    () => findMathSimuladoRunOficial(sp.progress.simuladoRuns),
+    [sp.progress.simuladoRuns],
+  );
   const simuladoDoneOnPlanDate = !!simuladoRunOnPlanDate;
   // "Feito HOJE" é mais estreito: só no próprio dia (o kit da 80 fala do
   // simulado de hoje; na véspera o run é de ONTEM e o badge volta ao default).

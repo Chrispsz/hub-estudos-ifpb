@@ -51,6 +51,40 @@ export const MATH_SIMULADO_DATE = (() => {
   ).padStart(2, '0')}`;
 })();
 
+/**
+ * O RUN DO SIMULADO OFICIAL (29/09) — FONTE ÚNICA da verdade "feito no dia".
+ * Card da prova (marcos) e hero do dashboard leem da MESMA função: estado
+ * derivado de registro não pode ter duas verdades (lição das rodadas 83/84).
+ * Genérico preserva o tipo concreto do chamador (SimuladoRun no card e no
+ * hero) sem importar study-progress aqui — este módulo é puro.
+ */
+type SimuladoRunLike = {
+  mode?: string;
+  date: string;
+  filters?: { discipline?: string };
+  questions?: { disciplineCode?: string }[];
+};
+
+export function findMathSimuladoRunOficial<T extends SimuladoRunLike>(
+  runs: T[] | undefined | null,
+): T | undefined {
+  return (runs ?? []).find((r) => {
+    if (r.mode !== 'prova') return false;
+    // T12 no parse: 'yyyy-mm-dd' puro viria como UTC meia-noite e cairia no
+    // dia anterior em fuso negativo — meio-dia local é o dia inteiro.
+    if (
+      new Date(r.date).toDateString() !==
+      new Date(`${MATH_SIMULADO_DATE}T12:00:00`).toDateString()
+    )
+      return false;
+    // Só prova de MATEMÁTICA conta: pelo filtro do preset OU pelas questões.
+    if (r.filters?.discipline) return r.filters.discipline === MATH_EXAM.disciplineCode;
+    return r.questions?.length
+      ? r.questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode)
+      : false;
+  });
+}
+
 export type PlanKind = 'estudo' | 'pratica' | 'simulado' | 'revisao' | 'prova';
 
 export interface PlanTask {

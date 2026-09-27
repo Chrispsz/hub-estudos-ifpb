@@ -10,12 +10,15 @@ import {
   Clock3,
   Cpu,
   ExternalLink,
+  ArrowUpRight,
   FileText,
   Flame,
   Lightbulb,
   Sparkles,
   ChevronRight,
   CalendarCheck,
+  CalendarClock,
+  CircleCheck,
   Layers,
   Sun,
   Target,
@@ -51,6 +54,13 @@ import {
   upcomingEvents,
   getNextEvaluation as getNextEvaluationShared,
 } from '@/lib/semester';
+import {
+  MATH_EXAM,
+  MATH_SIMULADO_DATE,
+  findMathSimuladoRunOficial,
+} from '@/lib/math-exam-prep';
+import { openSimulado, openTutor } from '@/lib/hub-events';
+import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
 
 interface Props {
   onStartStudy?: (disciplineCode?: string, materialId?: string) => void;
@@ -89,6 +99,15 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
     const id = setInterval(() => setNextEval(getNextEvaluationShared()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  // O run do simulado oficial (29/09) — mesma fonte única do card da prova
+  // (85): se o dia do simulado já aconteceu com prova registrada, o chip do
+  // hero vira "feito ✓" em vez de convidar de novo. Render-time via memo:
+  // reage a runs novas no mesmo re-render (storage event).
+  const simuladoRunOficial = React.useMemo(
+    () => findMathSimuladoRunOficial(sp.progress.simuladoRuns),
+    [sp.progress.simuladoRuns],
+  );
 
   // Recentes (enriquecidos com accessedAt — evita find() dentro do render)
   const recentMaterials = React.useMemo(() => {
@@ -162,45 +181,145 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                 {course.instituicao} — Campus {course.campus}
               </p>
               {nextEval && (
-                <div
-                  className={cn(
-                    'mt-3 inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm',
-                    nextEval.daysLeft === 0
-                      ? 'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400'
-                      : 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/60',
-                  )}
-                >
-                  <CalendarCheck
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {/* PROVA (Av1, 01/10) — o chip primário, família âmbar (76) */}
+                  <div
                     className={cn(
-                      'size-4',
+                      'inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm',
                       nextEval.daysLeft === 0
-                        ? 'animate-pulse text-white dark:text-zinc-900'
-                        : 'text-amber-600 dark:text-amber-400',
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      nextEval.daysLeft === 0
-                        ? 'font-medium text-white dark:text-zinc-900'
-                        : 'text-amber-900 dark:text-amber-200',
+                        ? 'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400'
+                        : 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/60',
                     )}
                   >
-                    {nextEval.daysLeft === 0 ? (
-                      <>
-                        <span className="font-bold">É hoje:</span> {nextEval.name} —{' '}
-                        {nextEval.disciplineShort}. Boa prova!
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-semibold">
-                          {nextEval.daysLeft === 1
-                            ? 'Falta 1 dia'
-                            : `Faltam ${nextEval.daysLeft} dias`}
-                        </span>{' '}
-                        para {nextEval.name} — {nextEval.disciplineShort}
-                      </>
-                    )}
-                  </span>
+                    <CalendarCheck
+                      className={cn(
+                        'size-4',
+                        nextEval.daysLeft === 0
+                          ? 'animate-pulse text-white dark:text-zinc-900'
+                          : 'text-amber-600 dark:text-amber-400',
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        nextEval.daysLeft === 0
+                          ? 'font-medium text-white dark:text-zinc-900'
+                          : 'text-amber-900 dark:text-amber-200',
+                      )}
+                    >
+                      {nextEval.daysLeft === 0 ? (
+                        <>
+                          <span className="font-bold">É hoje:</span> {nextEval.name} —{' '}
+                          {nextEval.disciplineShort}. Boa prova!
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold">
+                            {nextEval.daysLeft === 1
+                              ? 'Falta 1 dia'
+                              : `Faltam ${nextEval.daysLeft} dias`}
+                          </span>{' '}
+                          para {nextEval.name} — {nextEval.disciplineShort}
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* SIMULADO (29/09) — o hero conta para o marco MAIS PRÓXIMO
+                      também (85): até hoje o topo dizia só "Faltam N dias para
+                      a Av1" enquanto o compromisso real da semana era o simulado.
+                      Estados honestos: feito ✓ (emerald, correção a 1 clique) /
+                      é hoje (sólido, pulso — mesmo tratamento do banner D-0 da
+                      76) / amanhã / em N dias. Render-time (lição da 79). */}
+                  {(() => {
+                    const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
+                    // Janela do sprint: o chip nasce a 7 dias do simulado e
+                    // sai no dia seguinte — fora dela o hero fica só com a prova.
+                    if (simuladoDaysLeft < 0 || simuladoDaysLeft > 7) return null;
+                    const simuladoFeito =
+                      simuladoDaysLeft === 0 && !!simuladoRunOficial;
+                    const marcoData = new Date(
+                      `${MATH_SIMULADO_DATE}T12:00:00`,
+                    ).toLocaleDateString('pt-BR', {
+                      weekday: 'short',
+                      day: '2-digit',
+                      month: '2-digit',
+                    });
+                    if (simuladoFeito) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            simuladoRunOficial &&
+                            openTutor({
+                              question: buildRunDebriefQuestion(simuladoRunOficial),
+                              disciplineCode: MATH_EXAM.disciplineCode,
+                            })
+                          }
+                          className="group inline-flex items-center gap-2 rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-sm text-white shadow-md shadow-emerald-600/30 transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                          aria-label="Simulado da Av1 de hoje já foi feito — pedir a correção comentada ao tutor"
+                        >
+                          <CircleCheck className="size-4 shrink-0" aria-hidden />
+                          <span className="whitespace-normal text-left leading-snug">
+                            Simulado da Av1 <span className="font-bold">feito ✓</span> —
+                            pedir a correção
+                          </span>
+                          <ArrowUpRight
+                            className="size-3.5 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                            aria-hidden
+                          />
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => openSimulado({ preset: 'math_exam' })}
+                        className={cn(
+                          'group inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors',
+                          simuladoDaysLeft === 0
+                            ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
+                            : 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400',
+                        )}
+                        aria-label={
+                          simuladoDaysLeft === 0
+                            ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos — abrir o simulado'
+                            : simuladoDaysLeft === 1
+                              ? 'Amanhã é o dia do Simulado da Av1 — abrir o simulado para ensaiar'
+                              : `Simulado da Av1 em ${simuladoDaysLeft} dias — abrir o Simulado com o escopo real da prova`
+                        }
+                      >
+                        <CalendarClock
+                          className={cn(
+                            'size-4 shrink-0',
+                            simuladoDaysLeft === 0 && 'animate-pulse',
+                          )}
+                          aria-hidden
+                        />
+                        <span className="whitespace-normal text-left leading-snug">
+                          {simuladoDaysLeft === 0 ? (
+                            <>
+                              <span className="font-bold">É hoje:</span> Simulado da Av1 +
+                              entrega S3 de Algoritmos
+                            </>
+                          ) : simuladoDaysLeft === 1 ? (
+                            <>
+                              Amanhã: <span className="font-semibold">Simulado da Av1</span>{' '}
+                              + entrega S3 de Algoritmos
+                            </>
+                          ) : (
+                            <>
+                              Simulado da Av1 em {simuladoDaysLeft} dias —{' '}
+                              <span className="font-semibold">{marcoData}</span>
+                            </>
+                          )}
+                        </span>
+                        <ArrowUpRight
+                          className="size-3.5 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </button>
+                    );
+                  })()}
                 </div>
               )}
             </div>
