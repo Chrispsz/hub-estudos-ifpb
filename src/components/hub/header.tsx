@@ -131,7 +131,7 @@ export function Header({ activeTab }: { activeTab?: string }) {
               </Badge>
             </>
           )}
-          <ClockWidget variant="header" />
+          <ClockWidget />
           <Button
             variant="ghost"
             size="icon"

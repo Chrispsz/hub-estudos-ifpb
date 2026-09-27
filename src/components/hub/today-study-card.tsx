@@ -25,7 +25,7 @@ import {
 } from '@/lib/math-exam-prep';
 import { useStudyProgress } from '@/lib/study-progress';
 import { openMethod } from '@/lib/hub-events';
-import { todayDayOfWeek, getDayLabel } from './clock-widget';
+import { todayDayOfWeek, getDayLabel, useNow } from './clock-widget';
 import {
   generateSmartSchedule,
   getDaySummary,
@@ -99,6 +99,48 @@ function ExamDayStrip({ brief }: { brief: TodayStudyExamBrief }) {
   );
 }
 
+/** HH:MM do AGORA — dois dígitos sempre, tabular no CSS. */
+function formatClock(d: Date): string {
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+/**
+ * O RELÓGIO CHEGA NO BLOCO — o relativo de cada bloco contra o AGORA:
+ * em andamento = chip sólido amber com pulso (a gramática da casa para
+ * "é agora", a mesma família dos dias-marco); começa em ≤60 min =
+ * contorno amber tabular (a família da espera, sem pulso); mais longe
+ * que isso o horário já basta; passado e não feito = silêncio (nada de
+ * culpar — o rodapé já conta os pendentes). done é do chamador: feito
+ * vence relógio (lição 85/86).
+ */
+function blockNowBadge(
+  b: { startHour: number; startMinute: number; durationMin: number },
+  now: Date,
+): { label: string; title: string; cls: string; pulse?: boolean } | null {
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const start = b.startHour * 60 + b.startMinute;
+  const end = start + b.durationMin;
+  if (nowMin >= start && nowMin < end) {
+    const endHour = (b.startHour + Math.floor((b.startMinute + b.durationMin) / 60)) % 24;
+    const endMin = (b.startMinute + b.durationMin) % 60;
+    return {
+      label: 'agora',
+      title: `bloco em andamento agora — até ${formatTime(endHour, endMin)}`,
+      cls: 'border border-amber-500 bg-amber-500 text-white shadow-sm shadow-amber-500/30',
+      pulse: true,
+    };
+  }
+  const diff = start - nowMin;
+  if (diff > 0 && diff <= 60) {
+    return {
+      label: `em ${diff} min`,
+      title: `começa em ${diff} min (${formatTime(b.startHour, b.startMinute)})`,
+      cls: 'border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    };
+  }
+  return null;
+}
+
 function formatHours(min: number): string {
   if (min <= 0) return '0h';
   const h = Math.floor(min / 60);
@@ -116,6 +158,11 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
     setToday(todayDayOfWeek());
     setMounted(true);
   }, []);
+
+  // O AGORA do card — a fonte de tempo viva do relógio (o mesmo tick do
+  // header, agora consumida por quem planeja o dia). null até o mount:
+  // SSR e primeiro frame não fingem saber a hora do aluno.
+  const now = useNow(1000);
 
   // Gera blocos automáticos (cronograma rotativo v2.0)
   const autoBlocks = React.useMemo(
@@ -176,6 +223,16 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
             </h3>
           </div>
           <div className="flex items-center gap-2">
+            {now && (
+              <span
+                title="agora no relógio do plano"
+                aria-label={`Agora são ${formatClock(now)} no relógio do plano`}
+                className="hidden items-center gap-1 font-mono text-xs tabular-nums text-muted-foreground sm:inline-flex"
+              >
+                <Clock4 className="size-3" aria-hidden />
+                {formatClock(now)}
+              </span>
+            )}
             <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
               {todaySummary.done}/{todaySummary.total} blocos
             </Badge>
@@ -287,6 +344,7 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
                 const disc = isSpecial ? null : getDisciplineByCode(b.disciplineCode);
                 const color = getColorClasses(disc?.color ?? 'slate');
                 const done = sp.progress.scheduleBlocksDone.includes(b.id);
+                const nb = mounted && now && !done ? blockNowBadge(b, now) : null;
                 return (
                   <li
                     key={b.id}
@@ -302,7 +360,21 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
                         <Clock4 className="size-3" />
                         {formatTime(b.startHour, b.startMinute)}
                       </span>
-                      {done && <Sparkles className="size-3 text-emerald-600" />}
+                      {done ? (
+                        <Sparkles className="size-3 text-emerald-600" />
+                      ) : nb ? (
+                        <span
+                          title={nb.title}
+                          aria-label={nb.title}
+                          className={cn(
+                            'inline-flex items-center whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none',
+                            nb.cls,
+                            nb.pulse && 'animate-pulse',
+                          )}
+                        >
+                          {nb.label}
+                        </span>
+                      ) : null}
                     </div>
                     <p className={cn('mt-0.5 text-xs font-semibold', color.text)}>
                       {disc?.shortName ?? (b.isReview ? 'Revisão' : '—')}
