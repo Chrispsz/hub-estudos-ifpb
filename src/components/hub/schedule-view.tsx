@@ -3,12 +3,17 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
+  BookOpenCheck,
+  CalendarCheck,
+  CalendarClock,
   CalendarDays,
   Check,
   ChevronDown,
+  CircleCheck,
   Clock4,
   Coffee,
   Cpu,
+  Flag,
   Flame,
   History,
   Layers,
@@ -53,6 +58,15 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { disciplines, getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
+import { openTutor } from '@/lib/hub-events';
+import {
+  examWeekMilestoneFor,
+  findMathSimuladoRunOficial,
+  MATH_META,
+  type ExamWeekMilestone,
+} from '@/lib/math-exam-prep';
+import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
+import { daysUntilDate } from '@/lib/semester';
 import {
   DAYS_OF_WEEK,
   currentWeekOfSemester,
@@ -61,7 +75,12 @@ import {
   type ScheduleDisciplineState,
   type SmartBlock,
 } from '@/lib/smart-schedule';
-import { useStudyProgress, type StudyPreferences, type StudyProgressHook } from '@/lib/study-progress';
+import {
+  useStudyProgress,
+  type SimuladoRun,
+  type StudyPreferences,
+  type StudyProgressHook,
+} from '@/lib/study-progress';
 import { cn } from '@/lib/utils';
 
 // ---------- Constantes locais ----------
@@ -230,6 +249,27 @@ export function ScheduleView() {
     return { total: allBlocks.length, totalMin, rotation: rotation.size };
   }, [allBlocks, autoBlocks]);
 
+  // Run do simulado oficial (29/09) — MESMA fonte única do card/hero/histórico.
+  // O strip do dia do simulado lê o REGISTRO: feito hoje ✓ vence o relógio.
+  const simuladoRunOficial = React.useMemo(
+    () => findMathSimuladoRunOficial(sp.progress.simuladoRuns),
+    [sp.progress.simuladoRuns],
+  );
+
+  // Marcos da Av1 na janela da grade (os 7 próximos dias rolando) — estatística
+  // do resumo e honestidade da semana: se a grade cobre o simulado/véspera/prova,
+  // o resumo conta e o resumo fala.
+  const weekMilestones = React.useMemo(() => {
+    if (!now) return [] as { milestone: ExamWeekMilestone; days: number }[];
+    const out: { milestone: ExamWeekMilestone; days: number }[] = [];
+    for (let day = 0; day <= 6; day++) {
+      const d = nextOccurrenceOfDay(day, now);
+      const m = examWeekMilestoneFor(d);
+      if (m) out.push({ milestone: m, days: daysUntilDate(m.date, now) });
+    }
+    return out;
+  }, [now]);
+
   const today = now ? now.getDay() : -1;
   const enabledDaysCount = DAYS_OF_WEEK.filter((d) => prefs.days[d.num]?.enabled).length;
 
@@ -324,6 +364,33 @@ export function ScheduleView() {
           <Layers className="size-4 text-amber-400" />
           <b>{weekStats.rotation}</b>&nbsp;disciplinas na rotação
         </span>
+        {weekMilestones.length > 0 && (
+          <>
+            <span className="hidden h-4 w-px bg-border md:block" />
+            <span className="flex items-center gap-1.5">
+              <Flag className="size-4 text-rose-400" />
+              <b>{weekMilestones.length}</b>
+              &nbsp;marco{weekMilestones.length > 1 ? 's' : ''} da Av1
+              {(() => {
+                const nearest = weekMilestones.reduce((a, b) => (a.days <= b.days ? a : b));
+                const dias = nearest.days;
+                const nome =
+                  nearest.milestone.kind === 'simulado'
+                    ? 'simulado'
+                    : nearest.milestone.kind === 'vespera'
+                      ? 'véspera'
+                      : 'prova';
+                return (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    — {nome}
+                    {dias === 0 ? ' hoje' : dias === 1 ? ' amanhã' : ` em ${dias} dias`}
+                  </span>
+                );
+              })()}
+            </span>
+          </>
+        )}
       </div>
 
       {/* ---------- Grid semanal ---------- */}
@@ -366,6 +433,7 @@ export function ScheduleView() {
               doneIds={sp.progress.scheduleBlocksDone}
               onToggleDone={sp.toggleScheduleBlockDone}
               onRemoveManual={handleRemoveManual}
+              runOficial={simuladoRunOficial}
             />
           ))}
         </div>
@@ -393,6 +461,7 @@ function DayCard({
   doneIds,
   onToggleDone,
   onRemoveManual,
+  runOficial,
 }: {
   day: { num: number; label: string };
   index: number;
@@ -404,6 +473,7 @@ function DayCard({
   doneIds: string[];
   onToggleDone: (id: string) => void;
   onRemoveManual: (id: string) => void;
+  runOficial?: SimuladoRun;
 }) {
   const isToday = day.num === today;
   const totalMin = React.useMemo(() => blocks.reduce((acc, b) => acc + b.durationMin, 0), [blocks]);
@@ -412,6 +482,15 @@ function DayCard({
   const d = nextOccurrenceOfDay(day.num, now);
   const dateLabel = `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}`;
   const fixedDisc = fixedCode ? getDisciplineByCode(fixedCode) : undefined;
+
+  // MARCO DA AV1 neste dia — render-time (lição 79: reage a mock de relógio
+  // no mesmo frame) e fonte única examWeekMilestoneFor. days<0 não deve
+  // ocorrer (a grade é sempre a semana rolando), mas o strip ignora por segurança.
+  const milestone = examWeekMilestoneFor(d);
+  const milestoneDays = milestone ? daysUntilDate(milestone.date, now) : -1;
+  const milestoneVisible = milestone !== null && milestoneDays >= 0;
+  const doneSimulado =
+    milestone?.kind === 'simulado' && milestoneDays === 0 && runOficial !== undefined;
 
   return (
     <motion.div
@@ -424,6 +503,11 @@ function DayCard({
         className={cn(
           'flex h-full min-h-40 flex-col rounded-xl bg-card p-3',
           isToday && 'ring-2 ring-emerald-500/50',
+          // Dia de marco (que não é hoje) ganha anel da cor do marco:
+          // âmbar p/ simulado e véspera, rose p/ prova — cor = família.
+          !isToday &&
+            milestoneVisible &&
+            (milestone.kind === 'prova' ? 'ring-2 ring-rose-500/40' : 'ring-2 ring-amber-500/40'),
           !enabled && 'opacity-60',
         )}
       >
@@ -435,16 +519,39 @@ function DayCard({
               <Badge className="bg-emerald-500 px-1.5 py-0 text-[9px] text-black">Hoje</Badge>
             )}
           </h3>
-          <p className="truncate text-[10px] capitalize text-muted-foreground">
+          <p
+            className={cn(
+              'truncate text-[10px] capitalize text-muted-foreground',
+              milestoneVisible &&
+                (milestone.kind === 'prova'
+                  ? 'font-semibold text-rose-600 dark:text-rose-300'
+                  : 'font-semibold text-amber-600 dark:text-amber-300'),
+            )}
+          >
             {dateLabel}
             {enabled && blocks.length > 0 && (
-              <span className="text-emerald-600 dark:text-emerald-400">
+              <span
+                className={cn(
+                  'text-emerald-600 dark:text-emerald-400',
+                  milestoneVisible && 'font-normal text-muted-foreground dark:text-muted-foreground',
+                )}
+              >
                 {' '}
                 • {fmtDuration(totalMin)}
               </span>
             )}
           </p>
         </div>
+
+        {/* MARCO DA SEMANA DA AV1 — strip acima dos blocos (a agenda fala a semana) */}
+        {milestoneVisible && (
+          <MilestoneStrip
+            milestone={milestone}
+            days={milestoneDays}
+            doneSimulado={doneSimulado}
+            runOficial={runOficial}
+          />
+        )}
 
         {/* Indicador de disciplina fixada */}
         {enabled && fixedDisc && (
@@ -483,6 +590,146 @@ function DayCard({
       </Card>
     </motion.div>
   );
+}
+
+// ---------- Strip do marco da semana da Av1 ----------
+
+/**
+ * Faixa do marco dentro do DayCard — a gramática visual do Hub:
+ *  - futuro   = tinta translúcida da família + chip de contagem ('em 2 dias');
+ *  - é hoje   = SÓLIDO com pulso (o tratamento do banner D-0 da 76 e dos
+ *               chips da 85/86) — urgência tem som, feitos têm silêncio;
+ *  - feito ✓  = SÓLIDO emerald sem pulso + % da meta (a gramática da 87/88),
+ *               e o clique abre o tutor com o debrief do run real (a MESMA
+ *               correção a 1 clique do chip do hero da 85).
+ * Famílias: simulado/véspera = amber · prova = rose · feito = emerald.
+ */
+function MilestoneStrip({
+  milestone,
+  days,
+  doneSimulado,
+  runOficial,
+}: {
+  milestone: ExamWeekMilestone;
+  days: number;
+  doneSimulado: boolean;
+  runOficial?: SimuladoRun;
+}) {
+  const isToday = days === 0;
+  const pct =
+    doneSimulado && runOficial && runOficial.total > 0
+      ? Math.round((runOficial.solved / runOficial.total) * 100)
+      : null;
+
+  const icon =
+    milestone.kind === 'prova' ? (
+      <CalendarCheck className="size-3 shrink-0" />
+    ) : milestone.kind === 'vespera' ? (
+      <BookOpenCheck className="size-3 shrink-0" />
+    ) : doneSimulado ? (
+      <CircleCheck className="size-3 shrink-0" />
+    ) : (
+      <CalendarClock className={cn('size-3 shrink-0', isToday && !doneSimulado && 'animate-pulse')} />
+    );
+
+  const solid = isToday;
+  const family =
+    milestone.kind === 'prova'
+      ? 'rose'
+      : doneSimulado
+        ? 'emerald'
+        : 'amber';
+
+  const stripCls = solid
+    ? {
+        amber:
+          'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900',
+        rose: 'border-rose-600 bg-rose-600 text-white shadow-md shadow-rose-600/30 dark:border-rose-500 dark:bg-rose-500',
+        emerald: 'border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/30 dark:border-emerald-400 dark:bg-emerald-400 dark:text-zinc-900',
+      }[family]
+    : {
+        amber: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+        rose: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+        emerald: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+      }[family];
+
+  const chipCls = solid
+    ? 'bg-white/20 text-current'
+    : {
+        amber: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+        rose: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+        emerald: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+      }[family];
+
+  const titulo = doneSimulado
+    ? 'Simulado da Av1 feito ✓'
+    : isToday
+      ? `É hoje: ${milestone.titulo}`
+      : milestone.titulo;
+
+  const chipLabel = doneSimulado
+    ? pct !== null
+      ? `${pct}% · meta ${MATH_META}${pct >= MATH_META ? ' ✓' : ''}`
+      : undefined
+    : isToday
+      ? milestone.kind === 'prova'
+        ? 'Boa prova!'
+        : undefined
+      : `em ${days} dia${days === 1 ? '' : 's'}`;
+
+  // Linha 2: chip + texto — futuro mostra o subtítulo (ou a dica), hoje mostra
+  // a dica do dia, feito mostra o caminho da correção. title p/ hover revelar
+  // o texto inteiro quando o card de 7 colunas trunca.
+  const row2Text = doneSimulado
+    ? 'pedir a correção no tutor — o ensaio vale ouro na véspera'
+    : isToday
+      ? milestone.detalhe
+      : (milestone.subtitulo ?? milestone.detalhe);
+
+  const body = (
+    <div className={cn('rounded-lg border px-2 py-1.5', stripCls)}>
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <p className="min-w-0 flex-1 truncate text-[11px] font-bold leading-tight" title={titulo}>
+          {titulo}
+        </p>
+      </div>
+      {chipLabel && (
+        <div className="mt-1">
+          <span
+            className={cn(
+              'rounded border px-1 py-px text-[9px] font-semibold tabular-nums',
+              chipCls,
+            )}
+          >
+            {chipLabel}
+          </span>
+        </div>
+      )}
+      <p
+        className={cn('truncate text-[10px] leading-tight opacity-80', chipLabel ? 'mt-1' : 'mt-0.5')}
+        title={row2Text}
+      >
+        {row2Text}
+      </p>
+    </div>
+  );
+
+  // Feito hoje → o strip INTEIRO é o atalho da correção (mesma correção do hero).
+  if (doneSimulado && runOficial) {
+    return (
+      <button
+        type="button"
+        onClick={() => openTutor({ question: buildRunDebriefQuestion(runOficial) })}
+        aria-label={`Abrir o tutor com o debrief do simulado oficial — ${pct}% (${runOficial.solved}/${runOficial.total})`}
+        className="block w-full text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+        title="Abrir o debrief no tutor"
+      >
+        {body}
+      </button>
+    );
+  }
+  return body;
 }
 
 // ---------- Bloco de estudo ----------

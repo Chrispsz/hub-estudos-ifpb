@@ -51,6 +51,80 @@ export const MATH_SIMULADO_DATE = (() => {
   ).padStart(2, '0')}`;
 })();
 
+/** 'yyyy-mm-dd' LOCAL de um Date (mesmo formato das constantes acima). */
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+}
+
+/**
+ * DATA DA VÉSPERA — D-1 da prova (30/09), derivada da data da prova para
+ * nunca divergir (mesma regra do simulado acima): mudou a prova, muda a
+ * véspera junto.
+ */
+export const MATH_VESPERA_DATE = (() => {
+  const d = new Date(`${MATH_EXAM.date}T12:00:00`);
+  d.setDate(d.getDate() - 1);
+  return localDateKey(d);
+})();
+
+// ---------- Marcos da semana da Av1 (agenda) ----------
+
+/**
+ * MARCO DA SEMANA DA AV1 — a Agenda (Cronograma inteligente) é a única
+ * superfície de planejamento semanal e era CEGA à semana da prova: os cards
+ * dos dias mostravam só blocos de estudo, sem o simulado (29/09), sem a
+ * véspera (30/09) e sem a prova (01/10). Esta função é a FONTE ÚNICA do
+ * marco de um dia — as datas derivam de MATH_EXAM.date (simulado = D-2,
+ * véspera = D-1) para nunca divergir do card/hero/fila.
+ *
+ * A entrega da S3 de Algoritmos é NO MESMO DIA do simulado (29/09 — fonte:
+ * dono, consistente com o chip D-1 do hero da rodada 85).
+ */
+export interface ExamWeekMilestone {
+  kind: 'simulado' | 'vespera' | 'prova';
+  date: string; // 'yyyy-mm-dd'
+  /** Nome curto do marco — ex.: 'Simulado da Av1 — Matemática'. */
+  titulo: string;
+  /** Linha secundária opcional — ex.: '+ entrega da S3 de Algoritmos'. */
+  subtitulo?: string;
+  /** O que fazer no dia (dica honesta, 1 linha). */
+  detalhe: string;
+}
+
+export function examWeekMilestoneFor(date: Date): ExamWeekMilestone | null {
+  const key = localDateKey(date);
+  if (key === MATH_SIMULADO_DATE) {
+    return {
+      kind: 'simulado',
+      date: MATH_SIMULADO_DATE,
+      // Titulo CURTO: o strip mora num card de ~150px na grade de 7 colunas —
+      // '— Matemática' não cabe (a família âmbar + o detalhe já dizem de quem é).
+      titulo: 'Simulado da Av1',
+      subtitulo: '+ S3 de Algoritmos',
+      detalhe: 'prova completa no Praticar — o ensaio real da Av1',
+    };
+  }
+  if (key === MATH_VESPERA_DATE) {
+    return {
+      kind: 'vespera',
+      date: MATH_VESPERA_DATE,
+      titulo: 'Véspera da prova',
+      detalhe: 'montar o kit, imprimir a folha de revisão e refazer só as travadas',
+    };
+  }
+  if (key === MATH_EXAM.date) {
+    return {
+      kind: 'prova',
+      date: MATH_EXAM.date,
+      titulo: 'Prova da Av1',
+      detalhe: 'levar o kit e chegar cedo — boa prova!',
+    };
+  }
+  return null;
+}
+
 /**
  * O RUN DO SIMULADO OFICIAL (29/09) — FONTE ÚNICA da verdade "feito no dia".
  * Card da prova (marcos) e hero do dashboard leem da MESMA função: estado
