@@ -25,6 +25,7 @@ import {
   Minus,
   Moon,
   Play,
+  Printer,
   RotateCcw,
   ScrollText,
   Sigma,
@@ -60,6 +61,7 @@ import {
   MATH_CHECKLIST,
   MATH_DECK_FLAG,
   MATH_EXAM,
+  MATH_EXAM_KIT,
   MATH_EXAM_PLAN,
   MATH_FLASHCARDS,
   MATH_FORMULAS,
@@ -700,9 +702,21 @@ export function ExamPrepCard() {
 
             {/* Fórmulas */}
             <section id="dlg-formulas" aria-label="Fórmulas essenciais" className="scroll-mt-4">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <Sparkles className="size-3.5" /> Fórmulas essenciais (dos materiais)
-              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Sparkles className="size-3.5" /> Fórmulas essenciais (dos materiais)
+                </h3>
+                <a
+                  href="/folha-revisao"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Abrir a folha de revisão pronta para imprimir (fórmulas + checklist + kit)"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                >
+                  <Printer className="size-3" aria-hidden />
+                  Folha para imprimir
+                </a>
+              </div>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {MATH_FORMULAS.map((f) => (
                   <Card
@@ -1057,13 +1071,7 @@ function VesperaKit({
     },
   ];
 
-  const kit = [
-    { icon: '✒️', label: 'caneta' },
-    { icon: '✏️', label: 'lápis' },
-    { icon: '🧽', label: 'borracha' },
-    { icon: '🧮', label: 'calculadora (se permitida)' },
-    { icon: '💧', label: 'água' },
-  ];
+  const kit = MATH_EXAM_KIT;
 
   return (
     <div className="border-t border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.09] via-slate-500/[0.05] to-transparent">
@@ -1157,7 +1165,7 @@ function VesperaKit({
                   key={k.label}
                   className="rounded-full border border-indigo-500/25 bg-indigo-500/[0.08] px-2 py-0.5 text-[10px] text-indigo-700 dark:text-indigo-300"
                 >
-                  {k.icon} {k.label}
+                  {k.emoji} {k.label}
                 </span>
               ))}
             </span>
@@ -1165,11 +1173,23 @@ function VesperaKit({
         </motion.li>
       </ol>
 
-      {/* Rodapé do kit — o conselho que nenhum plano de estudo dá */}
-      <p className="border-t border-indigo-500/15 bg-indigo-500/[0.05] px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-        <span className="font-medium text-indigo-600 dark:text-indigo-300">Noite calma:</span> depois
-        das fórmulas, nada de conteúdo novo — o sono consolida mais que a madrugada de estudo.
-      </p>
+      {/* Rodapé do kit — o conselho que nenhum plano de estudo dá + a ponte para o papel */}
+      <div className="border-t border-indigo-500/15 bg-indigo-500/[0.05] px-4 py-2.5">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-medium text-indigo-600 dark:text-indigo-300">Noite calma:</span>{' '}
+          depois das fórmulas, nada de conteúdo novo — o sono consolida mais que a madrugada de
+          estudo.
+        </p>
+        <a
+          href="/folha-revisao"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 underline-offset-2 transition-colors hover:underline dark:text-indigo-300"
+        >
+          <Printer className="size-3" aria-hidden />
+          Prefere papel? Abrir a folha de revisão para imprimir →
+        </a>
+      </div>
     </div>
   );
 }

@@ -358,3 +358,16 @@ export const MATH_FLASHCARDS: { front: string; back: string }[] = [
 
 /** Chave no localStorage que marca que o baralho da Av1 já foi adicionado. */
 export const MATH_DECK_FLAG = 'hub:math-exam:v1:deck-added';
+
+/**
+ * KIT DO DIA DA PROVA — o que levar. Fonte única usada pelo Kit da Véspera
+ * (card do Painel) e pela Folha de Revisão (/folha-revisao): um lugar só,
+ * para nunca divergirem.
+ */
+export const MATH_EXAM_KIT: { emoji: string; label: string }[] = [
+  { emoji: '✒️', label: 'caneta' },
+  { emoji: '✏️', label: 'lápis' },
+  { emoji: '🧽', label: 'borracha' },
+  { emoji: '🧮', label: 'calculadora (se permitida)' },
+  { emoji: '💧', label: 'água' },
+];
