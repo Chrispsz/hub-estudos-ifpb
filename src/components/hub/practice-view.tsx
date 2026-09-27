@@ -607,6 +607,22 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
                   {(() => {
                     const m = runMisses.get(ex.id);
                     if (!m) return null;
+                    // Crônico entre corridas (≥ 2 simulados) SEM recaída de
+                    // exercício (lapses 0): o badge sobe para o estilo forte
+                    // "N× no simulado" — mesma gramática do caderno completo,
+                    // que aqui só não aparece quando o "voltou N×" já cobre.
+                    if (m.dates.length >= 2 && (lapses ?? 0) <= 0) {
+                      return (
+                        <Badge
+                          variant="outline"
+                          title={`Erro de sempre: perdida em ${m.dates.length} simulados diferentes e continua pendente — prioridade máxima na véspera.`}
+                          className="border-rose-400/60 bg-rose-500/10 text-[9px] font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
+                        >
+                          <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
+                          {m.dates.length}× no simulado
+                        </Badge>
+                      );
+                    }
                     return (
                       <Badge
                         variant="outline"

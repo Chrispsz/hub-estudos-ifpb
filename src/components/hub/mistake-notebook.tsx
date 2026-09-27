@@ -94,8 +94,9 @@ export function MistakeNotebook() {
   );
   const windowMeta = MISTAKE_WINDOWS.find((w) => w.id === win);
   const filtered = win !== 'all';
-  // "Erros de sempre" na janela visível — recaída (exercício) ou falha crônica
-  // (cartão errou 2×+) — o pior tipo de erro na véspera: parece aprendido e não está.
+  // "Erros de sempre" na janela visível — recaída (exercício), falha crônica
+  // (cartão errou 2×+) ou crônico entre corridas (perdido em 2+ simulados) —
+  // o pior tipo de erro na véspera: parece aprendido e não está (ou nunca esteve).
   const recorrentes = React.useMemo(
     () => visible.filter((it) => !revisedMap[it.key] && isRecorrenteMistake(it)),
     [visible, revisedMap],
@@ -179,8 +180,8 @@ export function MistakeNotebook() {
               variant="outline"
               title={
                 recorrentes.length === 1
-                  ? 'Erro de sempre: você já tinha resolvido este item e voltou a errar — prioridade máxima na véspera.'
-                  : `Erros de sempre: ${recorrentes.length} itens você já tinha resolvido e voltou a errar — prioridade máxima na véspera.`
+                  ? 'Erro de sempre: recaiu depois de resolver ou foi perdido em mais de um simulado — prioridade máxima na véspera.'
+                  : `Erros de sempre: ${recorrentes.length} itens que insistem — recaída depois de resolver ou perda em mais de um simulado. Prioridade máxima na véspera.`
               }
               className="border-rose-400/60 bg-rose-500/10 text-rose-700 shadow-sm dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
             >
@@ -326,6 +327,11 @@ export function MistakeNotebook() {
                         className={cn(
                           'group rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/40',
                           revisedAt && 'opacity-65 hover:opacity-100 transition-opacity',
+                          // "Erro de sempre" em destaque escaneável: filete rose à esquerda
+                          // (sombra inset — não briga com o border do hover) + tint sutil.
+                          !revisedAt &&
+                            isRecorrenteMistake(it) &&
+                            'shadow-[inset_2px_0_0_0] shadow-rose-400/60 bg-rose-500/[0.04]',
                         )}
                       >
                         <div className="flex items-start gap-2.5">
@@ -344,7 +350,7 @@ export function MistakeNotebook() {
                                   aria-label="Erro recente"
                                 />
                               ) : null}
-                              <span className={cn(revisedAt && 'line-through decoration-emerald-600/60')}>
+                              <span className={cn(revisedAt && 'line-through decoration-emerald-600/60', !revisedAt && isRecorrenteMistake(it) && 'font-medium')}>
                                 {it.title}
                               </span>
                             </p>
@@ -354,20 +360,27 @@ export function MistakeNotebook() {
                                   <Check className="size-3" aria-hidden /> Revisado {fmtWhen(revisedAt)}
                                 </span>
                               ) : null}
-                              {/* Erro de sempre: recaída (exercício) ou falha crônica (cartão) */}
+                              {/* Erro de sempre: recaída (exercício), falha crônica (cartão)
+                                  ou crônico entre corridas (≥ 2 simulados). O texto declara
+                                  QUAL dos sinais deu a recorrência — sem prometer o que não
+                                  aconteceu (nunca resolvido não "voltou a errar"). */}
                               {!revisedAt && isRecorrenteMistake(it) ? (
                                 <span
                                   className="flex items-center gap-0.5 rounded border border-rose-400/60 bg-rose-500/10 px-1.5 py-0.5 font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
                                   title={
                                     it.kind === 'flashcard'
                                       ? 'Cartão recorrente: você errou 2× ou mais e ainda não consolidou — prioridade máxima na véspera.'
-                                      : 'Erro de sempre: você já tinha resolvido este item e voltou a errar — na véspera, é prioridade máxima.'
+                                      : (it.lapses ?? 0) > 0
+                                        ? 'Erro de sempre: você já tinha resolvido este item e voltou a errar — na véspera, é prioridade máxima.'
+                                        : `Erro de sempre: esta questão foi perdida em ${it.mergedSimulado?.count} simulados diferentes e continua pendente — na véspera, é prioridade máxima.`
                                   }
                                 >
                                   <Repeat2 className="size-3" aria-hidden />
                                   {it.kind === 'flashcard'
                                     ? 'sempre errada'
-                                    : `voltou ${it.lapses}×`}
+                                    : (it.lapses ?? 0) > 0
+                                      ? `voltou ${it.lapses}×`
+                                      : `${it.mergedSimulado?.count}× no simulado`}
                                 </span>
                               ) : null}
                               {/* Linha fundida: a mesma questão também apareceu
@@ -375,30 +388,42 @@ export function MistakeNotebook() {
                                   a fusão em vez de esconder o histórico. Em
                                   linhas de exercício o badge diz "também no
                                   simulado"; em linhas de simulado (N corridas)
-                                  diz "N× no simulado". */}
-                              {it.mergedSimulado && it.mergedSimulado.count > 1 ? (
-                                <span
-                                  className="flex items-center gap-0.5 rounded border border-rose-300/60 bg-rose-500/[0.07] px-1.5 py-0.5 font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
-                                  title={
-                                    it.kind === 'exercicio'
-                                      ? `Esta questão também foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} em ${it.mergedSimulado.count} simulados (a mais recente em ${fmtWhen(it.mergedSimulado.lastDate)}) — a linha une os registros num só.`
-                                      : `Esta questão foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} em ${it.mergedSimulado.count} simulados (a mais recente em ${fmtWhen(it.mergedSimulado.lastDate)}) — as corridas viram uma linha só.`
-                                  }
-                                >
-                                  <Target className="size-3" aria-hidden />
-                                  {it.kind === 'exercicio'
-                                    ? `também em ${it.mergedSimulado.count} simulados`
-                                    : `${it.mergedSimulado.count}× no simulado`}
-                                </span>
-                              ) : it.mergedSimulado ? (
-                                <span
-                                  className="flex items-center gap-0.5 rounded border border-rose-300/60 bg-rose-500/[0.07] px-1.5 py-0.5 font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
-                                  title={`Esta questão também foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} no simulado de ${fmtWhen(it.mergedSimulado.lastDate)} — a linha une os dois registros num só.`}
-                                >
-                                  <Target className="size-3" aria-hidden />
-                                  também no simulado
-                                </span>
-                              ) : null}
+                                  diz "N× no simulado". Quando a recorrência JÁ
+                                  veio da contagem de corridas (badge forte acima,
+                                  mesmo count, sem lapses), o badge suave CALA —
+                                  não pode renderizar de novo o mesmo número. */}
+                              {(() => {
+                                if (!it.mergedSimulado) return null;
+                                const cronicamenteFundida =
+                                  isRecorrenteMistake(it) && (it.lapses ?? 0) <= 0;
+                                if (cronicamenteFundida) return null;
+                                if (it.mergedSimulado.count > 1) {
+                                  return (
+                                    <span
+                                      className="flex items-center gap-0.5 rounded border border-rose-300/60 bg-rose-500/[0.07] px-1.5 py-0.5 font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                                      title={
+                                        it.kind === 'exercicio'
+                                          ? `Esta questão também foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} em ${it.mergedSimulado.count} simulados (a mais recente em ${fmtWhen(it.mergedSimulado.lastDate)}) — a linha une os registros num só.`
+                                          : `Esta questão foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} em ${it.mergedSimulado.count} simulados (a mais recente em ${fmtWhen(it.mergedSimulado.lastDate)}) — as corridas viram uma linha só.`
+                                      }
+                                    >
+                                      <Target className="size-3" aria-hidden />
+                                      {it.kind === 'exercicio'
+                                        ? `também em ${it.mergedSimulado.count} simulados`
+                                        : `${it.mergedSimulado.count}× no simulado`}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span
+                                    className="flex items-center gap-0.5 rounded border border-rose-300/60 bg-rose-500/[0.07] px-1.5 py-0.5 font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                                    title={`Esta questão também foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} no simulado de ${fmtWhen(it.mergedSimulado.lastDate)} — a linha une os dois registros num só.`}
+                                  >
+                                    <Target className="size-3" aria-hidden />
+                                    também no simulado
+                                  </span>
+                                );
+                              })()}
                               {it.topic ? (
                                 <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5">
                                   {it.topic}

@@ -58,6 +58,7 @@ import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
+import { simuladoMissedMap } from '@/lib/mistake-notebook';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { getExerciseStage } from '@/lib/curriculum-state';
 import {
@@ -269,6 +270,9 @@ export function SimuladoView({
     const prog = sp.progress.exerciseProgress ?? {};
     const byStatement = new Map(exercises.map((e) => [e.statement.slice(0, 160), e]));
     const simItems: MistakeSource[] = [];
+    // Cronicidade = nº de corridas em que a MESMA questão foi perdida — vira
+    // o peso de prioridade no treino (o erro de sempre sobe, como no caderno).
+    const runCountByEx = new Map<string, number>();
     for (const run of [...(sp.progress.simuladoRuns ?? [])].sort((a, b) =>
       (b.date || '').localeCompare(a.date || ''),
     )) {
@@ -278,9 +282,11 @@ export function SimuladoView({
         const ex = q.statement ? byStatement.get(q.statement) : undefined;
         if (!ex) continue; // enunciado sem par no acervo — nada a exibir, sem inventar
         if (prog[ex.id]?.solved) continue; // já resolvida depois da corrida — honesto
+        runCountByEx.set(ex.id, (runCountByEx.get(ex.id) ?? 0) + 1);
         simItems.push({ ex, lapses: 0, when: run.date || '', fromSimulado: true });
       }
     }
+    for (const s of simItems) s.lapses = runCountByEx.get(s.ex.id) ?? 0;
     // Dedupe: a entrada de exercício vence (tem lapses + estado rico); a mesma
     // questão perdida em várias corridas entra UMA vez (a mais recente primeiro).
     const seen = new Set(exItems.map((x) => x.ex.id));
@@ -309,13 +315,25 @@ export function SimuladoView({
   );
   // Quantas das pendentes são RECORRENTES (pré-cap, ordem real do caderno) —
   // badge do card de revisão dirigida fica honesto mesmo com >15 erros.
-  const mistakeRecorrentes = React.useMemo(
-    () =>
-      Object.values(sp.progress.exerciseProgress ?? {}).filter(
-        (v) => v.tried && !v.solved && (v.lapses ?? 0) > 0,
-      ).length,
-    [sp.progress.exerciseProgress],
-  );
+  // Dois sinais, mesma regra do caderno (isRecorrenteMistake): recaída do
+  // exercício (lapses > 0) OU crônico entre corridas (perdida em ≥ 2
+  // simulados) — contando também as linhas só-de-simulado (sem exercício).
+  const mistakeRecorrentes = React.useMemo(() => {
+    const simMap = simuladoMissedMap(sp.progress);
+    const prog = sp.progress.exerciseProgress ?? {};
+    const exPending = new Set<string>();
+    let n = 0;
+    for (const [id, v] of Object.entries(prog)) {
+      if (!v.tried || v.solved) continue;
+      exPending.add(id);
+      if ((v.lapses ?? 0) > 0 || (simMap.get(id)?.dates.length ?? 0) >= 2) n += 1;
+    }
+    for (const [id, acc] of simMap) {
+      if (exPending.has(id)) continue;
+      if (acc.dates.length >= 2) n += 1;
+    }
+    return n;
+  }, [sp.progress]);
 
   const pool = React.useMemo(() => {
     let list = exercises;

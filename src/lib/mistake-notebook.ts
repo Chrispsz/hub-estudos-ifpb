@@ -15,6 +15,13 @@
  * ciclo de lapses) — o contexto do simulado vai na nota e no badge
  * "também no simulado", em vez de duplicar a linha no caderno.
  *
+ * ERROS DE SEMPRE (recorrência) em três sinais honestos:
+ *  1. exercício recaído — lapses ≥ 1 (já tinha resolvido e voltou a errar);
+ *  2. cartão crônico — lapses ≥ 2 e ainda em caixa frágil;
+ *  3. crônico entre corridas — perdido em ≥ 2 simulados (com ou sem entrada
+ *     de exercício): a questão volta e o aluno continua perdendo. O count
+ *     vem do próprio mergedSimulado (nº de corridas fundidas na linha).
+ *
  * Também monta as perguntas para a IA: um chip por erro (reensinar aquele
  * ponto) e a análise do caderno inteiro (padrões + priorização + ordem de
  * revisão) — mesma voz de coach usada no debriefing do simulado.
@@ -50,6 +57,8 @@ export interface MistakeItem {
    * "Erros de sempre": quantas vezes o item voltou ao caderno depois de já
    * ter sido resolvido (só existe para exercícios — a única fonte que
    * acompanha o ciclo completo errou → resolveu → recaiu). ≥1 = recorrente.
+   * Recorrência também vem de OUTRO sinal: perdido em ≥ 2 simulados
+   * (mergedSimulado.count) — crônico entre corridas, com ou sem exercício.
    */
   lapses?: number;
   /**
@@ -86,14 +95,24 @@ function fmtDate(iso: string): string {
 }
 
 /**
- * "Erros de sempre" — o item já foi virado em acerto (exercício: reentrou no
- * caderno depois de resolvido) ou falha cronicamente (flashcard: errou 2× ou
- * mais e ainda está em caixa frágil). É o que sobe no caderno, abre a revisão
- * dirigida e recebe a tag [RECORRENTE] na IA.
+ * "Erros de sempre" — o item falha CRONICAMENTE, por um de três sinais:
+ *  - exercício recaído: já foi virado em acerto e reentrou no caderno
+ *    (lapses ≥ 1 — o ciclo completo errou → resolveu → recaiu);
+ *  - cartão crônico: errou 2× ou mais e ainda está em caixa frágil;
+ *  - crônico entre corridas: perdido em ≥ 2 simulados (mergedSimulado.count),
+ *    com ou sem entrada de exercício — a questão volta e o aluno continua
+ *    perdendo, mesmo sem nunca ter resolvido no meio.
+ * É o que sobe no caderno, abre a revisão dirigida e recebe a tag
+ * [RECORRENTE] na IA.
  */
 export function isRecorrenteMistake(it: MistakeItem): boolean {
   if (it.kind === 'flashcard') return (it.lapses ?? 0) >= 2;
-  return (it.lapses ?? 0) > 0;
+  if (it.kind === 'exercicio') {
+    return (it.lapses ?? 0) > 0 || (it.mergedSimulado?.count ?? 0) >= 2;
+  }
+  // simulado_missed / simulado_skipped (linha só-de-simulado, camada c):
+  // a recorrência é a contagem de corridas em que a questão foi perdida.
+  return (it.mergedSimulado?.count ?? 0) >= 2;
 }
 
 /** Índice enunciado(fatiado em 160) → id — chave única de casamento questão↔corrida. */
@@ -384,7 +403,13 @@ function itemLine(it: MistakeItem, revisedMap?: { [key: string]: string } | null
   if (it.note) parts.push(it.note);
   const revisedAt = revisedMap?.[it.key];
   const recorrente = isRecorrenteMistake(it)
-    ? ` [RECORRENTE — ${it.kind === 'flashcard' ? `errei este cartão ${it.lapses === 2 ? '2×' : `${it.lapses}×`} e ainda não consolidei` : `já tinha resolvido e voltei a errar ${it.lapses === 1 ? '1×' : `${it.lapses}×`}`}; prioridade máxima]`
+    ? ` [RECORRENTE — ${
+        it.kind === 'flashcard'
+          ? `errei este cartão ${it.lapses === 2 ? '2×' : `${it.lapses}×`} e ainda não consolidei`
+          : (it.lapses ?? 0) > 0
+            ? `já tinha resolvido e voltei a errar ${it.lapses === 1 ? '1×' : `${it.lapses}×`}`
+            : `perdi em ${it.mergedSimulado?.count} simulados diferentes sem conseguir resolver no meio`
+      }; prioridade máxima]`
     : '';
   const tag = revisedAt
     ? ` [JÁ REVISADO em ${fmtDate(revisedAt)} — reestudei este ponto]`
@@ -443,7 +468,7 @@ export function buildNotebookQuestion(
       : `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} até agora`,
     `(${stats.simulado} de simulados, ${stats.exercicio} de exercícios, ${stats.flashcard} de flashcards).`,
     recorrentes > 0
-      ? `ATENÇÃO: ${recorrentes} ${recorrentes === 1 ? 'deles é RECORRENTE' : 'deles são RECORRENTES'} — já resolvi e recaí (os marcados com [RECORRENTE] abaixo); são a minha maior fragilidade.`
+      ? `ATENÇÃO: ${recorrentes} ${recorrentes === 1 ? 'deles é RECORRENTE' : 'deles são RECORRENTES'} — já resolvi e recaí, ou perdi em mais de um simulado (os marcados com [RECORRENTE] abaixo); são a minha maior fragilidade.`
       : '',
     revisados > 0
       ? `Desse total, ${revisados} já marquei como revisados e ${pendentes} ${pendentes === 1 ? 'continua pendente' : 'continuam pendentes'}.`
