@@ -68,6 +68,7 @@ import {
   MATH_FLASHCARDS,
   MATH_FORMULAS,
   MATH_LISTAS,
+  MATH_META,
   MATH_PLAN_KEY,
   MATH_SIMULADO_DATE,
   MATH_TOPICO_CURTO,
@@ -76,11 +77,13 @@ import {
   findMathSimuladoRunOficial,
   formatTravadas,
   isVesperaWindow,
+  mathDrillFeedbackFor,
   normalizeTravadas,
   planDayChecked,
   planDayFor,
   planDaysBehind,
   simuladoVerdictFor,
+  type DrillRunLike,
   type PlanDay,
   type PlanKind,
   type SimuladoTopicScore,
@@ -869,6 +872,7 @@ export function ExamPrepCard() {
             mistakePending={mistakePending}
             simuladoDoneToday={simuladoDoneToday}
             verdict={simuladoVerdict}
+            runs={sp.progress.simuladoRuns}
             deckAdded={deckAdded}
             flashcardsDue={sp.flashcardStats.due}
             travadasCount={travadasCount}
@@ -1360,6 +1364,7 @@ function VesperaKit({
   mistakePending,
   simuladoDoneToday,
   verdict,
+  runs,
   deckAdded,
   flashcardsDue,
   travadasCount,
@@ -1377,6 +1382,9 @@ function VesperaKit({
   simuladoDoneToday: boolean;
   /** Veredito do run oficial (fonte única: simuladoVerdictFor) — null = sem run, kit no estado de espera. */
   verdict: SimuladoVerdict | null;
+  /** Runs do Simulado Pro (mesmo registro do pai) — de onde o leitor do drill
+   *  acha o treino 'topico' do foco. undefined/null = sem drill (estado honesto). */
+  runs?: DrillRunLike[] | null;
   deckAdded: boolean;
   flashcardsDue: number;
   travadasCount: number;
@@ -1400,6 +1408,24 @@ function VesperaKit({
   // worst segue com o contrato documentado para quem só olha número.
   const foco = verdict?.pulouTudo ?? worst;
   const focoPulou = foco != null && foco.pct == null;
+
+  // O DRILL RESPONDE: a linha do foco promete ('a revisão de amanhã') e o CTA
+  // abre o treino daquele tópico — mas o kit nunca soube se o treino
+  // ACONTECEU: depois do drill a linha seguia idêntica, o badge continuava no
+  // % do simulado e o aluno não via o efeito do esforço da noite anterior.
+  // O leitor puro acha o run 'topico' mais recente do foco e o recibo diz a
+  // verdade do número: subiu (emerald), não subiu (amber, honesto) — e a
+  // comparação só existe quando os dois lados têm taxa (bloco pulado não
+  // inventa delta). Render-time (sem effect, lição 79): run novo no storage
+  // re-renderiza e o recibo aparece no mesmo frame.
+  const drill = foco ? mathDrillFeedbackFor(runs, foco.topic, foco.pct) : null;
+  const drillDia = (() => {
+    if (!drill) return '';
+    const d = new Date(drill.dateISO).toDateString();
+    if (d === new Date().toDateString()) return 'treino de hoje';
+    if (d === new Date(Date.now() - 86_400_000).toDateString()) return 'treino de ontem';
+    return 'treino recente';
+  })();
 
   const contextBadge =
     daysLeft === 2
@@ -1440,6 +1466,8 @@ function VesperaKit({
     action: () => void;
     badge?: { text: string; tone: string };
     cta: string;
+    /** Acento de ESTADO da linha (ex.: recibo do drill = fechamento emerald à esquerda). */
+    accent?: string;
   }[] = [
     // A PROMESSA DO PLANO, AGORA COM NÚMEROS: o run oficial diz qual bloco
     // errou mais — e, quando um bloco INTEIRO ficou sem tentativa, é ELE que
@@ -1461,12 +1489,42 @@ function VesperaKit({
                   : `${curto(foco.topic)}: começa a revisão de hoje`,
             subNode: (
               <>
-                {'No simulado: '}
-                <PlacarChips porTopico={verdict?.porTopico ?? []} />
-                {' — '}
-                {focoPulou
-                  ? 'pular um bloco inteiro também é diagnóstico: a revisão começa por ele.'
-                  : 'o plano promete: o bloco com mais erros vira a revisão.'}
+                <span className="block">
+                  {'No simulado: '}
+                  <PlacarChips porTopico={verdict?.porTopico ?? []} />
+                  {' — '}
+                  {focoPulou
+                    ? 'pular um bloco inteiro também é diagnóstico: a revisão começa por ele.'
+                    : 'o plano promete: o bloco com mais erros vira a revisão.'}
+                </span>
+                {/* O RECIBO DO DRILL — a promessa ganhou resposta: o treino do
+                    foco vira uma linha própria, com ponto-colorido (emerald =
+                    subiu, amber = não subiu, honesto) e o delta real quando
+                    os dois lados têm taxa. Sem drill a linha não existe —
+                    nada inventado (a regra da 88). */}
+                {drill && drill.pct !== null && (
+                  <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'size-1.5 shrink-0 rounded-full',
+                        drill.melhorou ? 'bg-emerald-500' : 'bg-amber-500',
+                      )}
+                    />
+                    <span className="tabular-nums">
+                      {`${drillDia}: ${drill.solved}/${drill.total} no drill`}
+                      {drill.melhorou === true
+                        ? ` · subiu de ${foco.pct}% para ${drill.pct}%`
+                        : ''}
+                      {drill.melhorou === false
+                        ? ` · ${drill.pct}% no treino — vale outra passada`
+                        : ''}
+                      {focoPulou && drill.melhorou === null
+                        ? ' · o bloco saiu do zero'
+                        : ''}
+                    </span>
+                  </span>
+                )}
               </>
             ),
             action: () =>
@@ -1474,20 +1532,32 @@ function VesperaKit({
                 disciplineCode: MATH_EXAM.disciplineCode,
                 topicScope: foco.topic,
               }),
-            badge: focoPulou
-              ? {
-                  text: `${foco.skipped} ${foco.skipped === 1 ? 'pulada' : 'puladas'}`,
-                  tone:
-                    'border-rose-400/60 bg-rose-500/10 tabular-nums text-rose-600 dark:border-rose-400/60 dark:bg-rose-500/10 dark:text-rose-400',
-                }
-              : {
-                  text: `${foco.pct ?? 0}% no bloco`,
-                  tone:
-                    (foco.pct ?? 0) < 70
-                      ? 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
-                      : 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
-                },
-            cta: `Treinar ${curto(foco.topic)}`,
+            badge:
+              drill && drill.pct !== null
+                ? {
+                    text: `${drill.pct}% no treino${drill.pct >= MATH_META ? ' ✓' : ''}`,
+                    tone:
+                      drill.pct >= MATH_META
+                        ? 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                        : 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400',
+                  }
+                : focoPulou
+                  ? {
+                      text: `${foco.skipped} ${foco.skipped === 1 ? 'pulada' : 'puladas'}`,
+                      tone:
+                        'border-rose-400/60 bg-rose-500/10 tabular-nums text-rose-600 dark:border-rose-400/60 dark:bg-rose-500/10 dark:text-rose-400',
+                    }
+                  : {
+                      text: `${foco.pct ?? 0}% no bloco`,
+                      tone:
+                        (foco.pct ?? 0) < 70
+                          ? 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
+                          : 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
+                    },
+            cta: drill ? 'Treinar de novo' : `Treinar ${curto(foco.topic)}`,
+            accent: drill
+              ? 'border-l-2 border-l-emerald-500/60 bg-emerald-500/[0.05] hover:border-l-emerald-500/70'
+              : undefined,
           },
         ]
       : []),
@@ -1608,7 +1678,10 @@ function VesperaKit({
               <button
                 type="button"
                 onClick={row.action}
-                className="group flex w-full items-start gap-3 rounded-lg border border-transparent px-2.5 py-2.5 text-left transition-all hover:border-indigo-500/25 hover:bg-indigo-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                className={cn(
+                  'group flex w-full items-start gap-3 rounded-lg border border-transparent px-2.5 py-2.5 text-left transition-all hover:border-indigo-500/25 hover:bg-indigo-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40',
+                  row.accent,
+                )}
               >
                 <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
                   {String(i + 1).padStart(2, '0')}

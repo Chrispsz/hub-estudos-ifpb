@@ -21,6 +21,7 @@ import {
   MATH_TRAVADAS_KEY,
   countTravadas,
   findMathSimuladoRunOficial,
+  mathDrillFeedbackFor,
   normalizeTravadas,
   planDayFor,
   planDaysBehind,
@@ -80,6 +81,15 @@ export interface HubExamWeek {
     piorTopico?: string;
     /** Bloco INTEIRO sem tentativa (o tempo acabou nele / passou reto). */
     pulouTudo?: string | null;
+    /** O RECIBO DO DRILL do foco (mode 'topico' mais recente do bloco):
+     *  a revisão prometida aconteceu? Subiu? null = sem treino (nada inventado). */
+    treinoDoFoco?: {
+      quando: 'hoje' | 'ontem' | 'recente';
+      solved: number;
+      total: number;
+      pct: number | null;
+      melhorou: boolean | null;
+    } | null;
   } | null;
   travadasCount: number;
 }
@@ -199,6 +209,24 @@ export function buildHubContext(
             // respondido — puladas também porTopico agora leva o sinal.
             piorTopico: verdict.pulouTudo?.topic ?? verdict.worst?.topic,
             pulouTudo: verdict.pulouTudo?.topic ?? null,
+            // E O TUTOR SABE SE A REVISÃO CUMPRIU: o mesmo leitor do kit
+            // (fonte única) acha o drill 'topico' do foco — o tutor reconhece
+            // o progresso da noite anterior em vez de cobrar de novo.
+            treinoDoFoco: (() => {
+              const focoTopico = verdict.pulouTudo?.topic ?? verdict.worst?.topic;
+              if (!focoTopico) return null;
+              const focoPct = verdict.pulouTudo ? null : (verdict.worst?.pct ?? null);
+              const d = mathDrillFeedbackFor(sp.progress.simuladoRuns, focoTopico, focoPct);
+              if (!d) return null;
+              const dia = new Date(d.dateISO).toDateString();
+              const quando =
+                dia === new Date().toDateString()
+                  ? ('hoje' as const)
+                  : dia === new Date(Date.now() - 86_400_000).toDateString()
+                    ? ('ontem' as const)
+                    : ('recente' as const);
+              return { quando, solved: d.solved, total: d.total, pct: d.pct, melhorou: d.melhorou };
+            })(),
           }
         : null,
       travadasCount: countTravadas(travadas),

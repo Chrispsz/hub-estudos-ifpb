@@ -98,6 +98,14 @@ interface HubContext {
       piorTopico?: string;
       /** Bloco INTEIRO sem tentativa (pulouTudo da 105) — precede o pior respondido. */
       pulouTudo?: string | null;
+      /** Recibo do drill do foco (106): a revisão prometida aconteceu? Subiu? */
+      treinoDoFoco?: {
+        quando: 'hoje' | 'ontem' | 'recente';
+        solved: number;
+        total: number;
+        pct: number | null;
+        melhorou: boolean | null;
+      } | null;
     } | null;
     travadasCount: number;
   };
@@ -328,6 +336,16 @@ function buildHubBlock(hub?: HubContext): string {
               : w.simulado.piorTopico
                 ? ` · bloco fraco: ${w.simulado.piorTopico}`
                 : ''
+          }${
+            w.simulado.treinoDoFoco && w.simulado.treinoDoFoco.pct !== null
+              ? ` · treino do foco (${w.simulado.treinoDoFoco.quando}): ${w.simulado.treinoDoFoco.solved}/${w.simulado.treinoDoFoco.total} — ${w.simulado.treinoDoFoco.pct}%${
+                  w.simulado.treinoDoFoco.melhorou === true
+                    ? ' (a revisão cumpriu: a taxa subiu)'
+                    : w.simulado.treinoDoFoco.melhorou === false
+                      ? ' (não subiu — vale outra passada, ou outro ângulo)'
+                      : ''
+                }`
+              : ''
           }`
         : `simulado oficial de 29/09: ainda NÃO feito`,
     );
@@ -335,7 +353,7 @@ function buildHubBlock(hub?: HubContext): string {
     lines.push(
       `- SEMANA DA AV1 (estado ao vivo, dados do app):\n    • ${parts.join(
         '\n    • ',
-      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado.`,
+      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado. Se o treino do foco JÁ aconteceu e subiu, reconheça o progresso e mantenha o ritmo; se não subiu, proponha outro ângulo (refazer no papel, reler a fórmula daquele bloco antes de dormir) — nunca cobre duas vezes o que o registro já mostrou.`,
     );
   }
 

@@ -383,6 +383,86 @@ export function simuladoVerdictFor(run?: VerdictRunLike | null): SimuladoVerdict
   return { pct, meta: MATH_META, metaBatida: pct >= MATH_META, porTopico, worst, pulouTudo };
 }
 
+// ---------- O drill responde (a revisão cumpriu?) ----------
+
+/** Forma mínima do run de drill — mode 'topico' + questões com tópico/status. */
+export type DrillRunLike = {
+  mode?: string;
+  date: string; // ISO
+  filters?: { discipline?: string };
+  questions?: {
+    disciplineCode?: string;
+    status?: 'solved' | 'missed' | 'skipped';
+    topic?: string;
+  }[];
+};
+
+export interface DrillFeedback {
+  solved: number;
+  total: number;
+  /** Taxa sobre RESPONDIDOS — a MESMA regra honesta do veredito (pulada não
+   *  conta taxa nem inventa). null = o treino inteiro sem tentativa. */
+  pct: number | null;
+  dateISO: string;
+  /** true = a taxa do treino ficou acima da taxa do bloco no SIMULADO (a
+   *  revisão cumpriu); false = não subiu (honesto: o número fala); null =
+   *  sem comparação possível (bloco todo pulado no simulado, ou treino todo
+   *  pulado — não há taxa dos dois lados). */
+  melhorou: boolean | null;
+}
+
+/**
+ * O FEEDBACK DO DRILL — o kit promete ("Matrizes: a revisão de amanhã") e o
+ * CTA abre o drill daquele tópico, mas o kit nunca soube se o treino
+ * ACONTECEU: a linha ficava igual, o badge seguia no % do simulado e a
+ * promessa não tinha recibo. O drill do kit é um run com mode 'topico'
+ * (o evento topicScope configura AttemptMode 'topico' — distinto do run
+ * oficial 'prova', então este leitor nunca colide com
+ * findMathSimuladoRunOficial). Esta função acha o drill MAIS RECENTE
+ * daquele tópico (sort por date desc — runs antigos no fim do array não
+ * são "mais recentes" por sorteio de ordem) e devolve os números com a
+ * mesma honestidade do veredito: taxa sobre respondidos, comparação só
+ * quando os dois lados têm taxa. Módulo permanece puro.
+ */
+export function mathDrillFeedbackFor(
+  runs: DrillRunLike[] | undefined | null,
+  topic: string,
+  focoPct?: number | null,
+): DrillFeedback | null {
+  const candidates = (runs ?? [])
+    .filter((r) => {
+      if (r.mode !== 'topico') return false;
+      const qs = r.questions ?? [];
+      if (qs.length === 0) return false;
+      // Só prova de MATEMÁTICA: pelo filtro do preset OU pelas questões
+      // (o mesmo critério do leitor do run oficial).
+      if (r.filters?.discipline) {
+        if (r.filters.discipline !== MATH_EXAM.disciplineCode) return false;
+      } else if (
+        qs.some((q) => q.disciplineCode && q.disciplineCode !== MATH_EXAM.disciplineCode)
+      ) {
+        return false;
+      }
+      // Drill de 1 tópico: TODAS as questões do tópico pedido (o preset do
+      // drill manda topics:[topic] — um run misto não é drill daquele bloco).
+      return qs.every((q) => q.topic === topic);
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const run = candidates[0];
+  if (!run) return null;
+  const qs = run.questions ?? [];
+  const solved = qs.filter((q) => q.status === 'solved').length;
+  const answered = qs.filter((q) => q.status !== 'skipped').length;
+  const pct = answered > 0 ? Math.round((solved / answered) * 100) : null;
+  return {
+    solved,
+    total: qs.length,
+    pct,
+    dateISO: run.date,
+    melhorou: pct === null || focoPct == null ? null : pct > focoPct,
+  };
+}
+
 // ---------- Flashcards na semana da Av1 ----------
 
 /**
