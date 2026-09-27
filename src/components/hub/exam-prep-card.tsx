@@ -69,6 +69,7 @@ import {
   MATH_FORMULAS,
   MATH_LISTAS,
   MATH_SIMULADO_DATE,
+  MATH_TOPICO_CURTO,
   MATH_TRAVADAS_KEY,
   countTravadas,
   findMathSimuladoRunOficial,
@@ -78,9 +79,14 @@ import {
   planDayChecked,
   planDayFor,
   planDaysBehind,
+  simuladoVerdictFor,
   type PlanDay,
   type PlanKind,
+  type SimuladoVerdict,
 } from '@/lib/math-exam-prep';
+
+/** Rótulo curto do tópico — o kit fala 'Matrizes'/'Lógica', não o nome do catálogo. */
+const curto = (topic: string): string => MATH_TOPICO_CURTO[topic] ?? topic;
 
 const KIND_LABEL: Record<PlanKind, string> = {
   estudo: 'Estudo',
@@ -194,6 +200,17 @@ export function ExamPrepCard() {
   // "Feito HOJE" é mais estreito: só no próprio dia (o kit da 80 fala do
   // simulado de hoje; na véspera o run é de ONTEM e o badge volta ao default).
   const simuladoDoneToday = simuladoDaysLeft === 0 && simuladoDoneOnPlanDate;
+
+  // O KIT CUMPRE A PROMESSA DO PLANO: o simulado oficial promete "o bloco com
+  // mais erros vira a revisão de amanhã" — o veredito transforma o run em
+  // números por tópico (fonte única no módulo puro) e o kit da reta final
+  // passa a falar o DESEMPENHO, não só o calendário. Render-time (sem
+  // effect/interval, lição da 79): reage ao run no mesmo re-render via
+  // storage event. Sem run → null — o kit segue no estado de espera honesto.
+  const simuladoVerdict = React.useMemo(
+    () => simuladoVerdictFor(simuladoRunOnPlanDate),
+    [simuladoRunOnPlanDate],
+  );
 
   // O PLANO NÃO MENTE: dias "para trás" = só os pendentes de verdade (tarefas
   // não marcadas E, no dia do simulado, sem run oficial). Antes, TODO dia
@@ -790,6 +807,7 @@ export function ExamPrepCard() {
             daysLeft={daysLeft}
             mistakePending={mistakePending}
             simuladoDoneToday={simuladoDoneToday}
+            verdict={simuladoVerdict}
             deckAdded={deckAdded}
             flashcardsDue={sp.flashcardStats.due}
             travadasCount={travadasCount}
@@ -1264,6 +1282,7 @@ function VesperaKit({
   daysLeft,
   mistakePending,
   simuladoDoneToday,
+  verdict,
   deckAdded,
   flashcardsDue,
   travadasCount,
@@ -1279,6 +1298,8 @@ function VesperaKit({
   mistakePending: number;
   /** Prova de Matemática encerrada HOJE — o badge do D-2 vira "feito" (calma, não cobrança). */
   simuladoDoneToday: boolean;
+  /** Veredito do run oficial (fonte única: simuladoVerdictFor) — null = sem run, kit no estado de espera. */
+  verdict: SimuladoVerdict | null;
   deckAdded: boolean;
   flashcardsDue: number;
   travadasCount: number;
@@ -1290,14 +1311,37 @@ function VesperaKit({
   onOpenFlashcards: () => void;
   onOpenSelfAssessment: () => void;
 }) {
+  const worst = verdict?.worst ?? null;
+
   const contextBadge =
     daysLeft === 2
       ? simuladoDoneToday
-        ? 'simulado feito hoje — agora é só o kit, com calma'
+        ? verdict
+          ? verdict.metaBatida
+            ? `simulado feito — ${verdict.pct}% ≥ meta, véspera leve`
+            : `simulado feito — ${verdict.pct}%: abaixo da meta`
+          : 'simulado feito hoje — agora é só o kit, com calma'
         : 'depois do simulado de hoje — comece por aqui'
       : daysLeft === 1
-        ? 'véspera — revisão leve, sem conteúdo novo'
+        ? verdict
+          ? verdict.metaBatida
+            ? `véspera — ${verdict.pct}% no simulado, manter o plano`
+            : `véspera — ${verdict.pct}% no simulado: bloco fraco primeiro`
+          : 'véspera — revisão leve, sem conteúdo novo'
         : 'hoje é o dia — só reler e respirar';
+
+  // Cor = significado no badge do kit: emerald = meta batida (calma, a mesma
+  // família do "Feito"); amber = abaixo da meta (atenção com número real
+  // atrás — nunca urgência inventada); indigo = espera / dia da prova (D-0
+  // mantém a calma do reler-e-respirar, venha como vier o veredito).
+  const badgeTone =
+    verdict && daysLeft >= 1
+      ? verdict.metaBatida
+        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+        : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
+      : simuladoDoneToday && daysLeft === 2
+        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+        : 'border-indigo-400/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300';
 
   const rows: {
     icon: typeof Moon;
@@ -1307,6 +1351,37 @@ function VesperaKit({
     badge?: { text: string; tone: string };
     cta: string;
   }[] = [
+    // A PROMESSA DO PLANO, AGORA COM NÚMEROS: o run oficial diz qual bloco
+    // errou mais — a linha abre o drill daquele tópico (a mesma entrada do
+    // FOCO DA PROVA, mas com a taxa DO SIMULADO, não a tendência geral).
+    // D-0 some: prova não treina (a faixa rose da 92 manda só leveza).
+    ...(worst && daysLeft >= 1
+      ? [
+          {
+            icon: Crosshair,
+            title:
+              daysLeft === 2
+                ? `${curto(worst.topic)}: a revisão de amanhã`
+                : `${curto(worst.topic)}: começa a revisão de hoje`,
+            sub: `No simulado: ${verdict?.porTopico
+              .map((t) => `${curto(t.topic)} ${t.solved}/${t.total}`)
+              .join(' · ')} — o plano promete: o bloco com mais erros vira a revisão.`,
+            action: () =>
+              openSimulado({
+                disciplineCode: MATH_EXAM.disciplineCode,
+                topicScope: worst.topic,
+              }),
+            badge: {
+              text: `${worst.pct ?? 0}% no bloco`,
+              tone:
+                (worst.pct ?? 0) < 70
+                  ? 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
+                  : 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
+            },
+            cta: `Treinar ${curto(worst.topic)}`,
+          },
+        ]
+      : []),
     ...(mistakePending > 0
       ? [
           {
@@ -1340,7 +1415,12 @@ function VesperaKit({
     {
       icon: ScrollText,
       title: 'Recitar as fórmulas de memória',
-      sub: 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
+      sub:
+        worst && (worst.pct ?? 100) < 70 && daysLeft >= 1
+          ? `${curto(worst.topic)} primeiro (${worst.solved}/${worst.total} no simulado), ${curto(
+              MATH_EXAM.topicosEscopo.find((t) => t !== worst.topic) ?? '',
+            )} depois — se travar numa, é só ela que você relê antes de dormir.`
+          : 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
       action: onOpenFormulas,
       cta: 'Abrir fórmulas',
     },
@@ -1389,11 +1469,10 @@ function VesperaKit({
               variant="outline"
               className={cn(
                 'text-[10px] font-medium',
-                // Simulado de hoje já feito → a cor "Feito" do Hub (emerald):
-                // o badge deixa de marcar compromisso e passa a dar calma.
-                simuladoDoneToday && daysLeft === 2
-                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
-                  : 'border-indigo-400/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
+                // Cor = significado (badgeTone): emerald = meta batida (calma),
+                // amber = abaixo da meta (atenção com número real), indigo =
+                // espera / D-0 (o dia da prova mantém o reler-e-respirar).
+                badgeTone,
               )}
             >
               {contextBadge}

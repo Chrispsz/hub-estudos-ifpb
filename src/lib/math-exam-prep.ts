@@ -159,6 +159,78 @@ export function findMathSimuladoRunOficial<T extends SimuladoRunLike>(
   });
 }
 
+// ---------- O veredito do simulado oficial ----------
+
+/**
+ * RÓTULO CURTO do tópico do escopo — o kit fala a língua do aluno ('Matrizes',
+ * não 'Álgebra Matricial'). Tópico fora do mapa volta inteiro (honesto).
+ */
+export const MATH_TOPICO_CURTO: Record<string, string> = {
+  'Álgebra Matricial': 'Matrizes',
+  'Lógica Matemática': 'Lógica',
+};
+
+export interface SimuladoTopicScore {
+  topic: string;
+  solved: number;
+  total: number;
+  /** null = só questões puladas no tópico — sem taxa honesta. */
+  pct: number | null;
+}
+
+export interface SimuladoVerdict {
+  /** Acerto geral do run (0–100), na mesma régua do histórico. */
+  pct: number;
+  /** MATH_META — a régua vem da fonte única, nunca hardcoded. */
+  meta: number;
+  metaBatida: boolean;
+  /** Tópicos do ESCOPO da Av1 presentes no run, na ordem de topicosEscopo. */
+  porTopico: SimuladoTopicScore[];
+  /** Menor taxa entre tópicos com taxa — o "bloco com mais erros" do plano. */
+  worst: SimuladoTopicScore | null;
+}
+
+type VerdictRunLike = {
+  total: number;
+  solved: number;
+  questions?: { status?: 'solved' | 'missed' | 'skipped'; topic?: string }[];
+};
+
+/**
+ * O VEREDITO DO SIMULADO OFICIAL — o plano promete (offset 2, tarefa 2):
+ * "o bloco com mais erros vira a revisão de amanhã". A promessa era só
+ * TEXTO: o run guarda questões com tópico e status, mas o kit da véspera
+ * não lia. Esta função transforma o run oficial em números por tópico do
+ * escopo (MATH_EXAM.topicosEscopo) — fonte única para o badge do kit, a
+ * linha do bloco fraco e a ordem da recitação. Puladas contam no total mas
+ * não na taxa (aluno que pulou não acertou — e não errou no papel: sem
+ * taxa inventada). Run antigo sem detalhes → porTopico vazio, worst null —
+ * o badge do % geral ainda fala, a linha do bloco não inventa. Módulo
+ * permanece puro (sem React, sem storage — padrão da casa).
+ */
+export function simuladoVerdictFor(run?: VerdictRunLike | null): SimuladoVerdict | null {
+  if (!run || run.total <= 0) return null;
+  const pct = Math.round((run.solved / run.total) * 100);
+  const porTopico = (MATH_EXAM.topicosEscopo as readonly string[])
+    .map((topic) => {
+      const qs = (run.questions ?? []).filter((q) => q.topic === topic);
+      const solved = qs.filter((q) => q.status === 'solved').length;
+      const answered = qs.filter((q) => q.status !== 'skipped').length;
+      return {
+        topic,
+        solved,
+        total: qs.length,
+        pct: answered > 0 ? Math.round((solved / answered) * 100) : null,
+      };
+    })
+    .filter((t) => t.total > 0);
+  const comTaxa = porTopico.filter((t): t is SimuladoTopicScore & { pct: number } => t.pct !== null);
+  const worst = comTaxa.length
+    ? comTaxa.reduce((a, b) => (b.pct < a.pct ? b : a))
+    : null;
+  return { pct, meta: MATH_META, metaBatida: pct >= MATH_META, porTopico, worst };
+}
+
 // ---------- Flashcards na semana da Av1 ----------
 
 /**
