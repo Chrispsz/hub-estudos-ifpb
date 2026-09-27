@@ -22,6 +22,15 @@
  *     de exercício): a questão volta e o aluno continua perdendo. O count
  *     vem do próprio mergedSimulado (nº de corridas fundidas na linha).
  *
+ * SEM PAR NO ACERVO (corridas antigas): questão perdida cujo enunciado não
+ * casa com o acervo (exercício removido/editado depois da corrida) vira
+ * UMA linha por enunciado — mesclada entre corridas com badge "N× no
+ * simulado" e recorrência pelo mesmo critério (≥ 2). Já a entrada SEM
+ * enunciado gravado (corridas que não registravam o detalhe) NÃO se mescla:
+ * sem a chave de identidade, fundir duas linhas seria inventar que são a
+ * mesma questão — ficam uma por ocorrência, marcadas noStatement (honestas
+ * e visualmente secundárias: não dão para reensinar o que não se tem).
+ *
  * Também monta as perguntas para a IA: um chip por erro (reensinar aquele
  * ponto) e a análise do caderno inteiro (padrões + priorização + ordem de
  * revisão) — mesma voz de coach usada no debriefing do simulado.
@@ -67,7 +76,16 @@ export interface MistakeItem {
    * (nota e badge) em vez de duas linhas idênticas confundindo a leitura.
    */
   mergedSimulado?: { missed: boolean; count: number; lastDate: string };
+  /**
+   * Corrida antiga sem enunciado gravado — não dá para reensinar a questão
+   * (a IA não tem o que ler) nem mesclar com outras (sem chave de
+   * identidade). A linha fica honesta e visualmente secundária.
+   */
+  noStatement?: boolean;
 }
+
+/** Título de linha de corrida antiga que não gravou o enunciado — exportado para o UI marcar a linha como honestamente vaga. */
+export const NO_STATEMENT_TITLE = 'Sem enunciado gravado (corrida antiga)';
 
 export interface NotebookStats {
   total: number;
@@ -200,8 +218,24 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
   //    dele — de (c) só simulado — que vira UMA linha por questão.
   const runMisses = simuladoMissedMap(progress);
 
-  // Sem par no acervo (corrida antiga) — linha própria, como sempre.
+  // Sem par no acervo (corrida antiga). DUAS honestidades diferentes:
+  //  • COM enunciado (que não casa mais com o acervo — exercício editado ou
+  //    removido): o enunciado É a chave de identidade — mescla as corridas
+  //    em UMA linha com badge "N× no simulado" e recorrência (≥ 2), igual à
+  //    camada (c). Chave estável `simx:` faz a marcação "revisado" sobreviver
+  //    a novas corridas (antes, key = run.id → cada corrida recriava a linha
+  //    e o "revisado" se perdia).
+  //  • SEM enunciado gravado: fundir seria INVENTAR que duas ocorrências são
+  //    a mesma questão — fica uma linha por corrida, marcada noStatement.
   const idByStatement = statementIndex();
+  const noPairByStatement = new Map<
+    string,
+    {
+      missed: boolean;
+      dates: string[];
+      first: { disciplineCode: string; topic?: string; difficulty?: string };
+    }
+  >();
   for (const run of progress.simuladoRuns ?? []) {
     if (!run.questions) continue;
     const when = fmtDate(run.date);
@@ -210,16 +244,56 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
       const missed = q.status === 'missed';
       const exId = q.statement ? idByStatement.get(q.statement) : undefined;
       if (exId) return; // resolvível — tratado pelos merges (b)/(c) abaixo
-      items.push({
-        key: `${run.id}:${i}`,
-        kind: missed ? 'simulado_missed' : 'simulado_skipped',
-        disciplineCode: q.disciplineCode || run.filters?.discipline || '—',
-        title: q.statement ? truncate(q.statement, 110) : 'Questão sem enunciado gravado',
-        topic: q.topic,
-        difficulty: q.difficulty as MistakeItem['difficulty'],
-        when: run.date,
-        note: missed ? `Errei no simulado de ${when}` : `Pulei no simulado de ${when}`,
-      });
+      if (!q.statement) {
+        // sem chave de identidade — NÃO mescla (honestidade acima)
+        items.push({
+          key: `${run.id}:${i}`,
+          kind: missed ? 'simulado_missed' : 'simulado_skipped',
+          disciplineCode: q.disciplineCode || run.filters?.discipline || '—',
+          title: NO_STATEMENT_TITLE,
+          topic: q.topic,
+          difficulty: q.difficulty as MistakeItem['difficulty'],
+          when: run.date,
+          note: missed ? `Errei no simulado de ${when}` : `Pulei no simulado de ${when}`,
+          noStatement: true,
+        });
+        return;
+      }
+      const k = q.statement.slice(0, 160);
+      const acc = noPairByStatement.get(k);
+      if (acc) {
+        acc.missed = acc.missed || missed;
+        acc.dates.push(run.date);
+      } else {
+        noPairByStatement.set(k, {
+          missed,
+          dates: [run.date],
+          first: {
+            disciplineCode: q.disciplineCode || run.filters?.discipline || '—',
+            topic: q.topic,
+            difficulty: q.difficulty,
+          },
+        });
+      }
+    });
+  }
+  for (const [k, acc] of noPairByStatement) {
+    const lastRun = [...acc.dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+    const multi = acc.dates.length > 1;
+    items.push({
+      key: `simx:${k}`,
+      kind: acc.missed ? 'simulado_missed' : 'simulado_skipped',
+      disciplineCode: acc.first.disciplineCode,
+      title: truncate(k, 110),
+      topic: acc.first.topic,
+      difficulty: acc.first.difficulty as MistakeItem['difficulty'],
+      when: lastRun,
+      note: `${acc.missed ? 'Errei' : 'Pulei'} no simulado de ${fmtDate(lastRun)}${
+        multi ? ` (e em mais ${acc.dates.length - 1} simulado${acc.dates.length > 2 ? 's' : ''})` : ''
+      }`,
+      mergedSimulado: multi
+        ? { missed: acc.missed, count: acc.dates.length, lastDate: lastRun }
+        : undefined,
     });
   }
 
@@ -414,12 +488,30 @@ function itemLine(it: MistakeItem, revisedMap?: { [key: string]: string } | null
   const tag = revisedAt
     ? ` [JÁ REVISADO em ${fmtDate(revisedAt)} — reestudei este ponto]`
     : ' [PENDENTE]';
-  return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${it.title}${recorrente}${tag}`;
+  // Corrida antiga sem enunciado: a IA não tem o que reler — declarar a
+  // lacuna evita que ela invente o conteúdo da questão ao analisar padrões.
+  const body = it.noStatement
+    ? `${NO_STATEMENT_TITLE} — só sei o registro do erro (a corrida antiga não gravou o enunciado; NÃO tente reconstruir a questão, use só o tópico como sinal)`
+    : it.title;
+  return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${body}${recorrente}${tag}`;
 }
 
-/** Chip de UM erro: reensino focado + treino imediato + cartão pronto p/ o baralho. */
+/** Chip de UM erro: reensino focado + treino imediato + cartão pronto p/ o baralho.
+ *  Corrida antiga sem enunciado: a pergunta é REFORMULADA com honestidade —
+ *  a IA não recebe enunciado nenhum (não existe), então ensina o TÓPICO do
+ *  zero com uma questão análoga em vez de fingir que releu o erro. */
 export function buildItemQuestion(it: MistakeItem): string {
   const label = kindLabel(it.kind);
+  if (it.noStatement) {
+    return [
+      `No meu caderno de erros do Hub tem um registro antigo: eu ${label.toLowerCase()} no simulado, mas a corrida não gravou o enunciado — só sei que era de ${it.topic || 'um tópico da disciplina'}.`,
+      '',
+      'Não tenta adivinhar qual era a questão. No meu lugar: (1) lista os erros clássicos desse tópico, (2) me ensina o tópico do zero como o professor faria na correção e (3) me dá uma questão parecida com as da prova para eu tentar agora.',
+      TUTOR_CARD_SUFFIX,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
   return [
     `No meu caderno de erros do Hub tem um ponto que eu ${label.toLowerCase()}: "${it.title}"`,
     it.topic ? `(tópico: ${it.topic})` : '',

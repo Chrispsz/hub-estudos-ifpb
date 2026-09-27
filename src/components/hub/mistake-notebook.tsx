@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Copy,
   Dumbbell,
+  FileQuestion,
   Repeat2,
   RotateCcw,
   Target,
@@ -332,6 +333,13 @@ export function MistakeNotebook() {
                           !revisedAt &&
                             isRecorrenteMistake(it) &&
                             'shadow-[inset_2px_0_0_0] shadow-rose-400/60 bg-rose-500/[0.04]',
+                          // Corrida antiga sem enunciado: hierarquia honesta de VAGUEZA —
+                          // borda tracejada + título apagado dizem a 1 metro que esta
+                          // linha é um registro parcial (nunca compete com um erro
+                          // nomeável), sem sumir do caderno.
+                          it.noStatement &&
+                            !revisedAt &&
+                            'border-dashed border-border/60 opacity-75 hover:opacity-100',
                         )}
                       >
                         <div className="flex items-start gap-2.5">
@@ -350,7 +358,13 @@ export function MistakeNotebook() {
                                   aria-label="Erro recente"
                                 />
                               ) : null}
-                              <span className={cn(revisedAt && 'line-through decoration-emerald-600/60', !revisedAt && isRecorrenteMistake(it) && 'font-medium')}>
+                              <span
+                                className={cn(
+                                  revisedAt && 'line-through decoration-emerald-600/60',
+                                  !revisedAt && isRecorrenteMistake(it) && 'font-medium',
+                                  it.noStatement && !revisedAt && 'text-muted-foreground',
+                                )}
+                              >
                                 {it.title}
                               </span>
                             </p>
@@ -424,6 +438,15 @@ export function MistakeNotebook() {
                                   </span>
                                 );
                               })()}
+                              {it.noStatement ? (
+                                <span
+                                  className="flex items-center gap-0.5 rounded border border-dashed border-border bg-muted/30 px-1.5 py-0.5 text-muted-foreground"
+                                  title="A corrida antiga não gravou o enunciado: a linha não pode ser mesclada com outras (sem como provar que é a mesma questão) nem reensinada ao pé da letra — a IA ensina o tópico do zero."
+                                >
+                                  <FileQuestion className="size-3" aria-hidden />
+                                  corrida antiga
+                                </span>
+                              ) : null}
                               {it.topic ? (
                                 <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5">
                                   {it.topic}
@@ -444,14 +467,26 @@ export function MistakeNotebook() {
                             </div>
                           </div>
                           <div className="mt-0.5 flex shrink-0 items-center gap-1.5">
-                            {/* Chip IA individual — padrão emerald dos chips 42/43 */}
+                            {/* Chip IA individual — padrão emerald dos chips 42/43.
+                                Sem enunciado gravado, a pergunta muda de natureza
+                                (ensinar o tópico, não reensinar a questão) — o
+                                title declara a mudança em vez de prometer o que
+                                a IA não tem como fazer. */}
                             <button
                               type="button"
                               onClick={() =>
                                 openTutor({ disciplineCode: it.disciplineCode, question: buildItemQuestion(it) })
                               }
-                              title="Perguntar à IA para reensinar exatamente este erro"
-                              aria-label={`Perguntar à IA sobre o erro: ${it.title.slice(0, 60)}`}
+                              title={
+                                it.noStatement
+                                  ? 'Perguntar à IA para ensinar o tópico deste registro antigo (o enunciado não foi gravado)'
+                                  : 'Perguntar à IA para reensinar exatamente este erro'
+                              }
+                              aria-label={
+                                it.noStatement
+                                  ? 'Perguntar à IA sobre o tópico do registro antigo (sem enunciado gravado)'
+                                  : `Perguntar à IA sobre o erro: ${it.title.slice(0, 60)}`
+                              }
                               className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/60 bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 active:scale-95 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
                             >
                               <BookX className="size-3.5" aria-hidden />
