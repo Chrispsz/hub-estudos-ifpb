@@ -200,13 +200,15 @@ export function RecoveryCard() {
                       'flex items-start gap-2 rounded-lg border p-2.5 transition-colors',
                       isDone
                         ? 'border-emerald-500/25 bg-emerald-500/5'
-                        : metaBatida
-                          ? 'border-emerald-500/40 bg-emerald-500/[0.07]'
-                          : falaSimulado
-                            ? 'border-amber-500/40 bg-amber-500/[0.06]'
-                            : isPointer
-                              ? 'border-rose-500/25 bg-rose-500/[0.04]'
-                              : 'border-border bg-muted/20',
+                        : action.prazoHoje
+                          ? 'border-amber-500/60 bg-amber-500/[0.08]'
+                          : metaBatida
+                            ? 'border-emerald-500/40 bg-emerald-500/[0.07]'
+                            : falaSimulado
+                              ? 'border-amber-500/40 bg-amber-500/[0.06]'
+                              : isPointer
+                                ? 'border-rose-500/25 bg-rose-500/[0.04]'
+                                : 'border-border bg-muted/20',
                     )}
                   >
                     <span
@@ -262,6 +264,15 @@ export function RecoveryCard() {
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                         <span>{track.title}</span>
                         <span>· {action.minutos} min</span>
+                        {/* Chip do PRAZO QUE VENCE HOJE — a família "é hoje" da
+                            casa (amber, pulso no relógio, a mesma gramática dos
+                            é-hoje do hero/agenda): a fila só inventa urgência
+                            com DATA REAL atrás. Some quando entregue (marcado). */}
+                        {action.prazoHoje && !isDone && (
+                          <Badge className="gap-1 border border-amber-500/60 bg-amber-500/15 px-1.5 py-0 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
+                            <Clock4 className="size-2.5 animate-pulse" aria-hidden /> prazo hoje
+                          </Badge>
+                        )}
                         {/* Chip do veredito do simulado — MESMA gramática do
                             badge da nota real (87): emerald sólido-contorno
                             quando ≥ meta, amber informativo quando abaixo. */}

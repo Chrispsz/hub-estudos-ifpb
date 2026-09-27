@@ -14,6 +14,7 @@ import {
   MATH_EXAM,
   MATH_EXAM_PLAN,
   MATH_META,
+  MATH_SIMULADO_DATE,
   findMathSimuladoRunOficial,
   planDayFor,
 } from './math-exam-prep';
@@ -105,7 +106,33 @@ export interface RecoveryAction {
   /** Percentual do simulado oficial quando o TEXTO lê o registro (o chip da
    *  fila renderiza com COR = SIGNIFICADO: emerald ≥ meta, amber abaixo). */
   pct?: number;
+  /** Ação de PRAZO QUE VENCE HOJE (ex.: entrega da S3 no dia do simulado).
+   *  A fila tinta o item com a família "é hoje" (amber + pulso no chip) —
+   *  a única urgência que a fila inventa é a que tem DATA REAL atrás. */
+  prazoHoje?: boolean;
 }
+
+/**
+ * A ENTREGA DA S3 FALA NA FILA NO DIA DELA — o prazo que a reta final quase
+ * engole: a S3 vence NO MESMO DIA do simulado (29/09, fonte MATH_SIMULADO_DATE
+ * — a data única da semana), e antes desta ação o aluno que abria a fila na
+ * segunda via só o compromisso de Matemática; a entrega de Algoritmos (nota
+ * real, Classroom) morava escondida na trilha P1 como ação genérica "na semana
+ * dela". No dia, o item da trilha alg VIRA o prazo: resolver as 8 questões
+ * if/else no Praticar e entregar os programas. É CHECKABLE de propósito — o
+ * checkbox é o registro local da entrega (a fila é o lugar do "feito", padrão
+ * da casa); marcado, a trilha volta à primeira ação pendente normal (S2).
+ * Depois do dia, a ação some sozinha (prazo vencido não inventa culpa — a
+ * ação genérica alg-s3 continua na trilha para quem ainda deve a S3).
+ */
+const S3_ENTREGA_HOJE: RecoveryAction = {
+  id: 'alg-s3-entrega',
+  texto:
+    'PRAZO HOJE: entrega da S3 — as 8 questões if/else (bissexto, quadrantes, triângulo retângulo, regra do 0,7) estão no Praticar; resolva e envie os programas no Classroom',
+  minutos: 100,
+  tab: 'practice',
+  prazoHoje: true,
+};
 
 /**
  * Veredito do SIMULADO OFICIAL para a fila — derivado do MESMO registro que
@@ -465,6 +492,14 @@ export function todayRecoveryActions(
       if (daysToExam < 0 && (done['mat-pos-prova-nota'] || notaReal !== null)) continue;
       const action = matTodayActionFor(daysToExam, notaReal, simulado);
       if (action) out.push({ track, action });
+      continue;
+    }
+    // O PRAZO DA S3 NO DIA DELA (29/09): a entrega vence junto com o simulado
+    // e o aluno não pode descobrir isso pelo strip do Praticar só. Enquanto a
+    // entrega não está marcada, o item da trilha alg É o prazo; entregue (ou
+    // passado o dia), a trilha volta à primeira ação pendente de sempre.
+    if (track.id === 'alg' && daysUntilDate(MATH_SIMULADO_DATE) === 0 && !done[S3_ENTREGA_HOJE.id]) {
+      out.push({ track, action: S3_ENTREGA_HOJE });
       continue;
     }
     const action = track.acoes.find((a) => !done[a.id]);
