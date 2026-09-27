@@ -135,7 +135,7 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
     minutos: 50,
     tarefas: [
       { texto: 'Recitar os cards de fórmulas de memória (abaixo) — Matrizes primeiro, Lógica depois', },
-      { texto: 'Refazer SOMENTE as questões marcadas como "não consegui" nas duas listas', },
+      { texto: 'Refazer SOMENTE as questões que travaram nas duas listas — o Hub guarda as travadas marcadas (na folha impressa elas vêm listadas)', },
       { texto: 'Perguntas de autoavaliação dos resumos IA dos 4 materiais de Matemática (leve, antes de dormir)', materialId: 'mat-01-matrizes' },
     ],
   },
@@ -371,3 +371,73 @@ export const MATH_EXAM_KIT: { emoji: string; label: string }[] = [
   { emoji: '🧮', label: 'calculadora (se permitida)' },
   { emoji: '💧', label: 'água' },
 ];
+
+// ---------- Travadas das listas impressas ----------
+
+/**
+ * As DUAS listas impressas que o dono resolve no papel (ordem definida no
+ * plano de 24/09: 1º Matrizes em 3 blocos, 2º Lógica em 2 partes). O Hub
+ * mantém o ESPELHO DIGITAL das marcas de caneta: o aluno marca aqui as
+ * questões que travaram, e a véspera (Kit da Véspera + Folha de Revisão)
+ * usa o registro para dizer EXATAMENTE o que refazer — sem "marquei a
+ * caneta e perdi a folha".
+ */
+export const MATH_LISTAS: {
+  id: 'matrizes' | 'logica';
+  nome: string;
+  total: number;
+  fonte: string; // materialId da lista na Biblioteca
+  resumo: string;
+}[] = [
+  {
+    id: 'matrizes',
+    nome: 'Lista de Matrizes',
+    total: 35,
+    fonte: 'mat-01-matrizes',
+    resumo: '35 questões · blocos Q1–16, Q17–30 e Q31–35 no plano',
+  },
+  {
+    id: 'logica',
+    nome: 'Lista de Lógica',
+    total: 18,
+    fonte: 'mat-logica-lista',
+    resumo: '18 questões · partes Q1–12 e Q13–18 no plano',
+  },
+];
+
+/** Chave do espelho no localStorage: {"matrizes-7": true, "logica-4": true, ...}. */
+export const MATH_TRAVADAS_KEY = 'hub:math-exam:v1:travadas';
+
+/** Defesa de leitura: lixo/corrompido/parcial volta como objeto limpo. */
+export function normalizeTravadas(raw: unknown): Record<string, boolean> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (v === true) out[k] = true;
+  }
+  return out;
+}
+
+/** Total de travadas (soma das duas listas). */
+export function countTravadas(travadas: Record<string, boolean>): number {
+  return Object.values(travadas).filter(Boolean).length;
+}
+
+/**
+ * "Matrizes Q7, Q12 · Lógica Q4" — formato ÚNICO usado pelo Kit da Véspera
+ * e pela Folha de Revisão, para as duas superfícies nunca divergirem.
+ * Sem travadas → string vazia (a superfície decide o estado vazio honesto).
+ */
+export function formatTravadas(travadas: Record<string, boolean>): string {
+  return MATH_LISTAS.map((lista) => {
+    const qs: number[] = [];
+    for (let q = 1; q <= lista.total; q++) {
+      if (travadas[`${lista.id}-${q}`]) qs.push(q);
+    }
+    if (qs.length === 0) return null;
+    const nomeCurto = lista.nome.replace('Lista de ', '');
+    return `${nomeCurto} Q${qs.join(', Q')}`;
+  })
+    .filter((p): p is string => p !== null)
+    .join(' · ');
+}

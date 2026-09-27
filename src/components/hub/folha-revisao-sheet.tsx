@@ -30,6 +30,10 @@ import {
   MATH_EXAM_PLAN,
   MATH_FORMULAS,
   MATH_META,
+  MATH_TRAVADAS_KEY,
+  countTravadas,
+  formatTravadas,
+  normalizeTravadas,
 } from '@/lib/math-exam-prep';
 
 type CheckedMap = Record<string, boolean>;
@@ -39,6 +43,16 @@ export function FolhaRevisaoSheet() {
   // MESMA chave e MESMAS keys do card da prova (checklist vive uma vez só):
   // marcar aqui marca lá, e o que já foi marcado aparece preenchido na folha.
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
+  // Travadas das listas: MESMA chave do card da prova (espelho do papel).
+  // Na folha é SÓ LEITURA — marcação acontece no Hub; aqui o registro vira
+  // a lista "refazer primeiro" da véspera impressa.
+  const [travadas] = useLocalStorage<Record<string, boolean>>(
+    MATH_TRAVADAS_KEY,
+    {},
+    normalizeTravadas,
+  );
+  const travadasCount = countTravadas(travadas);
+  const travadasTexto = formatTravadas(travadas);
 
   // Data de impressão só no cliente (evita mismatch de hidratação).
   const [printedAt, setPrintedAt] = React.useState('');
@@ -200,6 +214,14 @@ export function FolhaRevisaoSheet() {
 
           {/* 4. Véspera + kit do dia */}
           <section aria-label="Véspera e kit do dia da prova" className="mt-5 border-t border-zinc-200 pt-3">
+            {travadasCount > 0 && travadasTexto && (
+              <div className="mb-3 break-inside-avoid rounded-md border border-zinc-300 bg-zinc-100 px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900">
+                  Refazer primeiro · travadas ({travadasCount})
+                </p>
+                <p className="mt-1 text-[11px] font-medium leading-snug text-zinc-800">{travadasTexto}</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {vespera && (
                 <div className="break-inside-avoid">

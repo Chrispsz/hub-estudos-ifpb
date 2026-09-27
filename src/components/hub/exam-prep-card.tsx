@@ -24,6 +24,7 @@ import {
   ListChecks,
   Minus,
   Moon,
+  PenLine,
   Play,
   Printer,
   RotateCcw,
@@ -65,8 +66,13 @@ import {
   MATH_EXAM_PLAN,
   MATH_FLASHCARDS,
   MATH_FORMULAS,
+  MATH_LISTAS,
+  MATH_TRAVADAS_KEY,
+  countTravadas,
+  formatTravadas,
   isVesperaWindow,
   missedPlanDays,
+  normalizeTravadas,
   planDayFor,
   type PlanDay,
   type PlanKind,
@@ -104,6 +110,15 @@ export function ExamPrepCard() {
   const [open, setOpen] = React.useState(false);
   const [checked, setChecked] = useLocalStorage<CheckedMap>(LS_PLAN, {});
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
+  // Espelho das marcas de caneta nas listas impressas (Travadas das listas):
+  // o aluno marca as questões que travaram e a véspera usa o registro.
+  const [travadas, setTravadas] = useLocalStorage<Record<string, boolean>>(
+    MATH_TRAVADAS_KEY,
+    {},
+    normalizeTravadas,
+  );
+  const travadasCount = countTravadas(travadas);
+  const travadasLabel = React.useMemo(() => formatTravadas(travadas), [travadas]);
   const sp = useStudyProgress();
   // Caderno de Erros: contagem ao vivo dos PENDENTES (revisados não disputam
   // atenção na véspera — o card mostra o que ainda pede trabalho).
@@ -124,14 +139,15 @@ export function ExamPrepCard() {
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
   );
-  // Kit da véspera → "Recitar as fórmulas" abre o plano completo JÁ ROLADO até
-  // a seção das fórmulas (o aluno não caça a seção na véspera da prova).
-  const [dialogFocus, setDialogFocus] = React.useState<'formulas' | null>(null);
+  // Kit da véspera → "Recitar as fórmulas" e "Refazer as travadas" abrem o
+  // plano completo JÁ ROLADO até a seção pedida (o aluno não caça seção na
+  // véspera da prova).
+  const [dialogFocus, setDialogFocus] = React.useState<'formulas' | 'travadas' | null>(null);
   React.useEffect(() => {
-    if (!open || dialogFocus !== 'formulas') return;
+    if (!open || !dialogFocus) return;
     const id = window.setTimeout(() => {
       document
-        .getElementById('dlg-formulas')
+        .getElementById(`dlg-${dialogFocus}`)
         ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
       setDialogFocus(null);
     }, 120); // espera o conteúdo do Dialog montar
@@ -213,6 +229,13 @@ export function ExamPrepCard() {
   }
   function toggleCheck(key: string) {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+  function toggleTravada(key: string) {
+    setTravadas((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+  function openTravadas() {
+    setDialogFocus('travadas');
+    setOpen(true);
   }
 
   // Linha do tempo dos 8 dias (offset 7 → 0): passado✓ verde, passado✗ âmbar,
@@ -524,6 +547,27 @@ export function ExamPrepCard() {
                 );
               })}
             </ul>
+            {/* Entrada no dia de prática: marcações de travada ficam a 1 toque
+                de onde o aluno está trabalhando (sem abrir o plano completo). */}
+            {day.kind === 'pratica' && (
+              <button
+                type="button"
+                onClick={openTravadas}
+                className="mt-2.5 flex w-full items-center gap-1.5 rounded-md border border-dashed border-rose-500/40 bg-rose-500/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-rose-600 transition-colors hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 dark:text-rose-400"
+              >
+                <PenLine className="size-3 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1 text-left">
+                  {travadasCount > 0
+                    ? `${travadasCount} ${travadasCount === 1 ? 'questão travada' : 'questões travadas'} nas listas — toque para conferir ou ajustar`
+                    : 'Travou em alguma questão da lista? Marque aqui — a véspera refaz só estas'}
+                </span>
+                {travadasCount > 0 && (
+                  <Badge className="border-0 bg-rose-600 px-1.5 text-[9px] text-white shadow-sm">
+                    {travadasCount}
+                  </Badge>
+                )}
+              </button>
+            )}
           </div>
         )}
 
@@ -571,11 +615,14 @@ export function ExamPrepCard() {
             mistakePending={mistakePending}
             deckAdded={deckAdded}
             flashcardsDue={sp.flashcardStats.due}
+            travadasCount={travadasCount}
+            travadasLabel={travadasLabel}
             onOpenErrors={() => openSimulado()}
             onOpenFormulas={() => {
               setDialogFocus('formulas');
               setOpen(true);
             }}
+            onOpenTravadas={openTravadas}
             onDeckAction={addAv1Deck}
             onOpenFlashcards={() => openPractice({ mode: 'flashcards' })}
             onOpenSelfAssessment={() =>
@@ -698,6 +745,47 @@ export function ExamPrepCard() {
                   </li>
                 ))}
               </ol>
+            </section>
+
+            {/* Travadas das listas — espelho digital das marcas de caneta.
+                O plano manda FAZER as listas no papel; o que travou vira
+                registro aqui e a véspera (kit + folha) refaz SÓ estas. */}
+            <section id="dlg-travadas" aria-label="Questões que travaram nas listas" className="scroll-mt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <PenLine className="size-3.5" /> Travadas das listas (espelho do papel)
+                </h3>
+                {travadasCount > 0 && (
+                  <Badge className="border-0 bg-rose-600 px-1.5 text-[10px] text-white shadow-sm shadow-rose-600/30">
+                    {travadasCount} {travadasCount === 1 ? 'travada' : 'travadas'}
+                  </Badge>
+                )}
+                <a
+                  href="/folha-revisao"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Na folha impressa, as travadas aparecem listadas para refazer na véspera"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                >
+                  <Printer className="size-3" aria-hidden />
+                  Folha para imprimir
+                </a>
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Fez a lista no papel? Toque nos números que travaram — o Kit da véspera e a
+                folha impressa usam este registro para montar o que refazer. Toque de novo para
+                desmarcar.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {MATH_LISTAS.map((lista) => (
+                  <TravadasRow
+                    key={lista.id}
+                    lista={lista}
+                    travadas={travadas}
+                    onToggle={toggleTravada}
+                  />
+                ))}
+              </div>
             </section>
 
             {/* Fórmulas */}
@@ -971,21 +1059,27 @@ function masteryTextCls(pct: number): string {
  * teal = flashcards, emerald = acerto. Indigo aqui é CALMA: a véspera não é
  * dia de urgência, é dia de recitar o que já sabe e dormir cedo.
  *
- * Linhas acionáveis com deep-links reais (nada de decorativo):
- *   01 erros pendentes → Simulado Pro (o card rose do setup monta a prova)
- *   02 recitar fórmulas → abre o plano JÁ ROLADO até a seção das fórmulas
- *   03 baralho Leitner → adiciona ao deck OU abre a aba Flashcards
- *   04 autoavaliação → resumo IA da Lista de Matrizes (perguntas de autoavaliação)
- *   05 kit do dia → estático (o que levar), sem ação
- * Honestidade: sem erros pendentes a linha 01 some; sem dias, o bloco inteiro.
+ * Linhas acionáveis com deep-links reais (nada de decorativo), em cascata:
+ *   erros pendentes → Simulado Pro (o card rose do setup monta a prova)
+ *   travadas das listas (quando existem) → plano completo na seção delas
+ *   recitar fórmulas → abre o plano JÁ ROLADO até a seção das fórmulas
+ *   baralho Leitner → adiciona ao deck OU abre a aba Flashcards
+ *   autoavaliação → resumo IA da Lista de Matrizes (perguntas de autoavaliação)
+ *   kit do dia → estático (o que levar), sem ação — numeração calculada da
+ *   fila (as linhas condicionais não deixam buraco nos números).
+ * Honestidade: sem erros pendentes a linha some; sem travadas, idem; sem dias,
+ * o bloco inteiro.
  */
 function VesperaKit({
   daysLeft,
   mistakePending,
   deckAdded,
   flashcardsDue,
+  travadasCount,
+  travadasLabel,
   onOpenErrors,
   onOpenFormulas,
+  onOpenTravadas,
   onDeckAction,
   onOpenFlashcards,
   onOpenSelfAssessment,
@@ -994,8 +1088,11 @@ function VesperaKit({
   mistakePending: number;
   deckAdded: boolean;
   flashcardsDue: number;
+  travadasCount: number;
+  travadasLabel: string;
   onOpenErrors: () => void;
   onOpenFormulas: () => void;
+  onOpenTravadas: () => void;
   onDeckAction: () => void;
   onOpenFlashcards: () => void;
   onOpenSelfAssessment: () => void;
@@ -1008,7 +1105,6 @@ function VesperaKit({
         : 'hoje é o dia — só reler e respirar';
 
   const rows: {
-    n: string;
     icon: typeof Moon;
     title: string;
     sub: string;
@@ -1019,7 +1115,6 @@ function VesperaKit({
     ...(mistakePending > 0
       ? [
           {
-            n: '01',
             icon: RotateCcw,
             title: 'Fechar os seus erros',
             sub: 'Revisão dirigida no Simulado Pro: o card rose do setup monta a prova só com o que você errou.',
@@ -1032,8 +1127,22 @@ function VesperaKit({
           },
         ]
       : []),
+    ...(travadasCount > 0
+      ? [
+          {
+            icon: PenLine,
+            title: 'Refazer as travadas no papel',
+            sub: `${travadasLabel} — sem consultar a fórmula; conferir com o card só depois.`,
+            action: onOpenTravadas,
+            badge: {
+              text: `${travadasCount} ${travadasCount === 1 ? 'travada' : 'travadas'}`,
+              tone: 'border-rose-300/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+            },
+            cta: 'Ver lista',
+          },
+        ]
+      : []),
     {
-      n: mistakePending > 0 ? '02' : '01',
       icon: ScrollText,
       title: 'Recitar as fórmulas de memória',
       sub: 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
@@ -1041,7 +1150,6 @@ function VesperaKit({
       cta: 'Abrir fórmulas',
     },
     {
-      n: mistakePending > 0 ? '03' : '02',
       icon: Layers,
       title: 'Passar o baralho da Av1',
       sub: deckAdded
@@ -1062,7 +1170,6 @@ function VesperaKit({
       cta: deckAdded ? 'Abrir flashcards' : 'Adicionar',
     },
     {
-      n: mistakePending > 0 ? '04' : '03',
       icon: BookOpen,
       title: 'Autoavaliação dos resumos IA',
       sub: 'Perguntas de autoavaliação do resumo da Lista — responda de cabeça, confira depois. 10 minutos.',
@@ -1114,7 +1221,7 @@ function VesperaKit({
                 className="group flex w-full items-start gap-3 rounded-lg border border-transparent px-2.5 py-2.5 text-left transition-all hover:border-indigo-500/25 hover:bg-indigo-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
               >
                 <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
-                  {row.n}
+                  {String(i + 1).padStart(2, '0')}
                 </span>
                 <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 text-indigo-600 transition-transform group-hover:scale-105 dark:text-indigo-300">
                   <Icon className="size-3.5" aria-hidden />
@@ -1152,7 +1259,7 @@ function VesperaKit({
           className="flex items-start gap-3 rounded-lg px-2.5 py-2.5"
         >
           <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
-            {rows.length === 4 ? '05' : '04'}
+            {String(rows.length + 1).padStart(2, '0')}
           </span>
           <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
             <Backpack className="size-3.5" aria-hidden />
@@ -1191,6 +1298,79 @@ function VesperaKit({
         </a>
       </div>
     </div>
+  );
+}
+
+/* ================= TRAVADAS DAS LISTAS (linha do diálogo) ================= */
+
+/**
+ * Uma lista impressa = cabeçalho + grade de números clicáveis. O número em
+ * rose é a marca de caneta espelhada: "essa eu travei na hora de resolver".
+ * Tamanho de toque 28px (h-7/w-7) — apertado de propósito para os 35 números
+ * caberem em 2–3 linhas sem dominar o diálogo, ainda assim tocável.
+ */
+function TravadasRow({
+  lista,
+  travadas,
+  onToggle,
+}: {
+  lista: (typeof MATH_LISTAS)[number];
+  travadas: Record<string, boolean>;
+  onToggle: (key: string) => void;
+}) {
+  const qsDaLista = MATH_LISTAS.find((l) => l.id === lista.id)?.total ?? 0;
+  const marcadas = React.useMemo(() => {
+    let n = 0;
+    for (let q = 1; q <= qsDaLista; q++) if (travadas[`${lista.id}-${q}`]) n++;
+    return n;
+  }, [travadas, lista.id, qsDaLista]);
+
+  return (
+    <Card className="rounded-lg p-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <p className="text-xs font-semibold">{lista.nome}</p>
+        {marcadas > 0 ? (
+          <Badge className="border-0 bg-rose-600 px-1.5 text-[9px] text-white shadow-sm">
+            {marcadas}/{lista.total}
+          </Badge>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">nenhuma travada</span>
+        )}
+        <button
+          type="button"
+          onClick={() => openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: lista.fonte })}
+          className="ml-auto inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
+          title={`Abrir ${lista.nome} na Biblioteca`}
+        >
+          <BookOpen className="size-2.5" aria-hidden /> abrir lista
+        </button>
+      </div>
+      <p className="mt-0.5 text-[10px] text-muted-foreground">{lista.resumo}</p>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {Array.from({ length: lista.total }, (_, i) => i + 1).map((q) => {
+          const key = `${lista.id}-${q}`;
+          const on = !!travadas[key];
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={on}
+              aria-label={`Q${q} da ${lista.nome}${on ? ' — travada (toque para desmarcar)' : ' — marcar como travada'}`}
+              title={on ? `Q${q} travada — toque para desmarcar` : `Marcar Q${q} como travada`}
+              onClick={() => onToggle(key)}
+              className={cn(
+                'grid h-7 w-7 place-items-center rounded-md border text-[10px] font-semibold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 active:scale-95',
+                on
+                  ? 'border-rose-600 bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                  : 'border-border bg-muted/50 text-muted-foreground hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400',
+              )}
+            >
+              {q}
+            </button>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
