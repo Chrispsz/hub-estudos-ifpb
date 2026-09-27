@@ -159,6 +159,82 @@ export function findMathSimuladoRunOficial<T extends SimuladoRunLike>(
   });
 }
 
+// ---------- Flashcards na semana da Av1 ----------
+
+/**
+ * O BRIEF DA SEMANA DA AV1 PARA OS FLASHCARDS — a última ferramenta cega à
+ * reta final: o modo cram já existia (o title até dizia "ideal antes de
+ * provas") mas era genérico — revisa TODOS os baralhos e não sabia que a Av1
+ * existe. Esta função diz ao Flashcard o que ele faz em cada dia da semana:
+ *   - simulado (D-2): é hoje (sólido com pulso) — e com o run registrado
+ *     vira "feito ✓" (o REGISTRO vence o relógio, lição 85/86);
+ *   - véspera (D-1): o dia DELE — crame só os cartões de Matemática;
+ *   - prova (D-0): revisão leve para aquecer, sem aprender nada novo.
+ * Fora da janela retorna null — silêncio honesto, sem inventar urgência
+ * (a mesma regra da fila da 88: sem registro, não inventa resultado).
+ * Datas derivadas de MATH_SIMULADO_DATE / MATH_VESPERA_DATE / MATH_EXAM.date
+ * — fonte única, para nunca divergir do hero, do card e da agenda.
+ */
+export interface FlashcardExamBrief {
+  kind: 'simulado-hoje' | 'simulado-feito' | 'vespera' | 'prova-hoje';
+  titulo: string;
+  /** Uma linha — o PORQUÊ da ação (honesto, sem alarme). */
+  chamada: string;
+  /** Rótulo do botão que abre o cram escopado de Matemática. */
+  cta: string;
+}
+
+export function flashcardExamBriefFor(
+  date: Date,
+  mathCards: number,
+  simuladoRun?: { solved: number; total: number } | null,
+): FlashcardExamBrief | null {
+  const key = localDateKey(date);
+  const cta = mathCards > 0 ? `Cram de Matemática (${mathCards})` : 'Cram de Matemática';
+  const pct =
+    simuladoRun && simuladoRun.total > 0
+      ? Math.round((simuladoRun.solved / simuladoRun.total) * 100)
+      : null;
+
+  if (key === MATH_SIMULADO_DATE) {
+    if (simuladoRun) {
+      return {
+        kind: 'simulado-feito',
+        titulo: `Simulado da Av1 feito ✓${pct !== null ? ` — ${pct}%` : ''}`,
+        chamada:
+          'transforme o erro de hoje em cartão antes da véspera — o que travou no simulado é exatamente o que vale revisar agora',
+        cta,
+      };
+    }
+    return {
+      kind: 'simulado-hoje',
+      titulo: 'É hoje: Simulado da Av1',
+      chamada:
+        'depois do run, os erros de hoje viram cartões — o baralho de fórmulas fica pronto para a véspera',
+      cta,
+    };
+  }
+  if (key === MATH_VESPERA_DATE) {
+    return {
+      kind: 'vespera',
+      titulo: 'Véspera da Av1 — dia do cram',
+      chamada:
+        'só os cartões de Matemática, ignorando o agendamento — fórmulas frescas para amanhã, 15 min bastam',
+      cta,
+    };
+  }
+  if (key === MATH_EXAM.date) {
+    return {
+      kind: 'prova-hoje',
+      titulo: 'É hoje: Prova da Av1',
+      chamada:
+        'revisão leve só para aquecer — sem aprender nada novo hoje; boa prova!',
+      cta: mathCards > 0 ? `Revisar fórmulas (${mathCards})` : 'Revisar fórmulas',
+    };
+  }
+  return null;
+}
+
 export type PlanKind = 'estudo' | 'pratica' | 'simulado' | 'revisao' | 'prova';
 
 export interface PlanTask {
