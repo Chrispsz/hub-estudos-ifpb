@@ -37,6 +37,20 @@ export const MATH_EXAM = {
  */
 export const MATH_META = 70;
 
+/**
+ * DATA DO SIMULADO OFICIAL — o dia offset 2 do plano (29/09), derivado da
+ * data da prova para nunca divergir: mudou a prova, muda o simulado junto.
+ * O marco "é hoje" do card da prova usa esta data (render-time — sem
+ * interval nem estado, reage a mock de relógio no mesmo frame).
+ */
+export const MATH_SIMULADO_DATE = (() => {
+  const d = new Date(`${MATH_EXAM.date}T12:00:00`);
+  d.setDate(d.getDate() - 2);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+})();
+
 export type PlanKind = 'estudo' | 'pratica' | 'simulado' | 'revisao' | 'prova';
 
 export interface PlanTask {

@@ -68,6 +68,7 @@ import {
   MATH_FLASHCARDS,
   MATH_FORMULAS,
   MATH_LISTAS,
+  MATH_SIMULADO_DATE,
   MATH_TRAVADAS_KEY,
   countTravadas,
   formatTravadas,
@@ -316,33 +317,97 @@ export function ExamPrepCard() {
           </div>
         </div>
 
-        {/* MARCOS DA SEMANA: 29/09 (simulado escopo real + S3 Algoritmos) → 01/10 (prova) */}
+        {/* MARCOS DA SEMANA: 29/09 (simulado escopo real + S3 Algoritmos) → 01/10 (prova).
+            Ambos com estado "é hoje" no dia — mesmo tratamento visual do banner D-0:
+            chip sólido, texto em contraste, pulso. Render-time, sem interval. */}
         <div className="border-t px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => openSimulado({ preset: 'math_exam' })}
-              className="group flex min-w-0 items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
-              aria-label="Abrir Simulado da Av1 com o escopo real da prova"
-            >
-              <span
-                aria-hidden
-                className="size-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
-              />
-              <span className="truncate">
-                29/09 · <span className="font-semibold">Simulado da Av1</span> no Hub + entrega
-                S3 Algoritmos
-              </span>
-              <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </button>
+          {/* flex-wrap: no dia do simulado o chip ganha a linha inteira (o
+              aviso é longo e é O compromisso do dia) — divider e prova caem
+              para a linha de baixo */}
+          <div className="flex flex-wrap items-center gap-2">
+            {(() => {
+              const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
+              const isSimuladoDay = simuladoDaysLeft === 0;
+              const isSimuladoEve = simuladoDaysLeft === 1;
+              return (
+                <button
+                  type="button"
+                  onClick={() => openSimulado({ preset: 'math_exam' })}
+                  className={cn(
+                    'group flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                    isSimuladoDay
+                      ? 'w-full border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
+                      : 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400',
+                  )}
+                  aria-label={
+                    isSimuladoDay
+                      ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos — abrir o simulado'
+                      : 'Abrir Simulado da Av1 com o escopo real da prova'
+                  }
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'size-1.5 shrink-0 rounded-full',
+                      isSimuladoDay ? 'animate-pulse bg-white dark:bg-zinc-900' : 'animate-pulse bg-amber-500',
+                    )}
+                  />
+                  <span className={cn(isSimuladoDay ? 'whitespace-normal leading-snug' : 'truncate')}>
+                    {isSimuladoDay ? (
+                      <>
+                        É hoje · <span className="font-bold">Simulado da Av1</span> + entrega S3
+                        Algoritmos
+                      </>
+                    ) : isSimuladoEve ? (
+                      <>
+                        Amanhã · <span className="font-semibold">Simulado da Av1</span> + entrega S3
+                        Algoritmos
+                      </>
+                    ) : (
+                      <>
+                        29/09 · <span className="font-semibold">Simulado da Av1</span> no Hub +
+                        entrega S3 Algoritmos
+                      </>
+                    )}
+                  </span>
+                  <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </button>
+              );
+            })()}
             <span
               aria-hidden
               className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-rose-500/40"
             />
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-400">
-              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-rose-500" />
-              01/10 · <span className="font-semibold">Prova Av1</span>
-            </span>
+            {(() => {
+              const isProvaDay = daysLeft === 0;
+              return (
+                <span
+                  className={cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium',
+                    isProvaDay
+                      ? 'border-rose-500 bg-rose-500 text-white shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400 dark:text-zinc-900'
+                      : 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'size-1.5 shrink-0',
+                      isProvaDay ? 'animate-pulse rounded-full bg-white dark:bg-zinc-900' : 'rounded-full bg-rose-500',
+                    )}
+                  />
+                  {isProvaDay ? (
+                    <>
+                      É hoje · <span className="font-bold">Prova Av1</span>
+                    </>
+                  ) : (
+                    <>
+                      01/10 · <span className="font-semibold">Prova Av1</span>
+                    </>
+                  )}
+                </span>
+              );
+            })()}
           </div>
         </div>
 
@@ -1628,7 +1693,7 @@ function ReadinessSection({
 
       <Button
         variant="outline"
-        className="mt-3 w-full border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+        className="mt-3 w-full !whitespace-normal border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
         onClick={() =>
           openTutor({
             disciplineCode: MATH_EXAM.disciplineCode,
@@ -1637,7 +1702,7 @@ function ReadinessSection({
         }
         aria-label="Pedir ao tutor um plano para chegar pronto na prova"
       >
-        <Sparkles className="size-3.5" aria-hidden />
+        <Sparkles className="size-3.5 shrink-0" aria-hidden />
         {score === null
           ? 'Por onde começo para ter score? (plano do tutor)'
           : 'Como chego 100% pronto até 01/10? (plano do tutor)'}
