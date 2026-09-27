@@ -698,6 +698,143 @@ export function disciplineExamBriefFor(daysLeft: number): DisciplineExamBrief | 
   };
 }
 
+// ---------- A paleta de comandos sabe a semana (Ctrl+K) ----------
+
+/**
+ * Uma ação REAL da semana da Av1 dentro da paleta de comandos. A paleta é o
+ * lançador power-user (Ctrl+K, botão do header, atalhos 1–8) e nos dias
+ * críticos o primeiro grupo deve ser o da prova — quem digita 'av1' ou
+ * 'simulado' acha a porta certa sem navegar.
+ */
+export interface PaletteExamAction {
+  kind: 'simulado' | 'correcao' | 'kit' | 'folha' | 'plano';
+  /** Rótulo curto do item. */
+  label: string;
+  /** Linha honesta — o que a ação faz AGORA (sem inventar estado). */
+  hint: string;
+  /** Marco é HOJE e ainda não aconteceu → pulso (gramática da 93). */
+  pulsar?: boolean;
+}
+
+export interface PaletteExamBrief {
+  kind: 'semana' | 'simulado' | 'vespera' | 'prova';
+  daysLeft: number;
+  /** Título do grupo — a MESMA voz da semana (regra da 88, gramática da 93). */
+  heading: string;
+  actions: PaletteExamAction[];
+}
+
+/**
+ * BRIEF da paleta de comandos para a semana da Av1: a MESMA janela honesta
+ * D-7→D-0 da disciplina (100) e da Biblioteca (98) — fora dela e pós-prova
+ * = null (a nota de 02/10 mora na calculadora; a paleta não grita fora da
+ * semana). `daysLeft` entra como PARÂMETRO (daysUntilDate do chamador —
+ * mesma divisão da 98/100) e `hasRun` vem de findMathSimuladoRunOficial
+ * (registro vence relógio, lição 85/86): com o run feito, a ação 'simulado'
+ * dá vez à 'correção' — a paleta nunca oferece o ensaio que já aconteceu.
+ *
+ * As ações são as portas que JÁ existem: simulado = openSimulado(math_exam)
+ * (o mesmo do hero), correção = openTutor(debrief) (o mesmo do hero feito ✓),
+ * kit/plano = o Painel (onde moram o card e o kit), folha = a rota impressa.
+ */
+export function paletteExamBriefFor(
+  daysLeft: number,
+  hasRun: boolean,
+): PaletteExamBrief | null {
+  if (daysLeft < 0 || daysLeft > 7) return null;
+  if (daysLeft === 0) {
+    return {
+      kind: 'prova',
+      daysLeft,
+      heading: 'É hoje: Prova da Av1',
+      actions: [
+        {
+          kind: 'kit',
+          label: 'Reler o Kit da Véspera (Painel)',
+          hint: 'só reler e respirar — nada novo hoje',
+        },
+        {
+          kind: 'folha',
+          label: 'Folha de revisão para levar',
+          hint: 'imprimir a folha — as travadas já estão listadas nela',
+        },
+      ],
+    };
+  }
+  if (daysLeft === MATH_SIMULADO_OFFSET) {
+    return {
+      kind: 'simulado',
+      daysLeft,
+      heading: 'É hoje: Simulado da Av1',
+      actions: [
+        hasRun
+          ? {
+              kind: 'correcao',
+              label: 'Pedir correção do simulado (IA)',
+              hint: 'o tutor lê seu placar por tópico e comenta — o mesmo debrief do resultado',
+            }
+          : {
+              kind: 'simulado',
+              label: 'Iniciar o Simulado da Av1',
+              hint: 'o ensaio real no Praticar — depois o run alimenta o kit da véspera',
+              pulsar: true,
+            },
+        {
+          kind: 'kit',
+          label: 'Kit da véspera (Painel)',
+          hint: 'o roteiro calmo já está montado — o bloco fraco aparece depois do run',
+        },
+      ],
+    };
+  }
+  if (daysLeft === 1) {
+    return {
+      kind: 'vespera',
+      daysLeft,
+      heading: 'Véspera da prova',
+      actions: [
+        {
+          kind: 'kit',
+          label: 'Abrir o Kit da Véspera (Painel)',
+          hint: 'folha, fórmulas e só as travadas — o roteiro da véspera',
+        },
+        {
+          kind: 'folha',
+          label: 'Folha de revisão para imprimir',
+          hint: 'espelho do papel — revisar com calma longe da tela',
+        },
+        ...(hasRun
+          ? [
+              {
+                kind: 'correcao' as const,
+                label: 'Pedir correção do simulado (IA)',
+                hint: 'o placar de ontem comentado — o bloco fraco primeiro',
+              },
+            ]
+          : []),
+      ],
+    };
+  }
+  const dias = daysLeft === 1 ? '1 dia' : `${daysLeft} dias`;
+  return {
+    kind: 'semana',
+    daysLeft,
+    heading: `Semana da Av1 · faltam ${dias}`,
+    actions: [
+      {
+        kind: 'simulado',
+        label: 'Simulado da Av1 — ensaio real',
+        hint: 'prova completa no Praticar com o escopo real da prova',
+      },
+      {
+        kind: 'plano',
+        label: 'Plano da semana (Painel)',
+        hint: 'o dia de hoje tem teoria, apoio e revisão a 1 clique',
+      },
+    ],
+  };
+}
+
 export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)

@@ -3,11 +3,15 @@
 import * as React from 'react';
 import {
   BookOpen,
+  CalendarClock,
   CalendarDays,
+  CircleCheck,
   Dumbbell,
   FileText,
   LayoutDashboard,
+  ListChecks,
   Moon,
+  Printer,
   Search,
   Settings,
   Sparkles,
@@ -41,6 +45,16 @@ import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { DownloadsDialog } from './downloads-dialog';
 import { cn } from '@/lib/utils';
+import {
+  MATH_EXAM,
+  findMathSimuladoRunOficial,
+  paletteExamBriefFor,
+  type PaletteExamAction,
+} from '@/lib/math-exam-prep';
+import { daysUntilDate } from '@/lib/semester';
+import { openSimulado, openTutor } from '@/lib/hub-events';
+import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
+import { useStudyProgress } from '@/lib/study-progress';
 
 interface Props {
   onNavigate: (k: TabKey) => void;
@@ -69,6 +83,38 @@ export function CommandPalette({ onNavigate }: Props) {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+
+  // A semana da Av1 na paleta — o relógio é lido NO render (lição 79/100:
+  // abrir a paleta re-renderiza → data fresca) e o run vem do hook (storage
+  // event → re-render → o grupo flipa 'ensaio' → 'correção' ao vivo).
+  const sp = useStudyProgress();
+  const examRun = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
+  const examBrief = paletteExamBriefFor(daysUntilDate(MATH_EXAM.date), Boolean(examRun));
+
+  /** Ação da semana — cada kind tem a porta que JÁ existe no app. */
+  function runExamAction(a: PaletteExamAction) {
+    switch (a.kind) {
+      case 'simulado':
+        run(() => openSimulado({ preset: 'math_exam' }));
+        break;
+      case 'correcao':
+        if (!examRun) return; // a ação só existe quando o run existe (brief)
+        run(() =>
+          openTutor({
+            question: buildRunDebriefQuestion(examRun),
+            disciplineCode: MATH_EXAM.disciplineCode,
+          }),
+        );
+        break;
+      case 'kit':
+      case 'plano':
+        go('dashboard');
+        break;
+      case 'folha':
+        run(() => window.open('/folha-revisao', '_blank', 'noopener,noreferrer'));
+        break;
+    }
+  }
 
   // Dialogs gerenciados pela paleta
   const [selectedDiscipline, setSelectedDiscipline] = React.useState<Discipline | null>(null);
@@ -151,6 +197,81 @@ export function CommandPalette({ onNavigate }: Props) {
               Nada encontrado. Tente outro termo.
             </span>
           </CommandEmpty>
+
+          {/* SEMANA DA AV1 — primeiro grupo na reta final (janela D-7→D-0,
+              regra da 88): a paleta se reordena para o momento. Tons = a
+              gramática da semana: âmbar nos dias de semana/ensaio (pulso só
+              no é-hoje, 93), emerald quando o run chegou, indigo no kit e
+              rose reservado ao dia da prova. */}
+          {examBrief && (
+            <>
+              <CommandGroup
+                heading={
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 font-semibold',
+                      examBrief.kind === 'prova'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : 'text-amber-600 dark:text-amber-400',
+                    )}
+                  >
+                    <CalendarClock
+                      className={cn(
+                        'size-3.5',
+                        examBrief.kind === 'simulado' || examBrief.kind === 'prova'
+                          ? 'animate-pulse'
+                          : '',
+                      )}
+                      aria-hidden="true"
+                    />
+                    {examBrief.heading}
+                    <span className="ml-1 rounded border border-current/30 px-1 font-mono text-[10px] tabular-nums opacity-80">
+                      D-{examBrief.daysLeft}
+                    </span>
+                  </span>
+                }
+              >
+                {examBrief.actions.map((a) => {
+                  const icon = {
+                    simulado: (
+                      <CalendarClock
+                        className={cn('size-4', a.pulsar && 'animate-pulse')}
+                        aria-hidden="true"
+                      />
+                    ),
+                    correcao: <CircleCheck className="size-4" aria-hidden="true" />,
+                    kit: <Moon className="size-4" aria-hidden="true" />,
+                    folha: <Printer className="size-4" aria-hidden="true" />,
+                    plano: <ListChecks className="size-4" aria-hidden="true" />,
+                  }[a.kind];
+                  const tone = {
+                    simulado: 'text-amber-500',
+                    correcao: 'text-emerald-500',
+                    kit: 'text-indigo-500',
+                    folha: 'text-zinc-500',
+                    plano: 'text-rose-500',
+                  }[a.kind];
+                  return (
+                    <CommandItem
+                      key={a.kind}
+                      value={`av1 semana da prova ${a.kind} ${a.label}`}
+                      onSelect={() => runExamAction(a)}
+                      className="gap-2.5"
+                    >
+                      <span className={cn('shrink-0 [&_svg]:size-4', tone)}>{icon}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{a.label}</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {a.hint}
+                        </span>
+                      </span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
           <CommandGroup heading="Ir para">
             {PAGES.map((p) => (
