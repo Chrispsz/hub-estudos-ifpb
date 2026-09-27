@@ -27,10 +27,25 @@ export interface SavedSimuladoConfig {
   topics?: string[];
 }
 
+/**
+ * Natureza da tentativa — o rótulo HONESTO que atravessa todas as superfícies
+ * (toast de pausa, banner de retomada, badge da tela de prova, resultado).
+ * 'prova' = simulado montado no setup · 'treino' = drill do Caderno de Erros
+ * · 'topico' = prova curta de 1 tópico (replay do pior tópico, preset externo).
+ */
+export type AttemptMode = 'prova' | 'treino' | 'topico';
+
+/** Tentaivas antigas (antes do modo) não têm o campo — prova é o default. */
+export function normalizeMode(m: unknown): AttemptMode {
+  return m === 'treino' || m === 'topico' ? m : 'prova';
+}
+
 export interface InProgressRun {
   v: 1;
   /** ISO — quando o último estado foi gravado. */
   savedAt: string;
+  /** Natureza da tentativa (opcional p/ compat com saves anteriores). */
+  mode?: AttemptMode;
   config: SavedSimuladoConfig;
   /** ids das questões do acervo, na ordem da prova. */
   qids: string[];

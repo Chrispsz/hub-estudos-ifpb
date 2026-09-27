@@ -79,7 +79,7 @@ ok(m.key.startsWith('simx:'), `chave estável simx: → ${m.key.slice(0, 14)}…
 ok(m.mergedSimulado?.count === 2, `mergedSimulado.count = 2: ${m.mergedSimulado?.count}`);
 ok(m.mergedSimulado?.missed === true, 'missed=true (uma das corridas errou)');
 ok(isRecorrenteMistake(m), 'isRecorrenteMistake = true (crônico entre corridas)');
-ok(m.note.includes('e em mais 1 simulado'), `nota conta o histórico: "${m.note}"`);
+ok((m.note ?? '').includes('e em mais 1 simulado'), `nota conta o histórico: "${m.note}"`);
 ok(m.when === '2026-09-26T10:00:00.000Z', `when = corrida mais recente: ${m.when}`);
 
 console.log('B) sem enunciado gravado em 2 corridas → 2 linhas honestas, SEM mesclar');

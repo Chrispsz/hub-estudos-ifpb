@@ -43,6 +43,7 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
+import type { AttemptMode } from '@/lib/simulado-resume';
 import { openSimulado, openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
 import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
@@ -199,6 +200,10 @@ function ExercisesPanel({
   const [simuladoInitialConfig, setSimuladoInitialConfig] = React.useState<
     Partial<SimuladoConfig> | undefined
   >(undefined);
+  // Natureza da tentativa do pedido externo (drill de tópico = 'topico';
+  // preset da prova e aberturas comuns = 'prova'). Idem config: reiniciada
+  // a cada evento, para não vazar no próximo pedido.
+  const [simuladoInitialMode, setSimuladoInitialMode] = React.useState<AttemptMode>('prova');
   // Modo Revisão: fila guiada de ★ marcadas + Caderno de Erros.
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const reviewCount = React.useMemo(
@@ -214,10 +219,12 @@ function ExercisesPanel({
     if (!simuladoReq || simuladoReq.nonce === 0) return;
     const d = simuladoReq.detail;
     if (d.preset === 'math_exam') {
+      setSimuladoInitialMode('prova');
       setSimuladoInitialConfig(MATH_EXAM_PRESET);
     } else if (d.topicScope) {
       // Drill de 1 tópico (ex.: replay do pior tópico da tendência no Histórico):
       // prova curta, no ritmo da turma, cronômetro leve — ajustável no setup.
+      setSimuladoInitialMode('topico');
       setSimuladoInitialConfig({
         discipline: d.disciplineCode ?? 'all',
         difficulty: 'all',
@@ -227,8 +234,10 @@ function ExercisesPanel({
         topics: [d.topicScope],
       });
     } else if (d.disciplineCode && getDisciplineByCode(d.disciplineCode)) {
+      setSimuladoInitialMode('prova');
       setSimuladoInitialConfig({ discipline: d.disciplineCode });
     } else {
+      setSimuladoInitialMode('prova');
       setSimuladoInitialConfig(undefined);
     }
     setSimuladoOpen(true);
@@ -333,8 +342,10 @@ function ExercisesPanel({
             size="sm"
             // Abertura MANUAL sempre limpa: sem isso, a pré-config de um pedido
             // externo anterior (preset da Av1, drill de tópico) vazava para cá.
+            // O MODO idem — um treino de tópico antigo não pode rotular a prova nova.
             onClick={() => {
               setSimuladoInitialConfig(undefined);
+              setSimuladoInitialMode('prova');
               setSimuladoOpen(true);
             }}
             className="group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl"
@@ -474,6 +485,7 @@ function ExercisesPanel({
         open={simuladoOpen}
         onOpenChange={setSimuladoOpen}
         initialConfig={simuladoInitialConfig}
+        initialMode={simuladoInitialMode}
       />
 
       {/* Modo Revisão (★ + Caderno de Erros, uma questão por vez) */}
