@@ -31,11 +31,15 @@ import {
   buildItemQuestion,
   buildNotebookQuestion,
   collectMistakes,
+  filterByWindow,
   groupByDiscipline,
+  MISTAKE_WINDOWS,
   notebookStats,
   pendingMistakes,
+  windowCounts,
   type MistakeItem,
   type MistakeKind,
+  type MistakeWindow,
 } from '@/lib/mistake-notebook';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { useStudyProgress } from '@/lib/study-progress';
@@ -75,17 +79,24 @@ function isFresh(iso?: string): boolean {
 export function MistakeNotebook() {
   const sp = useStudyProgress();
   const items = React.useMemo(() => collectMistakes(sp.progress), [sp.progress]);
-  const stats = React.useMemo(() => notebookStats(items), [items]);
+  const [win, setWin] = React.useState<MistakeWindow>('all');
+  // Contagens por janela alimentam os chips — janela sem erro desabilita (honesto).
+  const counts = React.useMemo(() => windowCounts(items), [items]);
+  // Tudo que a tela mostra deriva da janela visível: stats, grupos, pendentes e IA.
+  const visible = React.useMemo(() => filterByWindow(items, win), [items, win]);
+  const stats = React.useMemo(() => notebookStats(visible), [visible]);
   const revisedMap = sp.progress.notebookRevised ?? {};
   const pendentes = React.useMemo(
-    () => pendingMistakes(items, revisedMap),
-    [items, revisedMap],
+    () => pendingMistakes(visible, revisedMap),
+    [visible, revisedMap],
   );
+  const windowMeta = MISTAKE_WINDOWS.find((w) => w.id === win);
+  const filtered = win !== 'all';
   // Grupos por disciplina — dentro de cada grupo, pendentes primeiro (recência),
   // revisados afundam no fim (resolvidos não disputam atenção na véspera).
   const groups = React.useMemo(
     () =>
-      groupByDiscipline(items).map(({ disciplineCode, items: list }) => ({
+      groupByDiscipline(visible).map(({ disciplineCode, items: list }) => ({
         disciplineCode,
         items: [...list].sort((a, b) => {
           const ra = revisedMap[a.key] ? 1 : 0;
@@ -96,10 +107,10 @@ export function MistakeNotebook() {
           return tb - ta;
         }),
       })),
-    [items, revisedMap],
+    [visible, revisedMap],
   );
-  const revisedCount = items.length - pendentes.length;
-  const donePct = items.length === 0 ? 0 : Math.round((revisedCount / items.length) * 100);
+  const revisedCount = visible.length - pendentes.length;
+  const donePct = visible.length === 0 ? 0 : Math.round((revisedCount / visible.length) * 100);
 
   if (items.length === 0) {
     return (
@@ -130,7 +141,11 @@ export function MistakeNotebook() {
     );
   }
 
-  const notebookQuestion = buildNotebookQuestion(items, revisedMap);
+  const notebookQuestion = buildNotebookQuestion(
+    visible,
+    revisedMap,
+    filtered ? windowMeta?.scopeLabel : undefined,
+  );
 
   return (
     <Card className="overflow-hidden rounded-xl bg-card shadow-sm">
@@ -143,7 +158,8 @@ export function MistakeNotebook() {
             variant="outline"
             className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
           >
-            {stats.total} {stats.total === 1 ? 'item' : 'itens'}
+            {filtered ? `${stats.total} de ${items.length}` : stats.total}{' '}
+            {stats.total === 1 ? 'item' : 'itens'}
           </Badge>
           {/* Legenda dos 3 tipos — mesma gramática da legenda do histórico */}
           <span className="ml-auto flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -159,8 +175,60 @@ export function MistakeNotebook() {
           </span>
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
-          Tudo que você errou ou ainda não consolidou, num só lugar — o mais recente primeiro.
+          {filtered
+            ? `Mostrando só o que você errou ${windowMeta?.scopeLabel} — o resto continua salvo no caderno.`
+            : 'Tudo que você errou ou ainda não consolidou, num só lugar — o mais recente primeiro.'}
         </p>
+        {/* Filtro temporal — a janela da véspera: o que errou há pouco é o que
+            ainda está fresco na memória (e na prova). Chip sem erro desabilita:
+            não existe lista vazia enganosa aqui. */}
+        <div
+          className="mt-3 flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filtrar erros por período"
+        >
+          <span className="text-[11px] font-medium text-muted-foreground">Período:</span>
+          {MISTAKE_WINDOWS.map((w) => {
+            const ativo = win === w.id;
+            const n = counts[w.id];
+            const vazio = w.ms !== null && n === 0;
+            return (
+              <button
+                key={w.id}
+                type="button"
+                aria-pressed={ativo}
+                aria-disabled={vazio || undefined}
+                title={
+                  vazio
+                    ? `Nenhum erro ${w.scopeLabel}`
+                    : w.id === 'all'
+                      ? 'Caderno inteiro'
+                      : `Só erros ${w.scopeLabel}`
+                }
+                onClick={() => {
+                  if (!vazio) setWin(w.id);
+                }}
+                className={cn(
+                  'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40',
+                  ativo
+                    ? 'border-rose-400/70 bg-rose-500/10 text-rose-700 shadow-sm dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300'
+                    : vazio
+                      ? 'cursor-not-allowed border-border/60 bg-transparent text-muted-foreground/50'
+                      : 'border-border bg-card text-muted-foreground hover:border-rose-300 hover:text-foreground dark:hover:border-rose-500/40',
+                )}
+              >
+                {w.id === '48h' && n > 0 ? (
+                  <span
+                    className="size-1.5 rounded-full bg-rose-500 ring-2 ring-rose-500/20"
+                    aria-hidden
+                  />
+                ) : null}
+                {w.label}
+                <span className="tabular-nums text-[10px] opacity-70">{n}</span>
+              </button>
+            );
+          })}
+        </div>
         {/* Barra do ciclo: pendentes → revisados (o caderno que você resolve) */}
         <div className="mt-3 max-w-md">
           <div className="flex items-center justify-between text-[11px]">
@@ -196,8 +264,9 @@ export function MistakeNotebook() {
         </div>
       </div>
 
-      {/* Grupos por disciplina (borda na cor da disciplina, como na Biblioteca) */}
-      <div className="divide-y divide-border">
+      {/* Grupos por disciplina (borda na cor da disciplina, como na Biblioteca).
+          key={win}: trocar a janela remonta e reanima a cascata — feedback visível. */}
+      <div key={win} className="divide-y divide-border">
         {groups.map(({ disciplineCode, items: list }, gi) => {
           const disc = getDisciplineByCode(disciplineCode);
           const color = getColorClasses(disc?.color ?? 'slate');
@@ -327,17 +396,25 @@ export function MistakeNotebook() {
       {notebookQuestion ? (
         <div className="border-t border-border bg-muted/30 px-5 py-4">
           <Button
-            className="w-full border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+            className="w-full whitespace-normal border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
             variant="outline"
             onClick={() =>
               openTutor({ disciplineCode: stats.topDisciplineCode, question: notebookQuestion })
             }
-            aria-label="Enviar o caderno de erros completo para a IA analisar padrões e priorizar"
+            aria-label={
+              filtered
+                ? `Enviar os erros ${windowMeta?.scopeLabel} para a IA analisar padrões e priorizar`
+                : 'Enviar o caderno de erros completo para a IA analisar padrões e priorizar'
+            }
           >
             <ClipboardList className="size-3.5" aria-hidden />
             {pendentes.length === 0
-              ? `Conferir o caderno zerado com IA (${revisedCount} revisados)`
-              : `Analisar o caderno completo com IA (${pendentes.length} pendentes)`}
+              ? filtered
+                ? `Conferir os ${stats.total} erros ${windowMeta?.scopeLabel} com IA`
+                : `Conferir o caderno zerado com IA (${revisedCount} revisados)`
+              : filtered
+                ? `Analisar os ${stats.total} erros ${windowMeta?.scopeLabel} com IA (${pendentes.length} pendentes)`
+                : `Analisar o caderno completo com IA (${pendentes.length} pendentes)`}
           </Button>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {pendentes.length === 0

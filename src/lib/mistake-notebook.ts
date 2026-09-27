@@ -169,6 +169,59 @@ export function groupByDiscipline(
   return [...groups.entries()].map(([disciplineCode, list]) => ({ disciplineCode, items: list }));
 }
 
+// ---------- Janela temporal (filtro do caderno) ----------
+
+export type MistakeWindow = 'all' | '7d' | '48h';
+
+export const MISTAKE_WINDOWS: {
+  id: MistakeWindow;
+  /** Rótulo curto do chip. */
+  label: string;
+  /** Texto de escopo honesto — vai para o subtítulo e para a pergunta da IA. */
+  scopeLabel: string;
+  /** Duração da janela em ms (null = o caderno inteiro). */
+  ms: number | null;
+}[] = [
+  { id: 'all', label: 'Tudo', scopeLabel: 'do caderno inteiro', ms: null },
+  { id: '7d', label: '7 dias', scopeLabel: 'dos últimos 7 dias', ms: 7 * 24 * 3600 * 1000 },
+  { id: '48h', label: '48 h', scopeLabel: 'das últimas 48 horas', ms: 48 * 3600 * 1000 },
+];
+
+/**
+ * Contagem de erros dentro de cada janela — alimenta os chips (honestos:
+ * janela sem erro fica desabilitada em vez de mostrar lista vazia).
+ * Data no futuro (relógio adiantado) não conta como fresca.
+ */
+export function windowCounts(items: MistakeItem[]): Record<MistakeWindow, number> {
+  const counts: Record<MistakeWindow, number> = { all: items.length, '7d': 0, '48h': 0 };
+  const now = Date.now();
+  for (const it of items) {
+    if (!it.when) continue;
+    const t = new Date(it.when).getTime();
+    if (Number.isNaN(t)) continue;
+    const age = now - t;
+    if (age < 0) continue;
+    if (age < MISTAKE_WINDOWS[1].ms!) counts['7d'] += 1;
+    if (age < MISTAKE_WINDOWS[2].ms!) counts['48h'] += 1;
+  }
+  return counts;
+}
+
+/** Itens dentro da janela escolhida ('all' devolve a lista inteira). */
+export function filterByWindow(items: MistakeItem[], win: MistakeWindow): MistakeItem[] {
+  if (win === 'all') return items;
+  const meta = MISTAKE_WINDOWS.find((w) => w.id === win);
+  if (!meta?.ms) return items;
+  const now = Date.now();
+  return items.filter((it) => {
+    if (!it.when) return false;
+    const t = new Date(it.when).getTime();
+    if (Number.isNaN(t)) return false;
+    const age = now - t;
+    return age >= 0 && age < meta.ms!;
+  });
+}
+
 // ---------- Perguntas para a IA ----------
 
 function discShort(code: string): string {
@@ -227,14 +280,17 @@ export function pendingMistakes(
 const NOTEBOOK_MAX = 40;
 
 /**
- * Análise do caderno INTEIRO. Capped em 40 itens (custo de token, como a
+ * Análise do caderno. Capped em 40 itens (custo de token, como a
  * análise de evolução capped em 12 corridas) — se estourar, prioriza os
  * mais recentes. Recebe o mapa de revisados para a IA saber o que já foi
- * reestudado (ciclo de resolução) e focar nos pendentes.
+ * reestudado (ciclo de resolução) e focar nos pendentes. Quando o aluno
+ * está com um filtro temporal ativo, scopeLabel declara o recorte com
+ * honestidade ("dos últimos 7 dias") — a IA analisa o que está na tela.
  */
 export function buildNotebookQuestion(
   items: MistakeItem[],
   revisedMap?: { [key: string]: string } | null,
+  scopeLabel?: string,
 ): string | null {
   if (items.length === 0) return null;
   const chosen = items.slice(0, NOTEBOOK_MAX);
@@ -243,7 +299,9 @@ export function buildNotebookQuestion(
   const pendentes = pendingMistakes(items, revisedMap).length;
   const revisados = items.length - pendentes;
   const head = [
-    `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} até agora`,
+    scopeLabel
+      ? `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} ${scopeLabel} (janela filtrada por mim — o caderno completo tem mais erros antigos).`
+      : `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} até agora`,
     `(${stats.simulado} de simulados, ${stats.exercicio} de exercícios, ${stats.flashcard} de flashcards).`,
     revisados > 0
       ? `Desse total, ${revisados} já marquei como revisados e ${pendentes} ${pendentes === 1 ? 'continua pendente' : 'continuam pendentes'}.`
