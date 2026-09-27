@@ -370,6 +370,35 @@ export function MistakeNotebook() {
                                     : `voltou ${it.lapses}×`}
                                 </span>
                               ) : null}
+                              {/* Linha fundida: a mesma questão também apareceu
+                                  errada/pulada em simulado(s) — o dedupe anuncia
+                                  a fusão em vez de esconder o histórico. Em
+                                  linhas de exercício o badge diz "também no
+                                  simulado"; em linhas de simulado (N corridas)
+                                  diz "N× no simulado". */}
+                              {it.mergedSimulado && it.mergedSimulado.count > 1 ? (
+                                <span
+                                  className="flex items-center gap-0.5 rounded border border-rose-300/60 bg-rose-500/[0.07] px-1.5 py-0.5 font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                                  title={
+                                    it.kind === 'exercicio'
+                                      ? `Esta questão também foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} em ${it.mergedSimulado.count} simulados (a mais recente em ${fmtWhen(it.mergedSimulado.lastDate)}) — a linha une os registros num só.`
+                                      : `Esta questão foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} em ${it.mergedSimulado.count} simulados (a mais recente em ${fmtWhen(it.mergedSimulado.lastDate)}) — as corridas viram uma linha só.`
+                                  }
+                                >
+                                  <Target className="size-3" aria-hidden />
+                                  {it.kind === 'exercicio'
+                                    ? `também em ${it.mergedSimulado.count} simulados`
+                                    : `${it.mergedSimulado.count}× no simulado`}
+                                </span>
+                              ) : it.mergedSimulado ? (
+                                <span
+                                  className="flex items-center gap-0.5 rounded border border-rose-300/60 bg-rose-500/[0.07] px-1.5 py-0.5 font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                                  title={`Esta questão também foi ${it.mergedSimulado.missed ? 'errada' : 'pulada'} no simulado de ${fmtWhen(it.mergedSimulado.lastDate)} — a linha une os dois registros num só.`}
+                                >
+                                  <Target className="size-3" aria-hidden />
+                                  também no simulado
+                                </span>
+                              ) : null}
                               {it.topic ? (
                                 <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5">
                                   {it.topic}

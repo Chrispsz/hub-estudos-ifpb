@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
+import { simuladoMissedMap } from '@/lib/mistake-notebook';
 import { openSimulado, openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
 import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
@@ -498,6 +499,10 @@ interface MistakeItem {
 function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) => void }) {
   const sp = useStudyProgress();
   const [expanded, setExpanded] = React.useState(false);
+  // Questões que TAMBÉM aparecem perdidas em simulado(s) — mesmo casamento do
+  // caderno completo (Progresso): o badge "também no simulado" mantém as duas
+  // superfícies contando a mesma história.
+  const runMisses = React.useMemo(() => simuladoMissedMap(sp.progress), [sp.progress]);
 
   const mistakes = React.useMemo<MistakeItem[]>(() => {
     return Object.entries(sp.progress.exerciseProgress ?? {})
@@ -521,7 +526,7 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
         if (la !== lb) return lb - la;
         return (b.lastPracticedAt || '').localeCompare(a.lastPracticedAt || '');
       });
-  }, [sp.progress.exerciseProgress]);
+  }, [sp.progress.exerciseProgress, runMisses]);
 
   if (mistakes.length === 0) return null;
 
@@ -599,6 +604,24 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
                       voltou {lapses}×
                     </Badge>
                   )}
+                  {(() => {
+                    const m = runMisses.get(ex.id);
+                    if (!m) return null;
+                    return (
+                      <Badge
+                        variant="outline"
+                        title={
+                          m.dates.length > 1
+                            ? `Esta questão também foi ${m.missed ? 'errada' : 'pulada'} em ${m.dates.length} simulados — o caderno completo une tudo numa linha só.`
+                            : `Esta questão também foi ${m.missed ? 'errada' : 'pulada'} no simulado — o caderno completo une os dois registros.`
+                        }
+                        className="border-rose-300/60 bg-rose-500/[0.07] text-[9px] font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                      >
+                        <Target className="mr-0.5 size-2.5" aria-hidden />
+                        {m.dates.length > 1 ? `também em ${m.dates.length} simulados` : 'também no simulado'}
+                      </Badge>
+                    );
+                  })()}
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">{ex.statement}</p>
               </div>

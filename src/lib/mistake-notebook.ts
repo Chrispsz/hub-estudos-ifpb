@@ -10,6 +10,11 @@
  *  3. Flashcards com lapsos (>0) ainda em caixa frágil (box ≤ 1) — o cartão
  *     que o aluno já errou e ainda não consolidou.
  *
+ * DEDUPE: a mesma questão que aparece no simulado (errada/pulada) E como
+ * exercício pendente rende UMA linha só (a do exercício vence, pois tem o
+ * ciclo de lapses) — o contexto do simulado vai na nota e no badge
+ * "também no simulado", em vez de duplicar a linha no caderno.
+ *
  * Também monta as perguntas para a IA: um chip por erro (reensinar aquele
  * ponto) e a análise do caderno inteiro (padrões + priorização + ordem de
  * revisão) — mesma voz de coach usada no debriefing do simulado.
@@ -47,6 +52,12 @@ export interface MistakeItem {
    * acompanha o ciclo completo errou → resolveu → recaiu). ≥1 = recorrente.
    */
   lapses?: number;
+  /**
+   * Linha fundida: a MESMA questão também foi errada/pulada em simulado(s)
+   * e está pendente como exercício — um registro só, com os dois contextos
+   * (nota e badge) em vez de duas linhas idênticas confundindo a leitura.
+   */
+  mergedSimulado?: { missed: boolean; count: number; lastDate: string };
 }
 
 export interface NotebookStats {
@@ -85,42 +96,69 @@ export function isRecorrenteMistake(it: MistakeItem): boolean {
   return (it.lapses ?? 0) > 0;
 }
 
+/** Índice enunciado(fatiado em 160) → id — chave única de casamento questão↔corrida. */
+function statementIndex(): Map<string, string> {
+  return new Map(exercises.map((e) => [e.statement.slice(0, 160), e.id]));
+}
+
+/**
+ * Questões perdidas em corridas de simulado (erradas/puladas), por id de
+ * exercício do acervo — casamento pelo enunciado (statement fatiado em 160,
+ * mesma chave da revisão dirigida). QUESTÃO RESOLVIDA em qualquer lugar não
+ * entra (estado presente decide — a corrida é história). Consumidores:
+ * collectMistakes (dedupe das linhas) e o caderno compacto do Praticar
+ * (badge "também no simulado", mesma gramática do caderno completo).
+ */
+export function simuladoMissedMap(
+  progress: StudyProgress,
+): Map<string, { missed: boolean; dates: string[] }> {
+  const idByStatement = statementIndex();
+  const map = new Map<string, { missed: boolean; dates: string[] }>();
+  for (const run of progress.simuladoRuns ?? []) {
+    if (!run.questions) continue;
+    for (const q of run.questions) {
+      if (q.status === 'solved') continue;
+      const exId = q.statement ? idByStatement.get(q.statement) : undefined;
+      if (!exId) continue; // enunciado sem par no acervo — nada a mesclar
+      if (progress.exerciseProgress?.[exId]?.solved) continue; // já virou acerto
+      const acc = map.get(exId) ?? { missed: false, dates: [] };
+      acc.missed = acc.missed || q.status === 'missed';
+      acc.dates.push(run.date);
+      map.set(exId, acc);
+    }
+  }
+  return map;
+}
+
 /**
  * Junta as 3 fontes de erro. Ordena do mais recente para o mais antigo
  * (o topo do caderno é o que está fresco na memória — e na prova).
+ *
+ * DEDUPE (3 camadas — o mesmo erro nunca vira duas linhas):
+ *  a. QUESTÃO JÁ RESOLVIDA em qualquer lugar (exerciseProgress.solved) — a
+ *     linha do simulado NÃO entra: o caderno mostra pendências atuais, a
+ *     corrida fica como história (mesma regra da revisão dirigida);
+ *  b. errada/pulada no simulado E pendente como exercício — funde na linha
+ *     do exercício (que tem lapses), com o contexto do simulado na nota e
+ *     no badge "também no simulado";
+ *  c. perdida em N corridas sem entrada de exercício — UMA linha com
+ *     "(e em mais N)" na nota e badge "N× no simulado".
  */
 export function collectMistakes(progress: StudyProgress): MistakeItem[] {
   const items: MistakeItem[] = [];
 
-  // 1) Simulados: só tentativas com detalhe por questão têm erros nomeáveis.
-  for (const run of progress.simuladoRuns ?? []) {
-    if (!run.questions) continue;
-    const when = fmtDate(run.date);
-    run.questions.forEach((q, i) => {
-      if (q.status === 'solved') return;
-      const missed = q.status === 'missed';
-      items.push({
-        key: `${run.id}:${i}`,
-        kind: missed ? 'simulado_missed' : 'simulado_skipped',
-        disciplineCode: q.disciplineCode || run.filters?.discipline || '—',
-        title: q.statement ? truncate(q.statement, 110) : 'Questão sem enunciado gravado',
-        topic: q.topic,
-        difficulty: q.difficulty as MistakeItem['difficulty'],
-        when: run.date,
-        note: missed ? `Errei no simulado de ${when}` : `Pulei no simulado de ${when}`,
-      });
-    });
-  }
-
-  // 2) Exercícios: tentou e não resolveu (o acervo dá enunciado/tópico).
+  // 1) Exercícios PRIMEIRO: tentou e não resolveu (o acervo dá enunciado/tópico).
   //    lapses>0 = "erro de sempre" — já tinha resolvido e recaiu (o pior
-  //    tipo de erro na véspera: parece aprendido e não está).
+  //    tipo de erro na véspera: parece aprendido e não está). A coleta em
+  //    Map permite o dedupe da fonte 2 abaixo (a entrada de exercício VENCE:
+  //    é a única que acompanha o ciclo errou → resolveu → recaiu).
   const byId = new Map(exercises.map((e) => [e.id, e]));
+  const exItems = new Map<string, MistakeItem>();
   for (const [id, entry] of Object.entries(progress.exerciseProgress ?? {})) {
     if (!entry.tried || entry.solved) continue;
     const ex = byId.get(id);
     if (!ex) continue; // id órfão (acervo mudou) — nada a exibir, sem inventar
-    items.push({
+    exItems.set(id, {
       key: `ex:${id}`,
       kind: 'exercicio',
       disciplineCode: ex.disciplineCode,
@@ -134,6 +172,81 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
         : entry.marked
           ? 'Marcado para revisar · ainda não resolveu'
           : 'Tentou e não resolveu',
+    });
+  }
+
+  // 2) Simulados: só tentativas com detalhe por questão têm erros nomeáveis.
+  //    simuladoMissedMap já aplica (a) estado presente e casa pelo enunciado;
+  //    aqui só falta separar (b) pendente como exercício — que funde na linha
+  //    dele — de (c) só simulado — que vira UMA linha por questão.
+  const runMisses = simuladoMissedMap(progress);
+
+  // Sem par no acervo (corrida antiga) — linha própria, como sempre.
+  const idByStatement = statementIndex();
+  for (const run of progress.simuladoRuns ?? []) {
+    if (!run.questions) continue;
+    const when = fmtDate(run.date);
+    run.questions.forEach((q, i) => {
+      if (q.status === 'solved') return;
+      const missed = q.status === 'missed';
+      const exId = q.statement ? idByStatement.get(q.statement) : undefined;
+      if (exId) return; // resolvível — tratado pelos merges (b)/(c) abaixo
+      items.push({
+        key: `${run.id}:${i}`,
+        kind: missed ? 'simulado_missed' : 'simulado_skipped',
+        disciplineCode: q.disciplineCode || run.filters?.discipline || '—',
+        title: q.statement ? truncate(q.statement, 110) : 'Questão sem enunciado gravado',
+        topic: q.topic,
+        difficulty: q.difficulty as MistakeItem['difficulty'],
+        when: run.date,
+        note: missed ? `Errei no simulado de ${when}` : `Pulei no simulado de ${when}`,
+      });
+    });
+  }
+
+  // (b) Exercícios entram com o contexto de simulado fundido (se houver).
+  for (const [id, it] of exItems) {
+    const m = runMisses.get(id);
+    if (!m) {
+      items.push(it);
+      continue;
+    }
+    const lastRun = [...m.dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+    const tEx = it.when ? new Date(it.when).getTime() : 0;
+    const tRun = new Date(lastRun).getTime();
+    const mostRecent = tRun > tEx ? lastRun : it.when;
+    const plural = m.dates.length > 1 ? ` (e em mais ${m.dates.length - 1} simulado${m.dates.length > 2 ? 's' : ''})` : '';
+    items.push({
+      ...it,
+      when: mostRecent,
+      note: `${m.missed ? 'Errei' : 'Pulei'} no simulado de ${fmtDate(lastRun)}${plural} · ${it.note}`,
+      mergedSimulado: { missed: m.missed, count: m.dates.length, lastDate: lastRun },
+    });
+  }
+
+  // (c) Questões perdidas em N corridas sem entrada de exercício: UMA linha
+  //     por questão, com dados do ACERVO (mais completos que o detail da
+  //     corrida) e o histórico contado na nota e no badge "N× no simulado".
+  for (const [exId, acc] of runMisses) {
+    if (exItems.has(exId)) continue; // (b) já fundiu na linha do exercício
+    const ex = byId.get(exId);
+    if (!ex) continue; // defesa — runMisses só nasce de pares do acervo
+    const lastRun = [...acc.dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+    const multi = acc.dates.length > 1;
+    items.push({
+      key: `sim:${exId}`,
+      kind: acc.missed ? 'simulado_missed' : 'simulado_skipped',
+      disciplineCode: ex.disciplineCode,
+      title: truncate(ex.statement, 110),
+      topic: ex.topic,
+      difficulty: ex.difficulty,
+      when: lastRun,
+      note: `${acc.missed ? 'Errei' : 'Pulei'} no simulado de ${fmtDate(lastRun)}${
+        multi ? ` (e em mais ${acc.dates.length - 1} simulado${acc.dates.length > 2 ? 's' : ''})` : ''
+      }`,
+      mergedSimulado: multi
+        ? { missed: acc.missed, count: acc.dates.length, lastDate: lastRun }
+        : undefined,
     });
   }
 
