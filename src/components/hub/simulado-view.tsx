@@ -237,26 +237,76 @@ export function SimuladoView({
 
   const sp = useStudyProgress();
 
-  // REVISÃO DIRIGIDA — os erros REAIS do aluno (Caderno de Erros): exercícios
-  // tentados e NÃO resolvidos, recorrentes primeiro, depois a recência, máx. 15.
-  // Material-first do próprio histórico — nada sorteado, nada inventado.
-  const mistakeExercises = React.useMemo(() => {
-    const entries = sp.progress.exerciseProgress ?? {};
+  // REVISÃO DIRIGIDA — os erros REAIS do aluno (Caderno de Erros), nas DUAS
+  // fontes treináveis: (1) exercícios tentados e NÃO resolvidos — com "erros
+  // de sempre" (lapses) no topo — e (2) as questões erradas/puladas de
+  // SIMULADOS passados, reconstruídas do acervo estático pelo enunciado
+  // (o detalhe da corrida guarda só o recorte de 160 chars; o acervo devolve
+  // a questão inteira — material-first: nada sorteado, nada inventado).
+  // Máx. 15; dentro do corte, recaída primeiro, depois a recência.
+  const mistakeSources = React.useMemo(() => {
+    type MistakeSource = {
+      ex: Exercise;
+      lapses: number;
+      when: string;
+      fromSimulado: boolean;
+    };
     const byId = new Map(exercises.map((e) => [e.id, e]));
-    return Object.entries(entries)
+    // Fonte 1: exercícios do caderno (tried && !solved).
+    const exItems: MistakeSource[] = Object.entries(sp.progress.exerciseProgress ?? {})
       .filter(([, v]) => v.tried && !v.solved)
-      // "Erros de sempre" primeiro (lapses desc), depois a recência — a
-      // recaída disputa a atenção antes do erro de primeira viagem.
-      .sort((a, b) => {
-        const la = a[1].lapses ?? 0;
-        const lb = b[1].lapses ?? 0;
-        if (la !== lb) return lb - la;
-        return (b[1].lastPracticedAt || '').localeCompare(a[1].lastPracticedAt || '');
+      .map(([id, v]) => {
+        const ex = byId.get(id);
+        return ex
+          ? { ex, lapses: v.lapses ?? 0, when: v.lastPracticedAt || '', fromSimulado: false }
+          : null;
       })
-      .map(([id]) => byId.get(id))
-      .filter((e): e is Exercise => Boolean(e))
+      .filter((x): x is MistakeSource => x !== null);
+    // Fonte 2: corridas de simulado (mais recente primeiro) — erradas e puladas.
+    // A corrida é HISTÓRICA (o detalhe nunca muda), então o estado ATUAL da
+    // questão decide: se ela já virou acerto em qualquer lugar (exerciseProgress
+    // solved), sai do treino — resolver de novo não pode reabrir erro antigo.
+    const prog = sp.progress.exerciseProgress ?? {};
+    const byStatement = new Map(exercises.map((e) => [e.statement.slice(0, 160), e]));
+    const simItems: MistakeSource[] = [];
+    for (const run of [...(sp.progress.simuladoRuns ?? [])].sort((a, b) =>
+      (b.date || '').localeCompare(a.date || ''),
+    )) {
+      if (!run.questions) continue; // corridas antigas sem detalhe: nada a reconstruir
+      for (const q of run.questions) {
+        if (q.status === 'solved') continue;
+        const ex = q.statement ? byStatement.get(q.statement) : undefined;
+        if (!ex) continue; // enunciado sem par no acervo — nada a exibir, sem inventar
+        if (prog[ex.id]?.solved) continue; // já resolvida depois da corrida — honesto
+        simItems.push({ ex, lapses: 0, when: run.date || '', fromSimulado: true });
+      }
+    }
+    // Dedupe: a entrada de exercício vence (tem lapses + estado rico); a mesma
+    // questão perdida em várias corridas entra UMA vez (a mais recente primeiro).
+    const seen = new Set(exItems.map((x) => x.ex.id));
+    const combined = [...exItems];
+    for (const s of simItems) {
+      if (seen.has(s.ex.id)) continue;
+      seen.add(s.ex.id);
+      combined.push(s);
+    }
+    return combined
+      .sort((a, b) => {
+        if (a.lapses !== b.lapses) return b.lapses - a.lapses;
+        return (b.when || '').localeCompare(a.when || '');
+      })
       .slice(0, 15);
-  }, [sp.progress.exerciseProgress]);
+  }, [sp.progress.exerciseProgress, sp.progress.simuladoRuns]);
+  const mistakeExercises = React.useMemo(
+    () => mistakeSources.map((x) => x.ex),
+    [mistakeSources],
+  );
+  // Quantas questões do treino (pós-cap) vêm de SIMULADOS — badge honesto
+  // sobre a composição da prova que vai ser servida.
+  const mistakeSimuladoCount = React.useMemo(
+    () => mistakeSources.filter((x) => x.fromSimulado).length,
+    [mistakeSources],
+  );
   // Quantas das pendentes são RECORRENTES (pré-cap, ordem real do caderno) —
   // badge do card de revisão dirigida fica honesto mesmo com >15 erros.
   const mistakeRecorrentes = React.useMemo(
@@ -514,6 +564,7 @@ export function SimuladoView({
             onDiscard={discardSaved}
             mistakesCount={mistakeExercises.length}
             recorrentesCount={mistakeRecorrentes}
+            simuladoCount={mistakeSimuladoCount}
             onStartMistakes={startMistakes}
           />
         )}
@@ -598,6 +649,7 @@ function SetupScreen({
   onDiscard,
   mistakesCount,
   recorrentesCount,
+  simuladoCount,
   onStartMistakes,
 }: {
   config: SimuladoConfig;
@@ -613,6 +665,8 @@ function SetupScreen({
   mistakesCount: number;
   /** Quantas das pendentes são "erros de sempre" (lapses > 0) — badge honesto. */
   recorrentesCount: number;
+  /** Quantas questões do treino vêm de simulados passados (pós-cap) — composição. */
+  simuladoCount: number;
   onStartMistakes: () => void;
 }) {
   const activeTopics = config.topics ?? [];
@@ -739,9 +793,21 @@ function SetupScreen({
                     {recorrentesCount} recorrente{recorrentesCount > 1 ? 's' : ''}
                   </Badge>
                 )}
+                {/* Composição do treino: questões reconstruídas de simulados passados */}
+                {simuladoCount > 0 && (
+                  <Badge
+                    variant="outline"
+                    title="Questões que você errou ou pulou em simulados anteriores — reconstruídas do acervo, na ordem mais recente primeiro."
+                    className="border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
+                  >
+                    <Target className="mr-0.5 size-2.5" aria-hidden />
+                    {simuladoCount} de simulado
+                  </Badge>
+                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Do Caderno de Erros: as que você marcou “não consegui” —{' '}
+                Do Caderno de Erros: as que você marcou “não consegui”
+                {simuladoCount > 0 ? ' (inclusive de simulados)' : ''} —{' '}
                 {recorrentesCount > 0 ? 'as recorrentes primeiro' : 'mais recentes primeiro'}, máx. 15,{' '}
                 {Math.max(5, Math.min(45, mistakesCount * 3))} min no cronômetro.
               </p>

@@ -34,6 +34,7 @@ import {
   collectMistakes,
   filterByWindow,
   groupByDiscipline,
+  isRecorrenteMistake,
   MISTAKE_WINDOWS,
   notebookStats,
   pendingMistakes,
@@ -93,10 +94,10 @@ export function MistakeNotebook() {
   );
   const windowMeta = MISTAKE_WINDOWS.find((w) => w.id === win);
   const filtered = win !== 'all';
-  // "Erros de sempre" na janela visível — já resolvi e recaí (o pior tipo de
-  // erro na véspera: parece aprendido e não está).
+  // "Erros de sempre" na janela visível — recaída (exercício) ou falha crônica
+  // (cartão errou 2×+) — o pior tipo de erro na véspera: parece aprendido e não está.
   const recorrentes = React.useMemo(
-    () => visible.filter((it) => !revisedMap[it.key] && (it.lapses ?? 0) > 0),
+    () => visible.filter((it) => !revisedMap[it.key] && isRecorrenteMistake(it)),
     [visible, revisedMap],
   );
   // Grupos por disciplina — dentro de cada grupo: pendentes primeiro,
@@ -110,8 +111,8 @@ export function MistakeNotebook() {
           const ra = revisedMap[a.key] ? 1 : 0;
           const rb = revisedMap[b.key] ? 1 : 0;
           if (ra !== rb) return ra - rb;
-          const la = (a.lapses ?? 0) > 0 ? 0 : 1;
-          const lb = (b.lapses ?? 0) > 0 ? 0 : 1;
+          const la = isRecorrenteMistake(a) ? 0 : 1;
+          const lb = isRecorrenteMistake(b) ? 0 : 1;
           if (la !== lb) return la - lb;
           const ta = a.when ? new Date(a.when).getTime() : 0;
           const tb = b.when ? new Date(b.when).getTime() : 0;
@@ -353,14 +354,20 @@ export function MistakeNotebook() {
                                   <Check className="size-3" aria-hidden /> Revisado {fmtWhen(revisedAt)}
                                 </span>
                               ) : null}
-                              {/* Erro de sempre: recaída — o badge que sobe o item no topo do grupo */}
-                              {!revisedAt && (it.lapses ?? 0) > 0 ? (
+                              {/* Erro de sempre: recaída (exercício) ou falha crônica (cartão) */}
+                              {!revisedAt && isRecorrenteMistake(it) ? (
                                 <span
                                   className="flex items-center gap-0.5 rounded border border-rose-400/60 bg-rose-500/10 px-1.5 py-0.5 font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
-                                  title="Erro de sempre: você já tinha resolvido este item e voltou a errar — na véspera, é prioridade máxima."
+                                  title={
+                                    it.kind === 'flashcard'
+                                      ? 'Cartão recorrente: você errou 2× ou mais e ainda não consolidou — prioridade máxima na véspera.'
+                                      : 'Erro de sempre: você já tinha resolvido este item e voltou a errar — na véspera, é prioridade máxima.'
+                                  }
                                 >
                                   <Repeat2 className="size-3" aria-hidden />
-                                  voltou {it.lapses}×
+                                  {it.kind === 'flashcard'
+                                    ? 'sempre errada'
+                                    : `voltou ${it.lapses}×`}
                                 </span>
                               ) : null}
                               {it.topic ? (

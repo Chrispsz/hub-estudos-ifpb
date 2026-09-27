@@ -75,6 +75,17 @@ function fmtDate(iso: string): string {
 }
 
 /**
+ * "Erros de sempre" — o item já foi virado em acerto (exercício: reentrou no
+ * caderno depois de resolvido) ou falha cronicamente (flashcard: errou 2× ou
+ * mais e ainda está em caixa frágil). É o que sobe no caderno, abre a revisão
+ * dirigida e recebe a tag [RECORRENTE] na IA.
+ */
+export function isRecorrenteMistake(it: MistakeItem): boolean {
+  if (it.kind === 'flashcard') return (it.lapses ?? 0) >= 2;
+  return (it.lapses ?? 0) > 0;
+}
+
+/**
  * Junta as 3 fontes de erro. Ordena do mais recente para o mais antigo
  * (o topo do caderno é o que está fresco na memória — e na prova).
  */
@@ -127,6 +138,7 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
   }
 
   // 3) Flashcards: já erraram (lapses>0) e ainda estão em caixa frágil (≤1).
+  //    lapses ≥ 2 = cartão RECORRENTE — o aluno erra de novo o que já errou.
   for (const card of progress.flashcards ?? []) {
     if (card.lapses <= 0 || card.box > 1) continue;
     items.push({
@@ -135,6 +147,7 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
       disciplineCode: card.disciplineCode,
       title: truncate(card.front, 110),
       when: card.lastReviewedAt || card.createdAt,
+      lapses: card.lapses,
       note: `Cartão errado ${card.lapses === 1 ? '1×' : `${card.lapses}×`} · ${flashcardBoxLabel(card.box)}`,
     });
   }
@@ -257,10 +270,9 @@ function itemLine(it: MistakeItem, revisedMap?: { [key: string]: string } | null
   }
   if (it.note) parts.push(it.note);
   const revisedAt = revisedMap?.[it.key];
-  const recorrente =
-    it.lapses && it.lapses > 0
-      ? ` [RECORRENTE — já tinha resolvido e voltei a errar ${it.lapses === 1 ? '1×' : `${it.lapses}×`}; prioridade máxima]`
-      : '';
+  const recorrente = isRecorrenteMistake(it)
+    ? ` [RECORRENTE — ${it.kind === 'flashcard' ? `errei este cartão ${it.lapses === 2 ? '2×' : `${it.lapses}×`} e ainda não consolidei` : `já tinha resolvido e voltei a errar ${it.lapses === 1 ? '1×' : `${it.lapses}×`}`}; prioridade máxima]`
+    : '';
   const tag = revisedAt
     ? ` [JÁ REVISADO em ${fmtDate(revisedAt)} — reestudei este ponto]`
     : ' [PENDENTE]';
@@ -311,7 +323,7 @@ export function buildNotebookQuestion(
   const stats = notebookStats(items);
   const pendentes = pendingMistakes(items, revisedMap).length;
   const revisados = items.length - pendentes;
-  const recorrentes = items.filter((it) => (it.lapses ?? 0) > 0).length;
+  const recorrentes = items.filter((it) => isRecorrenteMistake(it)).length;
   const head = [
     scopeLabel
       ? `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} ${scopeLabel} (janela filtrada por mim — o caderno completo tem mais erros antigos).`
