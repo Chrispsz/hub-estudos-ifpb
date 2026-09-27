@@ -10,6 +10,7 @@ import {
   Lightbulb,
   MessageCircleQuestion,
   NotebookPen,
+  Repeat2,
   RotateCcw,
   Star,
   Target,
@@ -484,6 +485,8 @@ interface MistakeItem {
   ex: Exercise;
   kind: 'ajuda' | 'erro';
   lastPracticedAt: string;
+  /** "Erros de sempre": recaídas após já ter resolvido (0/undefined = 1ª vez). */
+  lapses?: number;
 }
 
 /**
@@ -499,13 +502,25 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
   const mistakes = React.useMemo<MistakeItem[]>(() => {
     return Object.entries(sp.progress.exerciseProgress ?? {})
       .filter(([, v]) => v.neededHelp || (v.tried && !v.solved))
-      .map(([id, v]) => {
+      .map(([id, v]): MistakeItem | null => {
         const ex = exercises.find((e) => e.id === id);
         if (!ex) return null;
-        return { ex, kind: v.neededHelp ? ('ajuda' as const) : ('erro' as const), lastPracticedAt: v.lastPracticedAt };
+        return {
+          ex,
+          kind: v.neededHelp ? ('ajuda' as const) : ('erro' as const),
+          lastPracticedAt: v.lastPracticedAt,
+          lapses: v.lapses,
+        };
       })
       .filter((m): m is MistakeItem => m !== null)
-      .sort((a, b) => (b.lastPracticedAt || '').localeCompare(a.lastPracticedAt || ''));
+      // "Erros de sempre" primeiro, depois a recência — mesma ordem do
+      // caderno completo (Progresso) e da revisão dirigida (Simulado Pro).
+      .sort((a, b) => {
+        const la = a.lapses ?? 0;
+        const lb = b.lapses ?? 0;
+        if (la !== lb) return lb - la;
+        return (b.lastPracticedAt || '').localeCompare(a.lastPracticedAt || '');
+      });
   }, [sp.progress.exerciseProgress]);
 
   if (mistakes.length === 0) return null;
@@ -553,7 +568,7 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
       </div>
 
       <ul className="divide-y divide-border/60">
-        {visible.map(({ ex, kind }) => {
+        {visible.map(({ ex, kind, lapses }) => {
           const disc = getDisciplineByCode(ex.disciplineCode);
           const color = getColorClasses(disc?.color ?? 'slate');
           return (
@@ -573,6 +588,16 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
                     <Badge className="border-0 bg-amber-500/90 text-[9px] text-white">precisei de ajuda</Badge>
                   ) : (
                     <Badge className="border-0 bg-rose-500/90 text-[9px] text-white">não resolvi</Badge>
+                  )}
+                  {(lapses ?? 0) > 0 && (
+                    <Badge
+                      variant="outline"
+                      title="Erro de sempre: você já tinha resolvido este item e voltou a errar — prioridade máxima na véspera."
+                      className="border-rose-400/60 bg-rose-500/10 text-[9px] font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
+                    >
+                      <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
+                      voltou {lapses}×
+                    </Badge>
                   )}
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">{ex.statement}</p>

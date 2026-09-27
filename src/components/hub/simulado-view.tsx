@@ -22,6 +22,7 @@ import {
   ListChecks,
   Pause,
   Play,
+  Repeat2,
   RotateCcw,
   Sparkles,
   Target,
@@ -237,18 +238,34 @@ export function SimuladoView({
   const sp = useStudyProgress();
 
   // REVISÃO DIRIGIDA — os erros REAIS do aluno (Caderno de Erros): exercícios
-  // tentados e NÃO resolvidos, mais recentes primeiro, máx. 15. Material-first
-  // do próprio histórico — nada sorteado, nada inventado.
+  // tentados e NÃO resolvidos, recorrentes primeiro, depois a recência, máx. 15.
+  // Material-first do próprio histórico — nada sorteado, nada inventado.
   const mistakeExercises = React.useMemo(() => {
     const entries = sp.progress.exerciseProgress ?? {};
     const byId = new Map(exercises.map((e) => [e.id, e]));
     return Object.entries(entries)
       .filter(([, v]) => v.tried && !v.solved)
-      .sort((a, b) => (b[1].lastPracticedAt || '').localeCompare(a[1].lastPracticedAt || ''))
+      // "Erros de sempre" primeiro (lapses desc), depois a recência — a
+      // recaída disputa a atenção antes do erro de primeira viagem.
+      .sort((a, b) => {
+        const la = a[1].lapses ?? 0;
+        const lb = b[1].lapses ?? 0;
+        if (la !== lb) return lb - la;
+        return (b[1].lastPracticedAt || '').localeCompare(a[1].lastPracticedAt || '');
+      })
       .map(([id]) => byId.get(id))
       .filter((e): e is Exercise => Boolean(e))
       .slice(0, 15);
   }, [sp.progress.exerciseProgress]);
+  // Quantas das pendentes são RECORRENTES (pré-cap, ordem real do caderno) —
+  // badge do card de revisão dirigida fica honesto mesmo com >15 erros.
+  const mistakeRecorrentes = React.useMemo(
+    () =>
+      Object.values(sp.progress.exerciseProgress ?? {}).filter(
+        (v) => v.tried && !v.solved && (v.lapses ?? 0) > 0,
+      ).length,
+    [sp.progress.exerciseProgress],
+  );
 
   const pool = React.useMemo(() => {
     let list = exercises;
@@ -496,6 +513,7 @@ export function SimuladoView({
             onResume={resumeSaved}
             onDiscard={discardSaved}
             mistakesCount={mistakeExercises.length}
+            recorrentesCount={mistakeRecorrentes}
             onStartMistakes={startMistakes}
           />
         )}
@@ -579,6 +597,7 @@ function SetupScreen({
   onResume,
   onDiscard,
   mistakesCount,
+  recorrentesCount,
   onStartMistakes,
 }: {
   config: SimuladoConfig;
@@ -592,6 +611,8 @@ function SetupScreen({
   onDiscard: () => void;
   /** Erros pendentes do Caderno de Erros — card de revisão dirigida quando > 0. */
   mistakesCount: number;
+  /** Quantas das pendentes são "erros de sempre" (lapses > 0) — badge honesto. */
+  recorrentesCount: number;
   onStartMistakes: () => void;
 }) {
   const activeTopics = config.topics ?? [];
@@ -707,11 +728,22 @@ function SetupScreen({
                 >
                   {mistakesCount} pendente{mistakesCount > 1 ? 's' : ''}
                 </Badge>
+                {/* "Erros de sempre" — as recaídas abrem a prova (mesma cor do badge do caderno) */}
+                {recorrentesCount > 0 && (
+                  <Badge
+                    variant="outline"
+                    title="Erros de sempre: você já tinha resolvido e voltou a errar — eles vêm primeiro na prova."
+                    className="border-rose-400/60 bg-rose-500/10 px-1.5 text-[10px] font-semibold text-rose-700 shadow-sm dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
+                  >
+                    <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
+                    {recorrentesCount} recorrente{recorrentesCount > 1 ? 's' : ''}
+                  </Badge>
+                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Do Caderno de Erros: as que você marcou “não consegui” — mais
-                recentes primeiro, máx. 15, {Math.max(5, Math.min(45, mistakesCount * 3))} min no
-                cronômetro.
+                Do Caderno de Erros: as que você marcou “não consegui” —{' '}
+                {recorrentesCount > 0 ? 'as recorrentes primeiro' : 'mais recentes primeiro'}, máx. 15,{' '}
+                {Math.max(5, Math.min(45, mistakesCount * 3))} min no cronômetro.
               </p>
             </div>
             <Button

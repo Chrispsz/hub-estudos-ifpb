@@ -131,6 +131,12 @@ export interface ExerciseProgressEntry {
   /** Questão marcada pelo aluno (⭐) — ex.: para revisar com o tutor ou antes da prova. */
   marked?: boolean;
   lastPracticedAt: string;
+  /**
+   * "Erros de sempre": quantas vezes o item VOLTOU ao Caderno de Erros depois
+   * de já ter sido resolvido (ou já ter histórico de prática). 0/undefined =
+   * erro de primeira viagem; ≥1 = recorrente — prioridade máxima na véspera.
+   */
+  lapses?: number;
 }
 
 export interface ExerciseProgress {
@@ -866,6 +872,16 @@ export function useStudyProgress() {
         // não resolveu de novo), o item REABRE sozinho no caderno.
         const revised = { ...(prev.notebookRevised ?? {}) };
         if (next.tried && !next.solved) delete revised[`ex:${exerciseId}`];
+        // "Erros de sempre": reentrada no caderno COM histórico de prática
+        // anterior = o aluno já tinha virado este acerto e recaiu. Conta a
+        // recaída (lapses) — é o item que merece prioridade na véspera.
+        // 1ª marcação da vida (sem histórico) NÃO é recaída: lapses fica 0.
+        const wasInCaderno = cur.neededHelp || (cur.tried && !cur.solved);
+        const isInCaderno = next.neededHelp || (next.tried && !next.solved);
+        const temHistorico = cur.tried || cur.solved || cur.neededHelp;
+        if (!wasInCaderno && isInCaderno && temHistorico) {
+          next.lapses = (cur.lapses ?? 0) + 1;
+        }
         return {
           ...prev,
           notebookRevised: revised,

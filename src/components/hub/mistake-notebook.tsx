@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Copy,
   Dumbbell,
+  Repeat2,
   RotateCcw,
   Target,
   type LucideIcon,
@@ -92,7 +93,14 @@ export function MistakeNotebook() {
   );
   const windowMeta = MISTAKE_WINDOWS.find((w) => w.id === win);
   const filtered = win !== 'all';
-  // Grupos por disciplina — dentro de cada grupo, pendentes primeiro (recência),
+  // "Erros de sempre" na janela visível — já resolvi e recaí (o pior tipo de
+  // erro na véspera: parece aprendido e não está).
+  const recorrentes = React.useMemo(
+    () => visible.filter((it) => !revisedMap[it.key] && (it.lapses ?? 0) > 0),
+    [visible, revisedMap],
+  );
+  // Grupos por disciplina — dentro de cada grupo: pendentes primeiro,
+  // RECORRENTES no topo do grupo (recaídas disputam a atenção antes),
   // revisados afundam no fim (resolvidos não disputam atenção na véspera).
   const groups = React.useMemo(
     () =>
@@ -102,6 +110,9 @@ export function MistakeNotebook() {
           const ra = revisedMap[a.key] ? 1 : 0;
           const rb = revisedMap[b.key] ? 1 : 0;
           if (ra !== rb) return ra - rb;
+          const la = (a.lapses ?? 0) > 0 ? 0 : 1;
+          const lb = (b.lapses ?? 0) > 0 ? 0 : 1;
+          if (la !== lb) return la - lb;
           const ta = a.when ? new Date(a.when).getTime() : 0;
           const tb = b.when ? new Date(b.when).getTime() : 0;
           return tb - ta;
@@ -161,6 +172,21 @@ export function MistakeNotebook() {
             {filtered ? `${stats.total} de ${items.length}` : stats.total}{' '}
             {stats.total === 1 ? 'item' : 'itens'}
           </Badge>
+          {/* "Erros de sempre": o chip que diz o que NÃO pode falhar de novo */}
+          {recorrentes.length > 0 && (
+            <Badge
+              variant="outline"
+              title={
+                recorrentes.length === 1
+                  ? 'Erro de sempre: você já tinha resolvido este item e voltou a errar — prioridade máxima na véspera.'
+                  : `Erros de sempre: ${recorrentes.length} itens você já tinha resolvido e voltou a errar — prioridade máxima na véspera.`
+              }
+              className="border-rose-400/60 bg-rose-500/10 text-rose-700 shadow-sm dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
+            >
+              <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
+              {recorrentes.length} recorrente{recorrentes.length > 1 ? 's' : ''}
+            </Badge>
+          )}
           {/* Legenda dos 3 tipos — mesma gramática da legenda do histórico */}
           <span className="ml-auto flex items-center gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -325,6 +351,16 @@ export function MistakeNotebook() {
                               {revisedAt ? (
                                 <span className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
                                   <Check className="size-3" aria-hidden /> Revisado {fmtWhen(revisedAt)}
+                                </span>
+                              ) : null}
+                              {/* Erro de sempre: recaída — o badge que sobe o item no topo do grupo */}
+                              {!revisedAt && (it.lapses ?? 0) > 0 ? (
+                                <span
+                                  className="flex items-center gap-0.5 rounded border border-rose-400/60 bg-rose-500/10 px-1.5 py-0.5 font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
+                                  title="Erro de sempre: você já tinha resolvido este item e voltou a errar — na véspera, é prioridade máxima."
+                                >
+                                  <Repeat2 className="size-3" aria-hidden />
+                                  voltou {it.lapses}×
                                 </span>
                               ) : null}
                               {it.topic ? (

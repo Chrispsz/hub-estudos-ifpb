@@ -41,6 +41,12 @@ export interface MistakeItem {
   when?: string;
   /** Contexto extra: "Simulado de 26/09", "fez com ajuda", "errou 2×". */
   note?: string;
+  /**
+   * "Erros de sempre": quantas vezes o item voltou ao caderno depois de já
+   * ter sido resolvido (só existe para exercícios — a única fonte que
+   * acompanha o ciclo completo errou → resolveu → recaiu). ≥1 = recorrente.
+   */
+  lapses?: number;
 }
 
 export interface NotebookStats {
@@ -96,6 +102,8 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
   }
 
   // 2) Exercícios: tentou e não resolveu (o acervo dá enunciado/tópico).
+  //    lapses>0 = "erro de sempre" — já tinha resolvido e recaiu (o pior
+  //    tipo de erro na véspera: parece aprendido e não está).
   const byId = new Map(exercises.map((e) => [e.id, e]));
   for (const [id, entry] of Object.entries(progress.exerciseProgress ?? {})) {
     if (!entry.tried || entry.solved) continue;
@@ -109,6 +117,7 @@ export function collectMistakes(progress: StudyProgress): MistakeItem[] {
       topic: ex.topic,
       difficulty: ex.difficulty,
       when: entry.lastPracticedAt,
+      lapses: entry.lapses,
       note: entry.neededHelp
         ? 'Tentou e precisou de ajuda'
         : entry.marked
@@ -248,10 +257,14 @@ function itemLine(it: MistakeItem, revisedMap?: { [key: string]: string } | null
   }
   if (it.note) parts.push(it.note);
   const revisedAt = revisedMap?.[it.key];
+  const recorrente =
+    it.lapses && it.lapses > 0
+      ? ` [RECORRENTE — já tinha resolvido e voltei a errar ${it.lapses === 1 ? '1×' : `${it.lapses}×`}; prioridade máxima]`
+      : '';
   const tag = revisedAt
     ? ` [JÁ REVISADO em ${fmtDate(revisedAt)} — reestudei este ponto]`
     : ' [PENDENTE]';
-  return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${it.title}${tag}`;
+  return `- [${parts.join(' · ')}] ${kindLabel(it.kind)}: ${it.title}${recorrente}${tag}`;
 }
 
 /** Chip de UM erro: reensino focado + treino imediato + cartão pronto p/ o baralho. */
@@ -298,11 +311,15 @@ export function buildNotebookQuestion(
   const stats = notebookStats(items);
   const pendentes = pendingMistakes(items, revisedMap).length;
   const revisados = items.length - pendentes;
+  const recorrentes = items.filter((it) => (it.lapses ?? 0) > 0).length;
   const head = [
     scopeLabel
       ? `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} ${scopeLabel} (janela filtrada por mim — o caderno completo tem mais erros antigos).`
       : `Meu caderno de erros do Hub tem ${items.length} ${items.length === 1 ? 'item' : 'itens'} até agora`,
     `(${stats.simulado} de simulados, ${stats.exercicio} de exercícios, ${stats.flashcard} de flashcards).`,
+    recorrentes > 0
+      ? `ATENÇÃO: ${recorrentes} ${recorrentes === 1 ? 'deles é RECORRENTE' : 'deles são RECORRENTES'} — já resolvi e recaí (os marcados com [RECORRENTE] abaixo); são a minha maior fragilidade.`
+      : '',
     revisados > 0
       ? `Desse total, ${revisados} já marquei como revisados e ${pendentes} ${pendentes === 1 ? 'continua pendente' : 'continuam pendentes'}.`
       : '',
