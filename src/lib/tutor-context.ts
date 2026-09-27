@@ -75,8 +75,11 @@ export interface HubExamWeek {
   simulado: {
     pct: number;
     meta: number;
-    porTopico: { topico: string; solved: number; total: number }[];
+    porTopico: { topico: string; solved: number; total: number; puladas: number }[];
+    /** Bloco inteiro pulado quando existir — senão o pior respondido. */
     piorTopico?: string;
+    /** Bloco INTEIRO sem tentativa (o tempo acabou nele / passou reto). */
+    pulouTudo?: string | null;
   } | null;
   travadasCount: number;
 }
@@ -189,8 +192,13 @@ export function buildHubContext(
               topico: t.topic,
               solved: t.solved,
               total: t.total,
+              puladas: t.skipped,
             })),
-            piorTopico: verdict.worst?.topic,
+            // O foco que o tutor recomenda segue a MESMA precedência do kit:
+            // bloco inteiro pulado (sem taxa para comparar) vence o pior
+            // respondido — puladas também porTopico agora leva o sinal.
+            piorTopico: verdict.pulouTudo?.topic ?? verdict.worst?.topic,
+            pulouTudo: verdict.pulouTudo?.topic ?? null,
           }
         : null,
       travadasCount: countTravadas(travadas),

@@ -311,6 +311,9 @@ export interface SimuladoTopicScore {
   total: number;
   /** null = só questões puladas no tópico — sem taxa honesta. */
   pct: number | null;
+  /** Questões SEM marca no tópico (avançou sem responder / tempo esgotado).
+   *  Pulada não é erro nem acerto — é o sinal mais alto de "não vi esse bloco". */
+  skipped: number;
 }
 
 export interface SimuladoVerdict {
@@ -323,6 +326,14 @@ export interface SimuladoVerdict {
   porTopico: SimuladoTopicScore[];
   /** Menor taxa entre tópicos com taxa — o "bloco com mais erros" do plano. */
   worst: SimuladoTopicScore | null;
+  /** O bloco INTEIRO sem tentativa (todas puladas — pior sinal que existe:
+   *  nem errar o aluno conseguiu). Primeiro tópico do escopo nessa condição;
+   *  null quando todo tópico teve ao menos uma resposta. A CAMADA QUE DECIDE
+   *  o foco usa pulouTudo ?? worst — pular tudo é diagnóstico mais grave do
+   *  que a menor taxa (nunca houve taxa para comparar). worst segue com o
+   *  contrato documentado (menor taxa entre com taxa) para as superfícies
+   *  que só olham número. */
+  pulouTudo: SimuladoTopicScore | null;
 }
 
 type VerdictRunLike = {
@@ -350,12 +361,14 @@ export function simuladoVerdictFor(run?: VerdictRunLike | null): SimuladoVerdict
     .map((topic) => {
       const qs = (run.questions ?? []).filter((q) => q.topic === topic);
       const solved = qs.filter((q) => q.status === 'solved').length;
+      const skipped = qs.filter((q) => q.status === 'skipped').length;
       const answered = qs.filter((q) => q.status !== 'skipped').length;
       return {
         topic,
         solved,
         total: qs.length,
         pct: answered > 0 ? Math.round((solved / answered) * 100) : null,
+        skipped,
       };
     })
     .filter((t) => t.total > 0);
@@ -363,7 +376,11 @@ export function simuladoVerdictFor(run?: VerdictRunLike | null): SimuladoVerdict
   const worst = comTaxa.length
     ? comTaxa.reduce((a, b) => (b.pct < a.pct ? b : a))
     : null;
-  return { pct, meta: MATH_META, metaBatida: pct >= MATH_META, porTopico, worst };
+  // O BLOCO INTEIRO SEM TENTATIVA: na ordem do escopo, o primeiro tópico cujo
+  // total é todo pulado. O tempo acabou nele (ou o aluno passou reto) — a
+  // revisão de amanhã começa por onde o aluno NEM CHEGOU.
+  const pulouTudo = porTopico.find((t) => t.skipped === t.total) ?? null;
+  return { pct, meta: MATH_META, metaBatida: pct >= MATH_META, porTopico, worst, pulouTudo };
 }
 
 // ---------- Flashcards na semana da Av1 ----------

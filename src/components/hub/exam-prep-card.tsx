@@ -83,11 +83,56 @@ import {
   simuladoVerdictFor,
   type PlanDay,
   type PlanKind,
+  type SimuladoTopicScore,
   type SimuladoVerdict,
 } from '@/lib/math-exam-prep';
 
 /** Rótulo curto do tópico — o kit fala 'Matrizes'/'Lógica', não o nome do catálogo. */
 const curto = (topic: string): string => MATH_TOPICO_CURTO[topic] ?? topic;
+
+/**
+ * O PLACAR DO SIMULADO EM CHIPS — a linha do bloco fraco mostrava o placar
+ * como texto corrido; na véspera, noite, o número que importa tem que ser
+ * ESCANEÁVEL: verde = taxa ≥ meta, âmbar = abaixo (número real atrás), e o
+ * NOVO estado — borda TRACEJADA rose = o bloco todo pulado (nem tentou:
+ * '0/5' com a cor de erro mentiria, com a cor de acerto também). Puladas
+ * parciais ganham '(N puladas)' no chip. Os separadores ' · ' ficam como
+ * texto entre os spans — o textContent continua 'Matrizes 5/5 · Lógica 2/5'
+ * (o QA da 95 continua válido sem mudança).
+ */
+function PlacarChips({ porTopico }: { porTopico: SimuladoTopicScore[] }) {
+  if (porTopico.length === 0) return null;
+  return (
+    <>
+      {porTopico.map((t, i) => {
+        const pulouTudo = t.skipped === t.total;
+        const abaixo = t.pct != null && t.pct < 70;
+        return (
+          <span key={t.topic}>
+            {i > 0 && ' · '}
+            <span
+              className={cn(
+                'inline-block whitespace-nowrap rounded-full border px-1.5 py-px text-[10px] font-semibold tabular-nums',
+                pulouTudo
+                  ? 'border-dashed border-rose-400/70 bg-rose-500/[0.06] text-rose-600 dark:text-rose-400'
+                  : abaixo
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+              )}
+            >
+              {curto(t.topic)} {t.solved}/{t.total}
+              {pulouTudo
+                ? ' (pulou tudo)'
+                : t.skipped > 0
+                  ? ` (${t.skipped} ${t.skipped === 1 ? 'pulada' : 'puladas'})`
+                  : ''}
+            </span>
+          </span>
+        );
+      })}
+    </>
+  );
+}
 
 const KIND_LABEL: Record<PlanKind, string> = {
   estudo: 'Estudo',
@@ -1345,6 +1390,17 @@ function VesperaKit({
 }) {
   const worst = verdict?.worst ?? null;
 
+  // O FOCO DA REVISÃO: pulouTudo ?? worst. Um bloco INTEIRO sem tentativa
+  // (o tempo acabou nele, ou o aluno passou reto) é o diagnóstico mais grave
+  // que existe — nem taxa houve para comparar — e o placar honesto ('Matrizes
+  // 0/5') já mostrava o sinal sem dar a ele VOZ na ação: o drill apontava
+  // para o pior tópico RESPONDIDO enquanto o bloco nunca visto ficava mudo.
+  // A promessa do plano ('o bloco com mais erros vira a revisão') se cumpre
+  // no sentido que importa: o bloco todo pulado É o bloco com mais erros.
+  // worst segue com o contrato documentado para quem só olha número.
+  const foco = verdict?.pulouTudo ?? worst;
+  const focoPulou = foco != null && foco.pct == null;
+
   const contextBadge =
     daysLeft === 2
       ? simuladoDoneToday
@@ -1378,39 +1434,60 @@ function VesperaKit({
   const rows: {
     icon: typeof Moon;
     title: string;
-    sub: string;
+    sub?: string;
+    /** Placar do simulado em chips (pulada ganha voz: dashed = nem tentou). */
+    subNode?: React.ReactNode;
     action: () => void;
     badge?: { text: string; tone: string };
     cta: string;
   }[] = [
     // A PROMESSA DO PLANO, AGORA COM NÚMEROS: o run oficial diz qual bloco
-    // errou mais — a linha abre o drill daquele tópico (a mesma entrada do
-    // FOCO DA PROVA, mas com a taxa DO SIMULADO, não a tendência geral).
-    // D-0 some: prova não treina (a faixa rose da 92 manda só leveza).
-    ...(worst && daysLeft >= 1
+    // errou mais — e, quando um bloco INTEIRO ficou sem tentativa, é ELE que
+    // manda (pulouTudo ?? worst). A linha abre o drill daquele tópico (a
+    // mesma entrada do FOCO DA PROVA, mas com o dado DO SIMULADO, não a
+    // tendência geral). D-0 some: prova não treina (a faixa rose da 92
+    // manda só leveza).
+    ...(foco && daysLeft >= 1
       ? [
           {
             icon: Crosshair,
             title:
               daysLeft === 2
-                ? `${curto(worst.topic)}: a revisão de amanhã`
-                : `${curto(worst.topic)}: começa a revisão de hoje`,
-            sub: `No simulado: ${verdict?.porTopico
-              .map((t) => `${curto(t.topic)} ${t.solved}/${t.total}`)
-              .join(' · ')} — o plano promete: o bloco com mais erros vira a revisão.`,
+                ? focoPulou
+                  ? `${curto(foco.topic)}: pulou tudo — a revisão de amanhã`
+                  : `${curto(foco.topic)}: a revisão de amanhã`
+                : focoPulou
+                  ? `${curto(foco.topic)}: pulou tudo — começa por ela`
+                  : `${curto(foco.topic)}: começa a revisão de hoje`,
+            subNode: (
+              <>
+                {'No simulado: '}
+                <PlacarChips porTopico={verdict?.porTopico ?? []} />
+                {' — '}
+                {focoPulou
+                  ? 'pular um bloco inteiro também é diagnóstico: a revisão começa por ele.'
+                  : 'o plano promete: o bloco com mais erros vira a revisão.'}
+              </>
+            ),
             action: () =>
               openSimulado({
                 disciplineCode: MATH_EXAM.disciplineCode,
-                topicScope: worst.topic,
+                topicScope: foco.topic,
               }),
-            badge: {
-              text: `${worst.pct ?? 0}% no bloco`,
-              tone:
-                (worst.pct ?? 0) < 70
-                  ? 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
-                  : 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
-            },
-            cta: `Treinar ${curto(worst.topic)}`,
+            badge: focoPulou
+              ? {
+                  text: `${foco.skipped} ${foco.skipped === 1 ? 'pulada' : 'puladas'}`,
+                  tone:
+                    'border-rose-400/60 bg-rose-500/10 tabular-nums text-rose-600 dark:border-rose-400/60 dark:bg-rose-500/10 dark:text-rose-400',
+                }
+              : {
+                  text: `${foco.pct ?? 0}% no bloco`,
+                  tone:
+                    (foco.pct ?? 0) < 70
+                      ? 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
+                      : 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
+                },
+            cta: `Treinar ${curto(foco.topic)}`,
           },
         ]
       : []),
@@ -1448,9 +1525,9 @@ function VesperaKit({
       icon: ScrollText,
       title: 'Recitar as fórmulas de memória',
       sub:
-        worst && (worst.pct ?? 100) < 70 && daysLeft >= 1
-          ? `${curto(worst.topic)} primeiro (${worst.solved}/${worst.total} no simulado), ${curto(
-              MATH_EXAM.topicosEscopo.find((t) => t !== worst.topic) ?? '',
+        foco && ((foco.pct ?? 0) < 70 || focoPulou) && daysLeft >= 1
+          ? `${curto(foco.topic)} primeiro (${foco.solved}/${foco.total} no simulado), ${curto(
+              MATH_EXAM.topicosEscopo.find((t) => t !== foco.topic) ?? '',
             )} depois — se travar numa, é só ela que você relê antes de dormir.`
           : 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
       action: onOpenFormulas,
@@ -1552,7 +1629,7 @@ function VesperaKit({
                     )}
                   </span>
                   <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
-                    {row.sub}
+                    {row.subNode ?? row.sub}
                   </span>
                 </span>
                 <span className="mt-1 flex shrink-0 items-center gap-1 text-[10px] font-medium text-indigo-600 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100 dark:text-indigo-300">

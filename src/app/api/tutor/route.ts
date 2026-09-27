@@ -94,8 +94,10 @@ interface HubContext {
     simulado: {
       pct: number;
       meta: number;
-      porTopico: { topico: string; solved: number; total: number }[];
+      porTopico: { topico: string; solved: number; total: number; puladas: number }[];
       piorTopico?: string;
+      /** Bloco INTEIRO sem tentativa (pulouTudo da 105) — precede o pior respondido. */
+      pulouTudo?: string | null;
     } | null;
     travadasCount: number;
   };
@@ -312,17 +314,28 @@ function buildHubBlock(hub?: HubContext): string {
         ? `simulado oficial de 29/09: FEITO ✓ ${w.simulado.pct}% (meta ${w.simulado.meta})${
             w.simulado.porTopico.length
               ? ` — por tópico: ${w.simulado.porTopico
-                  .map((t) => `${t.topico} ${t.solved}/${t.total}`)
+                  .map(
+                    (t) =>
+                      `${t.topico} ${t.solved}/${t.total}${
+                        t.puladas > 0 ? ` (${t.puladas} pulada${t.puladas === 1 ? '' : 's'})` : ''
+                      }`,
+                  )
                   .join(' · ')}`
               : ''
-          }${w.simulado.piorTopico ? ` · bloco fraco: ${w.simulado.piorTopico}` : ''}`
+          }${
+            w.simulado.pulouTudo
+              ? ` · bloco INTEIRO sem tentativa: ${w.simulado.pulouTudo} — a revisão começa por ele`
+              : w.simulado.piorTopico
+                ? ` · bloco fraco: ${w.simulado.piorTopico}`
+                : ''
+          }`
         : `simulado oficial de 29/09: ainda NÃO feito`,
     );
     parts.push(`questões travadas marcadas nas listas: ${w.travadasCount}`);
     lines.push(
       `- SEMANA DA AV1 (estado ao vivo, dados do app):\n    • ${parts.join(
         '\n    • ',
-      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã"); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado.`,
+      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado.`,
     );
   }
 
