@@ -13,22 +13,25 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   BookX,
+  CalendarCheck,
   Check,
+  CheckCircle2,
   CircleDashed,
   ClipboardList,
   Copy,
   Dumbbell,
   FileQuestion,
+  GraduationCap,
   Repeat2,
   RotateCcw,
   Target,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { getDisciplineByCode } from '@/data/course-data';
-import { openSimulado, openTutor } from '@/lib/hub-events';
 import {
   buildItemQuestion,
   buildNotebookQuestion,
@@ -44,8 +47,15 @@ import {
   type MistakeKind,
   type MistakeWindow,
 } from '@/lib/mistake-notebook';
+import {
+  MATH_EXAM,
+  findMathSimuladoRunOficial,
+  notebookExamBriefFor,
+  type NotebookExamBrief,
+} from '@/lib/math-exam-prep';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { useStudyProgress } from '@/lib/study-progress';
+import { openSimulado, openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 
 // ----- Metadados por tipo de erro (ícone + cor da paleta semântica) -----
@@ -77,6 +87,110 @@ function isFresh(iso?: string): boolean {
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return false;
   return Date.now() - t < 48 * 3600 * 1000;
+}
+
+// ----- Faixa da semana da Av1 — a MESMA gramática de cor dos Flashcards (90):
+// sólido + pulso nos "é hoje" (âmbar simulado, rose prova), emerald no registro
+// (o REGISTRO vence o relógio), tinta translúcida na espera (véspera). -----
+const NOTEBOOK_EXAM_VISUAL: Record<
+  NotebookExamBrief['kind'],
+  {
+    shell: string;
+    text: string;
+    sub: string;
+    iconBox: string;
+    icon: React.ReactNode;
+    btn: string;
+  }
+> = {
+  'simulado-hoje': {
+    shell:
+      'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <CalendarCheck className="size-4 animate-pulse" aria-hidden />,
+    btn: 'bg-white text-amber-600 hover:bg-amber-50 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-zinc-800',
+  },
+  'simulado-feito': {
+    shell: 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <CheckCircle2 className="size-4" aria-hidden />,
+    btn: 'bg-white text-emerald-600 hover:bg-emerald-50 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-zinc-800',
+  },
+  vespera: {
+    shell:
+      'border-amber-500/40 bg-amber-500/[0.07] dark:border-amber-400/40 dark:bg-amber-400/[0.06]',
+    text: 'text-amber-600 dark:text-amber-300',
+    sub: 'text-amber-700/80 dark:text-amber-300/75',
+    iconBox: 'bg-amber-500/15 dark:bg-amber-400/15',
+    icon: <Zap className="size-4" aria-hidden />,
+    btn: 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300',
+  },
+  'prova-hoje': {
+    shell:
+      'border-rose-500 bg-rose-500 shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <GraduationCap className="size-4 animate-pulse" aria-hidden />,
+    btn: 'bg-white text-rose-600 hover:bg-rose-50 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-zinc-800',
+  },
+};
+
+/**
+ * Faixa da semana da Av1 no topo do Caderno de Erros — o caderno aprende o
+ * próprio papel na reta final: no dia do simulado ele anuncia o que vai virar
+ * (ou flipa "feito ✓" com o run); na véspera ele É a lista do papel; no dia
+ * da prova ele manda descansar. CTA opcional (brief.cta null = sem botão).
+ */
+function NotebookExamStrip({
+  brief,
+  ctaLabel,
+  onCta,
+}: {
+  brief: NotebookExamBrief;
+  /** Rótulo final do CTA (o pai acrescenta contagem, ex.: "Ver as frescas (4)"). */
+  ctaLabel: string | null;
+  onCta?: () => void;
+}) {
+  const v = NOTEBOOK_EXAM_VISUAL[brief.kind];
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
+        v.shell,
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          className={cn(
+            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+            v.iconBox,
+          )}
+        >
+          {v.icon}
+        </span>
+        <div className="min-w-0">
+          <p className={cn('text-sm font-semibold leading-tight', v.text)}>{brief.titulo}</p>
+          <p className={cn('mt-1 text-xs leading-snug', v.sub)}>{brief.chamada}</p>
+        </div>
+      </div>
+      {ctaLabel && onCta ? (
+        <Button
+          size="sm"
+          onClick={onCta}
+          className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
+          aria-label={ctaLabel}
+        >
+          <Target className="size-3.5" aria-hidden />
+          <span className="tabular-nums">{ctaLabel}</span>
+        </Button>
+      ) : null}
+    </div>
+  );
 }
 
 export function MistakeNotebook() {
@@ -126,6 +240,40 @@ export function MistakeNotebook() {
   const revisedCount = visible.length - pendentes.length;
   const donePct = visible.length === 0 ? 0 : Math.round((revisedCount / visible.length) * 100);
 
+  // Semana da Av1 no caderno — RENDER-TIME (lição 79): calculado no corpo,
+  // reage a mock de relógio no próximo render, sem estado nem interval. O run
+  // oficial vem da FONTE ÚNICA findMathSimuladoRunOficial (85/86/88/89/90) e
+  // as pendências de Matemática contam o caderno INTEIRO (não a janela
+  // visível) — o número da faixa não mente quando o aluno filtra por período.
+  const simuladoRunOficial = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
+  const mathPendentes = items.filter(
+    (it) => it.disciplineCode === MATH_EXAM.disciplineCode && !revisedMap[it.key],
+  ).length;
+  const examBrief = notebookExamBriefFor(
+    new Date(),
+    mathPendentes,
+    simuladoRunOficial
+      ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
+      : null,
+  );
+  // CTA por estado: "Abrir o simulado" (mesma entrada pré-configurada do card
+  // da prova) no D-2 sem run; "Ver as frescas (N)" no D-2 com run — só quando
+  // a janela de 48h TEM erros (run perfeito = nada fresco = botão cala).
+  const examCtaLabel =
+    examBrief?.cta == null
+      ? null
+      : examBrief.kind === 'simulado-feito'
+        ? counts['48h'] > 0
+          ? `${examBrief.cta} (${counts['48h']})`
+          : null
+        : examBrief.cta;
+  const examOnCta =
+    examBrief?.kind === 'simulado-hoje'
+      ? () => openSimulado({ preset: 'math_exam' })
+      : examBrief?.kind === 'simulado-feito'
+        ? () => setWin('48h')
+        : undefined;
+
   if (items.length === 0) {
     return (
       <Card className="rounded-xl bg-card p-5 shadow-sm">
@@ -170,7 +318,11 @@ export function MistakeNotebook() {
           <h2 className="text-sm font-semibold">Caderno de Erros</h2>
           <Badge
             variant="outline"
-            className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+            className={
+              pendentes.length === 0
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
+                : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300'
+            }
           >
             {filtered ? `${stats.total} de ${items.length}` : stats.total}{' '}
             {stats.total === 1 ? 'item' : 'itens'}
@@ -293,6 +445,15 @@ export function MistakeNotebook() {
         </div>
       </div>
 
+      {/* Semana da Av1 no caderno — silêncio honesto fora da janela (regra da
+          fila da 88). Render-time: aparece/desaparece no mesmo frame do mock
+          de relógio, entre o diagnóstico e a lista — a missão do dia primeiro. */}
+      {examBrief ? (
+        <div className="border-b border-border px-5 py-4">
+          <NotebookExamStrip brief={examBrief} ctaLabel={examCtaLabel} onCta={examOnCta} />
+        </div>
+      ) : null}
+
       {/* Grupos por disciplina (borda na cor da disciplina, como na Biblioteca).
           key={win}: trocar a janela remonta e reanima a cascata — feedback visível. */}
       <div key={win} className="divide-y divide-border">
@@ -315,6 +476,17 @@ export function MistakeNotebook() {
                       ? `· ${list.length}`
                       : `· ${pendNoGrupo}/${list.length} pendentes`}
                   </span>
+                  {/* Grupo zerado: o "em dia" emerald — cor = significado no
+                      cabeçalho de cada disciplina (a mesma gramática da barra
+                      do ciclo: rose pendência, emerald resolved). */}
+                  {pendNoGrupo === 0 && list.length > 0 ? (
+                    <span
+                      className="inline-flex items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold normal-case text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
+                      title="Todo o grupo revisado — este canto do caderno está em dia"
+                    >
+                      <Check className="size-2.5" aria-hidden /> em dia
+                    </span>
+                  ) : null}
                 </h3>
                 <ul className="mt-2 space-y-2.5">
                   {list.map((it) => {

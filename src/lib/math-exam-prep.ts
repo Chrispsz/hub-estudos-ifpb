@@ -235,6 +235,86 @@ export function flashcardExamBriefFor(
   return null;
 }
 
+// ---------- Caderno de Erros na semana da Av1 ----------
+
+/**
+ * O BRIEF DA SEMANA DA AV1 PARA O CADERNO DE ERROS — o caderno é a FERRAMENTA
+ * DA VÉSPERA (é onde moram as questões erradas e puladas do simulado, que o
+ * plano manda refazer no papel) e era cego ao calendário: não sabia dizer
+ * "o simulado de hoje é o seu material de amanhã", nem "hoje é o SEU dia".
+ * Esta função diz ao caderno o que ele é em cada dia da semana:
+ *   - simulado (D-2): sem run, anuncia o papel dele ("os erros de hoje caem
+ *     aqui automaticamente"); com o run registrado flipa "feito ✓" (o
+ *     REGISTRO vence o relógio, lição 85/86) — e o CTA abre as frescas;
+ *   - véspera (D-1): o DIA DELE — refazer no papel as pendências de Matemática;
+ *   - prova (D-0): calma — revisão leve, nada novo, boa prova.
+ * Fora da janela retorna null — silêncio honesto (regra da fila da 88):
+ * caderno sem semana da Av1 na frente não inventa urgência.
+ * Datas derivadas de MATH_SIMULADO_DATE / MATH_VESPERA_DATE / MATH_EXAM.date
+ * — fonte única, para nunca divergir do hero/card/fila/agenda/flashcards.
+ */
+export interface NotebookExamBrief {
+  kind: 'simulado-hoje' | 'simulado-feito' | 'vespera' | 'prova-hoje';
+  titulo: string;
+  /** Uma linha — o PORQUÊ (honesto, sem alarme). */
+  chamada: string;
+  /** Rótulo do CTA. null = faixa sem botão: o dia do papel e o dia da prova
+   * falam por si (a ação é offline / é não-fazer). */
+  cta: string | null;
+}
+
+export function notebookExamBriefFor(
+  date: Date,
+  mathPendentes: number,
+  simuladoRun?: { solved: number; total: number } | null,
+): NotebookExamBrief | null {
+  const key = localDateKey(date);
+  const pct =
+    simuladoRun && simuladoRun.total > 0
+      ? Math.round((simuladoRun.solved / simuladoRun.total) * 100)
+      : null;
+
+  if (key === MATH_SIMULADO_DATE) {
+    if (simuladoRun) {
+      return {
+        kind: 'simulado-feito',
+        titulo: `Simulado da Av1 feito ✓${pct !== null ? ` — ${pct}%` : ''}`,
+        chamada:
+          'as questões erradas e puladas de hoje já estão neste caderno — é o material da véspera: refaça cada uma no papel antes de marcar como revisada',
+        cta: 'Ver as frescas',
+      };
+    }
+    return {
+      kind: 'simulado-hoje',
+      titulo: 'É hoje: Simulado da Av1',
+      chamada:
+        'quando o run for registrado, as questões erradas e puladas caem automaticamente aqui — o resultado de hoje vira o material da véspera',
+      cta: 'Abrir o simulado',
+    };
+  }
+  if (key === MATH_VESPERA_DATE) {
+    return {
+      kind: 'vespera',
+      titulo: 'Véspera da Av1 — o dia do papel',
+      chamada:
+        mathPendentes > 0
+          ? `refaça no papel as ${mathPendentes} questões de Matemática pendentes neste caderno — erro que vira acerto hoje é ponto amanhã`
+          : 'caderno de Matemática em dia — confira o kit da véspera no card da prova e confie no preparo',
+      cta: null,
+    };
+  }
+  if (key === MATH_EXAM.date) {
+    return {
+      kind: 'prova-hoje',
+      titulo: 'É hoje: Prova da Av1',
+      chamada:
+        'revisão leve: só releia o que já está com ✓ — nada novo hoje, nem caderno; boa prova!',
+      cta: null,
+    };
+  }
+  return null;
+}
+
 export type PlanKind = 'estudo' | 'pratica' | 'simulado' | 'revisao' | 'prova';
 
 export interface PlanTask {
