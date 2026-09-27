@@ -37,7 +37,7 @@ import {
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
-import { useStudyProgress } from '@/lib/study-progress';
+import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { countDisciplinesOnTrack, countTotalTopicsDone } from '@/lib/study-topics';
 import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
@@ -101,6 +101,14 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
     () => (nowMin ? getNextEvaluationShared(nowMin) : null),
     [nowMin],
   );
+
+  // O LEITNER TAMBÉM NÃO DORME (116): a chamada de revisão espaçada lê o
+  // seletor PURO com o agora do tick de 60s — a linha aparece sozinha quando
+  // um cartão vence com a tab aberta (antes: memo do hook cacheava o relógio,
+  // o 'cartões esperando' só nascia num reload ou noutra mutação).
+  const flashDue = nowMin
+    ? flashcardsDueFor(sp.allFlashcards, nowMin.getTime()).length
+    : 0;
 
   // O run do simulado oficial (29/09) — mesma fonte única do card da prova
   // (85): se o dia do simulado já aconteceu com prova registrada, o chip do
@@ -344,8 +352,9 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
         onOpenSettings={onOpenSchedule}
       />
 
-      {/* Chamada de revisão espaçada — só aparece quando há flashcards vencidos */}
-      {sp.flashcardStats.due > 0 && (
+      {/* Chamada de revisão espaçada — só aparece quando há flashcards vencidos.
+          VIVA (116): flashDue lê o relógio do tick — a linha nasce sozinha. */}
+      {flashDue > 0 && (
         <motion.section
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -357,8 +366,8 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">
-                Revisão espaçada — {sp.flashcardStats.due}{' '}
-                {sp.flashcardStats.due === 1 ? 'cartão esperando' : 'cartões esperando'}
+                Revisão espaçada — {flashDue}{' '}
+                {flashDue === 1 ? 'cartão esperando' : 'cartões esperando'}
               </p>
               <p className="text-xs text-muted-foreground">
                 Revisar hoje fixa o conteúdo na memória de longa duração.
@@ -368,7 +377,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
               size="sm"
               onClick={onOpenPractice}
               className="bg-teal-600 text-white hover:bg-teal-700"
-              aria-label={`Abrir revisão de ${sp.flashcardStats.due} flashcards`}
+              aria-label={`Abrir revisão de ${flashDue} flashcards`}
             >
               Revisar agora <ChevronRight className="size-3.5" aria-hidden />
             </Button>

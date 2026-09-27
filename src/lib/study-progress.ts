@@ -175,6 +175,35 @@ export interface Flashcard {
 /** Intervalo (dias) por caixa — índice = box. Box 0 usa minutos (5 min). */
 export const FLASHCARD_BOX_DAYS = [0, 1, 3, 7, 14, 30] as const;
 
+/**
+ * SELETOR PURO do Leitner — cartões vencidos (inclui novas — dueAt =
+ * createdAt), mais atrasados primeiro. O relógio chega por PARÂMETRO
+ * (lição 113/115: quem pede "agora" passa o agora): a derivação existe
+ * UMA vez e as superfícies vivas (flashcards 30s, dashboard 60s) passam
+ * o tick — o memo do hook mantém o comportamento cacheado para quem não
+ * tem batida própria, sem segunda derivação no app.
+ */
+export function flashcardsDueFor(cards: Flashcard[], nowMs: number): Flashcard[] {
+  return cards
+    .filter((c) => new Date(c.dueAt).getTime() <= nowMs)
+    .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+}
+
+/** SELETOR PURO do placar do baralho — mesma forma do flashcardStats do hook. */
+export function flashcardStatsFor(cards: Flashcard[], nowMs: number) {
+  const due = flashcardsDueFor(cards, nowMs);
+  return {
+    total: cards.length,
+    due: due.length,
+    learning: cards.filter((c) => c.box <= 1).length,
+    mastered: cards.filter((c) => c.box >= 4).length,
+    reviewsDone: cards.reduce((acc, c) => acc + c.reviews, 0),
+    nextDueMs: cards.length
+      ? Math.min(...cards.map((c) => new Date(c.dueAt).getTime())) - nowMs
+      : null,
+  };
+}
+
 /** Label curta do intervalo que a nota aplicaria (hint dos botões de revisão). */
 export function flashcardNextIntervalLabel(box: number, grade: FlashcardGrade): string {
   const nextBox = flashcardNextBox(box, grade);
@@ -1125,27 +1154,19 @@ export function useStudyProgress() {
     [progress.flashcards],
   );
 
-  /** Cartões vencidos (inclui novas — dueAt = createdAt), mais atrasados primeiro. */
-  const flashcardsDue = React.useMemo(() => {
-    const now = Date.now();
-    return allFlashcards
-      .filter((c) => new Date(c.dueAt).getTime() <= now)
-      .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
-  }, [allFlashcards]);
+  /** Cartões vencidos (inclui novas — dueAt = createdAt), mais atrasados primeiro.
+   * A derivação mora no seletor PURO flashcardsDueFor (o relógio por parâmetro);
+   * o memo mantém o comportamento cacheado — superfícies vivas chamam o seletor
+   * direto com o próprio tick (lição 113/115: uma fonte, várias cadências). */
+  const flashcardsDue = React.useMemo(
+    () => flashcardsDueFor(allFlashcards, Date.now()),
+    [allFlashcards],
+  );
 
-  const flashcardStats = React.useMemo(() => {
-    const now = Date.now();
-    return {
-      total: allFlashcards.length,
-      due: flashcardsDue.length,
-      learning: allFlashcards.filter((c) => c.box <= 1).length,
-      mastered: allFlashcards.filter((c) => c.box >= 4).length,
-      reviewsDone: allFlashcards.reduce((acc, c) => acc + c.reviews, 0),
-      nextDueMs: allFlashcards.length
-        ? Math.min(...allFlashcards.map((c) => new Date(c.dueAt).getTime())) - now
-        : null,
-    };
-  }, [allFlashcards, flashcardsDue]);
+  const flashcardStats = React.useMemo(
+    () => flashcardStatsFor(allFlashcards, Date.now()),
+    [allFlashcards],
+  );
 
   // ----- Selectors do Protocolo HUB -----
 

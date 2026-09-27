@@ -27,7 +27,7 @@ import {
   planDaysBehind,
   simuladoVerdictFor,
 } from '@/lib/math-exam-prep';
-import type { useStudyProgress } from '@/lib/study-progress';
+import { flashcardsDueFor, type useStudyProgress } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { getExerciseStats } from '@/lib/exercise-extractor';
 
@@ -256,7 +256,10 @@ export function buildHubContext(
       topicsDone: topics?.doneTopics ?? 0,
       topicsTotal: topics?.totalTopics ?? 0,
       pomodoroMinutes: sp.progress.pomodoroSessions.reduce((acc, s) => acc + s.focusMinutes, 0),
-      flashcardsDue: sp.flashcardStats.due,
+      // LEITNER VIVO (116): o contexto do tutor é montado NO MOMENTO do
+      // pedido — o seletor puro com Date.now() garante que a IA ouça o
+      // vencimento real do baralho, não o memo cacheado de renders passados.
+      flashcardsDue: flashcardsDueFor(sp.allFlashcards, Date.now()).length,
       exercisesSolved: sp.totalExercisesSolved,
       exercisesTotal: getExerciseStats().total,
     },

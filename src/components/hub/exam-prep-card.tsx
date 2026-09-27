@@ -55,7 +55,7 @@ import {
   type ReadinessTone,
 } from '@/lib/exam-readiness';
 import { useLocalStorage } from '@/lib/use-local-storage';
-import { useStudyProgress } from '@/lib/study-progress';
+import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { collectMistakes, notebookStats, pendingMistakes } from '@/lib/mistake-notebook';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
@@ -876,7 +876,12 @@ export function ExamPrepCard() {
             runs={sp.progress.simuladoRuns}
             oficialDate={simuladoRunOnPlanDate?.date ?? null}
             deckAdded={deckAdded}
-            flashcardsDue={sp.flashcardStats.due}
+            flashcardsDue={
+              // LEITNER VIVO (116): o seletor puro com o agora do render — o
+              // kit da véspera (na árvore do dashboard que tica a 60s) lê o
+              // vencimento REAL do baralho, não o memo cacheado do passado.
+              flashcardsDueFor(sp.allFlashcards, Date.now()).length
+            }
             travadasCount={travadasCount}
             travadasLabel={travadasLabel}
             onOpenErrors={() => openSimulado()}

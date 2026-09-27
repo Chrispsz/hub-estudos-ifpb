@@ -44,7 +44,7 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
-import { useStudyProgress } from '@/lib/study-progress';
+import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
@@ -110,7 +110,10 @@ export function PracticeView({
     if (practiceReq?.detail?.mode === 'flashcards') setMode('flashcards');
   }, [practiceReq?.nonce, practiceReq]);
 
-  const dueCount = sp.flashcardStats.due;
+  // LEITNER VIVO (116): render-time com o seletor puro — o badge da aba
+  // flashcards refresca a cada re-render (troca de aba, retorno de run),
+  // não fica preso ao memo cacheado do primeiro mount.
+  const dueCount = flashcardsDueFor(sp.allFlashcards, Date.now()).length;
 
   return (
     <Tabs

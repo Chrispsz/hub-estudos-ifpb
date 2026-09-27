@@ -55,11 +55,14 @@ import { TutorMarkdown } from './tutor-markdown';
 import {
   flashcardBoxLabel,
   flashcardNextIntervalLabel,
+  flashcardStatsFor,
+  flashcardsDueFor,
   useStudyProgress,
   type Flashcard,
   type FlashcardGrade,
   type StudyProgressHook,
 } from '@/lib/study-progress';
+import { useNow } from './clock-widget';
 import { openTutor } from '@/lib/hub-events';
 import {
   MATH_EXAM,
@@ -70,10 +73,12 @@ import {
 
 // ---------- Helpers ----------
 
-/** Rótulo amigável do vencimento do cartão. */
-function dueLabel(dueAt: string): { text: string; overdue: boolean } {
+/** Rótulo amigável do vencimento do cartão — o relógio chega por parâmetro
+ * (lição 113/115): a lista respira com o tick de 30s da view, sem Date.now()
+ * congelado no render. */
+function dueLabel(dueAt: string, nowMs: number): { text: string; overdue: boolean } {
   const ms = new Date(dueAt).getTime();
-  const diff = ms - Date.now();
+  const diff = ms - nowMs;
   if (Number.isNaN(ms)) return { text: 'vencido', overdue: true };
   if (diff <= 0) {
     const lateMin = Math.floor(-diff / 60_000);
@@ -337,8 +342,20 @@ export function FlashcardsView() {
   const [importing, setImporting] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const stats = sp.flashcardStats;
   const allCards = sp.allFlashcards;
+
+  // A BATIDA DO LEITNER (116): o agendamento do baralho vive no relógio —
+  // o cartão 'Errei' volta em 5min, e uma tab aberta não pode contar a
+  // história antiga. useNow(30s) — a mesma fonte da 113 — re-renderiza a
+  // view; placar, rótulos de vencimento, brief e o botão Revisar leem o
+  // seletor PURO com o agora do tick (lição 79: render-time, sem estado).
+  const now = useNow(30_000);
+  const nowMs = now ? now.getTime() : 0;
+
+  const stats = React.useMemo(
+    () => flashcardStatsFor(allCards, nowMs),
+    [allCards, nowMs],
+  );
 
   /** Exporta todos os cartões como baralho JSON compartilhável. */
   const handleExportDeck = React.useCallback(() => {
@@ -407,10 +424,12 @@ export function FlashcardsView() {
   // Brief da semana da Av1 — RENDER-TIME (lição 79): calculado no frame,
   // reage a mock de relógio no remount, sem estado nem interval. O run
   // oficial vem da FONTE ÚNICA findMathSimuladoRunOficial (85/86/88/89).
+  // A porta é o próprio now (contrato null-até-mount da 113): o tick de
+  // 30s faz o brief flipar sozinho quando a janela da semana vira.
   const simuladoRunOficial = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
-  const examBrief = mounted
+  const examBrief = now
     ? flashcardExamBriefFor(
-        new Date(),
+        now,
         mathCardCount,
         simuladoRunOficial
           ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
@@ -426,7 +445,11 @@ export function FlashcardsView() {
             ? cramScope === 'all'
               ? allCards
               : allCards.filter((c) => c.disciplineCode === cramScope)
-            : sp.flashcardsDue
+            // A fila da sessão congela NO MOUNT por design (o contrato da
+            // sessão) — mas congela com o agora FRESCO do clique (Date.now()
+            // avaliado no render que monta a sessão), não com um memo
+            // cacheado do passado (116).
+            : flashcardsDueFor(allCards, Date.now())
         }
         cram={mode === 'cram'}
         scopeLabel={
@@ -452,6 +475,20 @@ export function FlashcardsView() {
             Memorize com o método Leitner: cartões errados voltam em 5min, acertos progridem até
             30 dias.
           </p>
+          {/* O RELÓGIO DO LEITNER (116) — a promessa da agenda, visível: sem
+              vencidos, a linha antecipa o próximo compromisso do baralho e
+              desce a cada tick de 30s; com vencidos, o botão fala e a linha
+              cala. Honestidade antecipada em vez de botão morto. */}
+          {mounted && stats.due === 0 && stats.total > 0 && stats.nextDueMs !== null && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="size-3 text-amber-500/70" aria-hidden />
+              próxima revisão{' '}
+              <span className="font-medium tabular-nums text-foreground/70">
+                {dueLabel(new Date(nowMs + stats.nextDueMs).toISOString(), nowMs).text}
+              </span>
+              — a contagem corre sozinha
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -636,7 +673,7 @@ export function FlashcardsView() {
           {filtered.map((card) => {
             const disc = getDisciplineByCode(card.disciplineCode);
             const color = getColorClasses(disc?.color ?? 'slate');
-            const due = dueLabel(card.dueAt);
+            const due = dueLabel(card.dueAt, nowMs);
             return (
               <Card
                 key={card.id}
@@ -662,7 +699,9 @@ export function FlashcardsView() {
                   )}
                   <span
                     className={cn(
-                      'ml-auto inline-flex items-center gap-1 text-[11px]',
+                      // tabular-nums: a contagem viva (116) muda de dígito a
+                      // cada tick sem jitter — a gramática de tempo da casa.
+                      'ml-auto inline-flex items-center gap-1 text-[11px] tabular-nums',
                       due.overdue ? 'font-medium text-amber-500' : 'text-muted-foreground',
                     )}
                   >
