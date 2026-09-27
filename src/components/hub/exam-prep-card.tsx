@@ -735,6 +735,22 @@ export function ExamPrepCard() {
                           <BookOpen className="size-2.5" /> material
                         </button>
                       )}
+                      {t.exercisePool && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openPractice({
+                              disciplineCode: MATH_EXAM.disciplineCode,
+                              exerciseIds: t.exercisePool,
+                            });
+                          }}
+                          title={`Abrir no Praticar só os exercícios de apoio: ${t.exercisePool.join(', ')}`}
+                          className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
+                        >
+                          <Dumbbell className="size-2.5" /> apoio ({t.exercisePool.length})
+                        </button>
+                      )}
                     </label>
                   </li>
                 );
@@ -943,6 +959,22 @@ export function ExamPrepCard() {
                                   className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
                                 >
                                   <BookOpen className="size-2.5" /> material
+                                </button>
+                              )}
+                              {t.exercisePool && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openPractice({
+                                      disciplineCode: MATH_EXAM.disciplineCode,
+                                      exerciseIds: t.exercisePool,
+                                    });
+                                  }}
+                                  title={`Abrir no Praticar só os exercícios de apoio: ${t.exercisePool.join(', ')}`}
+                                  className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
+                                >
+                                  <Dumbbell className="size-2.5" /> apoio ({t.exercisePool.length})
                                 </button>
                               )}
                             </label>

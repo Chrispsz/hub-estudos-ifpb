@@ -290,6 +290,10 @@ function ExercisesPanel({
   /** Conjunto material-first (ex.: a folha da S3 → as 8 questões que saíram
    *  dela): só as questões ligadas ao material ficam na lista. 'all' = off. */
   const [filterMaterial, setFilterMaterial] = React.useState<string>('all');
+  /** Apoio do plano (ex.: o dia D-4 → mat-ex07 + mat-ex08): só os exercícios
+   *  EXATOS da tarefa ficam na lista. [] = off (a gramática da 94: o filtro
+   *  nunca prende — X devolve a lista completa). */
+  const [filterExercises, setFilterExercises] = React.useState<string[]>([]);
   /** Só questões MARCADAS (⭐) — revisão focada antes da prova. */
   const [onlyMarked, setOnlyMarked] = React.useState(false);
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
@@ -304,10 +308,11 @@ function ExercisesPanel({
     );
   };
 
-  // Pré-filtro de disciplina (+ tópico opcional + conjunto material-first)
-  // vindo de fora (ex.: card Plano de Recuperação; foco por tópico
-  // pós-simulado; folha da S3 → as 8 questões). Pedido SEM conjunto limpa o
-  // anterior (a abertura manual sempre limpa — lição do vazamento da 82).
+  // Pré-filtro de disciplina (+ tópico opcional + conjunto material-first +
+  // apoio do plano) vindo de fora (ex.: card Plano de Recuperação; foco por
+  // tópico pós-simulado; folha da S3 → as 8 questões; apoio do dia → os
+  // exercícios EXATOS). Pedido SEM conjunto/apoio limpa os anteriores (a
+  // abertura manual sempre limpa — lição do vazamento da 82).
   React.useEffect(() => {
     const req = practiceReq?.detail;
     const code = req?.disciplineCode;
@@ -315,6 +320,7 @@ function ExercisesPanel({
       setFilterDiscipline(code);
       setFilterTopic(req.topic ?? 'all');
       setFilterMaterial(req.linkedMaterial ?? 'all');
+      setFilterExercises(req.exerciseIds ?? []);
     }
   }, [practiceReq?.nonce, practiceReq]);
   // PADRÃO MATERIAL-FIRST: por padrão só aparece o que já foi dado em sala.
@@ -378,6 +384,9 @@ function ExercisesPanel({
     if (filterMaterial !== 'all') {
       list = list.filter((e) => (e.linkedMaterials ?? []).includes(filterMaterial));
     }
+    if (filterExercises.length > 0) {
+      list = list.filter((e) => filterExercises.includes(e.id));
+    }
     if (onlyAligned) {
       list = list.filter((e) => getExerciseStage(e) === 'em_sala');
     }
@@ -389,6 +398,7 @@ function ExercisesPanel({
     filterDiscipline,
     filterTopic,
     filterMaterial,
+    filterExercises,
     onlyAligned,
     onlyMarked,
     sp.progress.exerciseProgress,
@@ -659,6 +669,34 @@ function ExercisesPanel({
                 </div>
               );
             })()}
+          {/* Chip do APOIO do plano — aparece quando um pedido externo pediu
+              os exercícios EXATOS de uma tarefa (ex.: 'Apoio no Praticar:
+              mat-ex07 e mat-ex08' → os 2, um clique). A mesma família violeta
+              do conjunto, com os IDs no rótulo (o aluno sabe O QUE abre),
+              contagem ao vivo e X para limpar. */}
+          {filterExercises.length > 0 && (
+            <div
+              className="flex items-center gap-1.5 rounded-lg border border-violet-500/50 bg-violet-500/10 px-2.5 py-2 text-xs font-medium text-violet-700 dark:text-violet-300"
+              title="Exercícios de apoio do plano — X para limpar"
+            >
+              <Dumbbell className="size-3.5 shrink-0" aria-hidden />
+              <span className="max-w-52 truncate sm:max-w-64">
+                Apoio:{' '}
+                <span className="font-semibold">{filterExercises.join(' · ')}</span>
+              </span>
+              <span className="rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums">
+                {filterExercises.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setFilterExercises([])}
+                aria-label="Limpar o filtro de apoio"
+                className="rounded-full p-0.5 transition-colors hover:bg-violet-500/20"
+              >
+                <X className="size-3" aria-hidden />
+              </button>
+            </div>
+          )}
           <div className="ml-auto text-xs text-muted-foreground">
             {filteredExercises.length} exercício(s)
           </div>
