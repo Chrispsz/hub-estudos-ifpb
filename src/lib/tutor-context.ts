@@ -216,7 +216,14 @@ export function buildHubContext(
               const focoTopico = verdict.pulouTudo?.topic ?? verdict.worst?.topic;
               if (!focoTopico) return null;
               const focoPct = verdict.pulouTudo ? null : (verdict.worst?.pct ?? null);
-              const d = mathDrillFeedbackFor(sp.progress.simuladoRuns, focoTopico, focoPct);
+              // A ordem do tempo manda (107): só drill DEPOIS do oficial é
+              // 'a revisão cumprida' — antes do diagnóstico é preparo.
+              const d = mathDrillFeedbackFor(
+                sp.progress.simuladoRuns,
+                focoTopico,
+                focoPct,
+                run?.date ?? null,
+              );
               if (!d) return null;
               const dia = new Date(d.dateISO).toDateString();
               const quando =

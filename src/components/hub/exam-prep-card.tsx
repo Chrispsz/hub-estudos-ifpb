@@ -873,6 +873,7 @@ export function ExamPrepCard() {
             simuladoDoneToday={simuladoDoneToday}
             verdict={simuladoVerdict}
             runs={sp.progress.simuladoRuns}
+            oficialDate={simuladoRunOnPlanDate?.date ?? null}
             deckAdded={deckAdded}
             flashcardsDue={sp.flashcardStats.due}
             travadasCount={travadasCount}
@@ -1365,6 +1366,7 @@ function VesperaKit({
   simuladoDoneToday,
   verdict,
   runs,
+  oficialDate,
   deckAdded,
   flashcardsDue,
   travadasCount,
@@ -1385,6 +1387,10 @@ function VesperaKit({
   /** Runs do Simulado Pro (mesmo registro do pai) — de onde o leitor do drill
    *  acha o treino 'topico' do foco. undefined/null = sem drill (estado honesto). */
   runs?: DrillRunLike[] | null;
+  /** Data (ISO) do run oficial — a ORDEM DO TEMPO manda (107): só drill
+   *  DEPOIS do diagnóstico cumpre a promessa; treino antes é preparo e não
+   *  ganha recibo (nenhum 'subiu' com a ordem dos fatos invertida). */
+  oficialDate?: string | null;
   deckAdded: boolean;
   flashcardsDue: number;
   travadasCount: number;
@@ -1418,7 +1424,9 @@ function VesperaKit({
   // comparação só existe quando os dois lados têm taxa (bloco pulado não
   // inventa delta). Render-time (sem effect, lição 79): run novo no storage
   // re-renderiza e o recibo aparece no mesmo frame.
-  const drill = foco ? mathDrillFeedbackFor(runs, foco.topic, foco.pct) : null;
+  const drill = foco
+    ? mathDrillFeedbackFor(runs, foco.topic, foco.pct, oficialDate)
+    : null;
   const drillDia = (() => {
     if (!drill) return '';
     const d = new Date(drill.dateISO).toDateString();

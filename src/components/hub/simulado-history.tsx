@@ -16,7 +16,7 @@ import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode } from '@/lib/simulado-resume';
 import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, findMathSimuladoRunOficial } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_TOPICO_CURTO, drillTopicOf, findMathSimuladoRunOficial, mathDrillFeedbackFor, simuladoVerdictFor } from '@/lib/math-exam-prep';
 
 function runPct(r: SimuladoRun): number {
   return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
@@ -82,25 +82,39 @@ function runDisciplineCode(r: SimuladoRun): string | undefined {
  * prova é o default e fica sem rótulo (a ausência É o padrão, a linha respira);
  * treino (rose) e treino de tópico (sky) usam o MESMO código de cores do
  * diálogo (rodada 73) — a cor continua sendo o rótulo, em toda superfície.
+ * (107) O treino de tópico agora DIZ O TÓPICO: na véspera, três 'Treino de
+ * tópico' anônimos não dizem o que foi treinado — o run carrega o tópico
+ * (drillTopicOf: todas as questões do mesmo bloco), o badge fala o nome
+ * curto da casa. Run antigo sem detalhes/misto volta ao rótulo genérico —
+ * nada adivinhado.
  */
 function runModeBadge(r: SimuladoRun) {
   const mode = normalizeMode(r.mode);
   if (mode === 'prova') return null;
-  return mode === 'treino' ? (
+  if (mode === 'treino') {
+    return (
+      <Badge
+        variant="outline"
+        title="Treino do Caderno de Erros — repetição dos erros, não conta como simulado da prova"
+        className="gap-0.5 border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] font-semibold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
+      >
+        <Dumbbell className="size-2.5" aria-hidden /> Treino
+      </Badge>
+    );
+  }
+  const topic = drillTopicOf(r);
+  const label = topic ? (MATH_TOPICO_CURTO[topic] ?? topic) : null;
+  return (
     <Badge
       variant="outline"
-      title="Treino do Caderno de Erros — repetição dos erros, não conta como simulado da prova"
-      className="gap-0.5 border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] font-semibold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
-    >
-      <Dumbbell className="size-2.5" aria-hidden /> Treino
-    </Badge>
-  ) : (
-    <Badge
-      variant="outline"
-      title="Treino curto de um único tópico (replay) — não conta como simulado da prova"
+      title={
+        label
+          ? `Treino curto só de ${label} — não conta como simulado da prova`
+          : 'Treino curto de um único tópico (replay) — não conta como simulado da prova'
+      }
       className="gap-0.5 border-sky-300/60 bg-sky-500/[0.07] px-1.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-400"
     >
-      <Target className="size-2.5" aria-hidden /> Treino de tópico
+      <Target className="size-2.5" aria-hidden /> {label ? `Treino: ${label}` : 'Treino de tópico'}
     </Badge>
   );
 }
@@ -149,6 +163,9 @@ export function SimuladoHistory() {
   // prova-mode não ganha badge por design, então o run que o app inteiro
   // reconhece como marco aparecia idêntico a qualquer prova de treino.
   const runOficial = React.useMemo(() => findMathSimuladoRunOficial(runs), [runs]);
+  // O veredito do oficial alimenta o delta dos drills (fonte única da 95):
+  // a taxa POR TÓPICO é o 'de onde subiu' do chip do histórico.
+  const runOficialVerdict = React.useMemo(() => simuladoVerdictFor(runOficial), [runOficial]);
 
   const stats = React.useMemo(() => {
     if (runs.length === 0) return null;
@@ -446,6 +463,20 @@ export function SimuladoHistory() {
           <div className="mt-4 space-y-1.5">
             {runs.slice(0, 5).map((r) => {
               const pct = runPct(r);
+              // O DELTA DO DRILL NO HISTÓRICO (107): treino de tópico do escopo
+              // DEPOIS do oficial e com ganho real — o mesmo leitor do kit
+              // (fonte única), com a taxa POR TÓPICO do oficial como 'de onde
+              // subiu'. Antes do oficial = preparo, sem delta (a ordem do
+              // tempo manda); sem taxa dos dois lados = nada inventado.
+              const drillTopic = normalizeMode(r.mode) === 'topico' ? drillTopicOf(r) : null;
+              const drillDelta = (() => {
+                if (!drillTopic || !runOficial) return null;
+                const oficialPct =
+                  runOficialVerdict?.porTopico.find((t) => t.topic === drillTopic)?.pct ?? null;
+                const d = mathDrillFeedbackFor([r], drillTopic, oficialPct, runOficial.date);
+                if (!d || d.melhorou !== true || oficialPct === null) return null;
+                return { from: oficialPct, to: d.pct ?? 0 };
+              })();
               return (
                 <div
                   key={r.id}
@@ -487,6 +518,17 @@ export function SimuladoHistory() {
                     </Badge>
                   )}
                   {runModeBadge(r)}
+                  {/* O chip do GANHO REAL — a mesma voz do recibo do kit ('subiu
+                      de 40% para 80%'), enxuta: a linha já mostra o % do drill
+                      no badge de taxa; aqui falta só o DE ONDE. */}
+                  {drillDelta && (
+                    <span
+                      className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 tabular-nums dark:text-emerald-400"
+                      title={`Treino depois do oficial: a taxa sobre respondidos subiu de ${drillDelta.from}% para ${drillDelta.to}%`}
+                    >
+                      <TrendingUp className="size-2.5" aria-hidden /> subiu de {drillDelta.from}%
+                    </span>
+                  )}
                   <span className="text-muted-foreground">
                     {fmtDate(r.date)} · {fmtDur(r.durationSec)}
                   </span>

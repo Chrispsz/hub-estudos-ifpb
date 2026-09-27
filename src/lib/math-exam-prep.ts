@@ -423,17 +423,29 @@ export interface DrillFeedback {
  * são "mais recentes" por sorteio de ordem) e devolve os números com a
  * mesma honestidade do veredito: taxa sobre respondidos, comparação só
  * quando os dois lados têm taxa. Módulo permanece puro.
+ *
+ * A ORDEM DO TEMPO MANDA (107): oficialDateISO quando passado restringe o
+ * recibo aos drills DEPOIS do run oficial — a promessa do plano é "o bloco
+ * com mais erros vira a revisão de AMANHÃ": treino ANTES do diagnóstico é
+ * preparo, não revisão cumprida, e um 'subiu de X% para Y%' com o treino
+ * antes do simulado mentiria a ordem dos fatos (o 80% teria VINDO antes do
+ * 40%). Sem oficial (ou sem data), vale o comportamento antigo — nenhum
+ * recibo inventa uma sequência que não aconteceu.
  */
 export function mathDrillFeedbackFor(
   runs: DrillRunLike[] | undefined | null,
   topic: string,
   focoPct?: number | null,
+  oficialDateISO?: string | null,
 ): DrillFeedback | null {
+  const oficialMs = oficialDateISO ? new Date(oficialDateISO).getTime() : null;
   const candidates = (runs ?? [])
     .filter((r) => {
       if (r.mode !== 'topico') return false;
       const qs = r.questions ?? [];
       if (qs.length === 0) return false;
+      // A revisão vem DEPOIS do diagnóstico (lição da 107).
+      if (oficialMs !== null && new Date(r.date).getTime() <= oficialMs) return false;
       // Só prova de MATEMÁTICA: pelo filtro do preset OU pelas questões
       // (o mesmo critério do leitor do run oficial).
       if (r.filters?.discipline) {
@@ -461,6 +473,22 @@ export function mathDrillFeedbackFor(
     dateISO: run.date,
     melhorou: pct === null || focoPct == null ? null : pct > focoPct,
   };
+}
+
+/**
+ * O TÓPICO DE UM DRILL (badge do histórico): os questions de um run
+ * 'topico' carregam o tópico — quando TODOS apontam o mesmo, é ele;
+ * run antigo sem detalhes (ou misto) devolve null (o badge fica sem nome
+ * em vez de adivinhar). Puro, sem React.
+ */
+export function drillTopicOf(
+  run?: { questions?: { topic?: string }[] } | null,
+): string | null {
+  const qs = run?.questions ?? [];
+  if (qs.length === 0) return null;
+  const first = qs[0].topic;
+  if (first == null) return null;
+  return qs.every((q) => q.topic === first) ? first : null;
 }
 
 // ---------- Flashcards na semana da Av1 ----------
