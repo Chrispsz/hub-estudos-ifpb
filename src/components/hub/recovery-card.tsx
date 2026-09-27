@@ -18,6 +18,7 @@ import {
   Dumbbell,
   ListRestart,
   Route,
+  Target,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -88,8 +89,8 @@ export function RecoveryCard() {
     [sp.progress.realGrades],
   );
   const todayItems = React.useMemo(
-    () => todayRecoveryActions(done, sp.progress.realGrades),
-    [done, sp.progress.realGrades],
+    () => todayRecoveryActions(done, sp.progress.realGrades, sp.progress.simuladoRuns),
+    [done, sp.progress.realGrades, sp.progress.simuladoRuns],
   );
   const allActions = React.useMemo(
     () => RECOVERY_TRACKS.flatMap((t) => t.acoes.map((a) => ({ track: t, action: a }))),
@@ -187,6 +188,11 @@ export function RecoveryCard() {
               {todayItems.map(({ track, action }, i) => {
                 const isDone = !!done[action.id];
                 const isPointer = action.checkable === false;
+                // O SIMULADO OFICIAL TINTA A PLACA (cor = significado, a mesma
+                // gramática da nota real): rosa = compromisso pendente,
+                // emerald = meta batida, amber = informativo (abaixo da meta).
+                const falaSimulado = isPointer && typeof action.pct === 'number';
+                const metaBatida = falaSimulado && (action.pct as number) >= MATH_META;
                 return (
                   <li
                     key={action.id}
@@ -194,9 +200,13 @@ export function RecoveryCard() {
                       'flex items-start gap-2 rounded-lg border p-2.5 transition-colors',
                       isDone
                         ? 'border-emerald-500/25 bg-emerald-500/5'
-                        : isPointer
-                          ? 'border-rose-500/25 bg-rose-500/[0.04]'
-                          : 'border-border bg-muted/20',
+                        : metaBatida
+                          ? 'border-emerald-500/40 bg-emerald-500/[0.07]'
+                          : falaSimulado
+                            ? 'border-amber-500/40 bg-amber-500/[0.06]'
+                            : isPointer
+                              ? 'border-rose-500/25 bg-rose-500/[0.04]'
+                              : 'border-border bg-muted/20',
                     )}
                   >
                     <span
@@ -213,7 +223,17 @@ export function RecoveryCard() {
                     {isPointer ? (
                       // Item-POINTER: o registro vive no card da prova — aqui é
                       // só a fila apontando (sem checkbox, sem dupla verdade).
-                      <CornerDownRight className="mt-0.5 size-4 shrink-0 text-rose-400" aria-hidden />
+                      // Com veredito do simulado, o ícone muda com a cor: ✓
+                      // emerald (meta batida) ou alvo amber (abaixo — informativo).
+                      falaSimulado ? (
+                        metaBatida ? (
+                          <CircleCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden />
+                        ) : (
+                          <Target className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+                        )
+                      ) : (
+                        <CornerDownRight className="mt-0.5 size-4 shrink-0 text-rose-400" aria-hidden />
+                      )
                     ) : (
                       <Checkbox
                         id={`rec-${action.id}`}
@@ -242,6 +262,24 @@ export function RecoveryCard() {
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                         <span>{track.title}</span>
                         <span>· {action.minutos} min</span>
+                        {/* Chip do veredito do simulado — MESMA gramática do
+                            badge da nota real (87): emerald sólido-contorno
+                            quando ≥ meta, amber informativo quando abaixo. */}
+                        {typeof action.pct === 'number' && (
+                          <Badge
+                            className={cn(
+                              'gap-1 border px-1.5 py-0 text-[9px] font-semibold',
+                              action.pct >= MATH_META
+                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                            )}
+                          >
+                            simulado{' '}
+                            <span className="tabular-nums font-bold">{action.pct}%</span> · meta{' '}
+                            {MATH_META}
+                            {action.pct >= MATH_META ? ' ✓' : ''}
+                          </Badge>
+                        )}
                         {action.materialId && (
                           <button
                             type="button"

@@ -10,7 +10,13 @@
 // trilha muda sozinha (topicosCobertos/material-first) — aqui a fonte é a
 // conversa + arquivo autoral, então o estado é declarado explicitamente.
 
-import { MATH_EXAM, MATH_EXAM_PLAN, MATH_META, planDayFor } from './math-exam-prep';
+import {
+  MATH_EXAM,
+  MATH_EXAM_PLAN,
+  MATH_META,
+  findMathSimuladoRunOficial,
+  planDayFor,
+} from './math-exam-prep';
 import { daysUntilDate } from './semester';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -96,6 +102,48 @@ export interface RecoveryAction {
   /** false = item-POINTER (sem checkbox): o registro vive em outro card
    *  (ex.: o plano D-N vive no card da prova — duplicar seria dupla verdade). */
   checkable?: boolean;
+  /** Percentual do simulado oficial quando o TEXTO lê o registro (o chip da
+   *  fila renderiza com COR = SIGNIFICADO: emerald ≥ meta, amber abaixo). */
+  pct?: number;
+}
+
+/**
+ * Veredito do SIMULADO OFICIAL para a fila — derivado do MESMO registro que
+ * card, hero e histórico leem (findMathSimuladoRunOficial, fonte única).
+ * Só existe na janela D-2..D-0 da prova: antes do dia, o simulado ainda é
+ * compromisso (fila rosa); depois da prova, o veredito não muda mais o HOJE.
+ */
+export interface SimuladoOficialVerdict {
+  /** Aproveitamento do run oficial (0–100). */
+  pct: number;
+  /** true quando hoje é o DIA do simulado (o texto diz "feito hoje"). */
+  feitoHoje: boolean;
+}
+
+/** Runs mínimos para o veredito — genérico mantém o módulo puro. */
+type SimuladoRunsLike =
+  | {
+      date: string;
+      mode?: string;
+      solved: number;
+      total: number;
+      filters?: { discipline?: string };
+      questions?: { disciplineCode?: string }[];
+    }[]
+  | undefined
+  | null;
+
+function simuladoVerdictFor(
+  daysToExam: number,
+  runs: SimuladoRunsLike,
+): SimuladoOficialVerdict | null {
+  if (daysToExam < 0 || daysToExam > 2) return null;
+  const run = findMathSimuladoRunOficial(runs);
+  if (!run) return null;
+  return {
+    pct: Math.round((run.solved / Math.max(run.total, 1)) * 100),
+    feitoHoje: daysToExam === 2,
+  };
 }
 
 export interface RecoveryTrack {
@@ -337,6 +385,7 @@ export function matTrackResumoFor(daysToExam: number, notaReal: number | null = 
 export function matTodayActionFor(
   daysToExam: number,
   notaReal: number | null = null,
+  simulado: SimuladoOficialVerdict | null = null,
 ): RecoveryAction | null {
   if (daysToExam < 0) {
     // Nota JÁ REGISTRADA na Calculadora → a fila larga o 'Anotar a nota':
@@ -351,6 +400,40 @@ export function matTodayActionFor(
   }
   const day = planDayFor(Math.min(Math.max(daysToExam, 0), MATH_EXAM_PLAN.length - 1));
   if (!day) return null;
+  // O SIMULADO OFICIAL FALA NA FILA (padrão da nota real, rodada 87): o run
+  // é o registro — quando existe, o pointer D-2/D-1/D-0 deixa de tratar o
+  // simulado como compromisso futuro e lê o que aconteceu. Sem run, a fila
+  // fica como era (honesta — sem inventar resultado).
+  if (daysToExam === 2 && simulado) {
+    return {
+      id: `mat-plano-d${day.offset}`,
+      texto:
+        'Simulado da Av1 feito hoje ✓ — agora é refazer no papel as que erraram; as tarefas do dia seguem no card da prova, acima',
+      minutos: day.minutos,
+      pct: simulado.pct,
+      checkable: false,
+    };
+  }
+  if (daysToExam === 1 && simulado) {
+    return {
+      id: `mat-plano-d${day.offset}`,
+      texto:
+        'Plano da prova (D-1): Véspera — simulado de ontem feito: foque o dia nas travadas e no que errou (a folha impressa já traz o foco)',
+      minutos: day.minutos,
+      pct: simulado.pct,
+      checkable: false,
+    };
+  }
+  if (daysToExam === 0 && simulado) {
+    return {
+      id: `mat-plano-d${day.offset}`,
+      texto:
+        'Plano da prova (D-0): DIA DA PROVA — o simulado te preparou: reler os cards de fórmulas, levar o kit e confiar',
+      minutos: day.minutos,
+      pct: simulado.pct,
+      checkable: false,
+    };
+  }
   return {
     id: `mat-plano-d${day.offset}`,
     texto: `Plano da prova (D-${day.offset}): ${day.titulo} — o passo a passo com as tarefas está no card da prova, acima`,
@@ -368,16 +451,19 @@ export function matTodayActionFor(
 export function todayRecoveryActions(
   done: Record<string, boolean> = {},
   realGrades?: Record<string, { grade?: number }> | null,
+  simuladoRuns?: SimuladoRunsLike,
 ): { track: RecoveryTrack; action: RecoveryAction }[] {
   const out: { track: RecoveryTrack; action: RecoveryAction }[] = [];
   const daysToExam = daysUntilDate(MATH_EXAM.date);
   // A nota REAL lida do REGISTRO (fonte única — a Calculadora fala e a fila obedece).
   const notaReal = findNotaRealAv1(realGrades);
+  // O simulado oficial também fala: mesmo registro de card, hero e histórico.
+  const simulado = simuladoVerdictFor(daysToExam, simuladoRuns);
   for (const track of RECOVERY_TRACKS.filter((t) => t.status !== 'adiado').slice(0, 3)) {
     if (track.id === 'mat') {
       // Pós-prova com a nota registrada OU marcada como feita → a trilha sai da lista.
       if (daysToExam < 0 && (done['mat-pos-prova-nota'] || notaReal !== null)) continue;
-      const action = matTodayActionFor(daysToExam, notaReal);
+      const action = matTodayActionFor(daysToExam, notaReal, simulado);
       if (action) out.push({ track, action });
       continue;
     }
