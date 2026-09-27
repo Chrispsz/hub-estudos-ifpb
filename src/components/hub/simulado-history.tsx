@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, Dumbbell, History, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { Award, Dumbbell, History, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode } from '@/lib/simulado-resume';
 import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, findMathSimuladoRunOficial } from '@/lib/math-exam-prep';
 
 function runPct(r: SimuladoRun): number {
   return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
@@ -144,6 +144,12 @@ export function SimuladoHistory() {
   const sp = useStudyProgress();
   const runs = sp.progress.simuladoRuns ?? NO_RUNS;
 
+  // A TENTATIVA OFICIAL do plano (29/09, prova de Matemática) — a MESMA fonte
+  // única do hero e do card da prova (85). No histórico ela era anônima:
+  // prova-mode não ganha badge por design, então o run que o app inteiro
+  // reconhece como marco aparecia idêntico a qualquer prova de treino.
+  const runOficial = React.useMemo(() => findMathSimuladoRunOficial(runs), [runs]);
+
   const stats = React.useMemo(() => {
     if (runs.length === 0) return null;
     const pcts = runs.map(runPct);
@@ -213,18 +219,26 @@ export function SimuladoHistory() {
         </div>
       ) : (
         <>
-          {/* Mini gráfico de evolução (últimas 8 tentativas) — com a linha da meta */}
+          {/* Mini gráfico de evolução (últimas 8 tentativas) — com a linha da meta.
+              A coluna da TENTATIVA OFICIAL do plano ganha Medal + anel emerald
+              (prioridade sobre o Trophy de melhor nota — o marco importa mais). */}
           <div className="mt-4 flex items-end justify-start gap-2 sm:justify-between" aria-hidden>
             {chartRuns.map((r, i) => {
               const pct = runPct(r);
-              const isBest = pct === bestChartPct && bestChartPct > 0;
+              const isOficial = !!runOficial && r.id === runOficial.id;
+              const isBest = !isOficial && pct === bestChartPct && bestChartPct > 0;
               return (
                 <div
                   key={r.id}
-                  title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}`}
+                  title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}${isOficial ? ' · TENTATIVA OFICIAL do plano (29/09)' : ''}`}
                   className="flex max-w-[56px] flex-1 flex-col items-center gap-1 transition-transform hover:scale-[1.06]"
                 >
-                  {isBest ? (
+                  {isOficial ? (
+                    <Medal
+                      className="size-3 text-emerald-500"
+                      aria-label={`Tentativa oficial do plano: ${pct}%`}
+                    />
+                  ) : isBest ? (
                     <Trophy
                       className="size-3 text-amber-500"
                       aria-label={`Melhor tentativa: ${pct}%`}
@@ -236,6 +250,7 @@ export function SimuladoHistory() {
                   <div
                     className={cn(
                       'relative flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50',
+                      isOficial && 'ring-1 ring-emerald-500/50 ring-offset-1 ring-offset-background',
                       isBest && 'ring-1 ring-amber-500/50 ring-offset-1 ring-offset-background',
                     )}
                   >
@@ -460,6 +475,17 @@ export function SimuladoHistory() {
                   <Badge variant="outline" className={cn('border text-[10px]', pctTone(pct))}>
                     {pct}%
                   </Badge>
+                  {/* A OFICIAL tem nome: prova-mode fica sem rótulo por design
+                      (a ausência É o padrão), então este é o ÚNICO badge que
+                      uma prova ganha na lista — impossível confundir com treino. */}
+                  {runOficial && r.id === runOficial.id && (
+                    <Badge
+                      title={`A tentativa oficial do plano (${MATH_SIMULADO_DATE.split('-').reverse().slice(0, 2).join('/')}) — é este registro que os marcos do painel, o kit da véspera e o plano reconhecem como "feito"`}
+                      className="gap-0.5 border-emerald-600 bg-emerald-600 px-1.5 text-[10px] font-semibold text-white shadow-sm shadow-emerald-600/25 dark:border-emerald-500 dark:bg-emerald-500"
+                    >
+                      <Medal className="size-2.5" aria-hidden /> Oficial da Av1
+                    </Badge>
+                  )}
                   {runModeBadge(r)}
                   <span className="text-muted-foreground">
                     {fmtDate(r.date)} · {fmtDur(r.durationSec)}
@@ -508,7 +534,16 @@ export function SimuladoHistory() {
                 return (
                   <>
                     {stats.count} tentativa(s): {provas} simulado(s)
-                    {treinos > 0 ? ` · ${treinos} treino(s)` : ''} · cada tentativa do Simulado Pro grava automaticamente aqui.
+                    {treinos > 0 ? ` · ${treinos} treino(s)` : ''}
+                    {runOficial && (
+                      <span className="whitespace-nowrap">
+                        {' '}· oficial da Av1 ({MATH_SIMULADO_DATE.split('-').reverse().slice(0, 2).join('/')}):{' '}
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {runPct(runOficial)}%
+                        </span>
+                      </span>
+                    )}
+                    {' '}· cada tentativa do Simulado Pro grava automaticamente aqui.
                   </>
                 );
               })()}
