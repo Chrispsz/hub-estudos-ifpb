@@ -64,6 +64,10 @@ function ExamDayStrip({ brief }: { brief: TodayStudyExamBrief }) {
       <CalendarCheck className="size-3.5 shrink-0" />
     ) : brief.kind === 'vespera' ? (
       <BookOpenCheck className="size-3.5 shrink-0" />
+    ) : brief.kind === 'preparo' ? (
+      // Véspera DO SIMULADO: o relógio antecipa o ensaio, mas SEM pulso —
+      // a noite anterior é de calma (o pulso fica para o dia do evento).
+      <CalendarClock className="size-3.5 shrink-0" />
     ) : brief.feito ? (
       <CircleCheck className="size-3.5 shrink-0" />
     ) : (

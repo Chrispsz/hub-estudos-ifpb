@@ -377,9 +377,11 @@ export function ScheduleView() {
                 const nome =
                   nearest.milestone.kind === 'simulado'
                     ? 'simulado'
-                    : nearest.milestone.kind === 'vespera'
-                      ? 'véspera'
-                      : 'prova';
+                    : nearest.milestone.kind === 'preparo'
+                      ? 'preparo do simulado'
+                      : nearest.milestone.kind === 'vespera'
+                        ? 'véspera'
+                        : 'prova';
                 return (
                   <span className="text-muted-foreground">
                     {' '}

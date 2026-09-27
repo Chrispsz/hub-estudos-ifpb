@@ -865,7 +865,8 @@ export function ExamPrepCard() {
           </div>
         </div>
 
-        {/* KIT DA VÉSPERA — o bloco calmo da reta final (aparece em D-2, D-1 e D-0). */}
+        {/* KIT DA VÉSPERA — o bloco calmo da reta final (aparece em D-3, a véspera
+            do simulado, e segue até o D-0). */}
         {isVesperaWindow(daysLeft) && (
           <VesperaKit
             daysLeft={daysLeft}
@@ -1436,21 +1437,23 @@ function VesperaKit({
   })();
 
   const contextBadge =
-    daysLeft === 2
-      ? simuladoDoneToday
-        ? verdict
-          ? verdict.metaBatida
-            ? `simulado feito — ${verdict.pct}% ≥ meta, véspera leve`
-            : `simulado feito — ${verdict.pct}%: abaixo da meta`
-          : 'simulado feito hoje — agora é só o kit, com calma'
-        : 'depois do simulado de hoje — comece por aqui'
-      : daysLeft === 1
-        ? verdict
-          ? verdict.metaBatida
-            ? `véspera — ${verdict.pct}% no simulado, manter o plano`
-            : `véspera — ${verdict.pct}% no simulado: bloco fraco primeiro`
-          : 'véspera — revisão leve, sem conteúdo novo'
-        : 'hoje é o dia — só reler e respirar';
+    daysLeft === 3
+      ? 'véspera do simulado — amanhã é o ensaio real'
+      : daysLeft === 2
+        ? simuladoDoneToday
+          ? verdict
+            ? verdict.metaBatida
+              ? `simulado feito — ${verdict.pct}% ≥ meta, véspera leve`
+              : `simulado feito — ${verdict.pct}%: abaixo da meta`
+            : 'simulado feito hoje — agora é só o kit, com calma'
+          : 'depois do simulado de hoje — comece por aqui'
+        : daysLeft === 1
+          ? verdict
+            ? verdict.metaBatida
+              ? `véspera — ${verdict.pct}% no simulado, manter o plano`
+              : `véspera — ${verdict.pct}% no simulado: bloco fraco primeiro`
+            : 'véspera — revisão leve, sem conteúdo novo'
+          : 'hoje é o dia — só reler e respirar';
 
   // Cor = significado no badge do kit: emerald = meta batida (calma, a mesma
   // família do "Feito"); amber = abaixo da meta (atenção com número real
@@ -1477,6 +1480,28 @@ function VesperaKit({
     /** Acento de ESTADO da linha (ex.: recibo do drill = fechamento emerald à esquerda). */
     accent?: string;
   }[] = [
+    // A VÉSPERA DO SIMULADO (D-3): a noite em que o ensaio real é AMANHÃ.
+    // O kit abre um dia antes para PREPARAR — a linha diz o que amanhã exige
+    // (escopo, condição, meta) e o CTA abre o simulado com o preset oficial,
+    // a mesma porta do botão do card. Só existe em D-3: em D-2 a linha do
+    // veredito assume o palco (o run oficial vira a fonte do que a linha diz).
+    ...(daysLeft === 3
+      ? [
+          {
+            icon: Target,
+            title: 'O ensaio real é amanhã',
+            sub: `Simulado da Av1: escopo completo (${MATH_EXAM.topicosEscopo.join(
+              ' + ',
+            )}), sem consulta, meta ${MATH_META}%. Depois do run, este kit lê o resultado e aponta a revisão.`,
+            action: () => openSimulado({ preset: 'math_exam' }),
+            badge: {
+              text: `meta ${MATH_META}`,
+              tone: 'border-indigo-400/40 bg-indigo-500/10 tabular-nums text-indigo-600 dark:text-indigo-300',
+            },
+            cta: 'Ver o simulado',
+          },
+        ]
+      : []),
     // A PROMESSA DO PLANO, AGORA COM NÚMEROS: o run oficial diz qual bloco
     // errou mais — e, quando um bloco INTEIRO ficou sem tentativa, é ELE que
     // manda (pulouTudo ?? worst). A linha abre o drill daquele tópico (a

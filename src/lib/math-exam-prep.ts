@@ -59,6 +59,18 @@ function localDateKey(d: Date): string {
 }
 
 /**
+ * DATA DO PREPARO — a véspera DO SIMULADO (28/09, D-3 da prova), derivada do
+ * simulado para nunca divergir: mudou o simulado, muda o preparo junto. O
+ * último dia silencioso da reta final: o ensaio real é AMANHÃ e nenhuma
+ * superfície dizia isso (o kit abre em D-2, o marco do simulado só é hoje).
+ */
+export const MATH_PREPARO_SIMULADO_DATE = (() => {
+  const d = new Date(`${MATH_SIMULADO_DATE}T12:00:00`);
+  d.setDate(d.getDate() - 1);
+  return localDateKey(d);
+})();
+
+/**
  * DATA DA VÉSPERA — D-1 da prova (30/09), derivada da data da prova para
  * nunca divergir (mesma regra do simulado acima): mudou a prova, muda a
  * véspera junto.
@@ -83,7 +95,8 @@ export const MATH_VESPERA_DATE = (() => {
  * dono, consistente com o chip D-1 do hero da rodada 85).
  */
 export interface ExamWeekMilestone {
-  kind: 'simulado' | 'vespera' | 'prova';
+  /** 'preparo' = a véspera DO SIMULADO (28/09): o ensaio real é amanhã. */
+  kind: 'simulado' | 'vespera' | 'prova' | 'preparo';
   date: string; // 'yyyy-mm-dd'
   /** Nome curto do marco — ex.: 'Simulado da Av1 — Matemática'. */
   titulo: string;
@@ -95,6 +108,15 @@ export interface ExamWeekMilestone {
 
 export function examWeekMilestoneFor(date: Date): ExamWeekMilestone | null {
   const key = localDateKey(date);
+  if (key === MATH_PREPARO_SIMULADO_DATE) {
+    return {
+      kind: 'preparo',
+      date: MATH_PREPARO_SIMULADO_DATE,
+      titulo: 'Véspera do simulado',
+      subtitulo: 'o ensaio real é amanhã',
+      detalhe: 'último bloco de conteúdo (Lógica Parte 2) — recitar as fórmulas e dormir cedo',
+    };
+  }
   if (key === MATH_SIMULADO_DATE) {
     return {
       kind: 'simulado',
@@ -175,7 +197,7 @@ export function findMathSimuladoRunOficial<T extends SimuladoRunLike>(
  * 95 — zero segunda fonte.
  */
 export interface TodayStudyExamBrief {
-  kind: 'simulado' | 'vespera' | 'prova';
+  kind: 'simulado' | 'vespera' | 'prova' | 'preparo';
   /** Título do marco — a mesma voz do strip da Agenda. */
   titulo: string;
   /** A linha que refrata o dia (defere ao plano / informa o registro). */
@@ -213,6 +235,18 @@ export function todayStudyExamBriefFor(
       feito: false,
       pct: null,
       linha: 'revisão leve: o plano manda — folha, fórmulas e só as travadas (card acima)',
+    };
+  }
+  if (m.kind === 'preparo') {
+    // A véspera DO SIMULADO tem voz própria: o strip não diz 'é hoje' (o
+    // evento é AMANHÃ) e não pulsa (a calma manda na noite anterior) — ele
+    // antecipa o ensaio com a meta e devolve o comando ao plano de hoje.
+    return {
+      kind: 'preparo',
+      titulo: 'Amanhã: Simulado da Av1',
+      feito: false,
+      pct: null,
+      linha: `o ensaio real — escopo completo, sem consulta, meta ${MATH_META}%. Hoje o plano manda: Lógica Parte 2, fórmulas e dormir cedo`,
     };
   }
   return {
@@ -1324,12 +1358,12 @@ export const MATH_CHECKLIST: { grupo: string; itens: string[] }[] = [
 
 /**
  * Janela do KIT DA VÉSPERA: o bloco calmo do card da prova só existe quando
- * falta pouco — do DIA DO SIMULADO (D-2, 29/09: à noite o dono já começa a
- * transição) até o DIA DA PROVA (D-0). Antes disso o plano das listas manda;
- * mostrar o kit cedo seria ruído, não calma.
+ * falta pouco — da VÉSPERA DO SIMULADO (D-3, 28/09: a noite em que o ensaio
+ * real é amanhã e o kit prepara) até o DIA DA PROVA (D-0). Antes disso o
+ * plano das listas manda; mostrar o kit cedo seria ruído, não calma.
  */
 export function isVesperaWindow(daysLeft: number): boolean {
-  return daysLeft >= 0 && daysLeft <= 2;
+  return daysLeft >= 0 && daysLeft <= 3;
 }
 
 /** Dia do plano para "faltam N dias" (N = daysUntilDate da prova). */
