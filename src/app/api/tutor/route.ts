@@ -79,6 +79,26 @@ interface HubContext {
   nextEvaluations?: HubEvaluation[];
   upcomingEvents?: HubEvent[];
   studentStats?: HubStudentStats;
+  /** Estado ao vivo da semana da Av1 (espelho de HubExamWeek em tutor-context). */
+  examWeek?: {
+    provaDaysLeft: number;
+    planoHoje: {
+      titulo: string;
+      kind: string;
+      minutos: number;
+      feitas: number;
+      total: number;
+    } | null;
+    diasAtras: number;
+    simuladoDaysLeft: number;
+    simulado: {
+      pct: number;
+      meta: number;
+      porTopico: { topico: string; solved: number; total: number }[];
+      piorTopico?: string;
+    } | null;
+    travadasCount: number;
+  };
 }
 
 interface TutorRequestBody {
@@ -276,6 +296,33 @@ function buildHubBlock(hub?: HubContext): string {
     const s = hub.studentStats;
     lines.push(
       `- Progresso do aluno: ${s.materialsDone}/${s.materialsTotal} materiais concluídos · ${s.topicsDone}/${s.topicsTotal} tópicos dominados · ${s.pomodoroMinutes} min de foco (Pomodoro) · ${s.flashcardsDue} flashcard(s) para revisar hoje · ${s.exercisesSolved}/${s.exercisesTotal} exercícios resolvidos`,
+    );
+  }
+  if (hub.examWeek) {
+    const w = hub.examWeek;
+    const parts: string[] = [`faltam ${w.provaDaysLeft} dia(s) para a prova (01/10)`];
+    if (w.planoHoje) {
+      parts.push(
+        `plano de hoje: "${w.planoHoje.titulo}" — ${w.planoHoje.feitas}/${w.planoHoje.total} tarefa(s) feita(s), ~${w.planoHoje.minutos} min`,
+      );
+    }
+    if (w.diasAtras > 0) parts.push(`${w.diasAtras} dia(s) do plano ficaram para trás`);
+    parts.push(
+      w.simulado
+        ? `simulado oficial de 29/09: FEITO ✓ ${w.simulado.pct}% (meta ${w.simulado.meta})${
+            w.simulado.porTopico.length
+              ? ` — por tópico: ${w.simulado.porTopico
+                  .map((t) => `${t.topico} ${t.solved}/${t.total}`)
+                  .join(' · ')}`
+              : ''
+          }${w.simulado.piorTopico ? ` · bloco fraco: ${w.simulado.piorTopico}` : ''}`
+        : `simulado oficial de 29/09: ainda NÃO feito`,
+    );
+    parts.push(`questões travadas marcadas nas listas: ${w.travadasCount}`);
+    lines.push(
+      `- SEMANA DA AV1 (estado ao vivo, dados do app):\n    • ${parts.join(
+        '\n    • ',
+      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã"); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado.`,
     );
   }
 

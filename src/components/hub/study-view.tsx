@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
+  CalendarCheck,
   CheckCircle2,
   Clock,
   Code2,
@@ -375,6 +376,15 @@ export function StudyView({
   );
   const colors = getColorClasses(discipline.color);
   const chatTopic = topicsSummary?.nextTopic ?? 'geral';
+
+  // A SEMANA DA AV1 NO CHAT — o mesmo examWeek que o tutor recebe (fonte
+  // única: buildHubContext). O badge no header do chat torna o contexto
+  // VISÍVEL: o aluno sabe que a IA sabe (plano de hoje, veredito do simulado
+  // quando existir, travadas) — sem mágica silenciosa.
+  const examWeek = React.useMemo(
+    () => buildHubContext(disciplineCode, sp).examWeek,
+    [disciplineCode, sp.progress],
+  );
 
   const cycleTotal = Math.max(1, cfg.cyclesBeforeLong);
   const doneInCycle = live.cycleCount % cycleTotal;
@@ -1456,6 +1466,20 @@ export function StudyView({
                 <SheetDescription className="truncate">
                   Tutor de {discipline.shortName} · tópico: {chatTopic}
                 </SheetDescription>
+                {examWeek && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium tabular-nums text-amber-600 dark:text-amber-400"
+                      title="O tutor recebe o estado ao vivo da semana da Av1: plano de hoje, o veredito do simulado (quando feito) e as travadas marcadas"
+                    >
+                      <CalendarCheck className="size-3 shrink-0" aria-hidden />
+                      contexto: semana da Av1 · D-{examWeek.provaDaysLeft}
+                      {examWeek.simulado
+                        ? ` · simulado ${examWeek.simulado.pct}%`
+                        : ''}
+                    </span>
+                  </div>
+                )}
               </div>
               <Button
                 variant="ghost"

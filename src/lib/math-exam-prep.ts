@@ -874,6 +874,13 @@ export const MATH_LISTAS: {
 /** Chave do espelho no localStorage: {"matrizes-7": true, "logica-4": true, ...}. */
 export const MATH_TRAVADAS_KEY = 'hub:math-exam:v1:travadas';
 
+/**
+ * Chave das marcações do plano (tarefas/checklist feitas) — FONTE ÚNICA: o
+ * card da prova e o contexto do tutor (buildHubContext) leem a MESMA chave,
+ * para o estado "feito" nunca divergir entre superfícies (lição 85/86).
+ */
+export const MATH_PLAN_KEY = 'hub:math-exam:v1:plan';
+
 /** Defesa de leitura: lixo/corrompido/parcial volta como objeto limpo. */
 export function normalizeTravadas(raw: unknown): Record<string, boolean> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};

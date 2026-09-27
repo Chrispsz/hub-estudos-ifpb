@@ -68,6 +68,7 @@ import {
   MATH_FLASHCARDS,
   MATH_FORMULAS,
   MATH_LISTAS,
+  MATH_PLAN_KEY,
   MATH_SIMULADO_DATE,
   MATH_TOPICO_CURTO,
   MATH_TRAVADAS_KEY,
@@ -105,7 +106,6 @@ const KIND_STYLE: Record<PlanKind, string> = {
 };
 
 type CheckedMap = Record<string, boolean>;
-const LS_PLAN = 'hub:math-exam:v1:plan';
 const LS_CHECK = 'hub:math-exam:v1:checklist';
 
 /** Mapeia "faltam N dias" para o dia do plano (offset N = N dias antes da prova; 0 = prova). */
@@ -118,7 +118,7 @@ function planDayForDaysLeft(daysLeft: number): PlanDay | undefined {
 export function ExamPrepCard() {
   const daysLeft = daysUntilDate(MATH_EXAM.date);
   const [open, setOpen] = React.useState(false);
-  const [checked, setChecked] = useLocalStorage<CheckedMap>(LS_PLAN, {});
+  const [checked, setChecked] = useLocalStorage<CheckedMap>(MATH_PLAN_KEY, {});
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
   // Espelho das marcas de caneta nas listas impressas (Travadas das listas):
   // o aluno marca as questões que travaram e a véspera usa o registro.
