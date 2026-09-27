@@ -12,6 +12,7 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
+  CheckCheck,
   ChevronRight,
   Eye,
   EyeOff,
@@ -19,6 +20,7 @@ import {
   History,
   Lightbulb,
   ListChecks,
+  Pause,
   Play,
   RotateCcw,
   Sparkles,
@@ -210,17 +212,20 @@ export function SimuladoView({
     });
   }, [phase, open, config, questions, results, idx, remaining, elapsed]);
 
-  // Guarda de saída da PÁGINA durante a prova: navegador pergunta antes de
-  // fechar/recarregar (o estado já está salvo, mas evitar o acidente é melhor).
+  // Guarda de saída da PÁGINA durante a prova — SÓ com o diálogo aberto:
+  // depois de Pausar (X ou botão), a tentativa está salva no storage e o
+  // aluno navega o site sem o alerta de "sair da página?" perseguindo-o.
+  // A guarda existe para o acidente no MEIO da prova (reload que interrompe
+  // o fluxo), não para punir o uso normal depois de uma pausa.
   React.useEffect(() => {
-    if (phase !== 'running') return;
+    if (phase !== 'running' || !open) return;
     function onBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault();
       e.returnValue = ''; // requerido pelo Chrome
     }
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [phase]);
+  }, [phase, open]);
 
   // Alertas sonoros: 1 bip aos 60s, 2 bips aos 10s, 3 bips no tempo esgotado
   React.useEffect(() => {
@@ -477,6 +482,12 @@ export function SimuladoView({
               setHintVisible(false);
             }}
             onFinish={finish}
+            onPause={() => {
+              // A tentativa já está salva (o efeito de persistência grava no
+              // fechamento) — avisar ONDE retomar é o que falta para o aluno.
+              toast.info('Prova pausada — ela te espera no banner do setup.');
+              onOpenChange(false);
+            }}
           />
         )}
 
@@ -816,6 +827,7 @@ function ExamScreen({
   onMark,
   onNavigate,
   onFinish,
+  onPause,
 }: {
   questions: Exercise[];
   results: QuestionResult[];
@@ -830,11 +842,28 @@ function ExamScreen({
   onMark: (solved: boolean) => void;
   onNavigate: (i: number) => void;
   onFinish: () => void;
+  /** Pausa explícita: salva e fecha — a retomada espera no banner do setup. */
+  onPause: () => void;
 }) {
   const ex = questions[idx];
   const disc = getDisciplineByCode(ex.disciplineCode);
   const color = getColorClasses(disc?.color ?? 'slate');
   const urgent = timePct <= 20;
+
+  // Pulso "salvo": dispara a cada mudança de resultado/posição (a prova
+  // inteira é persistida a cada tick — aqui só confirmamos o que o aluno
+  // FEZ). O skip inicial evita pulsar ao montar (nada foi salvo ainda).
+  const [savedPulse, setSavedPulse] = React.useState(false);
+  const skipFirstRef = React.useRef(true);
+  React.useEffect(() => {
+    if (skipFirstRef.current) {
+      skipFirstRef.current = false;
+      return;
+    }
+    setSavedPulse(true);
+    const t = setTimeout(() => setSavedPulse(false), 1800);
+    return () => clearTimeout(t);
+  }, [results, idx]);
 
   return (
     <div>
@@ -846,6 +875,23 @@ function ExamScreen({
             <span className="truncate text-sm font-medium text-muted-foreground">
               Questão {idx + 1} de {questions.length}
             </span>
+            {/* Confirmação de salvamento: pulsa a cada resposta/navegação
+                (o tick do cronômetro não conta — só o que importa para a
+                retomada). Fica em silêncio até haver o que confirmar. */}
+            <AnimatePresence>
+              {savedPulse && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.7, x: -4 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  title="Progresso salvo automaticamente — se a prova fechar, ela te espera no banner do setup."
+                  className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+                >
+                  <CheckCheck className="size-3" /> salvo
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
           <div
             className={cn(
@@ -967,12 +1013,25 @@ function ExamScreen({
               className="h-11 sm:h-8"
             >
               <ArrowLeft className="size-3.5" /> Anterior
+              <kbd className="ml-1 hidden rounded bg-muted px-1 text-[10px] lg:inline">←</kbd>
             </Button>
             {idx < questions.length - 1 ? (
               <Button variant="outline" size="sm" onClick={() => onNavigate(idx + 1)} className="h-11 sm:h-8">
-                Próxima <ArrowRight className="size-3.5" />
+                Próxima <kbd className="mr-1 hidden rounded bg-muted px-1 text-[10px] lg:inline">→</kbd>
+                <ArrowRight className="size-3.5" />
               </Button>
             ) : null}
+            {/* Pausa EXPLÍCITA (descoberta do crash-proof do 62): salva e
+                fecha — a retomada espera no banner do setup. */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onPause}
+              title="Salva a prova e fecha — retome depois de onde parou"
+              className="h-11 border-teal-500/40 text-teal-600 hover:bg-teal-500/10 hover:text-teal-600 dark:text-teal-400 sm:h-8"
+            >
+              <Pause className="size-3.5" /> Pausar
+            </Button>
             {/* Encerrar sempre disponível — aluno pode parar antes do fim */}
             <Button size="sm" variant="ghost" onClick={onFinish} className="h-11 sm:h-8">
               <Flag className="size-3.5" /> Encerrar
