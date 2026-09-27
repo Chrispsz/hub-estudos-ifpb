@@ -106,11 +106,13 @@ export function RecoveryCard() {
             className="w-fit shrink-0 gap-1.5 border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400"
           >
             <Clock4 className="size-3" aria-hidden />{' '}
-            {daysToExam === 0
-              ? 'Prova de Matemática hoje — boa prova!'
-              : daysToExam === 1
-                ? 'Prova de Matemática amanhã'
-                : `Prova de Matemática em ${daysToExam}d`}
+            {daysToExam < 0
+              ? 'Prova de Matemática realizada — falta a nota'
+              : daysToExam === 0
+                ? 'Prova de Matemática hoje — boa prova!'
+                : daysToExam === 1
+                  ? 'Prova de Matemática amanhã'
+                  : `Prova de Matemática em ${daysToExam}d`}
           </Badge>
         </div>
 

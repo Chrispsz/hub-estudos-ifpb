@@ -46,7 +46,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
-import { computeTopicTrends } from '@/lib/simulado-debrief';
+import { buildRunDebriefQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import {
   buildReadinessQuestion,
   computeReadiness,
@@ -169,6 +169,26 @@ export function ExamPrepCard() {
     if (trends.length === 0) return null;
     return { worst: trends[0], allGood: trends.every((t) => t.last >= 80), trends };
   }, [sp.progress.simuladoRuns]);
+
+  // O DIA DO SIMULADO SABE QUANDO ELE JÁ ACONTECEU: uma prova de Matemática
+  // encerrada HOJE vira estado "feito" no chip do marco e no kit — a noite da
+  // terça pede a CORREÇÃO, não um convite para começar de novo. Render-time
+  // (sem effect/interval, lição da 79): reage a mock de relógio no mesmo frame
+  // e a runs novas no mesmo re-render (storage event). Sem prova de Matemática
+  // hoje → undefined (o chip continua convidando a fazer — estado honesto).
+  const simuladoRunToday = React.useMemo(() => {
+    const hoje = new Date().toDateString();
+    return (sp.progress.simuladoRuns ?? []).find((r) => {
+      if (r.mode !== 'prova') return false;
+      if (new Date(r.date).toDateString() !== hoje) return false;
+      // Só prova de MATEMÁTICA conta: pelo filtro do preset OU pelas questões.
+      if (r.filters?.discipline) return r.filters.discipline === MATH_EXAM.disciplineCode;
+      return r.questions?.length
+        ? r.questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode)
+        : false;
+    });
+  }, [sp.progress.simuladoRuns]);
+  const simuladoDoneToday = !!simuladoRunToday;
 
   /** 1 toque: todos os cartões da Av1 entram no sistema Leitner (Praticar → Flashcards). */
   function addAv1Deck() {
@@ -329,31 +349,55 @@ export function ExamPrepCard() {
               const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
               const isSimuladoDay = simuladoDaysLeft === 0;
               const isSimuladoEve = simuladoDaysLeft === 1;
+              // Feito no dia: a prova de Matemática de hoje já foi encerrada —
+              // o chip deixa de convidar a começar e vira o próximo passo real
+              // do plano D-2 (refazer no papel o que errou → a correção ajuda).
+              const isSimuladoDone = isSimuladoDay && simuladoDoneToday;
               return (
                 <button
                   type="button"
-                  onClick={() => openSimulado({ preset: 'math_exam' })}
+                  onClick={
+                    isSimuladoDone && simuladoRunToday
+                      ? () =>
+                          openTutor({
+                            question: buildRunDebriefQuestion(simuladoRunToday),
+                            disciplineCode: MATH_EXAM.disciplineCode,
+                          })
+                      : () => openSimulado({ preset: 'math_exam' })
+                  }
                   className={cn(
                     'group flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                    isSimuladoDay
-                      ? 'w-full border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
-                      : 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400',
+                    isSimuladoDone
+                      ? 'w-full border-emerald-600 bg-emerald-600 text-white shadow-md shadow-emerald-600/30 hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-600'
+                      : isSimuladoDay
+                        ? 'w-full border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
+                        : 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400',
                   )}
                   aria-label={
-                    isSimuladoDay
-                      ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos — abrir o simulado'
-                      : 'Abrir Simulado da Av1 com o escopo real da prova'
+                    isSimuladoDone
+                      ? 'Simulado da Av1 de hoje já foi feito — pedir a correção comentada ao tutor'
+                      : isSimuladoDay
+                        ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos — abrir o simulado'
+                        : 'Abrir Simulado da Av1 com o escopo real da prova'
                   }
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'size-1.5 shrink-0 rounded-full',
-                      isSimuladoDay ? 'animate-pulse bg-white dark:bg-zinc-900' : 'animate-pulse bg-amber-500',
-                    )}
-                  />
+                  {isSimuladoDone ? (
+                    <CircleCheck className="size-3.5 shrink-0" aria-hidden />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'size-1.5 shrink-0 rounded-full',
+                        isSimuladoDay ? 'animate-pulse bg-white dark:bg-zinc-900' : 'animate-pulse bg-amber-500',
+                      )}
+                    />
+                  )}
                   <span className={cn(isSimuladoDay ? 'whitespace-normal leading-snug' : 'truncate')}>
-                    {isSimuladoDay ? (
+                    {isSimuladoDone ? (
+                      <>
+                        Simulado da Av1 <span className="font-bold">feito ✓</span> — pedir a correção
+                      </>
+                    ) : isSimuladoDay ? (
                       <>
                         É hoje · <span className="font-bold">Simulado da Av1</span> + entrega S3
                         Algoritmos
@@ -692,6 +736,7 @@ export function ExamPrepCard() {
           <VesperaKit
             daysLeft={daysLeft}
             mistakePending={mistakePending}
+            simuladoDoneToday={simuladoDoneToday}
             deckAdded={deckAdded}
             flashcardsDue={sp.flashcardStats.due}
             travadasCount={travadasCount}
@@ -1152,6 +1197,7 @@ function masteryTextCls(pct: number): string {
 function VesperaKit({
   daysLeft,
   mistakePending,
+  simuladoDoneToday,
   deckAdded,
   flashcardsDue,
   travadasCount,
@@ -1165,6 +1211,8 @@ function VesperaKit({
 }: {
   daysLeft: number;
   mistakePending: number;
+  /** Prova de Matemática encerrada HOJE — o badge do D-2 vira "feito" (calma, não cobrança). */
+  simuladoDoneToday: boolean;
   deckAdded: boolean;
   flashcardsDue: number;
   travadasCount: number;
@@ -1178,7 +1226,9 @@ function VesperaKit({
 }) {
   const contextBadge =
     daysLeft === 2
-      ? 'depois do simulado de hoje — comece por aqui'
+      ? simuladoDoneToday
+        ? 'simulado feito hoje — agora é só o kit, com calma'
+        : 'depois do simulado de hoje — comece por aqui'
       : daysLeft === 1
         ? 'véspera — revisão leve, sem conteúdo novo'
         : 'hoje é o dia — só reler e respirar';
@@ -1271,7 +1321,14 @@ function VesperaKit({
             Kit da véspera
             <Badge
               variant="outline"
-              className="border-indigo-400/40 bg-indigo-500/10 text-[10px] font-medium text-indigo-600 dark:text-indigo-300"
+              className={cn(
+                'text-[10px] font-medium',
+                // Simulado de hoje já feito → a cor "Feito" do Hub (emerald):
+                // o badge deixa de marcar compromisso e passa a dar calma.
+                simuladoDoneToday && daysLeft === 2
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                  : 'border-indigo-400/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
+              )}
             >
               {contextBadge}
             </Badge>
