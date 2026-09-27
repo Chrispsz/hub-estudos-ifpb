@@ -317,6 +317,89 @@ export function notebookExamBriefFor(
 
 export type PlanKind = 'estudo' | 'pratica' | 'simulado' | 'revisao' | 'prova';
 
+// ---------- Praticar (aba Exercícios) na semana da Av1 ----------
+
+/**
+ * O BRIEF DA SEMANA DA AV1 PARA O PRATICAR — a aba Exercícios é o PALCO onde
+ * o simulado acontece e era a única superfície de ação cega ao calendário:
+ * o setup do Simulado Pro sabe o dia (82), o caderno no pé da aba fala (91),
+ * mas o TOPO da aba — onde moram os botões "Simulado Pro" e "Revisão guiada"
+ * — mostrava o banner estático "No ritmo da turma" até na manhã do simulado.
+ * Pior: com o caderno vazio (a manhã de 29/09, ANTES do run) o early-return
+ * do caderno esconde a faixa da 91 — a aba inteira silenciava no dia dela.
+ * Esta função diz ao topo da aba o que ele faz em cada dia:
+ *   - simulado (D-2): sem run, anuncia o palco ("escopo real, 10 questões,
+ *     60 min; a S3 também é hoje") e o CTA abre o Simulado já configurado;
+ *     com o run registrado flipa "feito ✓" (o REGISTRO vence o relógio,
+ *     lição 85/86) e aponta a fila guiada desta mesma aba;
+ *   - véspera (D-1): o dia da REVISÃO LEVE do plano (offset 1, kind
+ *     'revisao') — a fila guiada percorre ★ e erros; papel/kit ficam offline;
+ *   - prova (D-0): calma — nada de simulado novo, boa prova, sem CTA.
+ * Fora da janela retorna null — silêncio honesto (regra da fila da 88).
+ * Datas derivadas de MATH_SIMULADO_DATE / MATH_VESPERA_DATE / MATH_EXAM.date
+ * — fonte única, para nunca divergir do hero/card/fila/agenda/flashcards/
+ * caderno. `reviewCount` = tamanho da fila guiada (buildReviewQueue) — o CTA
+ * só existe com fila real (fila vazia = botão cala, mesmo padrão do caderno).
+ */
+export interface PracticeExamBrief {
+  kind: 'simulado-hoje' | 'simulado-feito' | 'vespera' | 'prova-hoje';
+  titulo: string;
+  /** Uma linha — o PORQUÊ (honesto, sem alarme). */
+  chamada: string;
+  /** Rótulo do CTA. null = faixa sem botão (o feito com fila vazia, a prova). */
+  cta: string | null;
+}
+
+export function practiceExamBriefFor(
+  date: Date,
+  reviewCount: number,
+  simuladoRun?: { solved: number; total: number } | null,
+): PracticeExamBrief | null {
+  const key = localDateKey(date);
+  const pct =
+    simuladoRun && simuladoRun.total > 0
+      ? Math.round((simuladoRun.solved / simuladoRun.total) * 100)
+      : null;
+
+  if (key === MATH_SIMULADO_DATE) {
+    if (simuladoRun) {
+      return {
+        kind: 'simulado-feito',
+        titulo: `Simulado da Av1 feito ✓${pct !== null ? ` — ${pct}%` : ''}`,
+        chamada:
+          'os erros de hoje já estão no caderno abaixo — a fila guiada desta aba percorre eles e as ★ numa passada só',
+        cta: 'Revisão guiada',
+      };
+    }
+    return {
+      kind: 'simulado-hoje',
+      titulo: 'É hoje: Simulado da Av1',
+      chamada:
+        'escopo real da prova — 10 questões de Matrizes e Lógica, 60 min; a entrega da S3 de Algoritmos também é hoje',
+      cta: 'Abrir o Simulado',
+    };
+  }
+  if (key === MATH_VESPERA_DATE) {
+    return {
+      kind: 'vespera',
+      titulo: 'Véspera da Av1 — revisão leve',
+      chamada:
+        'a fila guiada percorre suas ★ e os erros do caderno, uma por vez — 20 min bastam; o papel e o kit ficam offline',
+      cta: 'Revisão guiada',
+    };
+  }
+  if (key === MATH_EXAM.date) {
+    return {
+      kind: 'prova-hoje',
+      titulo: 'É hoje: Prova da Av1',
+      chamada:
+        'nada de simulado novo hoje — só leveza, kit em mãos e confiança; boa prova!',
+      cta: null,
+    };
+  }
+  return null;
+}
+
 export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)
