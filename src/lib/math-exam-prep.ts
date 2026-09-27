@@ -224,6 +224,76 @@ export function todayStudyExamBriefFor(
   };
 }
 
+// ---------- O relatório semanal sabe a semana ----------
+
+export interface WeeklyReportExamBrief {
+  kind: 'simulado' | 'vespera' | 'prova';
+  /** Título do marco — a MESMA voz do strip do cronograma (99). */
+  titulo: string;
+  /** Linha honesta que SUBSTITUI a mensagem de ritmo do relatório. */
+  linha: string;
+  /** Simulado oficial já realizado (só faz sentido no kind 'simulado'). */
+  feito: boolean;
+  /** % do veredito quando feito — null fora disso (nada inventado). */
+  pct: number | null;
+  /** Veredito contra a meta quando feito — null sem registro. */
+  metaBatida: boolean | null;
+}
+
+/**
+ * BRIEF do relatório semanal (aba Progresso): a superfície de ANALÍTICA era a
+ * última ainda falando a língua da produtividade nos dias críticos — a mensagem
+ * comparativa mandava 'agende um bloco no cronograma' no DIA DA PROVA e
+ * 'adicione mais uma sessão' na véspera, a mesma pressão que a 99 matou no
+ * cronograma. MESMA janela honesta de 3 dias da 99 (simulado/véspera/prova —
+ * regra da 88: fora dela o relatório segue sendo relatório, silêncio honesto;
+ * pós-prova a nota mora na calculadora, não aqui). `daysLeft` entra como
+ * PARÂMETRO (daysUntilDate do chamador contra MATH_EXAM.date — mesma divisão
+ * da 98/100/101/102) e o flip do D-2 vem do registro REAL
+ * (findMathSimuladoRunOficial + veredito — registro vence relógio, lição 85/86).
+ */
+export function weeklyReportExamBriefFor(
+  daysLeft: number,
+  runs?: (SimuladoRunLike & VerdictRunLike)[] | null,
+): WeeklyReportExamBrief | null {
+  if (daysLeft === MATH_SIMULADO_OFFSET) {
+    const run = findMathSimuladoRunOficial(runs);
+    const feito = Boolean(run);
+    const verdict = feito ? simuladoVerdictFor(run) : null;
+    return {
+      kind: 'simulado',
+      titulo: 'É hoje: Simulado da Av1',
+      feito,
+      pct: verdict?.pct ?? null,
+      metaBatida: verdict ? verdict.metaBatida : null,
+      linha: feito
+        ? 'feito ✓ — o número que importa hoje é este; o kit da véspera já lê o resultado'
+        : 'o dia é do ensaio real — o número que importa hoje é o % do simulado, não o dos gráficos',
+    };
+  }
+  if (daysLeft === 1) {
+    return {
+      kind: 'vespera',
+      titulo: 'Véspera da prova',
+      feito: false,
+      pct: null,
+      metaBatida: null,
+      linha: 'revisão leve: o kit da véspera manda no dia — nenhum recorde de foco importa hoje',
+    };
+  }
+  if (daysLeft === 0) {
+    return {
+      kind: 'prova',
+      titulo: 'É hoje: Prova da Av1',
+      feito: false,
+      pct: null,
+      metaBatida: null,
+      linha: 'o dia é do exame — os gráficos esperam; chegue cedo e leve o kit',
+    };
+  }
+  return null;
+}
+
 // ---------- O veredito do simulado oficial ----------
 
 /**
