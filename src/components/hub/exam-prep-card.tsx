@@ -284,7 +284,9 @@ export function ExamPrepCard() {
             >
               {daysLeft === 0 ? 'HOJE' : `${daysLeft}d`}
             </span>
-            <span className="text-[11px] text-muted-foreground">01/10 · faltam</span>
+            <span className="text-[11px] text-muted-foreground">
+              {daysLeft === 0 ? '01/10 · prova de Matemática' : '01/10 · faltam'}
+            </span>
             <button
               type="button"
               onClick={() => setOpen(true)}

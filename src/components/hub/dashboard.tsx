@@ -162,11 +162,44 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                 {course.instituicao} — Campus {course.campus}
               </p>
               {nextEval && (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm dark:border-amber-900 dark:bg-amber-950/60">
-                  <CalendarCheck className="size-4 text-amber-600" />
-                  <span className="text-amber-900">
-                    <span className="font-semibold">Faltam {nextEval.daysLeft} dias</span>{' '}
-                    para {nextEval.name} — {nextEval.disciplineShort}
+                <div
+                  className={cn(
+                    'mt-3 inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm',
+                    nextEval.daysLeft === 0
+                      ? 'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400'
+                      : 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/60',
+                  )}
+                >
+                  <CalendarCheck
+                    className={cn(
+                      'size-4',
+                      nextEval.daysLeft === 0
+                        ? 'animate-pulse text-white dark:text-zinc-900'
+                        : 'text-amber-600 dark:text-amber-400',
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      nextEval.daysLeft === 0
+                        ? 'font-medium text-white dark:text-zinc-900'
+                        : 'text-amber-900 dark:text-amber-200',
+                    )}
+                  >
+                    {nextEval.daysLeft === 0 ? (
+                      <>
+                        <span className="font-bold">É hoje:</span> {nextEval.name} —{' '}
+                        {nextEval.disciplineShort}. Boa prova!
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-semibold">
+                          {nextEval.daysLeft === 1
+                            ? 'Falta 1 dia'
+                            : `Faltam ${nextEval.daysLeft} dias`}
+                        </span>{' '}
+                        para {nextEval.name} — {nextEval.disciplineShort}
+                      </>
+                    )}
                   </span>
                 </div>
               )}

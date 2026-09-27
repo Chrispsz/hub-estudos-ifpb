@@ -51,7 +51,8 @@ export function Header({ activeTab }: { activeTab?: string }) {
               variant="outline"
               className="hidden border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300 lg:inline-flex"
             >
-              {nextEval.daysLeft}d → {nextEval.name} ({nextEval.disciplineShort})
+              {nextEval.daysLeft === 0 ? 'hoje' : `${nextEval.daysLeft}d`} → {nextEval.name}{' '}
+              ({nextEval.disciplineShort})
             </Badge>
           )}
           <ClockWidget variant="header" />
