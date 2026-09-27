@@ -10,6 +10,7 @@ import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import {
   AlarmClock,
   ArrowUpRight,
+  Backpack,
   BookOpen,
   BookX,
   CalendarClock,
@@ -22,7 +23,10 @@ import {
   Layers,
   ListChecks,
   Minus,
+  Moon,
   Play,
+  RotateCcw,
+  ScrollText,
   Sigma,
   Sparkles,
   Target,
@@ -59,6 +63,7 @@ import {
   MATH_EXAM_PLAN,
   MATH_FLASHCARDS,
   MATH_FORMULAS,
+  isVesperaWindow,
   missedPlanDays,
   planDayFor,
   type PlanDay,
@@ -117,6 +122,19 @@ export function ExamPrepCard() {
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
   );
+  // Kit da véspera → "Recitar as fórmulas" abre o plano completo JÁ ROLADO até
+  // a seção das fórmulas (o aluno não caça a seção na véspera da prova).
+  const [dialogFocus, setDialogFocus] = React.useState<'formulas' | null>(null);
+  React.useEffect(() => {
+    if (!open || dialogFocus !== 'formulas') return;
+    const id = window.setTimeout(() => {
+      document
+        .getElementById('dlg-formulas')
+        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      setDialogFocus(null);
+    }, 120); // espera o conteúdo do Dialog montar
+    return () => window.clearTimeout(id);
+  }, [open, dialogFocus]);
 
   // FOCO DA PROVA (dados reais, material-first): pior tópico do escopo da Av1
   // segundo a tendência das tentativas do Simulado Pro. O card deixa de ser
@@ -492,7 +510,7 @@ export function ExamPrepCard() {
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
-                            openMethod({ materialId: t.materialId });
+                            openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: t.materialId });
                           }}
                           className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
                         >
@@ -543,6 +561,26 @@ export function ExamPrepCard() {
             </Button>
           </div>
         </div>
+
+        {/* KIT DA VÉSPERA — o bloco calmo da reta final (aparece em D-2, D-1 e D-0). */}
+        {isVesperaWindow(daysLeft) && (
+          <VesperaKit
+            daysLeft={daysLeft}
+            mistakePending={mistakePending}
+            deckAdded={deckAdded}
+            flashcardsDue={sp.flashcardStats.due}
+            onOpenErrors={() => openSimulado()}
+            onOpenFormulas={() => {
+              setDialogFocus('formulas');
+              setOpen(true);
+            }}
+            onDeckAction={addAv1Deck}
+            onOpenFlashcards={() => openPractice({ mode: 'flashcards' })}
+            onOpenSelfAssessment={() =>
+              openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: 'mat-01-matrizes' })
+            }
+          />
+        )}
 
         {/* Treino de recall ativo: a IA PERGUNTA, o dono responde — véspera de prova. */}
         <button
@@ -643,7 +681,7 @@ export function ExamPrepCard() {
                                   type="button"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    openMethod({ materialId: t.materialId });
+                                    openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: t.materialId });
                                   }}
                                   className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
                                 >
@@ -661,7 +699,7 @@ export function ExamPrepCard() {
             </section>
 
             {/* Fórmulas */}
-            <section aria-label="Fórmulas essenciais">
+            <section id="dlg-formulas" aria-label="Fórmulas essenciais" className="scroll-mt-4">
               <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Sparkles className="size-3.5" /> Fórmulas essenciais (dos materiais)
               </h3>
@@ -907,6 +945,233 @@ function masteryTextCls(pct: number): string {
   if (pct >= 60) return 'text-emerald-600 dark:text-emerald-400';
   if (pct >= 40) return 'text-amber-600 dark:text-amber-400';
   return 'text-rose-600 dark:text-rose-400';
+}
+
+/* ================= KIT DA VÉSPERA ================= */
+
+/**
+ * A reta final da Av1 num bloco só — D-2 (noite do simulado) até D-0 (prova).
+ *
+ * Gramática visual NOTURNA (indigo/slate): distinta de todas as famílias do
+ * card — rose = prova/urgência, amber = recuperação/retomada, violet = IA,
+ * teal = flashcards, emerald = acerto. Indigo aqui é CALMA: a véspera não é
+ * dia de urgência, é dia de recitar o que já sabe e dormir cedo.
+ *
+ * Linhas acionáveis com deep-links reais (nada de decorativo):
+ *   01 erros pendentes → Simulado Pro (o card rose do setup monta a prova)
+ *   02 recitar fórmulas → abre o plano JÁ ROLADO até a seção das fórmulas
+ *   03 baralho Leitner → adiciona ao deck OU abre a aba Flashcards
+ *   04 autoavaliação → resumo IA da Lista de Matrizes (perguntas de autoavaliação)
+ *   05 kit do dia → estático (o que levar), sem ação
+ * Honestidade: sem erros pendentes a linha 01 some; sem dias, o bloco inteiro.
+ */
+function VesperaKit({
+  daysLeft,
+  mistakePending,
+  deckAdded,
+  flashcardsDue,
+  onOpenErrors,
+  onOpenFormulas,
+  onDeckAction,
+  onOpenFlashcards,
+  onOpenSelfAssessment,
+}: {
+  daysLeft: number;
+  mistakePending: number;
+  deckAdded: boolean;
+  flashcardsDue: number;
+  onOpenErrors: () => void;
+  onOpenFormulas: () => void;
+  onDeckAction: () => void;
+  onOpenFlashcards: () => void;
+  onOpenSelfAssessment: () => void;
+}) {
+  const contextBadge =
+    daysLeft === 2
+      ? 'depois do simulado de hoje — comece por aqui'
+      : daysLeft === 1
+        ? 'véspera — revisão leve, sem conteúdo novo'
+        : 'hoje é o dia — só reler e respirar';
+
+  const rows: {
+    n: string;
+    icon: typeof Moon;
+    title: string;
+    sub: string;
+    action: () => void;
+    badge?: { text: string; tone: string };
+    cta: string;
+  }[] = [
+    ...(mistakePending > 0
+      ? [
+          {
+            n: '01',
+            icon: RotateCcw,
+            title: 'Fechar os seus erros',
+            sub: 'Revisão dirigida no Simulado Pro: o card rose do setup monta a prova só com o que você errou.',
+            action: onOpenErrors,
+            badge: {
+              text: `${mistakePending} ${mistakePending === 1 ? 'pendente' : 'pendentes'}`,
+              tone: 'border-rose-300/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+            },
+            cta: 'Treinar',
+          },
+        ]
+      : []),
+    {
+      n: mistakePending > 0 ? '02' : '01',
+      icon: ScrollText,
+      title: 'Recitar as fórmulas de memória',
+      sub: 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
+      action: onOpenFormulas,
+      cta: 'Abrir fórmulas',
+    },
+    {
+      n: mistakePending > 0 ? '03' : '02',
+      icon: Layers,
+      title: 'Passar o baralho da Av1',
+      sub: deckAdded
+        ? flashcardsDue > 0
+          ? `${flashcardsDue} ${flashcardsDue === 1 ? 'cartão vence' : 'cartões vencem'} hoje no Leitner — recall ativo de 2 minutos por vez.`
+          : 'Nenhum cartão vence agora — de volta amanhã de manhã, antes de sair.'
+        : `${MATH_FLASHCARDS.length} cartões prontos (Matrizes + Lógica) — entram vencidos para a revisão começar hoje.`,
+      action: deckAdded ? onOpenFlashcards : onDeckAction,
+      badge: deckAdded
+        ? {
+            text: flashcardsDue > 0 ? `${flashcardsDue} hoje` : 'em dia',
+            tone:
+              flashcardsDue > 0
+                ? 'border-amber-300/60 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : 'border-emerald-300/60 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+          }
+        : undefined,
+      cta: deckAdded ? 'Abrir flashcards' : 'Adicionar',
+    },
+    {
+      n: mistakePending > 0 ? '04' : '03',
+      icon: BookOpen,
+      title: 'Autoavaliação dos resumos IA',
+      sub: 'Perguntas de autoavaliação do resumo da Lista — responda de cabeça, confira depois. 10 minutos.',
+      action: onOpenSelfAssessment,
+      cta: 'Abrir resumo',
+    },
+  ];
+
+  const kit = [
+    { icon: '✒️', label: 'caneta' },
+    { icon: '✏️', label: 'lápis' },
+    { icon: '🧽', label: 'borracha' },
+    { icon: '🧮', label: 'calculadora (se permitida)' },
+    { icon: '💧', label: 'água' },
+  ];
+
+  return (
+    <div className="border-t border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.09] via-slate-500/[0.05] to-transparent">
+      {/* Cabeçalho do kit — medalhão Moon + contexto da reta final */}
+      <div className="flex flex-wrap items-center gap-2.5 px-4 pt-3.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-indigo-500/30 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
+          <Moon className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            Kit da véspera
+            <Badge
+              variant="outline"
+              className="border-indigo-400/40 bg-indigo-500/10 text-[10px] font-medium text-indigo-600 dark:text-indigo-300"
+            >
+              {contextBadge}
+            </Badge>
+          </h3>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+            A prova já está no seu preparo — estes passos fecham o que falta e guardam o resto
+            para o sono.
+          </p>
+        </div>
+      </div>
+
+      {/* Linhas numeradas — cada uma uma ação real, entrada em cascata */}
+      <ol className="px-4 py-3">
+        {rows.map((row, i) => {
+          const Icon = row.icon;
+          return (
+            <motion.li
+              key={row.title}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.25, ease: 'easeOut' }}
+            >
+              <button
+                type="button"
+                onClick={row.action}
+                className="group flex w-full items-start gap-3 rounded-lg border border-transparent px-2.5 py-2.5 text-left transition-all hover:border-indigo-500/25 hover:bg-indigo-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              >
+                <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
+                  {row.n}
+                </span>
+                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 text-indigo-600 transition-transform group-hover:scale-105 dark:text-indigo-300">
+                  <Icon className="size-3.5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-semibold">{row.title}</span>
+                    {row.badge && (
+                      <Badge
+                        variant="outline"
+                        className={cn('px-1.5 text-[9px]', row.badge.tone)}
+                      >
+                        {row.badge.text}
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                    {row.sub}
+                  </span>
+                </span>
+                <span className="mt-1 flex shrink-0 items-center gap-1 text-[10px] font-medium text-indigo-600 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100 dark:text-indigo-300">
+                  {row.cta} <ArrowUpRight className="size-3" aria-hidden />
+                </span>
+              </button>
+            </motion.li>
+          );
+        })}
+
+        {/* 05 — kit do dia da prova: o único passo SEM ação (nada para clicar,
+            nada para esquecer: é só levar). */}
+        <motion.li
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: rows.length * 0.06, duration: 0.25, ease: 'easeOut' }}
+          className="flex items-start gap-3 rounded-lg px-2.5 py-2.5"
+        >
+          <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
+            {rows.length === 4 ? '05' : '04'}
+          </span>
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
+            <Backpack className="size-3.5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="text-xs font-semibold">Kit do dia da prova</span>
+            <span className="mt-1 flex flex-wrap gap-1.5">
+              {kit.map((k) => (
+                <span
+                  key={k.label}
+                  className="rounded-full border border-indigo-500/25 bg-indigo-500/[0.08] px-2 py-0.5 text-[10px] text-indigo-700 dark:text-indigo-300"
+                >
+                  {k.icon} {k.label}
+                </span>
+              ))}
+            </span>
+          </span>
+        </motion.li>
+      </ol>
+
+      {/* Rodapé do kit — o conselho que nenhum plano de estudo dá */}
+      <p className="border-t border-indigo-500/15 bg-indigo-500/[0.05] px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+        <span className="font-medium text-indigo-600 dark:text-indigo-300">Noite calma:</span> depois
+        das fórmulas, nada de conteúdo novo — o sono consolida mais que a madrugada de estudo.
+      </p>
+    </div>
+  );
 }
 
 function ReadinessSection({

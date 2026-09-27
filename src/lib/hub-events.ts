@@ -48,6 +48,8 @@ export interface OpenPracticeDetail {
   disciplineCode?: string;
   /** Tópico para pré-filtrar além da disciplina (ex.: foco pós-simulado). */
   topic?: string;
+  /** Aba inicial do Praticar (ex.: kit da véspera abre direto nos flashcards). */
+  mode?: 'exercicios' | 'flashcards';
 }
 
 /** Dispara a troca para a aba Praticar com o filtro de disciplina aplicado. */

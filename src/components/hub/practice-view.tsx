@@ -91,6 +91,12 @@ export function PracticeView({
 } = {}) {
   const sp = useStudyProgress();
   const [mode, setMode] = React.useState<PracticeMode>('exercicios');
+
+  // Pedido externo pode escolher a ABA inicial (kit da véspera → flashcards).
+  React.useEffect(() => {
+    if (practiceReq?.detail?.mode === 'flashcards') setMode('flashcards');
+  }, [practiceReq?.nonce, practiceReq]);
+
   const dueCount = sp.flashcardStats.due;
 
   return (

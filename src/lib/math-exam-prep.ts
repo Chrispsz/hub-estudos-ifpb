@@ -264,6 +264,16 @@ export const MATH_CHECKLIST: { grupo: string; itens: string[] }[] = [
   },
 ];
 
+/**
+ * Janela do KIT DA VÉSPERA: o bloco calmo do card da prova só existe quando
+ * falta pouco — do DIA DO SIMULADO (D-2, 29/09: à noite o dono já começa a
+ * transição) até o DIA DA PROVA (D-0). Antes disso o plano das listas manda;
+ * mostrar o kit cedo seria ruído, não calma.
+ */
+export function isVesperaWindow(daysLeft: number): boolean {
+  return daysLeft >= 0 && daysLeft <= 2;
+}
+
 /** Dia do plano para "faltam N dias" (N = daysUntilDate da prova). */
 export function planDayFor(daysLeft: number): PlanDay | undefined {
   return MATH_EXAM_PLAN.find((d) => d.offset === daysLeft);
