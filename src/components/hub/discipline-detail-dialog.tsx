@@ -46,7 +46,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import type { Discipline, Material } from '@/data/course-data';
 import { getMaterialsByDiscipline, evaluationPeriods } from '@/data/course-data';
@@ -177,9 +176,12 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
+                {/* max-w-full + wrap: sem isso, "Fabio Gomes de Andrade · Doutor…"
+                    (260px, nowrap do Badge base) levanta o min-content do header
+                    e estoura o diálogo em telas de 390px. */}
                 <Badge
                   variant="outline"
-                  className={cn(priorityClasses[discipline.prioridade], priorityDarkClasses[discipline.prioridade])}
+                  className={cn('max-w-full !whitespace-normal', priorityClasses[discipline.prioridade], priorityDarkClasses[discipline.prioridade])}
                 >
                   Prioridade {discipline.prioridade}
                 </Badge>
@@ -189,16 +191,16 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                 >
                   {categoryLabel[discipline.category]}
                 </Badge>
-                <Badge variant="outline" className="border-border text-muted-foreground">
-                  <GraduationCap className="size-3" /> {discipline.professor}
+                <Badge variant="outline" className="max-w-full !whitespace-normal border-border text-muted-foreground">
+                  <GraduationCap className="size-3 shrink-0" /> {discipline.professor}
                   {discipline.professorTitle ? ` · ${discipline.professorTitle}` : ''}
                 </Badge>
                 {matrixInfo && (
                   <Badge
                     variant="outline"
-                    className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    className="max-w-full !whitespace-normal gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
                   >
-                    <GraduationCap className="size-3" aria-hidden />
+                    <GraduationCap className="size-3 shrink-0" aria-hidden />
                     Matriz: {matrixInfo.period.label}
                     {matrixInfo.period.period === CURRENT_PERIOD ? ' (atual)' : ''} •{' '}
                     {matrixInfo.row.ch}h
@@ -210,7 +212,10 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
 
           <Tabs value={tab} onValueChange={setTab} className="w-full">
             <div className="border-b bg-muted/30 px-4">
-              <TabsList className="h-11 gap-1 bg-transparent p-1.5 sm:h-9">
+              {/* flex-wrap + h-auto: 5 abas nowrap = min-content 389px, que
+                  estourava o diálogo em 390px. Quebrando em 2 linhas no mobile,
+                  uma linha no desktop (h-9). */}
+              <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-1.5 sm:h-9">
                 <TabsTrigger value="overview" className="text-xs">Visão Geral</TabsTrigger>
                 <TabsTrigger value="content" className="text-xs">Conteúdo</TabsTrigger>
                 <TabsTrigger value="evaluation" className="text-xs">Avaliação</TabsTrigger>
@@ -219,7 +224,11 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
               </TabsList>
             </div>
 
-            <ScrollArea className="max-h-[60vh]">
+            {/* Corpo com scroll nativo em vez de ScrollArea — o viewport do
+                Radix usa display:table, cujo shrink-to-fit por max-content
+                estourava o diálogo no mobile (grid-cols-2 da ementa → 421px
+                num viewport de 390). Div com overflow-y mantém o wrap normal. */}
+            <div className="max-h-[60vh] min-w-0 overflow-y-auto">
               <div className="p-5 sm:p-6">
                 <TabsContent value="overview" className="mt-0 space-y-5 outline-none">
                   {matrixInfo && (
@@ -627,7 +636,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                   </Section>
                 </TabsContent>
               </div>
-            </ScrollArea>
+            </div>
           </Tabs>
         </DialogContent>
       </Dialog>

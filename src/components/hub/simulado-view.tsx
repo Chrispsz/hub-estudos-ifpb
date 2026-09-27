@@ -42,7 +42,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -219,6 +218,8 @@ export function SimuladoView({
   const [resumeRun, setResumeRun] = React.useState<InProgressRun | null>(null);
   /** Natureza da tentativa EM CURSO — rotula todas as superfícies com honestidade. */
   const [attemptMode, setAttemptMode] = React.useState<AttemptMode>('prova');
+  /** Confirmação de entrega: revisão das questões antes de encerrar (prova real tem). */
+  const [confirmingFinish, setConfirmingFinish] = React.useState(false);
 
   // Reset quando abre o diálogo (e aplica pré-config externa, se houver)
   React.useEffect(() => {
@@ -241,6 +242,7 @@ export function SimuladoView({
       // Modo idem: reiniciado a cada abertura — o pedido externo (drill de
       // tópico) não vaza para a abertura manual seguinte.
       setAttemptMode(initialMode ?? 'prova');
+      setConfirmingFinish(false); // revisão de entrega nunca vaza entre aberturas
       // Retomada: tentativa pausada (F5, queda de aba, X acidental) sobrevive
       // no storage — banner no setup oferece Retomar ou Descartar.
       const saved = loadInProgress();
@@ -479,6 +481,7 @@ export function SimuladoView({
     recordRun();
     clearInProgress(); // tentativa registrada no histórico — o rascunho se aposenta
     beep(3);
+    setConfirmingFinish(false); // entrega confirmada — o próximo run começa limpo
     setPhase('results');
   }
 
@@ -580,7 +583,9 @@ export function SimuladoView({
   // ←/→ navegam, D alterna a dica. Usa fase de captura + stopPropagation
   // para SUPRIMIR os atalhos globais da Command Palette (1-8 trocam de aba).
   React.useEffect(() => {
-    if (!open || phase !== 'running') return;
+    // Na revisão de entrega os atalhos silenciam — marcar/navegar por trás
+    // do painel de conferência deixaria a contagem da revisão mentindo.
+    if (!open || phase !== 'running' || confirmingFinish) return;
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
@@ -609,7 +614,7 @@ export function SimuladoView({
     }
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [open, phase, questions.length, idx]);
+  }, [open, phase, questions.length, idx, confirmingFinish]);
 
   const { solvedCount, missedCount, skippedCount } = React.useMemo(() => {
     let solved = 0;
@@ -664,7 +669,7 @@ export function SimuladoView({
           />
         )}
 
-        {phase === 'running' && questions[idx] && (
+        {phase === 'running' && !confirmingFinish && questions[idx] && (
           <ExamScreen
             questions={questions}
             results={results}
@@ -685,12 +690,30 @@ export function SimuladoView({
               setIdx(i);
               setHintVisible(false);
             }}
-            onFinish={finish}
+            onFinish={() => setConfirmingFinish(true)}
             onPause={() => {
               // A tentativa já está salva (o efeito de persistência grava no
               // fechamento) — avisar ONDE retomar é o que falta para o aluno.
               toast.info(MODE_INFO[attemptMode].pauseToast);
               onOpenChange(false);
+            }}
+          />
+        )}
+
+        {phase === 'running' && confirmingFinish && (
+          <FinishReview
+            questions={questions}
+            results={results}
+            timeInfo={timeInfo}
+            barColor={barColor}
+            timePct={timePct}
+            mode={attemptMode}
+            onBack={() => setConfirmingFinish(false)}
+            onConfirm={finish}
+            onNavigate={(i) => {
+              setIdx(i);
+              setHintVisible(false);
+              setConfirmingFinish(false);
             }}
           />
         )}
@@ -1155,15 +1178,8 @@ function ExamScreen({
   const color = getColorClasses(disc?.color ?? 'slate');
   const urgent = timePct <= 20;
   const info = MODE_INFO[mode];
-  // Identidade visual do modo no badge da tela de prova: prova = emerald
-  // (o padrão), treino = rose (mesma cor do card do Caderno), tópico = sky
-  // (a cor do replay do Histórico). A cor É o rótulo — escaneável a 1 metro.
-  const badgeCls =
-    mode === 'treino'
-      ? 'bg-rose-600 text-white'
-      : mode === 'topico'
-        ? 'bg-sky-600 text-white'
-        : 'bg-emerald-600 text-white';
+  // Identidade visual do modo — helper compartilhado com o FinishReview.
+  const badgeCls = modeBadgeCls(mode);
 
   // Pulso "salvo": dispara a cada mudança de resultado/posição (a prova
   // inteira é persistida a cada tick — aqui só confirmamos o que o aluno
@@ -1268,9 +1284,12 @@ function ExamScreen({
               )}
             </div>
 
-            <ScrollArea className="max-h-[30vh] pr-2">
+            {/* ENUNCIADO: div overflow-y-auto em vez de ScrollArea — o viewport
+                do Radix usa display:table, que em telas estreitas impede o wrap
+                do texto e estourava o diálogo (548px num viewport de 390). */}
+            <div className="max-h-[30vh] min-w-0 overflow-y-auto pr-2">
               <p className="text-sm leading-relaxed text-foreground/90">{ex.statement}</p>
-            </ScrollArea>
+            </div>
 
             {ex.hint && hintVisible && (
               <motion.p
@@ -1311,9 +1330,10 @@ function ExamScreen({
         </div>
       </div>
 
-      {/* Rodapé de avaliação — 2 linhas no mobile, 1 no desktop */}
+      {/* Rodapé de avaliação — 2 linhas no mobile, 1 no desktop. flex-wrap:
+          sem ele, 5 botões h-11 não cabem em 390px e o último é cortado. */}
       <div className="space-y-2.5 border-t bg-muted/30 px-4 py-4 sm:px-6">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -1323,7 +1343,7 @@ function ExamScreen({
             {hintVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {hintVisible ? 'Esconder dica' : 'Ver dica'}
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -1374,6 +1394,155 @@ function ExamScreen({
             <XCircle className="size-3.5" /> Não consegui <kbd className="ml-1 hidden rounded bg-muted px-1 text-[10px] lg:inline">2</kbd>
           </Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function modeBadgeCls(mode: AttemptMode): string {
+  // Identidade visual do modo no badge da prova: prova = emerald (o padrão),
+  // treino = rose (mesma cor do card do Caderno), tópico = sky (a cor do
+  // replay do Histórico). A cor É o rótulo — escaneável a 1 metro.
+  return mode === 'treino'
+    ? 'bg-rose-600 text-white'
+    : mode === 'topico'
+      ? 'bg-sky-600 text-white'
+      : 'bg-emerald-600 text-white';
+}
+
+/* ================= Revisão antes de entregar ================= */
+
+/**
+ * Conferência final antes de Encerrar — como numa prova real: nada de
+ * surpresa no resultado. Mostra as marcas por questão (consegui/não
+ * consegui/sem marca), deixa navegar para revisar e só então entrega.
+ * O cronômetro CONTINUA no topo — encerrar continua sendo uma decisão
+ * com preço, agora com visão do todo.
+ */
+function FinishReview({
+  questions,
+  results,
+  timeInfo,
+  barColor,
+  timePct,
+  mode,
+  onBack,
+  onConfirm,
+  onNavigate,
+}: {
+  questions: Exercise[];
+  results: QuestionResult[];
+  timeInfo: { label: string; value: string };
+  barColor: string;
+  timePct: number;
+  mode: AttemptMode;
+  onBack: () => void;
+  onConfirm: () => void;
+  onNavigate: (i: number) => void;
+}) {
+  const info = MODE_INFO[mode];
+  const solved = results.filter((r) => r.solved === true).length;
+  const missed = results.filter((r) => r.solved === false).length;
+  const unmarked = questions.length - solved - missed;
+
+  const stateLabel = (s: boolean | null) =>
+    s === true ? 'marcada como consegui' : s === false ? 'marcada como não consegui' : 'sem marca';
+
+  return (
+    <div>
+      {/* Barra de tempo fixa (a prova segue correndo — honesto) */}
+      <div className="border-b px-4 pb-3 pt-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Badge className={`shrink-0 ${modeBadgeCls(mode)}`}>
+            {mode === 'treino' ? <Dumbbell className="mr-1 size-3" aria-hidden /> : null}
+            {mode === 'topico' ? <Target className="mr-1 size-3" aria-hidden /> : null}
+            {info.badge}
+          </Badge>
+          <span className="min-w-0 truncate text-sm font-semibold">
+            Confira antes de entregar
+          </span>
+          <div
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-sm font-semibold tabular-nums',
+              configTimeTone(timePct),
+            )}
+          >
+            <AlarmClock className="size-3.5" />
+            {timeInfo.value}
+          </div>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className={cn('h-full rounded-full', barColor)} style={{ width: `${Math.max(0, Math.min(100, timePct))}%` }} />
+        </div>
+      </div>
+
+      <div className="space-y-4 px-4 py-5 sm:px-6">
+        {/* Contagem honesta por estado — a mesma gramática do resultado */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+          <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="size-3.5" aria-hidden />
+            <span className="font-bold tabular-nums">{solved}</span> resolvida{solved === 1 ? '' : 's'}
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400">
+            <XCircle className="size-3.5" aria-hidden />
+            <span className="font-bold tabular-nums">{missed}</span> sem sucesso
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+            <ListChecks className="size-3.5" aria-hidden />
+            <span className="font-bold tabular-nums">{unmarked}</span> sem marca
+          </span>
+        </div>
+
+        {unmarked > 0 && (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+            Sem marca conta como pulada no resultado. Toque na questão para voltar e decidir.
+          </p>
+        )}
+
+        {/* Chips por questão — mesma gramática visual da navegação da prova */}
+        <div className="flex flex-wrap gap-1.5">
+          {questions.map((q, i) => {
+            const r = results[i];
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onNavigate(i)}
+                aria-label={`Revisar questão ${i + 1} — ${stateLabel(r.solved)}`}
+                className={cn(
+                  'size-11 rounded-md border text-[11px] font-semibold transition-all hover:scale-105 sm:size-9',
+                  r.solved === true && 'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+                  r.solved === false && 'border-rose-500/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+                  r.solved === null && 'border-dashed border-border text-muted-foreground hover:border-emerald-500/40',
+                )}
+              >
+                {i + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+          Encerrar é definitivo: a tentativa vai para o Histórico e o que faltou
+          alimenta o Caderno de Erros automaticamente.
+        </p>
+      </div>
+
+      {/* Entrega — decisão em duas portas, mobile em coluna cheia */}
+      <div className="space-y-2 border-t bg-muted/30 px-4 py-4 sm:flex sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-2 sm:space-y-0 sm:px-6">
+        <Button
+          onClick={onConfirm}
+          className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:h-9 sm:w-auto"
+        >
+          <Flag className="size-3.5" /> Encerrar e ver resultado
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-11 w-full sm:h-9 sm:w-auto"
+        >
+          <RotateCcw className="size-3.5" /> Voltar para a prova
+        </Button>
       </div>
     </div>
   );
