@@ -332,7 +332,56 @@ export function CommandPalette({ onNavigate }: Props) {
 
           <CommandSeparator />
 
-          {/* O ATALHO DO CADERNO (132): grupo próprio, logo depois de 'Ir para'
+          {/* O TUTOR NA NAVEGAÇÃO UNIVERSAL (142): o recurso CENTRO do site era
+              o único inalcançável pela busca — 'tutor' devolvia 'Nada
+              encontrado'. Cada disciplina vira uma porta direta do chat (o
+              MESMO openTutor da Biblioteca/Praticar/Agenda — a disciplina já
+              chega selecionada e a memória da conversa é a certa). Atalho
+              fiscaliza a regra da casa: integração real é a que a busca acha. */}
+          <CommandGroup heading="Tutor IA — tirar dúvida">
+            <CommandItem
+              value="tutor ia duvida perguntar chat inteligencia artificial abrir estudar"
+              onSelect={() => run(() => openTutor())}
+              className="gap-2.5"
+            >
+              <span className="shrink-0 text-amber-500 [&_svg]:size-4">
+                <Sparkles aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate">Abrir o tutor IA</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  chat da disciplina atual — lê materiais, datas e seu progresso
+                </span>
+              </span>
+            </CommandItem>
+            {disciplines.map((d) => {
+              const color = getColorClasses(d.color);
+              return (
+                <CommandItem
+                  key={d.code}
+                  value={`tutor ia duvida ${d.name} ${d.shortName} ${d.professor} perguntar chat`}
+                  onSelect={() =>
+                    run(() => openTutor({ disciplineCode: d.code }))
+                  }
+                  className="gap-2.5"
+                >
+                  <span className={cn('shrink-0 [&_svg]:size-4', color.text)}>
+                    <DisciplineIcon name={d.icon} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate">Tutor de {d.shortName}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      dúvidas de {d.name} com o contexto do Hub
+                    </span>
+                  </span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          {/* O ATALHO DO CADERNO (132): grupo próprio, logo depois do tutor
               — a revisão é a terceira fase do método e merece endereço na
               navegação universal, não um enterro no submenu Mais → Progresso. */}
           <CommandGroup heading="Caderno de erros">
