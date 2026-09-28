@@ -21,6 +21,12 @@ import {
 import { CaptureCropDialog } from './capture-crop-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
+import {
+  clearThread,
+  loadThread,
+  saveThread,
+  threadKey,
+} from '@/lib/tutor-thread-cache';
 import { UserBubbleContent } from './chat-code';
 import { TutorMarkdown } from './tutor-markdown';
 
@@ -41,6 +47,14 @@ interface ChatMessage {
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
 const hhmm = () =>
   new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+/**
+ * Sequência de ids do MÓDULO (t144): sobrevive à remontagem do painel — as
+ * mensagens hidratadas do cache de sessão recebem ids frescos e as chaves da
+ * lista continuam únicas sem efeito de sincronização ou ref extra.
+ */
+let messageIdSeq = 0;
+const freshMessageId = () => ++messageIdSeq;
 
 interface TutorQuickPanelProps {
   discipline: string;
@@ -81,7 +95,15 @@ export function TutorQuickPanel({
   className,
 }: TutorQuickPanelProps) {
   const sp = useStudyProgress();
-  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  // O FIO SOBREVIVE AO FECHAR (t144): a conversa fica em cache de SESSÃO
+  // chaveado pelo material — fechar o diálogo e reabrir o MESMO PDF reidrata
+  // o fio (a explicação longa com LaTeX não morre no X); outro material vê
+  // só a conversa dele. Recarregou a página, recomeça (memória longa é a do
+  // chat principal — aqui é produtividade de sessão, não persistência).
+  const threadCacheKey = threadKey(materialId, disciplineCode, discipline);
+  const [messages, setMessages] = React.useState<ChatMessage[]>(() =>
+    loadThread(threadCacheKey).map((m) => ({ ...m, id: freshMessageId() })),
+  );
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   /** Resposta em streaming (painel efêmero — não persiste no banco). */
@@ -99,21 +121,27 @@ export function TutorQuickPanel({
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
-  const nextIdRef = React.useRef(0);
   /** Modo dica: tutor socrático — pistas antes da solução completa. */
   const [hintMode, setHintMode] = React.useState(false);
 
-  // Anexa mensagem com id único — chaves estáveis na lista de conversa.
+  // Anexa mensagem com id único (sequência do módulo — sobrevive à remontagem).
   const appendMessage = React.useCallback((msg: Omit<ChatMessage, 'id'>) => {
-    const id = nextIdRef.current++;
+    const id = freshMessageId();
     setMessages((m) => [...m, { ...msg, id }]);
   }, []);
+
+  // Espelha a conversa viva no cache de sessão (sem bolhas de erro — o
+  // tutor-thread-cache filtra; escrever é barato e idempotente).
+  React.useEffect(() => {
+    saveThread(threadCacheKey, messages);
+  }, [messages, threadCacheKey]);
 
   /** Limpa a conversa efêmera do painel (o aluno recomeça a dúvida). */
   const clearConversation = () => {
     setMessages([]);
     setStreamText(null);
     notifiedRef.current = false;
+    clearThread(threadCacheKey);
   };
 
   /** Anexo vindo de FORA do painel (print de página no modo dividido):

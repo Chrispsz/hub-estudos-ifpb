@@ -11,15 +11,18 @@
 //             acabaram). A escolha e a largura da divisão ficam lembradas.
 //
 // O painel do tutor fica MONTADO nos dois modos (só muda a visibilidade):
-// trocar de modo não apaga a conversa efêmera — o aluno alterna ler/perguntar
-// sem perder o fio. O "Print de página" no modo dividido ancora o anexo no
-// painel AO LADO (onAttach) em vez de abrir o chat principal por cima.
+// trocar de modo não apaga a conversa — e desde a t144 ela SOBREVIVE ao
+// fechar do diálogo (cache de sessão por material, lib/tutor-thread-cache):
+// reabrir o mesmo PDF reidrata o fio. O "Print de página" no modo dividido
+// ancora o anexo no painel AO LADO (onAttach) em vez de abrir o chat
+// principal por cima.
 
 import * as React from 'react';
 import {
   BotMessageSquare,
   Camera,
   CheckCircle2,
+  ChevronsLeftRight,
   Circle,
   Download,
   ExternalLink,
@@ -58,6 +61,8 @@ const touchBtn = 'h-11 sm:h-8';
 /** Preferência do modo dividida lembrada entre aberturas (dono decide uma vez). */
 const SPLIT_KEY = 'hub:pdf-split';
 const SPLIT_PCT_KEY = 'hub:pdf-split-pct';
+/** Dica de arraste do divisor — uma vez na vida do navegador (descoberta). */
+const SPLIT_HINT_KEY = 'hub:pdf-split-hint';
 /** Limites do divisor — nem PDF minúsculo, nem chat de coluna apertada. */
 const PCT_MIN = 30;
 const PCT_MAX = 72;
@@ -91,6 +96,8 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const [panelImage, setPanelImage] = React.useState<string | null>(null);
   /** Drag do divisor em curso (para o grip acender e o texto não selecionar). */
   const [dragging, setDragging] = React.useState(false);
+  /** Dica de arraste (1ª vez no modo dividido — some ao interagir ou em 6s). */
+  const [dragHint, setDragHint] = React.useState(false);
   /** Print de página (139): seletor pdf.js → página exata → tutor, sem arquivo. */
   const [captureOpen, setCaptureOpen] = React.useState(false);
 
@@ -104,13 +111,25 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
       if (localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
       const p = Number(localStorage.getItem(SPLIT_PCT_KEY));
       if (p >= PCT_MIN && p <= PCT_MAX) setSplitPct(Math.round(p));
+      if (localStorage.getItem(SPLIT_HINT_KEY) !== '1') setDragHint(true);
     } catch {
       /* storage indisponível — padrões servem */
     }
   }, []);
 
+  /** A dica cumpriu o papel (interação ou tempo) — nunca mais na vida. */
+  const dismissDragHint = React.useCallback(() => {
+    setDragHint(false);
+    try {
+      localStorage.setItem(SPLIT_HINT_KEY, '1');
+    } catch {
+      /* sem storage — a dica só volta na próxima sessão */
+    }
+  }, []);
+
   // Ao fechar: o EFÊMERO morre (anexo pendente, ponto de resposta, aba do
-  // mobile). Modo e largura PERMANECEM — é a preferência do dono.
+  // mobile). Modo e largura PERMANECEM — é a preferência do dono. A conversa
+  // agora vive no cache de sessão (tutor-thread-cache) — morre só no reload.
   React.useEffect(() => {
     if (!open) {
       setMobileTab('material');
@@ -154,6 +173,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   );
 
   const onDividerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    dismissDragHint();
     // capture: o drag segue mesmo com o ponteiro fora da trilha — mas nem
     // todo pointerId é capturável (leitor de tela/toque indireto): a régua
     // continua funcionando sem ele, só menos teimosa.
@@ -180,15 +200,19 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const onDividerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
+      dismissDragHint();
       applyPct(pctRef.current - 2, true);
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
+      dismissDragHint();
       applyPct(pctRef.current + 2, true);
     } else if (e.key === 'Home') {
       e.preventDefault();
+      dismissDragHint();
       applyPct(PCT_MIN, true);
     } else if (e.key === 'End') {
       e.preventDefault();
+      dismissDragHint();
       applyPct(PCT_MAX, true);
     }
   };
@@ -218,6 +242,15 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   // Arquivos de exemplo (.html) não são PDF — rótulo do botão de download honesto.
   const isHtmlFile = material?.pdfPath?.endsWith('.html') ?? false;
   const isSplit = mode === 'split';
+
+  // A dica se retira sozinha — mas o relógio é do DIVISOR, não do diálogo:
+  // 6s de dividido aberto para ser vista sem virar ruído (alternar de modo
+  // zera o contador; quem interage com a régua a aposenta na hora).
+  React.useEffect(() => {
+    if (!dragHint || !isSplit) return;
+    const t = setTimeout(dismissDragHint, 6000);
+    return () => clearTimeout(t);
+  }, [dragHint, isSplit, dismissDragHint]);
 
   React.useEffect(() => {
     if (open && material) {
@@ -442,6 +475,9 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 aria-valuemin={PCT_MIN}
                 aria-valuemax={PCT_MAX}
                 aria-valuenow={splitPct}
+                /* Leitor de tela lê PARTES, não número cru: quem regula é
+                   o dono — o par material/tutor é o que a régua manipula. */
+                aria-valuetext={`Material ${splitPct}% · Tutor ${100 - splitPct}%`}
                 tabIndex={0}
                 onPointerDown={onDividerPointerDown}
                 onPointerMove={onDividerPointerMove}
@@ -464,6 +500,30 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                     aria-hidden
                   />
                 </span>
+
+                {/* Leitura viva do drag: a partilha em % no ponto exato do
+                    gesto — acaba com a adivinhação de "quanto já tenho de
+                    cada lado"; some ao soltar (não é enfeite permanente). */}
+                {dragging && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 whitespace-nowrap rounded-md border bg-background px-2 py-1 text-[11px] font-medium tabular-nums text-foreground shadow-md"
+                  >
+                    Material {splitPct}% · Tutor {100 - splitPct}%
+                  </span>
+                )}
+
+                {/* Primeira descoberta (t144): sem dica, um divisor de 6px
+                    parece divisória de mesa. Mostra UMA vez; interação ou
+                    6s a aposentam para sempre (SPLIT_HINT_KEY). */}
+                {dragHint && !dragging && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-medium text-white shadow-lg animate-msg-in"
+                  >
+                    <ChevronsLeftRight className="size-3" /> arraste para ajustar
+                  </span>
+                )}
               </div>
             )}
 
