@@ -712,9 +712,19 @@ export function ExamPrepCard() {
                       // catch-up já não cabe, e o banner não mente dizendo que cabe.
                       return `${pend}. O conteúdo CONTINUA na prova, mas hoje é revisão leve — folha e só as travadas; o catch-up já não cabe nesta semana. ${fila}`;
                     }
-                    // Dia comum (inclui o preparo): o catch-up ainda é ação real —
-                    // e o prazo agora existe: a PROVA (antes dizia "antes do dia
-                    // de hoje", um prazo impossível).
+                    if (todayMilestone?.kind === 'preparo') {
+                      // ENSAIO DA VÉSPERA (122): a véspera DO SIMULADO era o único
+                      // dia-marco em que o banner ainda empurrava o catch-up — e
+                      // brigava com TODAS as outras vozes da casa (kit: 'o ensaio
+                      // real é amanhã'; brief: 'dormir cedo'; fila: o plano do dia).
+                      // O ícone já esperava (CalendarClock); o texto agora defere
+                      // também — e aponta o BLOCO REAL de hoje (day?.titulo, a
+                      // mesma fonte do plano — zero segunda derivação): o ensaio
+                      // de amanhã é o diagnóstico; o resultado decide a revisão.
+                      return `${pend}. Amanhã é o ensaio real — hoje é o último bloco do plano, ${day?.titulo ?? 'Lógica Parte 2'}: fórmulas e dormir cedo. O catch-up espera o resultado do ensaio, que decide o que a véspera revisa. ${fila}`;
+                    }
+                    // Dia comum: o catch-up ainda é ação real —
+                    // e o prazo existe: a PROVA.
                     return `${pend}. O conteúdo CONTINUA na prova (01/10) — faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da Lista 01) até lá. ${fila}`;
                   })()}
                 </p>
@@ -983,7 +993,11 @@ export function ExamPrepCard() {
         >
           <Sparkles className="size-3.5 shrink-0 text-violet-500" />
           <span className="min-w-0 flex-1 truncate">
-            Treino de véspera: a IA me testa no conteúdo da prova (recall ativo, 5 questões)
+            {daysLeft === 1
+              ? 'Treino de véspera: a IA me testa no conteúdo da prova (recall ativo, 5 questões)'
+              // ENSAIO DA VÉSPERA (122): o rótulo 'véspera' mentia em D-3/D-2 —
+              // a véspera é UM dia (30/09); nos outros, recall é recall.
+              : 'Treino de recall: a IA me testa no conteúdo da prova (recall ativo, 5 questões)'}
           </span>
           <span className="shrink-0 text-[10px] text-muted-foreground">Estudar →</span>
         </button>
@@ -1709,6 +1723,32 @@ function VesperaKit({
       action: onOpenFormulas,
       cta: 'Abrir fórmulas',
     },
+    // A FOLHA ENTRA NO KIT NA VÉSPERA (122): o detalhe do marco da véspera
+    // SEMPRE mandou 'imprimir a folha de revisão' — mas o kit só oferecia o
+    // papel num link miúdo do rodapé, e a folha era a única promessa da casa
+    // sem linha própria no dono do dia. Na véspera ela ganha fileira: recitou
+    // na tela (linha acima), leva no papel — o selo print-only (120) registra
+    // que ela nasceu NA véspera ('Impresso em 30/09 · Véspera da prova'). O
+    // número é da FONTE (MATH_FORMULAS.length — as mesmas caixas da folha);
+    // só existe em D-1: antes do ensaio a recitação manda, depois da prova a
+    // folha já cumpriu o papel.
+    ...(daysLeft === 1
+      ? [
+          {
+            icon: Printer,
+            title: 'Imprimir a folha de revisão',
+            sub: `As ${MATH_FORMULAS.length} fórmulas em uma folha A4 para levar — recite na tela, confirme no papel; o selo registra que ela nasceu na véspera.`,
+            action: () => window.open('/folha-revisao', '_blank', 'noopener'),
+            badge: {
+              text: `${MATH_FORMULAS.length} fórmulas`,
+              tone: 'border-indigo-400/40 bg-indigo-500/10 tabular-nums text-indigo-600 dark:text-indigo-300',
+            },
+            cta: 'Abrir a folha',
+            accent:
+              'border-l-2 border-l-indigo-400/60 bg-indigo-500/[0.05] hover:border-l-indigo-500/70',
+          },
+        ]
+      : []),
     {
       icon: Layers,
       title: 'Passar o baralho da Av1',
