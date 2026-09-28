@@ -439,7 +439,10 @@ export function FolhaRevisaoSheet() {
             {showSlot && (
               <div className="mb-3 break-inside-avoid rounded-md border border-dashed border-zinc-300 border-l-4 border-l-zinc-400 bg-zinc-50 px-3 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500">
-                  Foco do simulado · chega em {fmtDayBR(SIMULADO_ISO)}
+                  Foco do simulado ·{' '}
+                  {todayKey === SIMULADO_ISO
+                    ? 'chega hoje'
+                    : `chega em ${fmtDayBR(SIMULADO_ISO)}`}
                 </p>
                 <p className="mt-1 text-[11px] leading-snug text-zinc-600">
                   A promessa do plano: o bloco com mais erros do ensaio vira a revisão da

@@ -20,6 +20,7 @@ import {
   CircleCheck,
   Crosshair,
   Dumbbell,
+  Flag,
   GraduationCap,
   Layers,
   ListChecks,
@@ -74,6 +75,7 @@ import {
   MATH_TOPICO_CURTO,
   MATH_TRAVADAS_KEY,
   countTravadas,
+  examWeekMilestoneFor,
   findMathSimuladoRunOficial,
   formatTravadas,
   isVesperaWindow,
@@ -265,6 +267,19 @@ export function ExamPrepCard() {
   // passado era acusado — "SIMULADO ficou para trás" na véspera com a prova
   // feita era a mentira mais cara da semana.
   const behind = planDaysBehind(daysLeft, checked, simuladoDoneOnPlanDate);
+
+  // O BANNER APRENDE O MARCO (ensaio geral da rodada 121 — dress rehearsal do dia 29/09):
+  // hoje = prova − daysLeft (o round-trip é honesto — daysLeft deriva de
+  // startOfDay local nos DOIS lados). Âncora no meio-dia LOCAL (lição 108) e
+  // FONTE ÚNICA examWeekMilestoneFor: o banner passa a falar a mesma língua
+  // da Agenda/folha/mapa sem segunda derivação de data. Sem isso, no dia do
+  // ensaio o banner ainda empurrava "catch-up ≈90 min antes do dia de hoje"
+  // — um prazo impossível brigando com o dono do dia (e com o veredito do
+  // kit, que já tinha nomeado a revisão de amanhã).
+  const todayMilestone = React.useMemo(() => {
+    const [y, m, d] = MATH_EXAM.date.split('-').map(Number);
+    return examWeekMilestoneFor(new Date(y, m - 1, d - daysLeft, 12));
+  }, [daysLeft]);
 
   /** 1 toque: todos os cartões da Av1 entram no sistema Leitner (Praticar → Flashcards). */
   function addAv1Deck() {
@@ -628,14 +643,37 @@ export function ExamPrepCard() {
         )}
 
         {/* MODO RECUPERAÇÃO: só os dias PENDENTES de verdade (o simulado feito
-            no dia oficial e as tarefas marcadas saem da conta — o plano não mente). */}
+            no dia oficial e as tarefas marcadas saem da conta — o plano não mente).
+            ENSAIO GERAL 121: o parágrafo agora DEFERE ao marco do dia (fonte única) —
+            nos dias em que outra superfície é a dona (ensaio, véspera, prova) o
+            catch-up não briga: espera, ou admite que já não cabe. */}
         {behind.length > 0 && (
           <div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <div className="flex items-start gap-2">
-              <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              {(() => {
+                // O ÍCONE SEGUE O DONO DO DIA — detalhe com significado:
+                // CircleAlert = a pendência é urgente AGORA (dia comum);
+                // CalendarClock = a pendência espera o marco (a gramática de
+                // espera da casa, a mesma do chip da Agenda);
+                // Flag = prova — alarme nenhum, só a despedida honesta.
+                const IconeRecuperacao =
+                  todayMilestone?.kind === 'prova'
+                    ? Flag
+                    : todayMilestone
+                      ? CalendarClock
+                      : CircleAlert;
+                return (
+                  <IconeRecuperacao
+                    className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+                    aria-hidden
+                  />
+                );
+              })()}
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  Modo recuperação: {behind.length} dia(s) do plano seguem pendentes
+                  Modo recuperação:{' '}
+                  <span className="tabular-nums">{behind.length}</span> dia(s) do plano
+                  seguem pendentes
                   {(() => {
                     // O banner também PROVA progresso: dias passados já cumpridos
                     // aparecem em emerald ao lado do que pende — recuperação sem
@@ -645,17 +683,40 @@ export function ExamPrepCard() {
                     ).length;
                     const doneCount = pastCount - behind.length;
                     return doneCount > 0 ? (
-                      <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                      <span className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
                         {' '}· {doneCount} já cumprido(s) ✓
                       </span>
                     ) : null;
                   })()}
                 </p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80 dark:text-amber-300/80">
-                  {behind.map((m) => m.titulo).join(' · ')}. O conteúdo CONTINUA na prova —
-                  faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da
-                  Lista 01) antes do dia de hoje. A fila certa está no card “Plano de
-                  Recuperação”.
+                <p
+                  aria-live="polite"
+                  className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80 dark:text-amber-300/80"
+                >
+                  {(() => {
+                    // A VOZ MUDA COM O MARCO (sem inventar estado — o pend
+                    // segue listado em todos os dias que ainda aceitam ação):
+                    const pend = behind.map((m) => m.titulo).join(' · ');
+                    const fila = 'A fila certa está no card “Plano de Recuperação”.';
+                    if (todayMilestone?.kind === 'prova') {
+                      // O dia é do exame: alarme nenhum — o catch-up não é agora.
+                      return 'Hoje é o dia da prova: nada de catch-up agora — boa prova!';
+                    }
+                    if (todayMilestone?.kind === 'simulado') {
+                      // O ensaio é o dono do dia; o resultado decide a revisão
+                      // de amanhã (a mesma voz do veredito do kit).
+                      return `${pend}. O conteúdo CONTINUA na prova — hoje, porém, o dia é do ensaio real: o catch-up (≈90 min) espera, e o resultado decide o que a véspera revisa. ${fila}`;
+                    }
+                    if (todayMilestone?.kind === 'vespera') {
+                      // Véspera = revisão leve (folha + só as travadas): o
+                      // catch-up já não cabe, e o banner não mente dizendo que cabe.
+                      return `${pend}. O conteúdo CONTINUA na prova, mas hoje é revisão leve — folha e só as travadas; o catch-up já não cabe nesta semana. ${fila}`;
+                    }
+                    // Dia comum (inclui o preparo): o catch-up ainda é ação real —
+                    // e o prazo agora existe: a PROVA (antes dizia "antes do dia
+                    // de hoje", um prazo impossível).
+                    return `${pend}. O conteúdo CONTINUA na prova (01/10) — faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da Lista 01) até lá. ${fila}`;
+                  })()}
                 </p>
               </div>
             </div>
@@ -680,7 +741,14 @@ export function ExamPrepCard() {
               className="absolute top-[10px] h-0.5 rounded-full bg-gradient-to-r from-emerald-500/70 via-emerald-500/60 to-rose-500/50 transition-[width] duration-700 ease-out"
               style={{
                 left: `${100 / (MATH_EXAM_PLAN.length * 2)}%`,
-                width: `${(todayOffset / (MATH_EXAM_PLAN.length - 1)) * (100 - 2 * (100 / (MATH_EXAM_PLAN.length * 2)))}%`,
+                // ENSAIO GERAL 121: o offset CONTA ATÉ A PROVA (D-7 = 7 … prova
+                // = 0), mas o índice do ponto na tela corre PARA A PROVA — o
+                // preenchimento é o caminho JÁ ANDADO: do primeiro dia (D-7)
+                // até hoje. A fórmula antiga usava todayOffset como índice
+                // crescente: no D-2 pintava até o D-5 e, NO DIA DA PROVA, o
+                // trilho amanhecia VAZIO (width 0) — o único dia em que ele
+                // deveria estar inteiro. (len−1−todayOffset) = índice de hoje.
+                width: `${((MATH_EXAM_PLAN.length - 1 - todayOffset) / (MATH_EXAM_PLAN.length - 1)) * (100 - 2 * (100 / (MATH_EXAM_PLAN.length * 2)))}%`,
               }}
             />
             <div className="relative flex items-end justify-between gap-1">
