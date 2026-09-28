@@ -67,12 +67,16 @@ close_dialog() {
   sleep 1
 }
 
-echo "=== [A] Data real D-4 — card da Matemática na grade ==="
+echo "=== [A] D-4 MOCKADO (2026-09-27) — card da Matemática na grade ==="
+# Lição 128 — data-rot (mesma cura da t98): [A]/[B] corriam no relógio REAL da
+# entrega e apodreceram em D-3; o produto estava certo, o teste casava com o
+# calendário. Mock + poke tornam as fases A–C determinísticas em qualquer dia.
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 sleep 2
 open_library
+echo "  $(mock_date '2026-09-27T10:00:00')"; poke; sleep 1
 CHIP4=$(has 'av1 · faltam 4 dias')
 [ "$CHIP4" = "1" ] && ok "chip no card: 'Av1 · faltam 4 dias'" || bad "chip D-4 ausente no card"
 EHOJE=$(has 'av1 · é hoje')

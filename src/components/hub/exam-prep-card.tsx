@@ -1619,6 +1619,19 @@ function VesperaKit({
         ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
         : 'border-indigo-400/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300';
 
+  // A INTRO FALA O DIA (128): a linha era escrita para a véspera DA PROVA e
+  // viajava para os outros dias — na véspera DO ENSAIO 'a prova' nomeava o dia
+  // errado (a 122 corrigiu o banner deste dia; a intro ficou para trás). A
+  // mesma régua do contextBadge: cada dia diz a sua verdade, com calma.
+  const kitIntro =
+    daysLeft === 3
+      ? 'O ensaio de amanhã mede o que já está no seu preparo — estes passos fecham o que falta e guardam o resto para o sono.'
+      : daysLeft === 2
+        ? 'O ensaio já mediu o seu preparo — estes passos apontam o que fechar primeiro, com calma.'
+        : daysLeft === 1
+          ? 'A prova já está no seu preparo — estes passos fecham o que falta e guardam o resto para o sono.'
+          : 'Hoje é o dia — só reler e respirar; nada novo entra hoje.';
+
   const rows: {
     icon: typeof Moon;
     title: string;
@@ -1868,8 +1881,7 @@ function VesperaKit({
             </Badge>
           </h3>
           <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-            A prova já está no seu preparo — estes passos fecham o que falta e guardam o resto
-            para o sono.
+            {kitIntro}
           </p>
         </div>
       </div>

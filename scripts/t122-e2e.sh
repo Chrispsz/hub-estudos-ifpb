@@ -71,6 +71,7 @@ agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 2
 [ "$(has 'fórmulas e dormir cedo')" = "1" ] && ok "brief manda dormir cedo (a calma manda na noite anterior)" || bad "linha 'dormir cedo' sumiu do brief"
 [ "$(has 'véspera do simulado — amanhã é o ensaio real')" = "1" ] && ok "kit D-3 no palco: 'véspera do simulado — amanhã é o ensaio real'" || bad "kit D-3 ausente"
 [ "$(has 'O ensaio real é amanhã')" = "1" ] && ok "linha 01 do kit: 'O ensaio real é amanhã'" || bad "linha do ensaio sumiu do kit"
+[ "$(has 'O ensaio de amanhã mede o que já está no seu preparo')" = "1" ] && ok "intro do kit fala o dia D-3 (o ensaio, não 'a prova' — lição 128)" || bad "intro do kit ainda nomeia o dia errado"
 if [ "$(has 'Amanhã é o ensaio real — hoje é o último bloco do plano')" = "1" ]; then
   ok "banner DEFERE no preparo: 'Amanhã é o ensaio real — hoje é o último bloco do plano'"
 else

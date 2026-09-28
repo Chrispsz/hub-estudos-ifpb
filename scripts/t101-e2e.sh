@@ -68,9 +68,14 @@ home() {
   sleep 2
 }
 
-echo "=== [A] Data real (dom 27/09, D-4): grupo da semana em PRIMEIRO lugar ==="
+echo "=== [A] D-4 MOCKADO (dom 27/09): grupo da semana em PRIMEIRO lugar ==="
+# Lição 128 — data-rot (mesma cura da t98/t100): a fase corria no relógio REAL
+# da entrega e apodreceu em D-3; a paleta lê o relógio no render — mock + poke
+# antes de abrir tornam as asserções determinísticas em qualquer dia.
 agent-browser open http://localhost:3000 >/dev/null 2>&1; sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 2
+echo "  $(mock_date '2026-09-27T10:00:00')"
+agent-browser eval "(function(){var k='hub-estudos-ifpb:v2';var p=JSON.parse(localStorage.getItem(k)||'{}');p.__poke=((p.__poke||0)+1);var s=JSON.stringify(p);localStorage.setItem(k,s);window.dispatchEvent(new StorageEvent('storage',{key:k,newValue:s}));return 'poked'})()" >/dev/null 2>&1; sleep 1
 P=$(open_palette)
 [ "$P" = "ok" ] && ok "paleta abriu (botão Buscar do header)" || bad "paleta não abriu"
 FH=$(first_heading)

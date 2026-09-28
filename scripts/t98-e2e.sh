@@ -46,8 +46,13 @@ open_library() {
   sleep 3
 }
 
-echo "=== [A] D-4 REAL: faixa no topo da Biblioteca ==="
+echo "=== [A] D-4 MOCKADO (2026-09-27): faixa no topo da Biblioteca ==="
+# Lição 128 — data-rot: [A] corria no relógio REAL da entrega (27/09) e apodreceu
+# no dia seguinte (D-3 mudou título, badge e linha do plano — o produto estava
+# CERTO, o teste é que casava com o calendário). A faixa é render-time puro
+# (lição 79): mock + poke tornam a fase determinística em qualquer dia.
 open_library
+echo "  $(mock_date '2026-09-27T10:00:00')"; poke; sleep 1
 STRIP=$(has 'Semana da Av1 · faltam 4 dias')
 [ "$STRIP" = "1" ] && ok "título: 'Semana da Av1 · faltam 4 dias'" || bad "faixa ausente ou título errado"
 D4=$(has 'D-4')
