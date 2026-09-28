@@ -1004,10 +1004,6 @@ export const calendarEvents: CalendarEvent[] = [
   { date: '2026-09-01', dateLabel: '01-15/Set', title: 'Edital IVS - Inscrições (SUAP)', category: 'outro' },
   { date: '2026-09-15', dateLabel: '15/Set', title: 'Último dia inscrição IVS', category: 'outro' },
   { date: '2026-09-16', dateLabel: '16/Set-02/Out', title: 'IVS - Análise Socioeconômica', category: 'outro' },
-  // Fonte: dono (mesma data do marco do simulado — ver math-exam-prep.ts).
-  // Sem categoria 'avaliacao' de propósito: a nota da S3 não está confirmada,
-  // o que a fonte garante é a ENTREGA no Classroom.
-  { date: '2026-09-29', dateLabel: '29/Set', title: 'Algoritmos - Entrega da S3 (programas, Classroom)', category: 'outro', relatedDiscipline: 'TEC.1687' },
   { date: '2026-10-05', dateLabel: '05-06/Out', title: 'IVS - Entrevistas', category: 'outro' },
   { date: '2026-10-07', dateLabel: '07/Out', title: 'IVS - Resultado Preliminar', category: 'outro' },
   { date: '2026-10-09', dateLabel: '09/Out', title: 'LM - Projeto 1ª etapa: entrega + apresentação (proposta em slides)', category: 'avaliacao', relatedDiscipline: 'TEC.1632' },

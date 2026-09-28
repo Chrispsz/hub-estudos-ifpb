@@ -136,18 +136,6 @@ export const ACADEMIC_EVENTS: AcademicEvent[] = [
     kind: 'letivo',
   },
   {
-    // Fonte: dono (consistente com o subtitulo do marco do simulado e com o
-    // chip D-1 do hero — math-exam-prep.ts documenta a mesma data). A entrega
-    // da S3 é o ÚNICO prazo escolar da semana da Av1 e estava ausente da
-    // agenda acadêmica: o app dizia '+ S3 de Algoritmos' em sussurros
-    // (milestone/header) mas o calendário — a superfície cujo trabalho são
-    // prazos — não tinha o evento.
-    date: '2026-09-29',
-    title: 'Alg: entrega da S3 — programas (Classroom)',
-    description: 'Entrega da Semana 3 no Classroom, no mesmo dia do Simulado da Av1 de Matemática.',
-    kind: 'prazo',
-  },
-  {
     date: '2026-10-09',
     title: 'LM: entrega do Projeto — 1ª etapa (proposta)',
     description: 'Proposta do website em slides (~5 min, com nomes de todos): nome do site, tema, stakeholders e mínimo de 6 tópicos. Apresentação em sala no dia da entrega.',

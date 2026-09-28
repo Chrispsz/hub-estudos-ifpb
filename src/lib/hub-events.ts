@@ -48,16 +48,6 @@ export interface OpenPracticeDetail {
   disciplineCode?: string;
   /** Tópico para pré-filtrar além da disciplina (ex.: foco pós-simulado). */
   topic?: string;
-  /** Material para pré-filtrar o CONJUNTO EXATO de questões ligadas a ele
-   *  (padrão material-first: a folha da S3 → as 8 questões que saíram dela).
-   *  O Praticar mostra um chip do conjunto com X para limpar. */
-  linkedMaterial?: string;
-  /** IDs EXATOS de exercícios do plano (ex.: apoio do dia → mat-ex07 + mat-ex08).
-   *  O Praticar mostra o chip 'Apoio' com contagem ao vivo e X para limpar —
-   *  o filtro nunca prende (a mesma gramática do conjunto da 94). */
-  exerciseIds?: string[];
-  /** Aba inicial do Praticar (ex.: kit da véspera abre direto nos flashcards). */
-  mode?: 'exercicios' | 'flashcards';
 }
 
 /** Dispara a troca para a aba Praticar com o filtro de disciplina aplicado. */

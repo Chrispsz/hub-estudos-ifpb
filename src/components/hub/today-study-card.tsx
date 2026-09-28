@@ -3,10 +3,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
-  BookOpenCheck,
   CalendarCheck,
-  CalendarClock,
-  CircleCheck,
   Clock4,
   Flame,
   Play,
@@ -18,14 +15,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  MATH_META,
-  todayStudyExamBriefFor,
-  type TodayStudyExamBrief,
-} from '@/lib/math-exam-prep';
 import { useStudyProgress } from '@/lib/study-progress';
 import { openMethod } from '@/lib/hub-events';
-import { todayDayOfWeek, getDayLabel, useNow } from './clock-widget';
+import { todayDayOfWeek, getDayLabel } from './clock-widget';
 import {
   generateSmartSchedule,
   getDaySummary,
@@ -40,105 +32,6 @@ const SPECIAL_BLOCK_CODES = new Set(['revisao', 'descanso']);
 interface Props {
   onStartStudy?: (disciplineCode?: string, materialId?: string) => void;
   onOpenSettings?: () => void;
-}
-
-/**
- * STRIP DO DIA-MARCO — a mesma gramática de cor da Agenda (fonte visual):
- * sólido com shadow (o dia É hoje), família âmbar p/ simulado pendente e
- * véspera, emerald quando o simulado JÁ foi (registro vence relógio, lição
- * 85/86) e rose p/ prova. Ícone no medalhão translúcido; pulso só quando
- * o ensaio ainda não aconteceu (a calma vence quando o registro chegou).
- */
-const STRIP_SOLID: Record<'amber' | 'rose' | 'emerald', string> = {
-  amber:
-    'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900',
-  rose: 'border-rose-600 bg-rose-600 text-white shadow-md shadow-rose-600/30 dark:border-rose-500 dark:bg-rose-500',
-  emerald:
-    'border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/30 dark:border-emerald-400 dark:bg-emerald-400 dark:text-zinc-900',
-};
-
-function ExamDayStrip({ brief }: { brief: TodayStudyExamBrief }) {
-  const family = brief.kind === 'prova' ? 'rose' : brief.feito ? 'emerald' : 'amber';
-  const icon =
-    brief.kind === 'prova' ? (
-      <CalendarCheck className="size-3.5 shrink-0" />
-    ) : brief.kind === 'vespera' ? (
-      <BookOpenCheck className="size-3.5 shrink-0" />
-    ) : brief.kind === 'preparo' ? (
-      // Véspera DO SIMULADO: o relógio antecipa o ensaio, mas SEM pulso —
-      // a noite anterior é de calma (o pulso fica para o dia do evento).
-      <CalendarClock className="size-3.5 shrink-0" />
-    ) : brief.feito ? (
-      <CircleCheck className="size-3.5 shrink-0" />
-    ) : (
-      <CalendarClock className="size-3.5 shrink-0 animate-pulse" />
-    );
-  return (
-    <div
-      role="status"
-      className={cn(
-        'mb-3 flex items-start gap-2.5 rounded-lg border px-3 py-2.5',
-        STRIP_SOLID[family],
-      )}
-    >
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/20">
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold leading-tight">
-          {brief.titulo}
-          {brief.feito && brief.pct !== null && (
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-              {brief.pct}% · meta {MATH_META}
-            </span>
-          )}
-        </p>
-        <p className="mt-0.5 text-xs leading-snug opacity-90">{brief.linha}</p>
-      </div>
-    </div>
-  );
-}
-
-/** HH:MM do AGORA — dois dígitos sempre, tabular no CSS. */
-function formatClock(d: Date): string {
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
-
-/**
- * O RELÓGIO CHEGA NO BLOCO — o relativo de cada bloco contra o AGORA:
- * em andamento = chip sólido amber com pulso (a gramática da casa para
- * "é agora", a mesma família dos dias-marco); começa em ≤60 min =
- * contorno amber tabular (a família da espera, sem pulso); mais longe
- * que isso o horário já basta; passado e não feito = silêncio (nada de
- * culpar — o rodapé já conta os pendentes). done é do chamador: feito
- * vence relógio (lição 85/86).
- */
-function blockNowBadge(
-  b: { startHour: number; startMinute: number; durationMin: number },
-  now: Date,
-): { label: string; title: string; cls: string; pulse?: boolean } | null {
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const start = b.startHour * 60 + b.startMinute;
-  const end = start + b.durationMin;
-  if (nowMin >= start && nowMin < end) {
-    const endHour = (b.startHour + Math.floor((b.startMinute + b.durationMin) / 60)) % 24;
-    const endMin = (b.startMinute + b.durationMin) % 60;
-    return {
-      label: 'agora',
-      title: `bloco em andamento agora — até ${formatTime(endHour, endMin)}`,
-      cls: 'border border-amber-500 bg-amber-500 text-white shadow-sm shadow-amber-500/30',
-      pulse: true,
-    };
-  }
-  const diff = start - nowMin;
-  if (diff > 0 && diff <= 60) {
-    return {
-      label: `em ${diff} min`,
-      title: `começa em ${diff} min (${formatTime(b.startHour, b.startMinute)})`,
-      cls: 'border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    };
-  }
-  return null;
 }
 
 function formatHours(min: number): string {
@@ -159,11 +52,6 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
     setMounted(true);
   }, []);
 
-  // O AGORA do card — a fonte de tempo viva do relógio (o mesmo tick do
-  // header, agora consumida por quem planeja o dia). null até o mount:
-  // SSR e primeiro frame não fingem saber a hora do aluno.
-  const now = useNow(1000);
-
   // Gera blocos automáticos (cronograma rotativo v2.0)
   const autoBlocks = React.useMemo(
     () =>
@@ -182,17 +70,6 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
 
   const dayPref = sp.progress.studyPreferences.days[today];
   const isDayOff = !dayPref?.enabled || todaySummary.total === 0;
-
-  // MARCO DO DIA — render-time (lição 79): o strip flipa 'feito ✓' no MESMO
-  // re-render em que o run oficial entra (storage event). null = dia comum,
-  // o cronograma rotativo segue dono (silêncio honesto — regra da 88).
-  const examBrief = React.useMemo(
-    () =>
-      mounted
-        ? todayStudyExamBriefFor(new Date(), sp.progress.simuladoRuns)
-        : null,
-    [mounted, sp.progress.simuladoRuns],
-  );
 
   // Primeiro bloco pendente (sugestão de estudo)
   const firstPendingBlock = todaySummary.pending[0];
@@ -223,16 +100,6 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            {now && (
-              <span
-                title="agora no relógio do plano"
-                aria-label={`Agora são ${formatClock(now)} no relógio do plano`}
-                className="hidden items-center gap-1 font-mono text-xs tabular-nums text-muted-foreground sm:inline-flex"
-              >
-                <Clock4 className="size-3" aria-hidden />
-                {formatClock(now)}
-              </span>
-            )}
             <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
               {todaySummary.done}/{todaySummary.total} blocos
             </Badge>
@@ -244,15 +111,10 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
           </div>
         </div>
 
-        {/* DIA-MARCO DA AV1 — o cronograma cede a vez nos 3 dias da reta final */}
-        {examBrief && <ExamDayStrip brief={examBrief} />}
-
         {isDayOff ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {examBrief?.kind === 'prova'
-                ? 'Dia da prova — sem blocos programados. Chegue cedo, leve o kit e respire. 🍀'
-                : 'Dia de descanso! Use para revisar ou adiantar conteúdo. 🌱'}
+              Dia de descanso! Use para revisar ou adiantar conteúdo. 🌱
             </p>
             {onStartStudy && (
               <div className="flex flex-wrap gap-2">
@@ -344,7 +206,6 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
                 const disc = isSpecial ? null : getDisciplineByCode(b.disciplineCode);
                 const color = getColorClasses(disc?.color ?? 'slate');
                 const done = sp.progress.scheduleBlocksDone.includes(b.id);
-                const nb = mounted && now && !done ? blockNowBadge(b, now) : null;
                 return (
                   <li
                     key={b.id}
@@ -360,21 +221,7 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
                         <Clock4 className="size-3" />
                         {formatTime(b.startHour, b.startMinute)}
                       </span>
-                      {done ? (
-                        <Sparkles className="size-3 text-emerald-600" />
-                      ) : nb ? (
-                        <span
-                          title={nb.title}
-                          aria-label={nb.title}
-                          className={cn(
-                            'inline-flex items-center whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none',
-                            nb.cls,
-                            nb.pulse && 'animate-pulse',
-                          )}
-                        >
-                          {nb.label}
-                        </span>
-                      ) : null}
+                      {done && <Sparkles className="size-3 text-emerald-600" />}
                     </div>
                     <p className={cn('mt-0.5 text-xs font-semibold', color.text)}>
                       {disc?.shortName ?? (b.isReview ? 'Revisão' : '—')}
@@ -386,14 +233,10 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
             </ul>
 
             <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
-              {examBrief?.kind === 'prova' ? (
-                <span>o cronograma cede a vez hoje — os blocos esperam amanhã</span>
-              ) : (
-                <span>
-                  {todaySummary.total - todaySummary.done} bloco(s) pendente(s) •
-                  {' '}{todaySummary.minutes - todaySummary.minutesDone} min restantes
-                </span>
-              )}
+              <span>
+                {todaySummary.total - todaySummary.done} bloco(s) pendente(s) •
+                {' '}{todaySummary.minutes - todaySummary.minutesDone} min restantes
+              </span>
               {todaySummary.done > 0 && (
                 <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
                   <RotateCcw className="size-3" /> Continue assim!

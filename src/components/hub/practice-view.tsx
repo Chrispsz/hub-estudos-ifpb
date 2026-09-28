@@ -4,21 +4,16 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart3,
-  CalendarCheck,
   ChevronDown,
   Dumbbell,
-  GraduationCap,
   Layers,
   Lightbulb,
   MessageCircleQuestion,
   NotebookPen,
-  Repeat2,
   RotateCcw,
   Star,
   Target,
   Trophy,
-  X,
-  Zap,
   CheckCircle2,
   HandHeart,
 } from 'lucide-react';
@@ -40,20 +35,12 @@ import { toast } from 'sonner';
 import {
   disciplines,
   getDisciplineByCode,
-  materials as allMaterials,
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
-import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
+import { useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
-import { simuladoMissedMap } from '@/lib/mistake-notebook';
-import {
-  findMathSimuladoRunOficial,
-  practiceExamBriefFor,
-  type PracticeExamBrief,
-} from '@/lib/math-exam-prep';
-import type { AttemptMode } from '@/lib/simulado-resume';
 import { openSimulado, openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
 import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
@@ -104,16 +91,7 @@ export function PracticeView({
 } = {}) {
   const sp = useStudyProgress();
   const [mode, setMode] = React.useState<PracticeMode>('exercicios');
-
-  // Pedido externo pode escolher a ABA inicial (kit da véspera → flashcards).
-  React.useEffect(() => {
-    if (practiceReq?.detail?.mode === 'flashcards') setMode('flashcards');
-  }, [practiceReq?.nonce, practiceReq]);
-
-  // LEITNER VIVO (116): render-time com o seletor puro — o badge da aba
-  // flashcards refresca a cada re-render (troca de aba, retorno de run),
-  // não fica preso ao memo cacheado do primeiro mount.
-  const dueCount = flashcardsDueFor(sp.allFlashcards, Date.now()).length;
+  const dueCount = sp.flashcardStats.due;
 
   return (
     <Tabs
@@ -172,114 +150,6 @@ const MATH_EXAM_PRESET = {
   topics: ['Álgebra Matricial', 'Lógica Matemática'],
 };
 
-/**
- * A GRAMÁTICA DE COR DO HUB na faixa da semana (mesma família do caderno da
- * 91 e dos flashcards da 90): sólido + pulso nos "é hoje" (âmbar simulado,
- * rose prova), emerald sólido no REGISTRO (sem pulso — feito é calmo) e tinta
- * translúcida na espera (véspera). Cor = significado, em toda superfície.
- */
-const PRACTICE_EXAM_VISUAL: Record<
-  PracticeExamBrief['kind'],
-  {
-    shell: string;
-    text: string;
-    sub: string;
-    iconBox: string;
-    icon: React.ReactNode;
-    btn: string;
-  }
-> = {
-  'simulado-hoje': {
-    shell:
-      'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400',
-    text: 'text-white dark:text-zinc-900',
-    sub: 'text-white/90 dark:text-zinc-900/80',
-    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
-    icon: <CalendarCheck className="size-4 animate-pulse" aria-hidden />,
-    btn: 'bg-white text-amber-600 hover:bg-amber-50 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-zinc-800',
-  },
-  'simulado-feito': {
-    shell: 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500',
-    text: 'text-white dark:text-zinc-900',
-    sub: 'text-white/90 dark:text-zinc-900/80',
-    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
-    icon: <CheckCircle2 className="size-4" aria-hidden />,
-    btn: 'bg-white text-emerald-600 hover:bg-emerald-50 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-zinc-800',
-  },
-  vespera: {
-    shell:
-      'border-amber-500/40 bg-amber-500/[0.07] dark:border-amber-400/40 dark:bg-amber-400/[0.06]',
-    text: 'text-amber-600 dark:text-amber-300',
-    sub: 'text-amber-700/80 dark:text-amber-300/75',
-    iconBox: 'bg-amber-500/15 dark:bg-amber-400/15',
-    icon: <Zap className="size-4" aria-hidden />,
-    btn: 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300',
-  },
-  'prova-hoje': {
-    shell:
-      'border-rose-500 bg-rose-500 shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400',
-    text: 'text-white dark:text-zinc-900',
-    sub: 'text-white/90 dark:text-zinc-900/80',
-    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
-    icon: <GraduationCap className="size-4 animate-pulse" aria-hidden />,
-    btn: 'bg-white text-rose-600 hover:bg-rose-50 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-zinc-800',
-  },
-};
-
-/**
- * Faixa da semana da Av1 no TOPO da aba Exercícios — o palco aprende o dia
- * dele: no simulado anuncia e abre o run já configurado; com o run flipa
- * "feito ✓" e aponta a fila guiada desta mesma aba; na véspera promove a
- * revisão leve; na prova manda descansar. CTA opcional (brief.cta null = sem
- * botão — e o pai cala o CTA do "feito" quando a fila guiada está vazia).
- */
-function PracticeExamStrip({
-  brief,
-  ctaLabel,
-  onCta,
-}: {
-  brief: PracticeExamBrief;
-  /** Rótulo final do CTA (o pai decide se existe — null esconde o botão). */
-  ctaLabel: string | null;
-  onCta?: () => void;
-}) {
-  const v = PRACTICE_EXAM_VISUAL[brief.kind];
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
-        v.shell,
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        <span
-          className={cn(
-            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
-            v.iconBox,
-          )}
-        >
-          {v.icon}
-        </span>
-        <div className="min-w-0">
-          <p className={cn('text-sm font-semibold leading-tight', v.text)}>{brief.titulo}</p>
-          <p className={cn('mt-1 text-xs leading-snug', v.sub)}>{brief.chamada}</p>
-        </div>
-      </div>
-      {ctaLabel && onCta ? (
-        <Button
-          size="sm"
-          onClick={onCta}
-          className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
-          aria-label={ctaLabel}
-        >
-          <Target className="size-3.5" aria-hidden />
-          <span className="tabular-nums">{ctaLabel}</span>
-        </Button>
-      ) : null}
-    </div>
-  );
-}
-
 function ExercisesPanel({
   simuladoReq,
   practiceReq,
@@ -290,13 +160,6 @@ function ExercisesPanel({
   const sp = useStudyProgress();
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [filterTopic, setFilterTopic] = React.useState<string>('all');
-  /** Conjunto material-first (ex.: a folha da S3 → as 8 questões que saíram
-   *  dela): só as questões ligadas ao material ficam na lista. 'all' = off. */
-  const [filterMaterial, setFilterMaterial] = React.useState<string>('all');
-  /** Apoio do plano (ex.: o dia D-4 → mat-ex07 + mat-ex08): só os exercícios
-   *  EXATOS da tarefa ficam na lista. [] = off (a gramática da 94: o filtro
-   *  nunca prende — X devolve a lista completa). */
-  const [filterExercises, setFilterExercises] = React.useState<string[]>([]);
   /** Só questões MARCADAS (⭐) — revisão focada antes da prova. */
   const [onlyMarked, setOnlyMarked] = React.useState(false);
   const [simuladoOpen, setSimuladoOpen] = React.useState(false);
@@ -311,19 +174,14 @@ function ExercisesPanel({
     );
   };
 
-  // Pré-filtro de disciplina (+ tópico opcional + conjunto material-first +
-  // apoio do plano) vindo de fora (ex.: card Plano de Recuperação; foco por
-  // tópico pós-simulado; folha da S3 → as 8 questões; apoio do dia → os
-  // exercícios EXATOS). Pedido SEM conjunto/apoio limpa os anteriores (a
-  // abertura manual sempre limpa — lição do vazamento da 82).
+  // Pré-filtro de disciplina (+ tópico opcional) vindo de fora
+  // (ex.: card Plano de Recuperação; foco por tópico pós-simulado).
   React.useEffect(() => {
     const req = practiceReq?.detail;
     const code = req?.disciplineCode;
     if (code && getDisciplineByCode(code)) {
       setFilterDiscipline(code);
       setFilterTopic(req.topic ?? 'all');
-      setFilterMaterial(req.linkedMaterial ?? 'all');
-      setFilterExercises(req.exerciseIds ?? []);
     }
   }, [practiceReq?.nonce, practiceReq]);
   // PADRÃO MATERIAL-FIRST: por padrão só aparece o que já foi dado em sala.
@@ -333,10 +191,6 @@ function ExercisesPanel({
   const [simuladoInitialConfig, setSimuladoInitialConfig] = React.useState<
     Partial<SimuladoConfig> | undefined
   >(undefined);
-  // Natureza da tentativa do pedido externo (drill de tópico = 'topico';
-  // preset da prova e aberturas comuns = 'prova'). Idem config: reiniciada
-  // a cada evento, para não vazar no próximo pedido.
-  const [simuladoInitialMode, setSimuladoInitialMode] = React.useState<AttemptMode>('prova');
   // Modo Revisão: fila guiada de ★ marcadas + Caderno de Erros.
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const reviewCount = React.useMemo(
@@ -352,12 +206,10 @@ function ExercisesPanel({
     if (!simuladoReq || simuladoReq.nonce === 0) return;
     const d = simuladoReq.detail;
     if (d.preset === 'math_exam') {
-      setSimuladoInitialMode('prova');
       setSimuladoInitialConfig(MATH_EXAM_PRESET);
     } else if (d.topicScope) {
       // Drill de 1 tópico (ex.: replay do pior tópico da tendência no Histórico):
       // prova curta, no ritmo da turma, cronômetro leve — ajustável no setup.
-      setSimuladoInitialMode('topico');
       setSimuladoInitialConfig({
         discipline: d.disciplineCode ?? 'all',
         difficulty: 'all',
@@ -367,10 +219,8 @@ function ExercisesPanel({
         topics: [d.topicScope],
       });
     } else if (d.disciplineCode && getDisciplineByCode(d.disciplineCode)) {
-      setSimuladoInitialMode('prova');
       setSimuladoInitialConfig({ discipline: d.disciplineCode });
     } else {
-      setSimuladoInitialMode('prova');
       setSimuladoInitialConfig(undefined);
     }
     setSimuladoOpen(true);
@@ -384,12 +234,6 @@ function ExercisesPanel({
     if (filterTopic !== 'all') {
       list = list.filter((e) => e.topic === filterTopic);
     }
-    if (filterMaterial !== 'all') {
-      list = list.filter((e) => (e.linkedMaterials ?? []).includes(filterMaterial));
-    }
-    if (filterExercises.length > 0) {
-      list = list.filter((e) => filterExercises.includes(e.id));
-    }
     if (onlyAligned) {
       list = list.filter((e) => getExerciseStage(e) === 'em_sala');
     }
@@ -397,15 +241,7 @@ function ExercisesPanel({
       list = list.filter((e) => sp.progress.exerciseProgress[e.id]?.marked);
     }
     return list;
-  }, [
-    filterDiscipline,
-    filterTopic,
-    filterMaterial,
-    filterExercises,
-    onlyAligned,
-    onlyMarked,
-    sp.progress.exerciseProgress,
-  ]);
+  }, [filterDiscipline, filterTopic, onlyAligned, onlyMarked, sp.progress.exerciseProgress]);
 
   const markedCount = React.useMemo(
     () =>
@@ -427,42 +263,8 @@ function ExercisesPanel({
     [sp.progress.exerciseProgress],
   );
 
-  // Semana da Av1 no TOPO da aba — RENDER-TIME no corpo do componente (lição
-  // 79: sem memo nem interval, reage a mock de relógio no próximo render e a
-  // StorageEvent quando o run é registrado). O run oficial vem da FONTE
-  // ÚNICA findMathSimuladoRunOficial (85/86/88/89/90/91) — o REGISTRO vence
-  // o relógio. reviewCount já é a fila guiada real (★ + caderno) — o CTA do
-  // "feito"/véspera só existe com fila real (fila vazia = botão cala).
-  const simuladoRunOficial = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
-  const examBrief = practiceExamBriefFor(
-    new Date(),
-    reviewCount,
-    simuladoRunOficial
-      ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
-      : null,
-  );
-  const examOnCta =
-    examBrief?.kind === 'simulado-hoje'
-      ? () => openSimulado({ preset: 'math_exam' })
-      : examBrief?.kind === 'simulado-feito' || examBrief?.kind === 'vespera'
-        ? () => setReviewOpen(true)
-        : undefined;
-  const examCtaLabel =
-    examBrief?.cta == null
-      ? null
-      : examBrief.kind === 'simulado-hoje'
-        ? examBrief.cta
-        : reviewCount > 0
-          ? `${examBrief.cta} (${reviewCount})`
-          : null;
-
   return (
     <div className="space-y-4">
-      {/* Semana da Av1 no topo — o palco abre o dia (fora da janela: null). */}
-      {examBrief ? (
-        <PracticeExamStrip brief={examBrief} ctaLabel={examCtaLabel} onCta={examOnCta} />
-      ) : null}
-
       {/* Banner material-first: estado da turma */}
       <Card className="rounded-xl border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent p-3.5 shadow-sm">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -506,14 +308,9 @@ function ExercisesPanel({
             title="Revisão guiada: suas ★ marcadas + Caderno de Erros, uma por vez"
             className={cn(
               'group h-9 gap-2 border text-xs font-medium shadow-sm transition-all',
-              // COR = SIGNIFICADO na fila de ações: na véspera a revisão guiada
-              // é O plano do dia (offset 1, kind 'revisao') — com fila real ela
-              // sobe de tinta translúcida para sólida (o mesmo salto do hero).
-              examBrief?.kind === 'vespera' && reviewCount > 0
-                ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/25 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
-                : reviewCount > 0
-                  ? 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 hover:bg-amber-500/15 hover:shadow-md dark:text-amber-400'
-                  : 'text-muted-foreground',
+              reviewCount > 0
+                ? 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 hover:bg-amber-500/15 hover:shadow-md dark:text-amber-400'
+                : 'text-muted-foreground',
             )}
           >
             <NotebookPen className="size-3.5 transition-transform group-hover:scale-110" />
@@ -528,20 +325,11 @@ function ExercisesPanel({
             size="sm"
             // Abertura MANUAL sempre limpa: sem isso, a pré-config de um pedido
             // externo anterior (preset da Av1, drill de tópico) vazava para cá.
-            // O MODO idem — um treino de tópico antigo não pode rotular a prova nova.
             onClick={() => {
               setSimuladoInitialConfig(undefined);
-              setSimuladoInitialMode('prova');
               setSimuladoOpen(true);
             }}
-            className={cn(
-              'group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl',
-              // COR = SIGNIFICADO: no dia do simulado sem run, ESTE é o botão
-              // da manhã — o halo âmbar marca a ação do dia sem mudar a marca
-              // esmeralda (a faixa acima conta o porquê; o halo só aponta).
-              examBrief?.kind === 'simulado-hoje' &&
-                'ring-2 ring-amber-400/60 ring-offset-2 ring-offset-background dark:ring-amber-300/50',
-            )}
+            className="group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl"
           >
             <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado Pro
           </Button>
@@ -640,66 +428,6 @@ function ExercisesPanel({
               </span>
             )}
           </button>
-          {/* Chip do CONJUNTO material-first — aparece quando um pedido externo
-              pediu o conjunto exato de um material (ex.: a folha da S3 → as 8
-              questões). Família violeta (a mesma do chip 'praticar' que o
-              criou), contagem ao vivo e X para limpar — o filtro nunca prende
-              o aluno: um clique devolve a lista completa do filtro atual. */}
-          {filterMaterial !== 'all' &&
-            (() => {
-              const mat = allMaterials.find((m) => m.id === filterMaterial);
-              return (
-                <div
-                  className="flex items-center gap-1.5 rounded-lg border border-violet-500/50 bg-violet-500/10 px-2.5 py-2 text-xs font-medium text-violet-700 dark:text-violet-300"
-                  title="Conjunto de questões ligadas ao material — X para limpar"
-                >
-                  <Layers className="size-3.5 shrink-0" aria-hidden />
-                  <span className="max-w-52 truncate sm:max-w-64">
-                    Conjunto:{' '}
-                    <span className="font-semibold">{mat?.title ?? filterMaterial}</span>
-                  </span>
-                  <span className="rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums">
-                    {filteredExercises.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setFilterMaterial('all')}
-                    aria-label="Limpar o filtro de conjunto"
-                    className="rounded-full p-0.5 transition-colors hover:bg-violet-500/20"
-                  >
-                    <X className="size-3" aria-hidden />
-                  </button>
-                </div>
-              );
-            })()}
-          {/* Chip do APOIO do plano — aparece quando um pedido externo pediu
-              os exercícios EXATOS de uma tarefa (ex.: 'Apoio no Praticar:
-              mat-ex07 e mat-ex08' → os 2, um clique). A mesma família violeta
-              do conjunto, com os IDs no rótulo (o aluno sabe O QUE abre),
-              contagem ao vivo e X para limpar. */}
-          {filterExercises.length > 0 && (
-            <div
-              className="flex items-center gap-1.5 rounded-lg border border-violet-500/50 bg-violet-500/10 px-2.5 py-2 text-xs font-medium text-violet-700 dark:text-violet-300"
-              title="Exercícios de apoio do plano — X para limpar"
-            >
-              <Dumbbell className="size-3.5 shrink-0" aria-hidden />
-              <span className="max-w-52 truncate sm:max-w-64">
-                Apoio:{' '}
-                <span className="font-semibold">{filterExercises.join(' · ')}</span>
-              </span>
-              <span className="rounded-full bg-violet-500/20 px-1.5 text-[10px] font-semibold tabular-nums">
-                {filterExercises.length}
-              </span>
-              <button
-                type="button"
-                onClick={() => setFilterExercises([])}
-                aria-label="Limpar o filtro de apoio"
-                className="rounded-full p-0.5 transition-colors hover:bg-violet-500/20"
-              >
-                <X className="size-3" aria-hidden />
-              </button>
-            </div>
-          )}
           <div className="ml-auto text-xs text-muted-foreground">
             {filteredExercises.length} exercício(s)
           </div>
@@ -738,7 +466,6 @@ function ExercisesPanel({
         open={simuladoOpen}
         onOpenChange={setSimuladoOpen}
         initialConfig={simuladoInitialConfig}
-        initialMode={simuladoInitialMode}
       />
 
       {/* Modo Revisão (★ + Caderno de Erros, uma questão por vez) */}
@@ -751,8 +478,6 @@ interface MistakeItem {
   ex: Exercise;
   kind: 'ajuda' | 'erro';
   lastPracticedAt: string;
-  /** "Erros de sempre": recaídas após já ter resolvido (0/undefined = 1ª vez). */
-  lapses?: number;
 }
 
 /**
@@ -764,34 +489,18 @@ interface MistakeItem {
 function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) => void }) {
   const sp = useStudyProgress();
   const [expanded, setExpanded] = React.useState(false);
-  // Questões que TAMBÉM aparecem perdidas em simulado(s) — mesmo casamento do
-  // caderno completo (Progresso): o badge "também no simulado" mantém as duas
-  // superfícies contando a mesma história.
-  const runMisses = React.useMemo(() => simuladoMissedMap(sp.progress), [sp.progress]);
 
   const mistakes = React.useMemo<MistakeItem[]>(() => {
     return Object.entries(sp.progress.exerciseProgress ?? {})
       .filter(([, v]) => v.neededHelp || (v.tried && !v.solved))
-      .map(([id, v]): MistakeItem | null => {
+      .map(([id, v]) => {
         const ex = exercises.find((e) => e.id === id);
         if (!ex) return null;
-        return {
-          ex,
-          kind: v.neededHelp ? ('ajuda' as const) : ('erro' as const),
-          lastPracticedAt: v.lastPracticedAt,
-          lapses: v.lapses,
-        };
+        return { ex, kind: v.neededHelp ? ('ajuda' as const) : ('erro' as const), lastPracticedAt: v.lastPracticedAt };
       })
       .filter((m): m is MistakeItem => m !== null)
-      // "Erros de sempre" primeiro, depois a recência — mesma ordem do
-      // caderno completo (Progresso) e da revisão dirigida (Simulado Pro).
-      .sort((a, b) => {
-        const la = a.lapses ?? 0;
-        const lb = b.lapses ?? 0;
-        if (la !== lb) return lb - la;
-        return (b.lastPracticedAt || '').localeCompare(a.lastPracticedAt || '');
-      });
-  }, [sp.progress.exerciseProgress, runMisses]);
+      .sort((a, b) => (b.lastPracticedAt || '').localeCompare(a.lastPracticedAt || ''));
+  }, [sp.progress.exerciseProgress]);
 
   if (mistakes.length === 0) return null;
 
@@ -838,7 +547,7 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
       </div>
 
       <ul className="divide-y divide-border/60">
-        {visible.map(({ ex, kind, lapses }) => {
+        {visible.map(({ ex, kind }) => {
           const disc = getDisciplineByCode(ex.disciplineCode);
           const color = getColorClasses(disc?.color ?? 'slate');
           return (
@@ -859,50 +568,6 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
                   ) : (
                     <Badge className="border-0 bg-rose-500/90 text-[9px] text-white">não resolvi</Badge>
                   )}
-                  {(lapses ?? 0) > 0 && (
-                    <Badge
-                      variant="outline"
-                      title="Erro de sempre: você já tinha resolvido este item e voltou a errar — prioridade máxima na véspera."
-                      className="border-rose-400/60 bg-rose-500/10 text-[9px] font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
-                    >
-                      <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
-                      voltou {lapses}×
-                    </Badge>
-                  )}
-                  {(() => {
-                    const m = runMisses.get(ex.id);
-                    if (!m) return null;
-                    // Crônico entre corridas (≥ 2 simulados) SEM recaída de
-                    // exercício (lapses 0): o badge sobe para o estilo forte
-                    // "N× no simulado" — mesma gramática do caderno completo,
-                    // que aqui só não aparece quando o "voltou N×" já cobre.
-                    if (m.dates.length >= 2 && (lapses ?? 0) <= 0) {
-                      return (
-                        <Badge
-                          variant="outline"
-                          title={`Erro de sempre: perdida em ${m.dates.length} simulados diferentes e continua pendente — prioridade máxima na véspera.`}
-                          className="border-rose-400/60 bg-rose-500/10 text-[9px] font-semibold text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
-                        >
-                          <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
-                          {m.dates.length}× no simulado
-                        </Badge>
-                      );
-                    }
-                    return (
-                      <Badge
-                        variant="outline"
-                        title={
-                          m.dates.length > 1
-                            ? `Esta questão também foi ${m.missed ? 'errada' : 'pulada'} em ${m.dates.length} simulados — o caderno completo une tudo numa linha só.`
-                            : `Esta questão também foi ${m.missed ? 'errada' : 'pulada'} no simulado — o caderno completo une os dois registros.`
-                        }
-                        className="border-rose-300/60 bg-rose-500/[0.07] text-[9px] font-medium text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
-                      >
-                        <Target className="mr-0.5 size-2.5" aria-hidden />
-                        {m.dates.length > 1 ? `também em ${m.dates.length} simulados` : 'também no simulado'}
-                      </Badge>
-                    );
-                  })()}
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">{ex.statement}</p>
               </div>

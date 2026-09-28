@@ -79,36 +79,6 @@ interface HubContext {
   nextEvaluations?: HubEvaluation[];
   upcomingEvents?: HubEvent[];
   studentStats?: HubStudentStats;
-  /** Estado ao vivo da semana da Av1 (espelho de HubExamWeek em tutor-context). */
-  examWeek?: {
-    provaDaysLeft: number;
-    planoHoje: {
-      titulo: string;
-      kind: string;
-      minutos: number;
-      feitas: number;
-      total: number;
-    } | null;
-    diasAtras: number;
-    simuladoDaysLeft: number;
-    simulado: {
-      pct: number;
-      meta: number;
-      porTopico: { topico: string; solved: number; total: number; puladas: number }[];
-      piorTopico?: string;
-      /** Bloco INTEIRO sem tentativa (pulouTudo da 105) — precede o pior respondido. */
-      pulouTudo?: string | null;
-      /** Recibo do drill do foco (106): a revisão prometida aconteceu? Subiu? */
-      treinoDoFoco?: {
-        quando: 'hoje' | 'ontem' | 'recente';
-        solved: number;
-        total: number;
-        pct: number | null;
-        melhorou: boolean | null;
-      } | null;
-    } | null;
-    travadasCount: number;
-  };
 }
 
 interface TutorRequestBody {
@@ -308,54 +278,6 @@ function buildHubBlock(hub?: HubContext): string {
       `- Progresso do aluno: ${s.materialsDone}/${s.materialsTotal} materiais concluídos · ${s.topicsDone}/${s.topicsTotal} tópicos dominados · ${s.pomodoroMinutes} min de foco (Pomodoro) · ${s.flashcardsDue} flashcard(s) para revisar hoje · ${s.exercisesSolved}/${s.exercisesTotal} exercícios resolvidos`,
     );
   }
-  if (hub.examWeek) {
-    const w = hub.examWeek;
-    const parts: string[] = [`faltam ${w.provaDaysLeft} dia(s) para a prova (01/10)`];
-    if (w.planoHoje) {
-      parts.push(
-        `plano de hoje: "${w.planoHoje.titulo}" — ${w.planoHoje.feitas}/${w.planoHoje.total} tarefa(s) feita(s), ~${w.planoHoje.minutos} min`,
-      );
-    }
-    if (w.diasAtras > 0) parts.push(`${w.diasAtras} dia(s) do plano ficaram para trás`);
-    parts.push(
-      w.simulado
-        ? `simulado oficial de 29/09: FEITO ✓ ${w.simulado.pct}% (meta ${w.simulado.meta})${
-            w.simulado.porTopico.length
-              ? ` — por tópico: ${w.simulado.porTopico
-                  .map(
-                    (t) =>
-                      `${t.topico} ${t.solved}/${t.total}${
-                        t.puladas > 0 ? ` (${t.puladas} pulada${t.puladas === 1 ? '' : 's'})` : ''
-                      }`,
-                  )
-                  .join(' · ')}`
-              : ''
-          }${
-            w.simulado.pulouTudo
-              ? ` · bloco INTEIRO sem tentativa: ${w.simulado.pulouTudo} — a revisão começa por ele`
-              : w.simulado.piorTopico
-                ? ` · bloco fraco: ${w.simulado.piorTopico}`
-                : ''
-          }${
-            w.simulado.treinoDoFoco && w.simulado.treinoDoFoco.pct !== null
-              ? ` · treino do foco (${w.simulado.treinoDoFoco.quando}): ${w.simulado.treinoDoFoco.solved}/${w.simulado.treinoDoFoco.total} — ${w.simulado.treinoDoFoco.pct}%${
-                  w.simulado.treinoDoFoco.melhorou === true
-                    ? ' (a revisão cumpriu: a taxa subiu)'
-                    : w.simulado.treinoDoFoco.melhorou === false
-                      ? ' (não subiu — vale outra passada, ou outro ângulo)'
-                      : ''
-                }`
-              : ''
-          }`
-        : `simulado oficial de 29/09: ainda NÃO feito`,
-    );
-    parts.push(`questões travadas marcadas nas listas: ${w.travadasCount}`);
-    lines.push(
-      `- SEMANA DA AV1 (estado ao vivo, dados do app):\n    • ${parts.join(
-        '\n    • ',
-      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado. Se o treino do foco JÁ aconteceu e subiu, reconheça o progresso e mantenha o ritmo; se não subiu, proponha outro ângulo (refazer no papel, reler a fórmula daquele bloco antes de dormir) — nunca cobre duas vezes o que o registro já mostrou.`,
-    );
-  }
 
   if (lines.length === 0) return '';
   return [
@@ -432,7 +354,7 @@ function buildSystemPrompt(
     '- LM — PROJETO 1ª ETAPA (Classroom, 24/09, prof. Diogo; VALE 100 pontos): proposta para um website sobre um tema de escolha do GRUPO — equipes de ATÉ 4 pessoas, FIXAS até o fim do semestre. ENTREGA 09/10 e apresentação em sala NO dia da entrega (responder no Classroom com os slides; ~5 minutos e OBRIGATÓRIO nome de todos os integrantes). A proposta deve conter: (1) Nome do website (nome próprio, como marca); (2) Tema (ex.: filmes, animais de estimação, entidade pública, evento); (3) Potenciais interessados / stakeholders (quem acessaria o conteúdo? quem se interessa?); (4) Tópicos abordados — MÍNIMO 6 (tópicos geralmente viram páginas do site; ex.: site de jogos → jogos de corrida, jogos casuais...). É a 1ª etapa do projeto A1 (estrutura HTML, peso 45%). Ajude a definir tema/nome/tópicos e a ensaiar a apresentação.',
     '- Inglês Instrumental — vídeo indicado pelo prof. Fernando Van Woensel (Classroom, 16/09): "15 partes do corpo que também são VERBOS?!" (YouTube, 16 min, na Biblioteca do Hub) — partes do corpo em inglês que também funcionam como verbos com outro significado (fenômeno comum: hand/entregar, eye/observar, head/liderar são exemplos clássicos do tema). Sugira anotar os pares substantivo/verbo no glossário pessoal.',
     '- Português Instrumental (prof. Francisco Igor Arraes Alves Rocha, Mestrado — ATENÇÃO: ainda NÃO há material do professor no Hub, então NÃO afirme o que foi dado em aula): disciplina de leitura/interpretação e produção de textos acadêmicos e técnicos — coesão e coerência, norma culta (concordância, regência, crase), vícios de linguagem, semântica e variação linguística. Avaliação CONTÍNUA: atividades de leitura/interpretação (60%) + produção textual (40%), escala 0-10, aprovação ≥ 7 — sem prova marcada, data não divulgada. Referências de cadeira: Bechara (Moderna Gramática Portuguesa), Cunha & Cintra (Nova Gramática do Português Contemporâneo) e Othon M. Garcia (Comunicação em Prosa Moderna — o clássico de redação técnica: tópico frasal, parágrafo com ideia-central-apoio, clareza e concisão). Pode ENSINAR o geral com didática (estrutura de resumo/resenha/requerimento/petição, tópico frasal, crase, concordância e regência com exemplos certos × errados — texto técnico é o coração da disciplina e conecta com o projeto de LM); para conteúdo específico de aula, diga que o material ainda não foi adicionado ao Hub e sugira confirmar no Classroom.',
-    '- PROVA DE ALGORITMOS — Prova 1, SEXTA-FEIRA 30/10/2026 (formato confirmado pelo dono em 24/09): 3 QUESTÕES — uma FÁCIL, uma MÉDIA e uma DIFÍCIL — valendo 33,3% da média (0-100, aprovação ≥ 70). Os programas PODEM VIR da Lista de Exercícios da disciplina (289 questões, no Hub: seções Q1–57 entrada/saída, Q58–97 desvios condicionais, Q98–157 repetição, Q158–208 vetores/matrizes, Q209–289 subprogramas/ponteiros). Escopo da Prova 1 = Unidades 1 e 2 → as seções Q1–97 da Lista são o treino mais direto. Estratégia: dominar as Semanas 1–3 do Classroom (S1 já feita pelo aluno; S2 pendente; S3 = ENTREGA DOS PROGRAMAS NO CLASSROOM EM 29/09/2026, terça — mesmo dia do Simulado da Av1 de Matemática; lembre o aluno da entrega se ele perguntar sobre a semana) e depois atacar a Lista nas seções 1 e 2. Questões típicas da lista: médias, conversões, processamento de dígitos, maior de N valores, validações com if/else.',
+    '- PROVA DE ALGORITMOS — Prova 1, SEXTA-FEIRA 30/10/2026 (formato confirmado pelo dono em 24/09): 3 QUESTÕES — uma FÁCIL, uma MÉDIA e uma DIFÍCIL — valendo 33,3% da média (0-100, aprovação ≥ 70). Os programas PODEM VIR da Lista de Exercícios da disciplina (289 questões, no Hub: seções Q1–57 entrada/saída, Q58–97 desvios condicionais, Q98–157 repetição, Q158–208 vetores/matrizes, Q209–289 subprogramas/ponteiros). Escopo da Prova 1 = Unidades 1 e 2 → as seções Q1–97 da Lista são o treino mais direto. Estratégia: dominar as Semanas 1–3 do Classroom (S1 já feita pelo aluno; S2 e S3 pendentes) e depois atacar a Lista nas seções 1 e 2. Questões típicas da lista: médias, conversões, processamento de dígitos, maior de N valores, validações com if/else.',
     '- RHT — ARTIGO TELETRABALHO (profa. Marília, Classroom 15/09, base da PROPOSTA DE ATIVIDADE I; material na Biblioteca): Vilarinho, Paschoal e Demo (RSP 72(1), 2021) estudam o teletrabalho no Serpro (pioneiro: Projeto-Lar 1985, piloto 2005, Lei 12.551/2011). Método: estudo de caso único, transversal, quali+quanti (Iramuteq, ANOVA, Mann-Whitney); amostra 45 teletrabalhadores + 62 colegas + 23 chefias. Positivos: produtividade e qualidade de vida; Negativos: dificuldades técnicas e convívio/isolamento social; teletrabalhadores ainda relatam preconceito/desconfiança de chefes e colegas. Tabela 1: teletrabalhadores avaliaram MELHOR que colegas TODAS as variáveis (ex.: afeto positivo 8,00 vs. 6,16; afeto negativo 2,01 vs. 3,88). Cuidados: dados pré-pandemia; estudo transversal = associação, NÃO causalidade; os % dos quadros representam o discurso do grupo, não nº de respondentes. REGRA DE OURO deste estudo: QUALQUER resposta sobre os resultados/método/amostra DEVE citar TODOS OS TRÊS números da amostra — 45 teletrabalhadores, 62 colegas e 23 chefias (um a um, na resposta) — e pelo menos um valor da Tabela 1; citar só 45/62 sem o 23 = resposta incompleta. Ajude o aluno a preparar a atividade com esses dados exatos.',
     '',
     'PROVA DE MATEMÁTICA — Av1, QUARTA-FEIRA 01/10/2026 (data confirmada pelo dono; FONTE DA VERDADE: card "Foco: Prova de Matemática" no Painel do Hub):',

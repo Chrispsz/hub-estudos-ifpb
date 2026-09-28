@@ -10,15 +10,12 @@ import {
   Clock3,
   Cpu,
   ExternalLink,
-  ArrowUpRight,
   FileText,
   Flame,
   Lightbulb,
   Sparkles,
   ChevronRight,
   CalendarCheck,
-  CalendarClock,
-  CircleCheck,
   Layers,
   Sun,
   Target,
@@ -37,18 +34,13 @@ import {
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
-import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
-import { countTotalTopicsDone } from '@/lib/study-topics';
-import {
-  activityBadgeFor,
-  disciplineActivityFor,
-} from '@/lib/discipline-activity';
+import { useStudyProgress } from '@/lib/study-progress';
+import { countDisciplinesOnTrack, countTotalTopicsDone } from '@/lib/study-topics';
 import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import type { Discipline, Material } from '@/data/course-data';
 import { studyStrategy } from '@/data/course-data';
 import { TodayStudyCard } from './today-study-card';
-import { useNow } from './clock-widget';
 import { ExamPrepCard } from './exam-prep-card';
 import { RecoveryCard } from './recovery-card';
 import { SemesterProjection } from './semester-projection';
@@ -59,13 +51,6 @@ import {
   upcomingEvents,
   getNextEvaluation as getNextEvaluationShared,
 } from '@/lib/semester';
-import {
-  MATH_EXAM,
-  MATH_SIMULADO_DATE,
-  findMathSimuladoRunOficial,
-} from '@/lib/math-exam-prep';
-import { openSimulado, openTutor } from '@/lib/hub-events';
-import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
 
 interface Props {
   onStartStudy?: (disciplineCode?: string, materialId?: string) => void;
@@ -74,6 +59,9 @@ interface Props {
   onOpenPractice?: () => void;
 }
 
+/** Percentual de tópicos concluídos para considerar a disciplina "em dia". */
+const ON_TRACK_PCT = 50;
+
 export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice }: Props) {
   const sp = useStudyProgress();
   const [selected, setSelected] = React.useState<Discipline | null>(null);
@@ -81,44 +69,26 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
   const [recentMaterial, setRecentMaterial] = React.useState<Material | null>(null);
   const [recentOpen, setRecentOpen] = React.useState(false);
 
-  // Próximas 3 avaliações (só no cliente — APENAS datas oficiais; sem estimativas).
-  // VIVA (115): recalcula a cada tick do useNow — a tab aberta na virada do
-  // dia não dorme no relógio (antes: mount-once, o '3d' virava mentira à
-  // meia-noite até um reload).
-  const nowMin = useNow(60_000);
-  const upcoming = React.useMemo(() => {
-    if (!nowMin) return [] as typeof evaluationPeriods;
-    return [...evaluationPeriods]
-      .filter((e) => !e.conditional && e.date)
-      .filter((e) => daysUntilDate(e.date as string, nowMin) >= 0)
-      .sort((a, b) => daysUntilDate(a.date as string, nowMin) - daysUntilDate(b.date as string, nowMin))
-      .slice(0, 3);
-  }, [nowMin]);
+  // Próximas 3 avaliações (só no cliente — APENAS datas oficiais; sem estimativas)
+  const [upcoming, setUpcoming] = React.useState<typeof evaluationPeriods>([]);
+  React.useEffect(() => {
+    const now = new Date();
+    setUpcoming(
+      [...evaluationPeriods]
+        .filter((e) => !e.conditional && e.date)
+        .filter((e) => daysUntilDate(e.date as string, now) >= 0)
+        .sort((a, b) => daysUntilDate(a.date as string, now) - daysUntilDate(b.date as string, now))
+        .slice(0, 3),
+    );
+  }, []);
 
-  // Próxima avaliação em destaque (só no cliente) — o TICK ÚNICO (113):
-  // o useNow alimenta o hero; o setInterval próprio do dashboard saiu
-  // (a árvore inteira já re-renderizava a cada 60s — agora com UMA fonte).
-  const nextEval = React.useMemo(
-    () => (nowMin ? getNextEvaluationShared(nowMin) : null),
-    [nowMin],
-  );
-
-  // O LEITNER TAMBÉM NÃO DORME (116): a chamada de revisão espaçada lê o
-  // seletor PURO com o agora do tick de 60s — a linha aparece sozinha quando
-  // um cartão vence com a tab aberta (antes: memo do hook cacheava o relógio,
-  // o 'cartões esperando' só nascia num reload ou noutra mutação).
-  const flashDue = nowMin
-    ? flashcardsDueFor(sp.allFlashcards, nowMin.getTime()).length
-    : 0;
-
-  // O run do simulado oficial (29/09) — mesma fonte única do card da prova
-  // (85): se o dia do simulado já aconteceu com prova registrada, o chip do
-  // hero vira "feito ✓" em vez de convidar de novo. Render-time via memo:
-  // reage a runs novas no mesmo re-render (storage event).
-  const simuladoRunOficial = React.useMemo(
-    () => findMathSimuladoRunOficial(sp.progress.simuladoRuns),
-    [sp.progress.simuladoRuns],
-  );
+  // Próxima avaliação em destaque (só no cliente)
+  const [nextEval, setNextEval] = React.useState<ReturnType<typeof getNextEvaluationShared>>(null);
+  React.useEffect(() => {
+    setNextEval(getNextEvaluationShared());
+    const id = setInterval(() => setNextEval(getNextEvaluationShared()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Recentes (enriquecidos com accessedAt — evita find() dentro do render)
   const recentMaterials = React.useMemo(() => {
@@ -147,42 +117,29 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
 
   // KPIs V3 adicionais
   const totalTopicsDone = countTotalTopicsDone(sp.progress.topicProgress);
-  // O FLUXO REAL CONTA (118): disciplinas com atividade nos últimos 7 dias —
-  // derivado da MESMA fonte dos cards de avaliação (discipline-activity).
-  // Antes: 'Disciplinas em dia' media checkboxes manuais e ficava em 0 para
-  // o aluno que aprende abrindo material — ruído que ele aprendeu a ignorar.
-  const activeDisciplines = React.useMemo(
-    () =>
-      disciplines.filter((d) => disciplineActivityFor(d.code, sp.progress)?.emEstudo).length,
-    [sp.progress],
-  );
+  const disciplinesOnTrack = countDisciplinesOnTrack(sp.progress.topicProgress);
 
-  // Linhas derivadas das próximas avaliações (memoizado) — o nowMin entra
-  // como chave: virou o dia, a linha recalcula no mesmo frame (lição 79).
-  // O PROGRESSO QUE SE REGISTRA SOZINHO (118): a barra e o selo leem a
-  // ATIVIDADE REAL (materiais abertos + questões tentadas, fonte única
-  // discipline-activity) — não os checkboxes manuais que ninguém marca.
-  // Selo honesto: 'em dia' acompanhou o dado · 'em estudo' tem atividade ·
-  // 'sem registro' NÃO acusa (o registro é que não existe ainda) — a palavra
-  // 'atrasada' saiu do vocabulário do painel.
+  // Linhas derivadas das próximas avaliações (memoizado — evita criar Date/agregar no render)
   const upcomingRows = React.useMemo(() => {
-    if (!nowMin) return [];
-    const now = nowMin;
+    const now = new Date();
     return upcoming.map((e) => {
       const disc = getDisciplineByCode(e.disciplineCode);
       const color = getColorClasses(disc?.color ?? 'slate');
       const daysLeft = e.date ? daysUntilDate(e.date, now) : -1;
-      const act = disciplineActivityFor(e.disciplineCode, sp.progress);
-      const badge = act ? activityBadgeFor(act) : null;
+      // Status: em dia (progresso PPC ≥ ON_TRACK_PCT%) ou atrasada
+      const discTopics = sp.progress.topicProgress[e.disciplineCode] ?? {};
+      const allTopics = disc?.conteudoProgramatico.flatMap((u) => u.topicos) ?? [];
+      const doneTopics = allTopics.filter((t) => discTopics[t]).length;
+      const pct = allTopics.length === 0 ? 0 : Math.round((doneTopics / allTopics.length) * 100);
       const dateLabel = e.date
         ? new Date(`${e.date}T12:00:00`).toLocaleDateString('pt-BR', {
             day: '2-digit',
             month: '2-digit',
           })
         : 'A definir';
-      return { e, disc, color, daysLeft, pct: act?.pctAcompanha ?? null, badge, dateLabel };
+      return { e, disc, color, daysLeft, pct, onTrack: pct >= ON_TRACK_PCT, dateLabel };
     });
-  }, [upcoming, nowMin, sp.progress]);
+  }, [upcoming, sp.progress.topicProgress]);
 
   return (
     <div className="space-y-6">
@@ -205,145 +162,12 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                 {course.instituicao} — Campus {course.campus}
               </p>
               {nextEval && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {/* PROVA (Av1, 01/10) — o chip primário, família âmbar (76) */}
-                  <div
-                    className={cn(
-                      'inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm',
-                      nextEval.daysLeft === 0
-                        ? 'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400'
-                        : 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/60',
-                    )}
-                  >
-                    <CalendarCheck
-                      className={cn(
-                        'size-4',
-                        nextEval.daysLeft === 0
-                          ? 'animate-pulse text-white dark:text-zinc-900'
-                          : 'text-amber-600 dark:text-amber-400',
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        nextEval.daysLeft === 0
-                          ? 'font-medium text-white dark:text-zinc-900'
-                          : 'text-amber-900 dark:text-amber-200',
-                      )}
-                    >
-                      {nextEval.daysLeft === 0 ? (
-                        <>
-                          <span className="font-bold">É hoje:</span> {nextEval.name} —{' '}
-                          {nextEval.disciplineShort}. Boa prova!
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-semibold">
-                            {nextEval.daysLeft === 1
-                              ? 'Falta 1 dia'
-                              : `Faltam ${nextEval.daysLeft} dias`}
-                          </span>{' '}
-                          para {nextEval.name} — {nextEval.disciplineShort}
-                        </>
-                      )}
-                    </span>
-                  </div>
-
-                  {/* SIMULADO (29/09) — o hero conta para o marco MAIS PRÓXIMO
-                      também (85): até hoje o topo dizia só "Faltam N dias para
-                      a Av1" enquanto o compromisso real da semana era o simulado.
-                      Estados honestos: feito ✓ (emerald, correção a 1 clique) /
-                      é hoje (sólido, pulso — mesmo tratamento do banner D-0 da
-                      76) / amanhã / em N dias. Render-time (lição da 79). */}
-                  {(() => {
-                    const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
-                    // Janela do sprint: o chip nasce a 7 dias do simulado e
-                    // sai no dia seguinte — fora dela o hero fica só com a prova.
-                    if (simuladoDaysLeft < 0 || simuladoDaysLeft > 7) return null;
-                    const simuladoFeito =
-                      simuladoDaysLeft === 0 && !!simuladoRunOficial;
-                    const marcoData = new Date(
-                      `${MATH_SIMULADO_DATE}T12:00:00`,
-                    ).toLocaleDateString('pt-BR', {
-                      weekday: 'short',
-                      day: '2-digit',
-                      month: '2-digit',
-                    });
-                    if (simuladoFeito) {
-                      return (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            simuladoRunOficial &&
-                            openTutor({
-                              question: buildRunDebriefQuestion(simuladoRunOficial),
-                              disciplineCode: MATH_EXAM.disciplineCode,
-                            })
-                          }
-                          className="group inline-flex items-center gap-2 rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-sm text-white shadow-md shadow-emerald-600/30 transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-600"
-                          aria-label="Simulado da Av1 de hoje já foi feito — pedir a correção comentada ao tutor"
-                        >
-                          <CircleCheck className="size-4 shrink-0" aria-hidden />
-                          <span className="whitespace-normal text-left leading-snug">
-                            Simulado da Av1 <span className="font-bold">feito ✓</span> —
-                            pedir a correção
-                          </span>
-                          <ArrowUpRight
-                            className="size-3.5 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                            aria-hidden
-                          />
-                        </button>
-                      );
-                    }
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => openSimulado({ preset: 'math_exam' })}
-                        className={cn(
-                          'group inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors',
-                          simuladoDaysLeft === 0
-                            ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
-                            : 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400',
-                        )}
-                        aria-label={
-                          simuladoDaysLeft === 0
-                            ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos — abrir o simulado'
-                            : simuladoDaysLeft === 1
-                              ? 'Amanhã é o dia do Simulado da Av1 — abrir o simulado para ensaiar'
-                              : `Simulado da Av1 em ${simuladoDaysLeft} dias — abrir o Simulado com o escopo real da prova`
-                        }
-                      >
-                        <CalendarClock
-                          className={cn(
-                            'size-4 shrink-0',
-                            simuladoDaysLeft === 0 && 'animate-pulse',
-                          )}
-                          aria-hidden
-                        />
-                        <span className="whitespace-normal text-left leading-snug">
-                          {simuladoDaysLeft === 0 ? (
-                            <>
-                              <span className="font-bold">É hoje:</span> Simulado da Av1 +
-                              entrega S3 de Algoritmos
-                            </>
-                          ) : simuladoDaysLeft === 1 ? (
-                            <>
-                              Amanhã: <span className="font-semibold">Simulado da Av1</span>{' '}
-                              + entrega S3 de Algoritmos
-                            </>
-                          ) : (
-                            <>
-                              Simulado da Av1 em {simuladoDaysLeft} dias —{' '}
-                              <span className="font-semibold">{marcoData}</span>
-                            </>
-                          )}
-                        </span>
-                        <ArrowUpRight
-                          className="size-3.5 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                          aria-hidden
-                        />
-                      </button>
-                    );
-                  })()}
+                <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm dark:border-amber-900 dark:bg-amber-950/60">
+                  <CalendarCheck className="size-4 text-amber-600" />
+                  <span className="text-amber-900">
+                    <span className="font-semibold">Faltam {nextEval.daysLeft} dias</span>{' '}
+                    para {nextEval.name} — {nextEval.disciplineShort}
+                  </span>
                 </div>
               )}
             </div>
@@ -364,9 +188,8 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
         onOpenSettings={onOpenSchedule}
       />
 
-      {/* Chamada de revisão espaçada — só aparece quando há flashcards vencidos.
-          VIVA (116): flashDue lê o relógio do tick — a linha nasce sozinha. */}
-      {flashDue > 0 && (
+      {/* Chamada de revisão espaçada — só aparece quando há flashcards vencidos */}
+      {sp.flashcardStats.due > 0 && (
         <motion.section
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -378,8 +201,8 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">
-                Revisão espaçada — {flashDue}{' '}
-                {flashDue === 1 ? 'cartão esperando' : 'cartões esperando'}
+                Revisão espaçada — {sp.flashcardStats.due}{' '}
+                {sp.flashcardStats.due === 1 ? 'cartão esperando' : 'cartões esperando'}
               </p>
               <p className="text-xs text-muted-foreground">
                 Revisar hoje fixa o conteúdo na memória de longa duração.
@@ -389,7 +212,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
               size="sm"
               onClick={onOpenPractice}
               className="bg-teal-600 text-white hover:bg-teal-700"
-              aria-label={`Abrir revisão de ${flashDue} flashcards`}
+              aria-label={`Abrir revisão de ${sp.flashcardStats.due} flashcards`}
             >
               Revisar agora <ChevronRight className="size-3.5" aria-hidden />
             </Button>
@@ -429,14 +252,14 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
           value={totalTopicsDone}
           icon={<CheckCircle2 className="size-4" />}
           color="teal"
-          hint="marcados por você na aba Estudo"
+          hint="do total do PPC"
         />
         <KpiCard
-          label="Disciplinas ativas"
-          value={activeDisciplines}
+          label="Disciplinas em dia"
+          value={disciplinesOnTrack}
           icon={<Layers className="size-4" />}
           color="amber"
-          hint="atividade nos últimos 7 dias"
+          hint="progresso ≥ 50%"
         />
         <KpiCard
           label="Streak"
@@ -462,11 +285,10 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
               </span>
             </Card>
           ) : (
-            upcomingRows.map(({ e, disc, color, daysLeft, pct, badge, dateLabel }) => {
+            upcomingRows.map(({ e, disc, color, daysLeft, pct, onTrack, dateLabel }) => {
               return (
                 <Card
                   key={`${e.disciplineCode}-${e.evaluationName}-${e.date ?? 'adefinir'}`}
-                  data-eval-row={`${e.disciplineCode}-${e.evaluationName}`}
                   className={cn(
                     'rounded-xl border-l-4 bg-card p-3 shadow-sm',
                     color.border,
@@ -482,37 +304,12 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     >
                       <DisciplineIcon name={disc?.icon ?? 'BookOpen'} className="size-3.5" />
                     </span>
-                    {/* A MESMA RAMPA da agenda acadêmica (114): prova HOJE =
-                        sólido amber + pulso (o 'É hoje' do header), a ≤2d = o
-                        tom do 'amanhã', longe = a identidade da disciplina —
-                        a fileira de avaliações e a agenda falam a mesma língua. */}
-                    {(() => {
-                      const urgHoje = daysLeft === 0;
-                      const urgPerto = daysLeft > 0 && daysLeft <= 2;
-                      return (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'ml-auto border text-[11px] tabular-nums',
-                            urgHoje
-                              ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900'
-                              : urgPerto
-                                ? 'border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300'
-                                : color.badge,
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'inline-flex',
-                              urgHoje && 'animate-pulse',
-                            )}
-                          >
-                            <CalendarCheck className="size-3" aria-hidden />
-                          </span>
-                          {urgHoje ? 'hoje' : `${daysLeft}d`}
-                        </Badge>
-                      );
-                    })()}
+                    <Badge
+                      variant="outline"
+                      className={cn('ml-auto border text-[11px]', color.badge)}
+                    >
+                      {daysLeft > 0 ? `${daysLeft}d` : 'hoje'}
+                    </Badge>
                   </div>
                   <p className={cn('mt-2 text-[11px] font-medium uppercase tracking-wide', color.text)}>
                     {disc?.shortName} • {dateLabel}
@@ -522,47 +319,23 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     {e.description}
                   </p>
                   <div className="mt-2 flex items-center gap-2">
-                    {/* A barra mede ACOMPANHAMENTO DO DADO (118): do conteúdo dado
-                        em aula, o quanto já foi tocado pela atividade real.
-                        Só some quando NADA foi dado (régua inexistente) — com
-                        conteúdo dado e zero atividade, 0% + 'sem registro' é
-                        honesto e aponta o caminho sem acusar. */}
-                    {pct !== null && (
+                    <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
-                        role="progressbar"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={pct}
-                        aria-label={`Acompanha ${pct}% do conteúdo dado em aula`}
-                      >
-                        <div
-                          className={cn('h-full rounded-full', color.bgSolid)}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    )}
-                    {/* Selo honesto (118): em dia = acompanhou o dado (emerald);
-                        em estudo = tem atividade sua (a família da espera, amber,
-                        sem pulso — não é prazo); sem registro = neutro, SEM
-                        acusação — a palavra 'atrasada' saiu do painel. */}
-                    {badge && (
-                      <Badge
-                        variant="outline"
-                        title={badge.title}
-                        className={cn(
-                          'shrink-0 border text-[9px]',
-                          badge.tone === 'dia' &&
-                            'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
-                          badge.tone === 'estudo' &&
-                            'border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300',
-                          badge.tone === 'registro' &&
-                            'border-white/10 bg-muted text-muted-foreground',
-                        )}
-                      >
-                        {badge.label}
-                      </Badge>
-                    )}
+                        className={cn('h-full rounded-full', color.bgSolid)}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'shrink-0 border text-[9px]',
+                        onTrack
+                          ? 'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          : 'border-rose-200 bg-rose-100 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
+                      )}
+                    >
+                      {onTrack ? 'em dia' : 'atrasada'}
+                    </Badge>
                   </div>
                 </Card>
               );
@@ -841,14 +614,10 @@ const EVENT_STYLES: Record<
 
 /** Agenda acadêmica real (fonte: calendário oficial IFPB Cajazeiras 2026). */
 function AcademicAgenda() {
-  // VIVA (115): o useNow alimenta a lista — a tab aberta na virada do dia
-  // flipa 'em 2d' → 'em 1d' → 'hoje' sem reload (antes: mount-once, o badge
-  // mentia até o próximo refresh da página).
-  const nowTick = useNow(60_000);
-  const events = React.useMemo(
-    () => (nowTick ? upcomingEvents(nowTick, 4) : []),
-    [nowTick],
-  );
+  const [events, setEvents] = React.useState<ReturnType<typeof upcomingEvents>>([]);
+  React.useEffect(() => {
+    setEvents(upcomingEvents(new Date(), 4));
+  }, []);
 
   if (events.length === 0) {
     return (
@@ -869,54 +638,17 @@ function AcademicAgenda() {
           .toLocaleDateString('pt-BR', { month: 'short' })
           .replace('.', '')
           .toUpperCase();
-        // A casa nomeia o dia da semana em toda superfície de calendário
-        // (Agenda 'Seg', mapa 'Dom', strip) — a caixa de data da agenda não
-        // podia ser a exceção: TER em cima do número.
-        const weekdayLabel = d
-          .toLocaleDateString('pt-BR', { weekday: 'short' })
-          .replace('.', '')
-          .toUpperCase();
-        // Rampa de urgência SÓ para prazos (feriado 'hoje' não é urgência):
-        // mesma família do badge do header — hoje = sólido amber + pulso,
-        // a ≤2d = o tom do 'amanhã' do header, longe = a identidade do kind.
-        // NO DIA do prazo o upcomingEvents marca ongoing=true (hoje ∈
-        // [start,end]) — mas prazo de UM dia 'em andamento' É o 'hoje' da
-        // casa: o sólido amber vence o 'agora' genérico (a janela em curso
-        // de vários dias, tipo matrícula, continua no tom do kind).
-        const singleDayPrazo =
-          ev.kind === 'prazo' && (!ev.endDate || ev.endDate === ev.date);
-        const urgHoje = singleDayPrazo && ev.daysLeft === 0;
-        const urgPerto =
-          ev.kind === 'prazo' && !ev.ongoing && ev.daysLeft > 0 && ev.daysLeft <= 2;
-        const badgeCls = urgHoje
-          ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900'
-          : urgPerto
-            ? 'border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300'
-            : style.badge;
         return (
           <Card
             key={`${ev.date}-${ev.title}`}
             className={cn(
               'flex-row items-center gap-3 rounded-xl border p-3 shadow-sm',
-              // O anel do dia segue a família do marco (amber), não o 'agora'
-              // genérico — mesma gramática dos dias-marco da Agenda (96).
-              urgHoje && 'ring-2 ring-amber-500/40',
-              ev.ongoing && !urgHoje && 'ring-2 ring-emerald-500/40',
+              ev.ongoing && 'ring-2 ring-emerald-500/40',
             )}
           >
-            <div
-              className={cn(
-                'grid w-12 shrink-0 place-items-center rounded-lg py-1.5',
-                urgHoje ? 'bg-amber-500/15' : ev.ongoing ? 'bg-emerald-500/15' : 'bg-muted/60',
-              )}
-            >
-              <span className="text-[9px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">
-                {weekdayLabel}
-              </span>
-              <span className="mt-0.5 text-sm font-bold leading-none tabular-nums">{dayLabel}</span>
-              <span className="mt-0.5 text-[10px] uppercase leading-none text-muted-foreground">
-                {monthLabel}
-              </span>
+            <div className="grid w-12 shrink-0 place-items-center rounded-lg bg-muted/60 py-1.5">
+              <span className="text-sm font-bold leading-none">{dayLabel}</span>
+              <span className="text-[10px] uppercase text-muted-foreground">{monthLabel}</span>
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{ev.title}</p>
@@ -924,22 +656,8 @@ function AcademicAgenda() {
                 <p className="truncate text-[11px] text-muted-foreground">{ev.description}</p>
               )}
             </div>
-            <Badge
-              variant="outline"
-              className={cn(
-                'shrink-0 gap-1 border tabular-nums text-[10px]',
-                badgeCls,
-                urgHoje && 'font-semibold',
-              )}
-            >
-              <span className={cn('inline-flex', urgHoje && 'animate-pulse')}>{style.icon}</span>
-              {urgHoje
-                ? 'hoje'
-                : ev.ongoing
-                  ? 'agora'
-                  : ev.daysLeft === 0
-                    ? 'hoje'
-                    : `em ${ev.daysLeft}d`}
+            <Badge variant="outline" className={cn('shrink-0 border text-[10px]', style.badge)}>
+              {ev.ongoing ? 'agora' : ev.daysLeft === 0 ? 'hoje' : `em ${ev.daysLeft}d`}
             </Badge>
           </Card>
         );

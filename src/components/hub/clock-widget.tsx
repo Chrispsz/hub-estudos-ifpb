@@ -27,34 +27,42 @@ const meses = [
   'Dez',
 ];
 
+interface ClockWidgetProps {
+  variant?: 'header' | 'card' | 'inline';
+  className?: string;
+  onTick?: (date: Date) => void;
+}
+
 /**
- * FONTE DE TEMPO VIVA do app — quem pergunta "agora", pergunta aqui.
- * Um intervalo só por consumidor, limpo no unmount; devolve null até o
- * mount (o servidor não sabe a hora do aluno — mesmo contrato honesto
- * que o relógio do header sempre teve). O tick reage a qualquer troca
- * de Date no mesmo frame (lição 79: mock de relógio vira render).
+ * Relógio em tempo real, atualizado a cada segundo.
+ * Variantes:
+ * - header: pequeno e inline (no header)
+ * - card: card maior com dia da semana em destaque
+ * - inline: texto simples
  */
-export function useNow(stepMs = 1000): Date | null {
+export function ClockWidget({
+  variant = 'header',
+  className = '',
+  onTick,
+}: ClockWidgetProps) {
   const [now, setNow] = React.useState<Date | null>(null);
+
+  // onTick em ref: o callback mais recente é usado sem recriar o intervalo
+  // a cada render do pai (que passaria uma função inline nova).
+  const onTickRef = React.useRef(onTick);
+  React.useEffect(() => {
+    onTickRef.current = onTick;
+  }, [onTick]);
+
   React.useEffect(() => {
     setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), stepMs);
+    const id = setInterval(() => {
+      const d = new Date();
+      setNow(d);
+      onTickRef.current?.(d);
+    }, 1000);
     return () => clearInterval(id);
-  }, [stepMs]);
-  return now;
-}
-
-interface ClockWidgetProps {
-  className?: string;
-}
-
-/**
- * Relógio em tempo real do header, atualizado a cada segundo — a única
- * variante que o app usa (as variantes card/inline morreram sem uso e
- * saíram; quem precisar de "agora" em outro lugar usa o useNow acima).
- */
-export function ClockWidget({ className = '' }: ClockWidgetProps) {
-  const now = useNow(1000);
+  }, []);
 
   if (!now) {
     return <span suppressHydrationWarning className={className}>—</span>;
@@ -63,9 +71,35 @@ export function ClockWidget({ className = '' }: ClockWidgetProps) {
   const diaSemana = diasSemana[now.getDay()];
   const dia = now.getDate();
   const mes = meses[now.getMonth()];
+  const ano = now.getFullYear();
   const hora = now.getHours().toString().padStart(2, '0');
   const min = now.getMinutes().toString().padStart(2, '0');
   const seg = now.getSeconds().toString().padStart(2, '0');
+
+  if (variant === 'inline') {
+    return (
+      <span className={className} suppressHydrationWarning>
+        {diaSemana}, {dia} {mes} {ano} • {hora}:{min}:{seg}
+      </span>
+    );
+  }
+
+  if (variant === 'card') {
+    return (
+      <div className={className} suppressHydrationWarning>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {diasSemanaFull[now.getDay()]}
+        </p>
+        <p className="font-mono text-3xl font-bold tabular-nums leading-none">
+          {hora}:{min}
+          <span className="text-xl text-muted-foreground">:{seg}</span>
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {dia} de {mes} de {ano}
+        </p>
+      </div>
+    );
+  }
 
   // header — versão compacta para evitar corte
   return (

@@ -11,11 +11,9 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  CalendarCheck,
   CheckCircle2,
   CheckCheck,
   ChevronRight,
-  Dumbbell,
   Eye,
   EyeOff,
   Flag,
@@ -24,7 +22,6 @@ import {
   ListChecks,
   Pause,
   Play,
-  Repeat2,
   RotateCcw,
   Sparkles,
   Target,
@@ -43,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -58,9 +56,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
-import { daysUntilDate } from '@/lib/semester';
-import { simuladoMissedMap } from '@/lib/mistake-notebook';
+import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { getExerciseStage } from '@/lib/curriculum-state';
 import {
@@ -71,11 +67,9 @@ import {
 import {
   clearInProgress,
   loadInProgress,
-  normalizeMode,
   rebuildQuestions,
   saveInProgress,
   validateSaved,
-  type AttemptMode,
   type InProgressRun,
 } from '@/lib/simulado-resume';
 
@@ -99,63 +93,6 @@ interface QuestionResult {
 }
 
 type Phase = 'setup' | 'running' | 'results';
-
-/**
- * Rótulos e textos honestos por MODO da tentativa — uma única fonte para
- * todas as superfícies (toast de pausa/retomada/tempo esgotado, badge da
- * tela de prova, chip do banner de retomada, título do resultado).
- * O texto declara a natureza: o treino não finge ser prova.
- */
-const MODE_INFO: Record<
-  AttemptMode,
-  {
-    badge: string; // badge da tela de prova (ExamScreen)
-    chip: string; // chip no banner de retomada
-    pauseToast: string;
-    resumeToast: string;
-    expiredToast: string;
-    savedTitle: string; // tooltip do pulso "salvo" (concordância certa)
-    resultsTitle: string;
-    resultsDesc: string;
-  }
-> = {
-  prova: {
-    badge: 'Simulado',
-    chip: 'Prova',
-    pauseToast: 'Prova pausada — ela te espera no banner do setup.',
-    resumeToast: 'Prova retomada de onde você parou.',
-    expiredToast: '⏰ Tempo esgotado! Simulado encerrado.',
-    savedTitle:
-      'Progresso salvo automaticamente — se a prova fechar, ela te espera no banner do setup.',
-    resultsTitle: 'Resultado do simulado',
-    resultsDesc:
-      'progresso nos exercícios e nota no histórico de simulados — tudo salvo automaticamente. ✓',
-  },
-  treino: {
-    badge: 'Treino',
-    chip: 'Treino do Caderno',
-    pauseToast: 'Treino pausado — ele te espera no banner do setup.',
-    resumeToast: 'Treino retomado de onde você parou.',
-    expiredToast: '⏰ Tempo esgotado! Treino encerrado.',
-    savedTitle:
-      'Progresso salvo automaticamente — se o treino fechar, ele te espera no banner do setup.',
-    resultsTitle: 'Resultado do treino',
-    resultsDesc:
-      'resolver de novo limpa o erro do caderno — e a nota fica no histórico. Tudo salvo automaticamente. ✓',
-  },
-  topico: {
-    badge: 'Treino de tópico',
-    chip: 'Treino de tópico',
-    pauseToast: 'Treino de tópico pausado — ele te espera no banner do setup.',
-    resumeToast: 'Treino de tópico retomado de onde você parou.',
-    expiredToast: '⏰ Tempo esgotado! Treino encerrado.',
-    savedTitle:
-      'Progresso salvo automaticamente — se o treino fechar, ele te espera no banner do setup.',
-    resultsTitle: 'Resultado do treino de tópico',
-    resultsDesc:
-      'progresso nos exercícios e nota no histórico — tudo salvo automaticamente. ✓',
-  },
-};
 
 /** Config padrão do setup — reconstruída a CADA abertura do diálogo. */
 const DEFAULT_SIMULADO_CONFIG: SimuladoConfig = {
@@ -195,18 +132,11 @@ export function SimuladoView({
   open,
   onOpenChange,
   initialConfig,
-  initialMode,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   /** Pré-config externa (ex.: preset da prova de Matemática do card do Painel). */
   initialConfig?: Partial<SimuladoConfig>;
-  /**
-   * Natureza da tentativa vinda de UM evento externo (ex.: drill de tópico
-   * do Histórico) — prova é o default. Reiniciada a cada abertura junto com
-   * a config, para um pedido não vazar no próximo (mesma regra dela).
-   */
-  initialMode?: AttemptMode;
 }) {
   const [phase, setPhase] = React.useState<Phase>('setup');
   const [config, setConfig] = React.useState<SimuladoConfig>(DEFAULT_SIMULADO_CONFIG);
@@ -218,10 +148,6 @@ export function SimuladoView({
   const [elapsed, setElapsed] = React.useState(0);
   /** Tentativa pausada encontrada no storage ao abrir (banner de retomada). */
   const [resumeRun, setResumeRun] = React.useState<InProgressRun | null>(null);
-  /** Natureza da tentativa EM CURSO — rotula todas as superfícies com honestidade. */
-  const [attemptMode, setAttemptMode] = React.useState<AttemptMode>('prova');
-  /** Confirmação de entrega: revisão das questões antes de encerrar (prova real tem). */
-  const [confirmingFinish, setConfirmingFinish] = React.useState(false);
 
   // Reset quando abre o diálogo (e aplica pré-config externa, se houver)
   React.useEffect(() => {
@@ -241,10 +167,6 @@ export function SimuladoView({
           ? { ...DEFAULT_SIMULADO_CONFIG, ...initialConfig }
           : { ...DEFAULT_SIMULADO_CONFIG },
       );
-      // Modo idem: reiniciado a cada abertura — o pedido externo (drill de
-      // tópico) não vaza para a abertura manual seguinte.
-      setAttemptMode(initialMode ?? 'prova');
-      setConfirmingFinish(false); // revisão de entrega nunca vaza entre aberturas
       // Retomada: tentativa pausada (F5, queda de aba, X acidental) sobrevive
       // no storage — banner no setup oferece Retomar ou Descartar.
       const saved = loadInProgress();
@@ -255,7 +177,7 @@ export function SimuladoView({
         setResumeRun(null);
       }
     }
-  }, [open, initialConfig, initialMode]);
+  }, [open, initialConfig]);
 
   // Cronômetro (contagem regressiva ou progressiva) — PAUSA REAL: só corre
   // com o diálogo aberto; fechou, congela (a retomada continua do segundo
@@ -281,7 +203,6 @@ export function SimuladoView({
   React.useEffect(() => {
     if (phase !== 'running' || questions.length === 0) return;
     saveInProgress({
-      mode: attemptMode, // a retomada sabe o que era: prova ou treino
       config,
       qids: questions.map((q) => q.id),
       results,
@@ -289,7 +210,7 @@ export function SimuladoView({
       remaining,
       elapsed,
     });
-  }, [phase, open, attemptMode, config, questions, results, idx, remaining, elapsed]);
+  }, [phase, open, config, questions, results, idx, remaining, elapsed]);
 
   // Guarda de saída da PÁGINA durante a prova — SÓ com o diálogo aberto:
   // depois de Pausar (X ou botão), a tentativa está salva no storage e o
@@ -315,102 +236,19 @@ export function SimuladoView({
 
   const sp = useStudyProgress();
 
-  // REVISÃO DIRIGIDA — os erros REAIS do aluno (Caderno de Erros), nas DUAS
-  // fontes treináveis: (1) exercícios tentados e NÃO resolvidos — com "erros
-  // de sempre" (lapses) no topo — e (2) as questões erradas/puladas de
-  // SIMULADOS passados, reconstruídas do acervo estático pelo enunciado
-  // (o detalhe da corrida guarda só o recorte de 160 chars; o acervo devolve
-  // a questão inteira — material-first: nada sorteado, nada inventado).
-  // Máx. 15; dentro do corte, recaída primeiro, depois a recência.
-  const mistakeSources = React.useMemo(() => {
-    type MistakeSource = {
-      ex: Exercise;
-      lapses: number;
-      when: string;
-      fromSimulado: boolean;
-    };
+  // REVISÃO DIRIGIDA — os erros REAIS do aluno (Caderno de Erros): exercícios
+  // tentados e NÃO resolvidos, mais recentes primeiro, máx. 15. Material-first
+  // do próprio histórico — nada sorteado, nada inventado.
+  const mistakeExercises = React.useMemo(() => {
+    const entries = sp.progress.exerciseProgress ?? {};
     const byId = new Map(exercises.map((e) => [e.id, e]));
-    // Fonte 1: exercícios do caderno (tried && !solved).
-    const exItems: MistakeSource[] = Object.entries(sp.progress.exerciseProgress ?? {})
+    return Object.entries(entries)
       .filter(([, v]) => v.tried && !v.solved)
-      .map(([id, v]) => {
-        const ex = byId.get(id);
-        return ex
-          ? { ex, lapses: v.lapses ?? 0, when: v.lastPracticedAt || '', fromSimulado: false }
-          : null;
-      })
-      .filter((x): x is MistakeSource => x !== null);
-    // Fonte 2: corridas de simulado (mais recente primeiro) — erradas e puladas.
-    // A corrida é HISTÓRICA (o detalhe nunca muda), então o estado ATUAL da
-    // questão decide: se ela já virou acerto em qualquer lugar (exerciseProgress
-    // solved), sai do treino — resolver de novo não pode reabrir erro antigo.
-    const prog = sp.progress.exerciseProgress ?? {};
-    const byStatement = new Map(exercises.map((e) => [e.statement.slice(0, 160), e]));
-    const simItems: MistakeSource[] = [];
-    // Cronicidade = nº de corridas em que a MESMA questão foi perdida — vira
-    // o peso de prioridade no treino (o erro de sempre sobe, como no caderno).
-    const runCountByEx = new Map<string, number>();
-    for (const run of [...(sp.progress.simuladoRuns ?? [])].sort((a, b) =>
-      (b.date || '').localeCompare(a.date || ''),
-    )) {
-      if (!run.questions) continue; // corridas antigas sem detalhe: nada a reconstruir
-      for (const q of run.questions) {
-        if (q.status === 'solved') continue;
-        const ex = q.statement ? byStatement.get(q.statement) : undefined;
-        if (!ex) continue; // enunciado sem par no acervo — nada a exibir, sem inventar
-        if (prog[ex.id]?.solved) continue; // já resolvida depois da corrida — honesto
-        runCountByEx.set(ex.id, (runCountByEx.get(ex.id) ?? 0) + 1);
-        simItems.push({ ex, lapses: 0, when: run.date || '', fromSimulado: true });
-      }
-    }
-    for (const s of simItems) s.lapses = runCountByEx.get(s.ex.id) ?? 0;
-    // Dedupe: a entrada de exercício vence (tem lapses + estado rico); a mesma
-    // questão perdida em várias corridas entra UMA vez (a mais recente primeiro).
-    const seen = new Set(exItems.map((x) => x.ex.id));
-    const combined = [...exItems];
-    for (const s of simItems) {
-      if (seen.has(s.ex.id)) continue;
-      seen.add(s.ex.id);
-      combined.push(s);
-    }
-    return combined
-      .sort((a, b) => {
-        if (a.lapses !== b.lapses) return b.lapses - a.lapses;
-        return (b.when || '').localeCompare(a.when || '');
-      })
+      .sort((a, b) => (b[1].lastPracticedAt || '').localeCompare(a[1].lastPracticedAt || ''))
+      .map(([id]) => byId.get(id))
+      .filter((e): e is Exercise => Boolean(e))
       .slice(0, 15);
-  }, [sp.progress.exerciseProgress, sp.progress.simuladoRuns]);
-  const mistakeExercises = React.useMemo(
-    () => mistakeSources.map((x) => x.ex),
-    [mistakeSources],
-  );
-  // Quantas questões do treino (pós-cap) vêm de SIMULADOS — badge honesto
-  // sobre a composição da prova que vai ser servida.
-  const mistakeSimuladoCount = React.useMemo(
-    () => mistakeSources.filter((x) => x.fromSimulado).length,
-    [mistakeSources],
-  );
-  // Quantas das pendentes são RECORRENTES (pré-cap, ordem real do caderno) —
-  // badge do card de revisão dirigida fica honesto mesmo com >15 erros.
-  // Dois sinais, mesma regra do caderno (isRecorrenteMistake): recaída do
-  // exercício (lapses > 0) OU crônico entre corridas (perdida em ≥ 2
-  // simulados) — contando também as linhas só-de-simulado (sem exercício).
-  const mistakeRecorrentes = React.useMemo(() => {
-    const simMap = simuladoMissedMap(sp.progress);
-    const prog = sp.progress.exerciseProgress ?? {};
-    const exPending = new Set<string>();
-    let n = 0;
-    for (const [id, v] of Object.entries(prog)) {
-      if (!v.tried || v.solved) continue;
-      exPending.add(id);
-      if ((v.lapses ?? 0) > 0 || (simMap.get(id)?.dates.length ?? 0) >= 2) n += 1;
-    }
-    for (const [id, acc] of simMap) {
-      if (exPending.has(id)) continue;
-      if (acc.dates.length >= 2) n += 1;
-    }
-    return n;
-  }, [sp.progress]);
+  }, [sp.progress.exerciseProgress]);
 
   const pool = React.useMemo(() => {
     let list = exercises;
@@ -483,7 +321,6 @@ export function SimuladoView({
     recordRun();
     clearInProgress(); // tentativa registrada no histórico — o rascunho se aposenta
     beep(3);
-    setConfirmingFinish(false); // entrega confirmada — o próximo run começa limpo
     setPhase('results');
   }
 
@@ -500,8 +337,6 @@ export function SimuladoView({
     // Config veio do storage (JSON): a forma é a mesma, mas difficulty chega
     // como string — o cast é seguro porque só foi gravado de um SimuladoConfig válido.
     setConfig({ ...DEFAULT_SIMULADO_CONFIG, ...saved.config } as SimuladoConfig);
-    const savedMode = normalizeMode(saved.mode); // saves antigos não têm modo
-    setAttemptMode(savedMode);
     setQuestions(qs);
     setResults(saved.results.map((r) => ({ solved: r.solved })));
     setIdx(Math.min(saved.idx, qs.length - 1));
@@ -510,7 +345,7 @@ export function SimuladoView({
     setHintVisible(false);
     setResumeRun(null); // o efeito de persistência regrava já no próximo tick
     setPhase('running');
-    toast.success(MODE_INFO[savedMode].resumeToast);
+    toast.success('Tentativa retomada de onde você parou.');
   }
 
   /** Revisão dirigida: prova só com os ERROS do aluno (Caderno de Erros). */
@@ -518,7 +353,6 @@ export function SimuladoView({
     if (mistakeExercises.length === 0) return;
     const qty = mistakeExercises.length;
     setResumeRun(null); // nova prova substitui a pausada
-    setAttemptMode('treino'); // o texto declara: isto é TREINO, não prova
     setConfig({
       ...DEFAULT_SIMULADO_CONFIG,
       discipline: 'all',
@@ -558,7 +392,6 @@ export function SimuladoView({
       statement: q.statement.slice(0, 160),
     }));
     sp.addSimuladoRun({
-      mode: attemptMode, // o histórico sabe o que foi: prova, treino ou tópico
       total: questions.length,
       solved: results.filter((r) => r.solved === true).length,
       missed: results.filter((r) => r.solved === false).length,
@@ -577,7 +410,7 @@ export function SimuladoView({
   React.useEffect(() => {
     if (phase === 'running' && config.durationMin > 0 && remaining === 0 && elapsed > 0) {
       finish();
-      toast.warning(MODE_INFO[attemptMode].expiredToast);
+      toast.warning('⏰ Tempo esgotado! Simulado encerrado.');
     }
   }, [remaining, phase]);
 
@@ -585,9 +418,7 @@ export function SimuladoView({
   // ←/→ navegam, D alterna a dica. Usa fase de captura + stopPropagation
   // para SUPRIMIR os atalhos globais da Command Palette (1-8 trocam de aba).
   React.useEffect(() => {
-    // Na revisão de entrega os atalhos silenciam — marcar/navegar por trás
-    // do painel de conferência deixaria a contagem da revisão mentindo.
-    if (!open || phase !== 'running' || confirmingFinish) return;
+    if (!open || phase !== 'running') return;
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
@@ -616,7 +447,7 @@ export function SimuladoView({
     }
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [open, phase, questions.length, idx, confirmingFinish]);
+  }, [open, phase, questions.length, idx]);
 
   const { solvedCount, missedCount, skippedCount } = React.useMemo(() => {
     let solved = 0;
@@ -665,13 +496,11 @@ export function SimuladoView({
             onResume={resumeSaved}
             onDiscard={discardSaved}
             mistakesCount={mistakeExercises.length}
-            recorrentesCount={mistakeRecorrentes}
-            simuladoCount={mistakeSimuladoCount}
             onStartMistakes={startMistakes}
           />
         )}
 
-        {phase === 'running' && !confirmingFinish && questions[idx] && (
+        {phase === 'running' && questions[idx] && (
           <ExamScreen
             questions={questions}
             results={results}
@@ -680,7 +509,6 @@ export function SimuladoView({
             timeInfo={timeInfo}
             barColor={barColor}
             timePct={timePct}
-            mode={attemptMode}
             paceMin={
               config.durationMin > 0
                 ? Math.max(1, Math.round(config.durationMin / questions.length))
@@ -692,30 +520,12 @@ export function SimuladoView({
               setIdx(i);
               setHintVisible(false);
             }}
-            onFinish={() => setConfirmingFinish(true)}
+            onFinish={finish}
             onPause={() => {
               // A tentativa já está salva (o efeito de persistência grava no
               // fechamento) — avisar ONDE retomar é o que falta para o aluno.
-              toast.info(MODE_INFO[attemptMode].pauseToast);
+              toast.info('Prova pausada — ela te espera no banner do setup.');
               onOpenChange(false);
-            }}
-          />
-        )}
-
-        {phase === 'running' && confirmingFinish && (
-          <FinishReview
-            questions={questions}
-            results={results}
-            timeInfo={timeInfo}
-            barColor={barColor}
-            timePct={timePct}
-            mode={attemptMode}
-            onBack={() => setConfirmingFinish(false)}
-            onConfirm={finish}
-            onNavigate={(i) => {
-              setIdx(i);
-              setHintVisible(false);
-              setConfirmingFinish(false);
             }}
           />
         )}
@@ -729,7 +539,6 @@ export function SimuladoView({
             skippedCount={skippedCount}
             pct={pct}
             elapsed={elapsed}
-            mode={attemptMode}
             onOpenChange={onOpenChange}
             onRetryMissed={(topic) => {
               const missed = questions.filter(
@@ -738,7 +547,6 @@ export function SimuladoView({
               );
               if (missed.length === 0) return;
               // reinicia com apenas as questões erradas/puladas (opcionalmente só de 1 tópico)
-              setAttemptMode('treino'); // refazer erradas É um treino — honesto no rótulo
               setQuestions(missed);
               setResults(missed.map(() => ({ solved: null })));
               setIdx(0);
@@ -771,8 +579,6 @@ function SetupScreen({
   onResume,
   onDiscard,
   mistakesCount,
-  recorrentesCount,
-  simuladoCount,
   onStartMistakes,
 }: {
   config: SimuladoConfig;
@@ -786,19 +592,9 @@ function SetupScreen({
   onDiscard: () => void;
   /** Erros pendentes do Caderno de Erros — card de revisão dirigida quando > 0. */
   mistakesCount: number;
-  /** Quantas das pendentes são "erros de sempre" (lapses > 0) — badge honesto. */
-  recorrentesCount: number;
-  /** Quantas questões do treino vêm de simulados passados (pós-cap) — composição. */
-  simuladoCount: number;
   onStartMistakes: () => void;
 }) {
   const activeTopics = config.topics ?? [];
-
-  // O SETUP CONHECE O DIA OFICIAL — 29/09 é o dia do simulado da Av1 (e 28/09
-  // a véspera). Render-time via daysUntilDate (sem estado nem interval): reage
-  // a mock de relógio no mesmo frame, lição da rodada 79. Outros dias: nada
-  // (honesto — sem ruído quando o dia é qualquer outro).
-  const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
 
   // ---- Banner de retomada: métricas pré-computadas (nada no render basta) ----
   const answeredCount = resume ? resume.results.filter((r) => r.solved !== null).length : 0;
@@ -809,8 +605,6 @@ function SetupScreen({
       ? `${fmtClock(resume.remaining)} no cronômetro`
       : `${fmtClock(resume.elapsed)} decorridos`
     : '';
-  /** Natureza da tentativa pausada (saves antigos = prova) — chip do banner. */
-  const resumeMode = normalizeMode(resume?.mode);
 
   function toggleTopic(t: string) {
     const next = activeTopics.includes(t)
@@ -835,67 +629,6 @@ function SetupScreen({
         </DialogHeader>
       </div>
 
-      {/* DIA OFICIAL DO SIMULADO — banner do setup (mesma gramática visual do
-          banner de retomada, família âmbar do "É hoje" do card da prova): o
-          compromisso do dia falado no exato momento do clique em Iniciar. */}
-      {(simuladoDaysLeft === 0 || simuladoDaysLeft === 1) && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          role="status"
-          className="mx-6 mt-5 overflow-hidden rounded-lg border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent shadow-sm"
-        >
-          <div className="flex items-start gap-3 p-4">
-            <span
-              className={cn(
-                'grid size-9 shrink-0 place-items-center rounded-lg ring-1',
-                simuladoDaysLeft === 0
-                  ? 'bg-amber-500/15 text-amber-600 ring-amber-500/30 dark:text-amber-400'
-                  : 'bg-amber-500/10 text-amber-600/80 ring-amber-500/20 dark:text-amber-400/80',
-              )}
-            >
-              <CalendarCheck className="size-4" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              {simuladoDaysLeft === 0 ? (
-                <>
-                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                    É hoje o simulado oficial da Av1
-                  </p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                    Se esta for a tentativa oficial, condições de prova: sem
-                    consultar nada antes de responder — o bloco com mais erros
-                    vira a revisão de amanhã.
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {['Sem consulta', 'Meta ≥ 70%', 'Erro vira revisão de amanhã'].map((c) => (
-                      <Badge
-                        key={c}
-                        variant="outline"
-                        className="border-amber-500/40 px-1.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"
-                      >
-                        {c}
-                      </Badge>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-amber-700/90 dark:text-amber-400/90">
-                    Amanhã é o simulado oficial da Av1
-                  </p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                    Prepare hoje o lugar e o papel — e dormir cedo faz parte do
-                    plano. O setup de amanhã já fica pronto com o escopo real.
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       {resume && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -913,26 +646,6 @@ function SetupScreen({
                 <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
                   Tentativa pausada encontrada
                 </p>
-                {/* O que ERA a tentativa — o banner declara a natureza:
-                    prova, treino do caderno ou treino de tópico. */}
-                <Badge
-                  variant="outline"
-                  title={resumeMode === 'prova' ? 'Simulado montado no setup' : resumeMode === 'treino' ? 'Treino do Caderno de Erros' : 'Treino de 1 tópico (replay do Histórico)'}
-                  className={cn(
-                    'gap-1 px-1.5 text-[10px] font-semibold',
-                    resumeMode === 'treino' &&
-                      'border-rose-400/60 bg-rose-500/10 text-rose-700 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-400',
-                    resumeMode === 'topico' &&
-                      'border-sky-400/60 bg-sky-500/10 text-sky-700 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-400',
-                    resumeMode === 'prova' &&
-                      'border-amber-500/40 text-amber-700 dark:text-amber-400',
-                  )}
-                >
-                  {resumeMode === 'treino' ? <Dumbbell className="size-3" aria-hidden /> : null}
-                  {resumeMode === 'topico' ? <Target className="size-3" aria-hidden /> : null}
-                  {resumeMode === 'prova' ? <AlarmClock className="size-3" aria-hidden /> : null}
-                  {MODE_INFO[resumeMode].chip}
-                </Badge>
                 <Badge
                   variant="outline"
                   className="border-amber-500/40 px-1.5 text-[10px] text-amber-700 dark:text-amber-400"
@@ -994,34 +707,11 @@ function SetupScreen({
                 >
                   {mistakesCount} pendente{mistakesCount > 1 ? 's' : ''}
                 </Badge>
-                {/* "Erros de sempre" — as recaídas abrem a prova (mesma cor do badge do caderno) */}
-                {recorrentesCount > 0 && (
-                  <Badge
-                    variant="outline"
-                    title="Erros de sempre: você já tinha resolvido e voltou a errar — eles vêm primeiro na prova."
-                    className="border-rose-400/60 bg-rose-500/10 px-1.5 text-[10px] font-semibold text-rose-700 shadow-sm dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300"
-                  >
-                    <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
-                    {recorrentesCount} recorrente{recorrentesCount > 1 ? 's' : ''}
-                  </Badge>
-                )}
-                {/* Composição do treino: questões reconstruídas de simulados passados */}
-                {simuladoCount > 0 && (
-                  <Badge
-                    variant="outline"
-                    title="Questões que você errou ou pulou em simulados anteriores — reconstruídas do acervo, na ordem mais recente primeiro."
-                    className="border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
-                  >
-                    <Target className="mr-0.5 size-2.5" aria-hidden />
-                    {simuladoCount} de simulado
-                  </Badge>
-                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Do Caderno de Erros: as que você marcou “não consegui”
-                {simuladoCount > 0 ? ' (inclusive de simulados)' : ''} —{' '}
-                {recorrentesCount > 0 ? 'as recorrentes primeiro' : 'mais recentes primeiro'}, máx. 15,{' '}
-                {Math.max(5, Math.min(45, mistakesCount * 3))} min no cronômetro.
+                Do Caderno de Erros: as que você marcou “não consegui” — mais
+                recentes primeiro, máx. 15, {Math.max(5, Math.min(45, mistakesCount * 3))} min no
+                cronômetro.
               </p>
             </div>
             <Button
@@ -1216,7 +906,6 @@ function ExamScreen({
   timeInfo,
   barColor,
   timePct,
-  mode,
   paceMin,
   onHintToggle,
   onMark,
@@ -1231,8 +920,6 @@ function ExamScreen({
   timeInfo: { label: string; value: string };
   barColor: string;
   timePct: number;
-  /** Natureza da tentativa — badge e textos honestos (treino não finge prova). */
-  mode: AttemptMode;
   /** Ritmo alvo por questão (min) — só com cronômetro ativo. */
   paceMin?: number;
   onHintToggle: () => void;
@@ -1246,9 +933,6 @@ function ExamScreen({
   const disc = getDisciplineByCode(ex.disciplineCode);
   const color = getColorClasses(disc?.color ?? 'slate');
   const urgent = timePct <= 20;
-  const info = MODE_INFO[mode];
-  // Identidade visual do modo — helper compartilhado com o FinishReview.
-  const badgeCls = modeBadgeCls(mode);
 
   // Pulso "salvo": dispara a cada mudança de resultado/posição (a prova
   // inteira é persistida a cada tick — aqui só confirmamos o que o aluno
@@ -1271,11 +955,7 @@ function ExamScreen({
       <div className="border-b px-4 pb-3 pt-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-2">
-            <Badge className={`shrink-0 ${badgeCls}`}>
-              {mode === 'treino' ? <Dumbbell className="mr-1 size-3" aria-hidden /> : null}
-              {mode === 'topico' ? <Target className="mr-1 size-3" aria-hidden /> : null}
-              {info.badge}
-            </Badge>
+            <Badge className="shrink-0 bg-emerald-600 text-white">Simulado</Badge>
             <span className="truncate text-sm font-medium text-muted-foreground">
               Questão {idx + 1} de {questions.length}
             </span>
@@ -1289,7 +969,7 @@ function ExamScreen({
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  title={info.savedTitle}
+                  title="Progresso salvo automaticamente — se a prova fechar, ela te espera no banner do setup."
                   className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
                 >
                   <CheckCheck className="size-3" /> salvo
@@ -1353,12 +1033,9 @@ function ExamScreen({
               )}
             </div>
 
-            {/* ENUNCIADO: div overflow-y-auto em vez de ScrollArea — o viewport
-                do Radix usa display:table, que em telas estreitas impede o wrap
-                do texto e estourava o diálogo (548px num viewport de 390). */}
-            <div className="max-h-[30vh] min-w-0 overflow-y-auto pr-2">
+            <ScrollArea className="max-h-[30vh] pr-2">
               <p className="text-sm leading-relaxed text-foreground/90">{ex.statement}</p>
-            </div>
+            </ScrollArea>
 
             {ex.hint && hintVisible && (
               <motion.p
@@ -1399,10 +1076,9 @@ function ExamScreen({
         </div>
       </div>
 
-      {/* Rodapé de avaliação — 2 linhas no mobile, 1 no desktop. flex-wrap:
-          sem ele, 5 botões h-11 não cabem em 390px e o último é cortado. */}
+      {/* Rodapé de avaliação — 2 linhas no mobile, 1 no desktop */}
       <div className="space-y-2.5 border-t bg-muted/30 px-4 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -1412,7 +1088,7 @@ function ExamScreen({
             {hintVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {hintVisible ? 'Esconder dica' : 'Ver dica'}
           </Button>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -1468,155 +1144,6 @@ function ExamScreen({
   );
 }
 
-function modeBadgeCls(mode: AttemptMode): string {
-  // Identidade visual do modo no badge da prova: prova = emerald (o padrão),
-  // treino = rose (mesma cor do card do Caderno), tópico = sky (a cor do
-  // replay do Histórico). A cor É o rótulo — escaneável a 1 metro.
-  return mode === 'treino'
-    ? 'bg-rose-600 text-white'
-    : mode === 'topico'
-      ? 'bg-sky-600 text-white'
-      : 'bg-emerald-600 text-white';
-}
-
-/* ================= Revisão antes de entregar ================= */
-
-/**
- * Conferência final antes de Encerrar — como numa prova real: nada de
- * surpresa no resultado. Mostra as marcas por questão (consegui/não
- * consegui/sem marca), deixa navegar para revisar e só então entrega.
- * O cronômetro CONTINUA no topo — encerrar continua sendo uma decisão
- * com preço, agora com visão do todo.
- */
-function FinishReview({
-  questions,
-  results,
-  timeInfo,
-  barColor,
-  timePct,
-  mode,
-  onBack,
-  onConfirm,
-  onNavigate,
-}: {
-  questions: Exercise[];
-  results: QuestionResult[];
-  timeInfo: { label: string; value: string };
-  barColor: string;
-  timePct: number;
-  mode: AttemptMode;
-  onBack: () => void;
-  onConfirm: () => void;
-  onNavigate: (i: number) => void;
-}) {
-  const info = MODE_INFO[mode];
-  const solved = results.filter((r) => r.solved === true).length;
-  const missed = results.filter((r) => r.solved === false).length;
-  const unmarked = questions.length - solved - missed;
-
-  const stateLabel = (s: boolean | null) =>
-    s === true ? 'marcada como consegui' : s === false ? 'marcada como não consegui' : 'sem marca';
-
-  return (
-    <div>
-      {/* Barra de tempo fixa (a prova segue correndo — honesto) */}
-      <div className="border-b px-4 pb-3 pt-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge className={`shrink-0 ${modeBadgeCls(mode)}`}>
-            {mode === 'treino' ? <Dumbbell className="mr-1 size-3" aria-hidden /> : null}
-            {mode === 'topico' ? <Target className="mr-1 size-3" aria-hidden /> : null}
-            {info.badge}
-          </Badge>
-          <span className="min-w-0 truncate text-sm font-semibold">
-            Confira antes de entregar
-          </span>
-          <div
-            className={cn(
-              'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-sm font-semibold tabular-nums',
-              configTimeTone(timePct),
-            )}
-          >
-            <AlarmClock className="size-3.5" />
-            {timeInfo.value}
-          </div>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className={cn('h-full rounded-full', barColor)} style={{ width: `${Math.max(0, Math.min(100, timePct))}%` }} />
-        </div>
-      </div>
-
-      <div className="space-y-4 px-4 py-5 sm:px-6">
-        {/* Contagem honesta por estado — a mesma gramática do resultado */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="size-3.5" aria-hidden />
-            <span className="font-bold tabular-nums">{solved}</span> resolvida{solved === 1 ? '' : 's'}
-          </span>
-          <span className="inline-flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400">
-            <XCircle className="size-3.5" aria-hidden />
-            <span className="font-bold tabular-nums">{missed}</span> sem sucesso
-          </span>
-          <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
-            <ListChecks className="size-3.5" aria-hidden />
-            <span className="font-bold tabular-nums">{unmarked}</span> sem marca
-          </span>
-        </div>
-
-        {unmarked > 0 && (
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
-            Sem marca conta como pulada no resultado. Toque na questão para voltar e decidir.
-          </p>
-        )}
-
-        {/* Chips por questão — mesma gramática visual da navegação da prova */}
-        <div className="flex flex-wrap gap-1.5">
-          {questions.map((q, i) => {
-            const r = results[i];
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onNavigate(i)}
-                aria-label={`Revisar questão ${i + 1} — ${stateLabel(r.solved)}`}
-                className={cn(
-                  'size-11 rounded-md border text-[11px] font-semibold transition-all hover:scale-105 sm:size-9',
-                  r.solved === true && 'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-                  r.solved === false && 'border-rose-500/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
-                  r.solved === null && 'border-dashed border-border text-muted-foreground hover:border-emerald-500/40',
-                )}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="text-[10.5px] leading-relaxed text-muted-foreground">
-          Encerrar é definitivo: a tentativa vai para o Histórico e o que faltou
-          alimenta o Caderno de Erros automaticamente.
-        </p>
-      </div>
-
-      {/* Entrega — decisão em duas portas, mobile em coluna cheia */}
-      <div className="space-y-2 border-t bg-muted/30 px-4 py-4 sm:flex sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-2 sm:space-y-0 sm:px-6">
-        <Button
-          onClick={onConfirm}
-          className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:h-9 sm:w-auto"
-        >
-          <Flag className="size-3.5" /> Encerrar e ver resultado
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="h-11 w-full sm:h-9 sm:w-auto"
-        >
-          <RotateCcw className="size-3.5" /> Voltar para a prova
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function configTimeTone(timePct: number): string {
   if (timePct > 50) return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
   if (timePct > 20) return 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400';
@@ -1633,7 +1160,6 @@ function ResultsScreen({
   skippedCount,
   pct,
   elapsed,
-  mode,
   onRetryMissed,
   onNew,
   onOpenChange,
@@ -1645,14 +1171,11 @@ function ResultsScreen({
   skippedCount: number;
   pct: number;
   elapsed: number;
-  /** Natureza da tentativa — o resultado declara o que foi (prova/treino). */
-  mode: AttemptMode;
   /** Reinicia com as erradas/puladas — com tópico, só as daquele tópico. */
   onRetryMissed: (topic?: string) => void;
   onNew: () => void;
   onOpenChange: (v: boolean) => void;
 }) {
-  const info = MODE_INFO[mode];
   const missedList = questions.filter((q, i) => results[i].solved !== true);
   const hasMissed = missedList.length > 0;
   const verdict =
@@ -1703,11 +1226,11 @@ function ResultsScreen({
             <span className="grid size-8 place-items-center rounded-lg bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
               <verdict.icon className="size-4" />
             </span>
-            {info.resultsTitle}
+            Resultado do simulado
           </DialogTitle>
           <DialogDescription>
-            <span className={cn('font-semibold', verdict.tone)}>{verdict.label}</span> ·{' '}
-            {info.resultsDesc}
+            <span className={cn('font-semibold', verdict.tone)}>{verdict.label}</span> · progresso nos
+            exercícios e nota no histórico de simulados — tudo salvo automaticamente. ✓
           </DialogDescription>
         </DialogHeader>
       </div>
@@ -1982,7 +1505,6 @@ function ResultsScreen({
               openTutor({
                 disciplineCode: worst[0]?.disciplineCode ?? questions[0]?.disciplineCode,
                 question: buildDebriefFromDetails({
-                  mode, // prop do ResultsScreen — a IA sabe se foi prova ou treino
                   pct,
                   elapsedSec: elapsed,
                   details: questions.map((q, i) => ({

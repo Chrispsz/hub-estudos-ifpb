@@ -4,10 +4,7 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
-  BookOpenCheck,
   CalendarCheck,
-  CalendarClock,
-  CircleCheck,
   Clock3,
   Hourglass,
   ImageDown,
@@ -25,13 +22,6 @@ import { Button } from '@/components/ui/button';
 import { useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
 import { openTutor } from '@/lib/hub-events';
 import {
-  MATH_EXAM,
-  MATH_META,
-  weeklyReportExamBriefFor,
-  type WeeklyReportExamBrief,
-} from '@/lib/math-exam-prep';
-import { daysUntilDate } from '@/lib/semester';
-import {
   buildWeeklyQuestion,
   weekDisciplineShares,
   type WeekSummary,
@@ -42,66 +32,6 @@ import { cn } from '@/lib/utils';
 
 const DAY_MS = 86_400_000;
 const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-/**
- * STRIP DO DIA-MARCO no relatório — a MESMA gramática sólida do cronograma
- * (fonte visual única da 99): âmbar p/ marco pendente, emerald quando o
- * registro chegou (registro vence relógio, lição 85/86), rose na prova.
- * Chip D-N tabular ancora o FUTURO (os rótulos do card olham para trás) e o
- * pulso vive só no ensaio que ainda não aconteceu (a calma vence quando o
- * registro chegou — gramática da 93).
- */
-const STRIP_SOLID: Record<'amber' | 'rose' | 'emerald', string> = {
-  amber:
-    'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900',
-  rose: 'border-rose-600 bg-rose-600 text-white shadow-md shadow-rose-600/30 dark:border-rose-500 dark:bg-rose-500',
-  emerald:
-    'border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/30 dark:border-emerald-400 dark:bg-emerald-400 dark:text-zinc-900',
-};
-
-function WeeklyExamStrip({ brief, daysLeft }: { brief: WeeklyReportExamBrief; daysLeft: number }) {
-  const family = brief.kind === 'prova' ? 'rose' : brief.feito ? 'emerald' : 'amber';
-  const icon =
-    brief.kind === 'prova' ? (
-      <CalendarCheck className="size-3.5 shrink-0" />
-    ) : brief.kind === 'vespera' ? (
-      <BookOpenCheck className="size-3.5 shrink-0" />
-    ) : brief.feito ? (
-      <CircleCheck className="size-3.5 shrink-0" />
-    ) : (
-      <CalendarClock className="size-3.5 shrink-0 animate-pulse" />
-    );
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      role="status"
-      className={cn(
-        'flex items-start gap-2.5 rounded-lg border px-3 py-2.5',
-        STRIP_SOLID[family],
-      )}
-    >
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/20">
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold leading-tight">
-          {brief.titulo}
-          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-            D-{daysLeft}
-          </span>
-          {brief.feito && brief.pct !== null && (
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-              {brief.pct}% · meta {MATH_META}
-            </span>
-          )}
-        </p>
-        <p className="mt-0.5 text-xs leading-snug opacity-90">{brief.linha}</p>
-      </div>
-    </motion.div>
-  );
-}
 
 /** Chave yyyy-mm-dd (UTC) — mesmo padrão de PomodoroSession.date. */
 function utcKey(offsetDaysAgo: number): string {
@@ -279,13 +209,6 @@ export function WeeklyReport() {
 
   const hasData = thisWeek.sessions > 0 || lastWeek.sessions > 0;
 
-  // MARCO DO DIA — render-time (lição 79): o relógio é lido NO render, o run
-  // entra pelo storage event (mesmo re-render). Nos 3 dias da reta final o
-  // relatório cede a voz: a faixa substitui a mensagem de ritmo — 'agende um
-  // bloco' no dia da prova era a pressão que a 99 matou no cronograma.
-  const examDaysLeft = daysUntilDate(MATH_EXAM.date);
-  const examBrief = weeklyReportExamBriefFor(examDaysLeft, sp.progress.simuladoRuns);
-
   const trends = React.useMemo(
     () => ({
       mins: trendBadge(thisWeek.minutes, lastWeek.minutes, 'min'),
@@ -334,17 +257,14 @@ export function WeeklyReport() {
     [thisWeek, trends],
   );
 
-  // Mensagem motivacional — SUPRIMIDA no dia-macro (a faixa é a mensagem;
-  // nenhuma meta de ritmo no dia do ensaio, da véspera ou da prova).
-  const message = examBrief
-    ? null
-    : !hasData
-      ? 'Complete um Pomodoro na aba Estudar para ver seu relatório aqui.'
-      : thisWeek.minutes > lastWeek.minutes
-        ? 'Você está evoluindo em relação à semana passada. Continue assim! 🚀'
-        : thisWeek.minutes === lastWeek.minutes && thisWeek.minutes > 0
-          ? 'Ritmo estável — que tal adicionar mais uma sessão esta semana?'
-          : 'Hora de retomar o ritmo: agende um bloco no cronograma de hoje.';
+  // Mensagem motivacional
+  const message = !hasData
+    ? 'Complete um Pomodoro na aba Estudar para ver seu relatório aqui.'
+    : thisWeek.minutes > lastWeek.minutes
+      ? 'Você está evoluindo em relação à semana passada. Continue assim! 🚀'
+      : thisWeek.minutes === lastWeek.minutes && thisWeek.minutes > 0
+        ? 'Ritmo estável — que tal adicionar mais uma sessão esta semana?'
+        : 'Hora de retomar o ritmo: agende um bloco no cronograma de hoje.';
 
   return (
     <Card
@@ -379,9 +299,6 @@ export function WeeklyReport() {
           </Button>
         </div>
       </div>
-
-      {/* DIA-MARCO DA AV1 — a analítica também sabe a semana (janela da 88/99) */}
-      {examBrief && <WeeklyExamStrip brief={examBrief} daysLeft={examDaysLeft} />}
 
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((m, i) => (
@@ -448,17 +365,14 @@ export function WeeklyReport() {
         </div>
       ) : null}
 
-      {/* Rodapé do relatório — só existe quando tem o que dizer; no dia-macro
-          sem registro a faixa já é a mensagem inteira (linha some, sem stray). */}
-      {(message || hasData || (thisWeek.bestDayLabel != null && thisWeek.bestDayMinutes > 0)) && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          {thisWeek.bestDayLabel != null && thisWeek.bestDayMinutes > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-amber-600 dark:text-amber-400">
-              🏆 Melhor dia: <strong className="font-semibold">{thisWeek.bestDayLabel}</strong> (
-              {thisWeek.bestDayMinutes} min)
-            </span>
-          ) : null}
-          {message && <p className="text-muted-foreground">{message}</p>}
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        {thisWeek.bestDayLabel && thisWeek.bestDayMinutes > 0 ? (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-amber-600 dark:text-amber-400">
+            🏆 Melhor dia: <strong className="font-semibold">{thisWeek.bestDayLabel}</strong> (
+            {thisWeek.bestDayMinutes} min)
+          </span>
+        ) : null}
+        <p className="text-muted-foreground">{message}</p>
         {/* Coach semanal — âmbar (família análise: evolução/debriefing/caderno) */}
         {hasData ? (
           <Button
@@ -474,8 +388,7 @@ export function WeeklyReport() {
             Analisar minha semana com IA
           </Button>
         ) : null}
-        </div>
-      )}
+      </div>
     </Card>
   );
 }

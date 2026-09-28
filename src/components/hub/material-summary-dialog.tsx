@@ -8,7 +8,6 @@ import {
   CircleHelp,
   ClipboardList,
   Code2,
-  Dumbbell,
   ExternalLink,
   FileText,
   Flag,
@@ -38,14 +37,7 @@ import type { Material, Discipline } from '@/data/course-data';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { useStudyProgress } from '@/lib/study-progress';
-import { openMethod, openPractice, openTutor } from '@/lib/hub-events';
-import { exercises } from '@/lib/exercise-extractor';
-import {
-  MATH_EXAM,
-  MATH_SCOPE_MATERIALS,
-  libraryExamBriefFor,
-} from '@/lib/math-exam-prep';
-import { daysUntilDate } from '@/lib/semester';
+import { openMethod, openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 
@@ -197,36 +189,6 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
     [checksForMaterial],
   );
 
-  // PONTE PARA O PALCO (o reverso da 94): os exercícios REAIS que sustentam
-  // este material — o resumo ensina, o Praticar treina, 1 clique (o conjunto
-  // material-first da 94 já tem porta; aqui o material ganha a volta para a
-  // prática). Zero exercício ligado = botão honestamente não existe.
-  const linkedExs = React.useMemo(
-    () =>
-      material
-        ? exercises.filter((e) => (e.linkedMaterials ?? []).includes(material.id))
-        : [],
-    [material],
-  );
-
-  // CHIP DO ESCOPO DA AV1 (fonte da 98): âmbar só DENTRO da janela D-7→D-0
-  // do plano — fora dela e pós-prova, silêncio (regra da 88). Relógio lido
-  // NO render (lição 79) e veredito curto por marco.
-  const examDaysLeft = daysUntilDate(MATH_EXAM.date);
-  const examBrief = libraryExamBriefFor(examDaysLeft, sp.progress.completedMaterials);
-  const isExamScope = material
-    ? MATH_SCOPE_MATERIALS.some((m) => m.id === material.id)
-    : false;
-  const scopeLabel = !examBrief
-    ? null
-    : examDaysLeft === 2
-      ? 'ensaio hoje'
-      : examDaysLeft === 1
-        ? 'véspera'
-        : examDaysLeft === 0
-          ? 'prova hoje'
-          : `faltam ${examDaysLeft} dias`;
-
   // Handlers estáveis passados ao SummaryBody (React.memo) — evitam re-render
   // de todo o resumo a cada troca de estado do pai.
   const handleToggleCheck = React.useCallback(
@@ -275,16 +237,6 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                   {material.pages} páginas
                 </Badge>
               ) : null}
-              {material && isExamScope && examBrief && (
-                <Badge
-                  variant="outline"
-                  title="Material do escopo da Av1 (01/10) — a prova é feita disto"
-                  className="gap-1 border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-300"
-                >
-                  escopo Av1
-                  <span className="font-semibold tabular-nums">· {scopeLabel}</span>
-                </Badge>
-              )}
               {completed && (
                 <Badge
                   variant="outline"
@@ -389,27 +341,6 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 </>
               )}
             </Button>
-            {linkedExs.length > 0 && (
-              <Button
-                size="sm"
-                variant="secondary"
-                className={cn(
-                  touchBtn,
-                  'border-violet-300 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300 dark:hover:bg-violet-900/60',
-                )}
-                aria-label={`Abrir o Praticar com ${linkedExs.length} questão(ões) ligada(s) a este material`}
-                title={`O Praticar abre filtrado no conjunto exato deste material (${linkedExs.length} questões)`}
-                onClick={() => {
-                  onOpenChange(false);
-                  openPractice({
-                    disciplineCode: material.disciplineCode,
-                    linkedMaterial: material.id,
-                  });
-                }}
-              >
-                <Dumbbell className="size-3.5" aria-hidden /> Praticar ({linkedExs.length})
-              </Button>
-            )}
             {material.externalUrl && (
               <Button asChild size="sm" variant="outline" className={touchBtn}>
                 <a href={material.externalUrl} target="_blank" rel="noreferrer">

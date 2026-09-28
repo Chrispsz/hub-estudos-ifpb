@@ -10,10 +10,8 @@ import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import {
   AlarmClock,
   ArrowUpRight,
-  Backpack,
   BookOpen,
   BookX,
-  Calculator,
   CalendarClock,
   ChevronDown,
   CircleAlert,
@@ -24,12 +22,7 @@ import {
   Layers,
   ListChecks,
   Minus,
-  Moon,
-  PenLine,
   Play,
-  Printer,
-  RotateCcw,
-  ScrollText,
   Sigma,
   Sparkles,
   Target,
@@ -46,7 +39,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
-import { buildRunDebriefQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
+import { computeTopicTrends } from '@/lib/simulado-debrief';
 import {
   buildReadinessQuestion,
   computeReadiness,
@@ -55,7 +48,7 @@ import {
   type ReadinessTone,
 } from '@/lib/exam-readiness';
 import { useLocalStorage } from '@/lib/use-local-storage';
-import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
+import { useStudyProgress } from '@/lib/study-progress';
 import { collectMistakes, notebookStats, pendingMistakes } from '@/lib/mistake-notebook';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
@@ -63,79 +56,14 @@ import {
   MATH_CHECKLIST,
   MATH_DECK_FLAG,
   MATH_EXAM,
-  MATH_EXAM_KIT,
   MATH_EXAM_PLAN,
   MATH_FLASHCARDS,
   MATH_FORMULAS,
-  MATH_LISTAS,
-  MATH_META,
-  MATH_PLAN_KEY,
-  MATH_SIMULADO_DATE,
-  MATH_TOPICO_CURTO,
-  MATH_TRAVADAS_KEY,
-  countTravadas,
-  findMathSimuladoRunOficial,
-  formatTravadas,
-  isVesperaWindow,
-  mathDrillFeedbackFor,
-  normalizeTravadas,
-  planDayChecked,
+  missedPlanDays,
   planDayFor,
-  planDaysBehind,
-  simuladoVerdictFor,
-  type DrillRunLike,
   type PlanDay,
   type PlanKind,
-  type SimuladoTopicScore,
-  type SimuladoVerdict,
 } from '@/lib/math-exam-prep';
-
-/** Rótulo curto do tópico — o kit fala 'Matrizes'/'Lógica', não o nome do catálogo. */
-const curto = (topic: string): string => MATH_TOPICO_CURTO[topic] ?? topic;
-
-/**
- * O PLACAR DO SIMULADO EM CHIPS — a linha do bloco fraco mostrava o placar
- * como texto corrido; na véspera, noite, o número que importa tem que ser
- * ESCANEÁVEL: verde = taxa ≥ meta, âmbar = abaixo (número real atrás), e o
- * NOVO estado — borda TRACEJADA rose = o bloco todo pulado (nem tentou:
- * '0/5' com a cor de erro mentiria, com a cor de acerto também). Puladas
- * parciais ganham '(N puladas)' no chip. Os separadores ' · ' ficam como
- * texto entre os spans — o textContent continua 'Matrizes 5/5 · Lógica 2/5'
- * (o QA da 95 continua válido sem mudança).
- */
-function PlacarChips({ porTopico }: { porTopico: SimuladoTopicScore[] }) {
-  if (porTopico.length === 0) return null;
-  return (
-    <>
-      {porTopico.map((t, i) => {
-        const pulouTudo = t.skipped === t.total;
-        const abaixo = t.pct != null && t.pct < 70;
-        return (
-          <span key={t.topic}>
-            {i > 0 && ' · '}
-            <span
-              className={cn(
-                'inline-block whitespace-nowrap rounded-full border px-1.5 py-px text-[10px] font-semibold tabular-nums',
-                pulouTudo
-                  ? 'border-dashed border-rose-400/70 bg-rose-500/[0.06] text-rose-600 dark:text-rose-400'
-                  : abaixo
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400'
-                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-              )}
-            >
-              {curto(t.topic)} {t.solved}/{t.total}
-              {pulouTudo
-                ? ' (pulou tudo)'
-                : t.skipped > 0
-                  ? ` (${t.skipped} ${t.skipped === 1 ? 'pulada' : 'puladas'})`
-                  : ''}
-            </span>
-          </span>
-        );
-      })}
-    </>
-  );
-}
 
 const KIND_LABEL: Record<PlanKind, string> = {
   estudo: 'Estudo',
@@ -154,6 +82,7 @@ const KIND_STYLE: Record<PlanKind, string> = {
 };
 
 type CheckedMap = Record<string, boolean>;
+const LS_PLAN = 'hub:math-exam:v1:plan';
 const LS_CHECK = 'hub:math-exam:v1:checklist';
 
 /** Mapeia "faltam N dias" para o dia do plano (offset N = N dias antes da prova; 0 = prova). */
@@ -166,17 +95,8 @@ function planDayForDaysLeft(daysLeft: number): PlanDay | undefined {
 export function ExamPrepCard() {
   const daysLeft = daysUntilDate(MATH_EXAM.date);
   const [open, setOpen] = React.useState(false);
-  const [checked, setChecked] = useLocalStorage<CheckedMap>(MATH_PLAN_KEY, {});
+  const [checked, setChecked] = useLocalStorage<CheckedMap>(LS_PLAN, {});
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
-  // Espelho das marcas de caneta nas listas impressas (Travadas das listas):
-  // o aluno marca as questões que travaram e a véspera usa o registro.
-  const [travadas, setTravadas] = useLocalStorage<Record<string, boolean>>(
-    MATH_TRAVADAS_KEY,
-    {},
-    normalizeTravadas,
-  );
-  const travadasCount = countTravadas(travadas);
-  const travadasLabel = React.useMemo(() => formatTravadas(travadas), [travadas]);
   const sp = useStudyProgress();
   // Caderno de Erros: contagem ao vivo dos PENDENTES (revisados não disputam
   // atenção na véspera — o card mostra o que ainda pede trabalho).
@@ -197,20 +117,6 @@ export function ExamPrepCard() {
   const [deckAdded, setDeckAdded] = React.useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(MATH_DECK_FLAG) === '1',
   );
-  // Kit da véspera → "Recitar as fórmulas" e "Refazer as travadas" abrem o
-  // plano completo JÁ ROLADO até a seção pedida (o aluno não caça seção na
-  // véspera da prova).
-  const [dialogFocus, setDialogFocus] = React.useState<'formulas' | 'travadas' | null>(null);
-  React.useEffect(() => {
-    if (!open || !dialogFocus) return;
-    const id = window.setTimeout(() => {
-      document
-        .getElementById(`dlg-${dialogFocus}`)
-        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      setDialogFocus(null);
-    }, 120); // espera o conteúdo do Dialog montar
-    return () => window.clearTimeout(id);
-  }, [open, dialogFocus]);
 
   // FOCO DA PROVA (dados reais, material-first): pior tópico do escopo da Av1
   // segundo a tendência das tentativas do Simulado Pro. O card deixa de ser
@@ -225,46 +131,6 @@ export function ExamPrepCard() {
     if (trends.length === 0) return null;
     return { worst: trends[0], allGood: trends.every((t) => t.last >= 80), trends };
   }, [sp.progress.simuladoRuns]);
-
-  // O DIA DO SIMULADO SABE QUANDO ELE JÁ ACONTECEU: uma prova de Matemática
-  // encerrada no DIA OFICIAL do plano vira estado "feito" no chip do marco,
-  // no kit, na linha do tempo e no modo recuperação — a noite da terça pede a
-  // CORREÇÃO, não um convite para começar de novo; e a véspera (30/09) não
-  // acusa o simulado de "ter ficado para trás" quando ele foi feito. Render-
-  // time (sem effect/interval, lição da 79): reage a mock de relógio no mesmo
-  // frame e a runs novas no mesmo re-render (storage event). Sem prova de
-  // Matemática no dia oficial → undefined (o chip continua convidando —
-  // estado honesto).
-  const simuladoDaysLeft = daysUntilDate(MATH_SIMULADO_DATE);
-  // Fonte única (85): a MESMA função que o hero do dashboard usa — a verdade
-  // "simulado feito no dia oficial" não pode divergir entre superfícies.
-  // Render-time (sem effect/interval, lição da 79): reage a mock de relógio
-  // no mesmo frame e a runs novas no mesmo re-render (storage event).
-  const simuladoRunOnPlanDate = React.useMemo(
-    () => findMathSimuladoRunOficial(sp.progress.simuladoRuns),
-    [sp.progress.simuladoRuns],
-  );
-  const simuladoDoneOnPlanDate = !!simuladoRunOnPlanDate;
-  // "Feito HOJE" é mais estreito: só no próprio dia (o kit da 80 fala do
-  // simulado de hoje; na véspera o run é de ONTEM e o badge volta ao default).
-  const simuladoDoneToday = simuladoDaysLeft === 0 && simuladoDoneOnPlanDate;
-
-  // O KIT CUMPRE A PROMESSA DO PLANO: o simulado oficial promete "o bloco com
-  // mais erros vira a revisão de amanhã" — o veredito transforma o run em
-  // números por tópico (fonte única no módulo puro) e o kit da reta final
-  // passa a falar o DESEMPENHO, não só o calendário. Render-time (sem
-  // effect/interval, lição da 79): reage ao run no mesmo re-render via
-  // storage event. Sem run → null — o kit segue no estado de espera honesto.
-  const simuladoVerdict = React.useMemo(
-    () => simuladoVerdictFor(simuladoRunOnPlanDate),
-    [simuladoRunOnPlanDate],
-  );
-
-  // O PLANO NÃO MENTE: dias "para trás" = só os pendentes de verdade (tarefas
-  // não marcadas E, no dia do simulado, sem run oficial). Antes, TODO dia
-  // passado era acusado — "SIMULADO ficou para trás" na véspera com a prova
-  // feita era a mentira mais cara da semana.
-  const behind = planDaysBehind(daysLeft, checked, simuladoDoneOnPlanDate);
 
   /** 1 toque: todos os cartões da Av1 entram no sistema Leitner (Praticar → Flashcards). */
   function addAv1Deck() {
@@ -295,37 +161,27 @@ export function ExamPrepCard() {
     toast.success(`${novas.length} cartões da Av1 adicionados — revise na aba Praticar → Flashcards.`);
   }
 
-  // Prova passou → estado compacto, sem ruído — mas com o próximo passo real:
-  // a nota vai para a Calculadora (deep-link, não só menção no texto).
+  // Prova passou → estado compacto, sem ruído.
   if (daysLeft < 0) {
     return (
       <Card className="rounded-xl border-rose-500/20 bg-gradient-to-r from-rose-500/5 to-transparent p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-500/15 text-rose-500">
             <CircleCheck className="size-4.5" />
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <p className="text-sm font-semibold">Prova de Matemática (Av1) realizada</p>
             <p className="text-xs text-muted-foreground">
-              Registre a nota na Calculadora quando sair o resultado — a média do semestre
-              acompanha na hora.
+              Registre a nota na Calculadora quando sair o resultado. Boa sorte! 🍀
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openProgress()}
-            className="h-9 shrink-0 gap-1.5 border-rose-500/30 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 sm:h-8"
-            aria-label="Abrir a Calculadora de notas na aba Progresso"
-          >
-            <Calculator className="size-3.5" /> Abrir a Calculadora
-          </Button>
         </div>
       </Card>
     );
   }
 
   const day = planDayForDaysLeft(daysLeft);
+  const missed = missedPlanDays(daysLeft);
   const totalTasks = MATH_EXAM_PLAN.reduce((a, d) => a + d.tarefas.length, 0);
   const doneTasks = Object.values(checked).filter(Boolean).length;
   const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
@@ -338,21 +194,13 @@ export function ExamPrepCard() {
   function toggleCheck(key: string) {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   }
-  function toggleTravada(key: string) {
-    setTravadas((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
-  function openTravadas() {
-    setDialogFocus('travadas');
-    setOpen(true);
-  }
 
   // Linha do tempo dos 8 dias (offset 7 → 0): passado✓ verde, passado✗ âmbar,
   // hoje pulsando em rosa, futuro cinza e prova como bandeira.
   const todayOffset = Math.min(Math.max(daysLeft, 0), MATH_EXAM_PLAN.length - 1);
-  // Fonte única da conta (a mesma do banner e do diálogo): planDayChecked.
   const doneDay = (offset: number) =>
     MATH_EXAM_PLAN.filter((d) => d.offset === offset && d.offset !== 0).every((d) =>
-      planDayChecked(d, checked),
+      d.tarefas.every((_, i) => checked[`${offset}-${i}`]),
     );
 
   return (
@@ -393,9 +241,7 @@ export function ExamPrepCard() {
             >
               {daysLeft === 0 ? 'HOJE' : `${daysLeft}d`}
             </span>
-            <span className="text-[11px] text-muted-foreground">
-              {daysLeft === 0 ? '01/10 · prova de Matemática' : '01/10 · faltam'}
-            </span>
+            <span className="text-[11px] text-muted-foreground">01/10 · faltam</span>
             <button
               type="button"
               onClick={() => setOpen(true)}
@@ -413,129 +259,33 @@ export function ExamPrepCard() {
           </div>
         </div>
 
-        {/* MARCOS DA SEMANA: 29/09 (simulado escopo real + S3 Algoritmos) → 01/10 (prova).
-            Ambos com estado "é hoje" no dia — mesmo tratamento visual do banner D-0:
-            chip sólido, texto em contraste, pulso. Render-time, sem interval. */}
+        {/* MARCOS DA SEMANA: 29/09 (simulado escopo real + S3 Algoritmos) → 01/10 (prova) */}
         <div className="border-t px-4 py-2.5">
-          {/* flex-wrap: no dia do simulado o chip ganha a linha inteira (o
-              aviso é longo e é O compromisso do dia) — divider e prova caem
-              para a linha de baixo */}
-          <div className="flex flex-wrap items-center gap-2">
-            {(() => {
-              const isSimuladoDay = simuladoDaysLeft === 0;
-              const isSimuladoEve = simuladoDaysLeft === 1;
-              // Feito no dia: a prova de Matemática do dia oficial já foi
-              // encerrada — o chip deixa de convidar a começar e vira o
-              // próximo passo real do plano D-2 (refazer no papel o que
-              // errou → a correção ajuda).
-              const isSimuladoDone = isSimuladoDay && simuladoDoneOnPlanDate;
-              return (
-                <button
-                  type="button"
-                  onClick={
-                    isSimuladoDone && simuladoRunOnPlanDate
-                      ? () =>
-                          openTutor({
-                            question: buildRunDebriefQuestion(simuladoRunOnPlanDate),
-                            disciplineCode: MATH_EXAM.disciplineCode,
-                          })
-                      : () => openSimulado({ preset: 'math_exam' })
-                  }
-                  className={cn(
-                    'group flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                    isSimuladoDone
-                      ? 'w-full border-emerald-600 bg-emerald-600 text-white shadow-md shadow-emerald-600/30 hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-600'
-                      : isSimuladoDay
-                        ? 'w-full border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
-                        : 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400',
-                  )}
-                  aria-label={
-                    isSimuladoDone
-                      ? 'Simulado da Av1 de hoje já foi feito — pedir a correção comentada ao tutor'
-                      : isSimuladoDay
-                        ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos — abrir o simulado'
-                        : 'Abrir Simulado da Av1 com o escopo real da prova'
-                  }
-                >
-                  {isSimuladoDone ? (
-                    <CircleCheck className="size-3.5 shrink-0" aria-hidden />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'size-1.5 shrink-0 rounded-full',
-                        isSimuladoDay ? 'animate-pulse bg-white dark:bg-zinc-900' : 'animate-pulse bg-amber-500',
-                      )}
-                    />
-                  )}
-                  <span className={cn(isSimuladoDay ? 'whitespace-normal leading-snug' : 'truncate')}>
-                    {isSimuladoDone ? (
-                      <>
-                        Simulado da Av1 <span className="font-bold">feito ✓</span> — pedir a correção
-                      </>
-                    ) : isSimuladoDay ? (
-                      <>
-                        É hoje · <span className="font-bold">Simulado da Av1</span> + entrega S3
-                        Algoritmos
-                      </>
-                    ) : isSimuladoEve ? (
-                      <>
-                        Amanhã · <span className="font-semibold">Simulado da Av1</span> + entrega S3
-                        Algoritmos
-                      </>
-                    ) : (
-                      <>
-                        29/09 · <span className="font-semibold">Simulado da Av1</span> no Hub +
-                        entrega S3 Algoritmos
-                      </>
-                    )}
-                  </span>
-                  <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </button>
-              );
-            })()}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openSimulado({ preset: 'math_exam' })}
+              className="group flex min-w-0 items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+              aria-label="Abrir Simulado da Av1 com o escopo real da prova"
+            >
+              <span
+                aria-hidden
+                className="size-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
+              />
+              <span className="truncate">
+                29/09 · <span className="font-semibold">Simulado da Av1</span> no Hub + entrega
+                S3 Algoritmos
+              </span>
+              <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </button>
             <span
               aria-hidden
               className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-rose-500/40"
             />
-            {(() => {
-              const isProvaDay = daysLeft === 0;
-              // Véspera da prova (30/09): o chip da prova também reconhece o
-              // "amanhã" — simetria com o chip do simulado, estado via copy
-              // (família rose contornada intacta: a urgência sólida é só do dia).
-              const isProvaEve = daysLeft === 1;
-              return (
-                <span
-                  className={cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium',
-                    isProvaDay
-                      ? 'border-rose-500 bg-rose-500 text-white shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400 dark:text-zinc-900'
-                      : 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'size-1.5 shrink-0',
-                      isProvaDay ? 'animate-pulse rounded-full bg-white dark:bg-zinc-900' : 'rounded-full bg-rose-500',
-                    )}
-                  />
-                  {isProvaDay ? (
-                    <>
-                      É hoje · <span className="font-bold">Prova Av1</span>
-                    </>
-                  ) : isProvaEve ? (
-                    <>
-                      Amanhã · <span className="font-semibold">Prova Av1</span>
-                    </>
-                  ) : (
-                    <>
-                      01/10 · <span className="font-semibold">Prova Av1</span>
-                    </>
-                  )}
-                </span>
-              );
-            })()}
+            <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-400">
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-rose-500" />
+              01/10 · <span className="font-semibold">Prova Av1</span>
+            </span>
           </div>
         </div>
 
@@ -627,32 +377,17 @@ export function ExamPrepCard() {
           </div>
         )}
 
-        {/* MODO RECUPERAÇÃO: só os dias PENDENTES de verdade (o simulado feito
-            no dia oficial e as tarefas marcadas saem da conta — o plano não mente). */}
-        {behind.length > 0 && (
+        {/* MODO RECUPERAÇÃO: dias do plano que ficaram para trás */}
+        {missed.length > 0 && (
           <div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <div className="flex items-start gap-2">
               <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  Modo recuperação: {behind.length} dia(s) do plano seguem pendentes
-                  {(() => {
-                    // O banner também PROVA progresso: dias passados já cumpridos
-                    // aparecem em emerald ao lado do que pende — recuperação sem
-                    // culpa, com o crédito que o esforço merece.
-                    const pastCount = MATH_EXAM_PLAN.filter(
-                      (d) => d.offset > daysLeft && d.offset > 0,
-                    ).length;
-                    const doneCount = pastCount - behind.length;
-                    return doneCount > 0 ? (
-                      <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                        {' '}· {doneCount} já cumprido(s) ✓
-                      </span>
-                    ) : null;
-                  })()}
+                  Modo recuperação: {missed.length} dia(s) do plano ficaram para trás
                 </p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80 dark:text-amber-300/80">
-                  {behind.map((m) => m.titulo).join(' · ')}. O conteúdo CONTINUA na prova —
+                  {missed.map((m) => m.titulo).join(' · ')}. O conteúdo CONTINUA na prova —
                   faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da
                   Lista 01) antes do dia de hoje. A fila certa está no card “Plano de
                   Recuperação”.
@@ -688,10 +423,7 @@ export function ExamPrepCard() {
               const past = d.offset > todayOffset;
               const today = d.offset === todayOffset;
               const prova = d.offset === 0;
-              // Feito = tarefas marcadas OU, no dia do simulado, a prova
-              // oficial encerrada (o run é o registro — checkboxes são opcional).
-              const complete =
-                past && (doneDay(d.offset) || (d.kind === 'simulado' && simuladoDoneOnPlanDate));
+              const complete = past && doneDay(d.offset);
               return (
                 <div key={d.offset} className="flex min-w-0 flex-1 flex-col items-center gap-1">
                   <span
@@ -735,22 +467,6 @@ export function ExamPrepCard() {
                 <Timer className="size-3" /> {day.minutos} min
               </span>
             </div>
-            {/* Reconhecimento honesto do simulado feito: a noite da terça vê
-                o resultado no PRÓPRIO dia do plano (as checkboxes continuam
-                lá — registro manual — mas o run já diz o que aconteceu). */}
-            {day.kind === 'simulado' && simuladoRunOnPlanDate && (
-              <div className="mt-2.5 flex items-start gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/[0.07] px-2.5 py-2">
-                <CircleCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                <p className="min-w-0 text-[11px] leading-relaxed text-emerald-800 dark:text-emerald-200/90">
-                  <span className="font-semibold">Simulado feito hoje ✓</span>{' '}
-                  <span className="tabular-nums font-semibold text-emerald-700 dark:text-emerald-300">
-                    {Math.round((simuladoRunOnPlanDate.solved / Math.max(simuladoRunOnPlanDate.total, 1)) * 100)}%
-                  </span>{' '}
-                  ({simuladoRunOnPlanDate.solved}/{simuladoRunOnPlanDate.total} resolvidas) — agora é
-                  refazer no papel o que errou; a correção comentada está no chip verde acima.
-                </p>
-              </div>
-            )}
             <ul className="mt-2.5 space-y-1.5">
               {day.tarefas.map((t, i) => {
                 const key = `${day.offset}-${i}`;
@@ -776,27 +492,11 @@ export function ExamPrepCard() {
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
-                            openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: t.materialId });
+                            openMethod({ materialId: t.materialId });
                           }}
                           className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
                         >
                           <BookOpen className="size-2.5" /> material
-                        </button>
-                      )}
-                      {t.exercisePool && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            openPractice({
-                              disciplineCode: MATH_EXAM.disciplineCode,
-                              exerciseIds: t.exercisePool,
-                            });
-                          }}
-                          title={`Abrir no Praticar só os exercícios de apoio: ${t.exercisePool.join(', ')}`}
-                          className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
-                        >
-                          <Dumbbell className="size-2.5" /> apoio ({t.exercisePool.length})
                         </button>
                       )}
                     </label>
@@ -804,27 +504,6 @@ export function ExamPrepCard() {
                 );
               })}
             </ul>
-            {/* Entrada no dia de prática: marcações de travada ficam a 1 toque
-                de onde o aluno está trabalhando (sem abrir o plano completo). */}
-            {day.kind === 'pratica' && (
-              <button
-                type="button"
-                onClick={openTravadas}
-                className="mt-2.5 flex w-full items-center gap-1.5 rounded-md border border-dashed border-rose-500/40 bg-rose-500/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-rose-600 transition-colors hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 dark:text-rose-400"
-              >
-                <PenLine className="size-3 shrink-0" aria-hidden />
-                <span className="min-w-0 flex-1 text-left">
-                  {travadasCount > 0
-                    ? `${travadasCount} ${travadasCount === 1 ? 'questão travada' : 'questões travadas'} nas listas — toque para conferir ou ajustar`
-                    : 'Travou em alguma questão da lista? Marque aqui — a véspera refaz só estas'}
-                </span>
-                {travadasCount > 0 && (
-                  <Badge className="border-0 bg-rose-600 px-1.5 text-[9px] text-white shadow-sm">
-                    {travadasCount}
-                  </Badge>
-                )}
-              </button>
-            )}
           </div>
         )}
 
@@ -864,39 +543,6 @@ export function ExamPrepCard() {
             </Button>
           </div>
         </div>
-
-        {/* KIT DA VÉSPERA — o bloco calmo da reta final (aparece em D-3, a véspera
-            do simulado, e segue até o D-0). */}
-        {isVesperaWindow(daysLeft) && (
-          <VesperaKit
-            daysLeft={daysLeft}
-            mistakePending={mistakePending}
-            simuladoDoneToday={simuladoDoneToday}
-            verdict={simuladoVerdict}
-            runs={sp.progress.simuladoRuns}
-            oficialDate={simuladoRunOnPlanDate?.date ?? null}
-            deckAdded={deckAdded}
-            flashcardsDue={
-              // LEITNER VIVO (116): o seletor puro com o agora do render — o
-              // kit da véspera (na árvore do dashboard que tica a 60s) lê o
-              // vencimento REAL do baralho, não o memo cacheado do passado.
-              flashcardsDueFor(sp.allFlashcards, Date.now()).length
-            }
-            travadasCount={travadasCount}
-            travadasLabel={travadasLabel}
-            onOpenErrors={() => openSimulado()}
-            onOpenFormulas={() => {
-              setDialogFocus('formulas');
-              setOpen(true);
-            }}
-            onOpenTravadas={openTravadas}
-            onDeckAction={addAv1Deck}
-            onOpenFlashcards={() => openPractice({ mode: 'flashcards' })}
-            onOpenSelfAssessment={() =>
-              openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: 'mat-01-matrizes' })
-            }
-          />
-        )}
 
         {/* Treino de recall ativo: a IA PERGUNTA, o dono responde — véspera de prova. */}
         <button
@@ -952,7 +598,7 @@ export function ExamPrepCard() {
                     key={d.offset}
                     className={cn(
                       'rounded-lg border p-3',
-                      d.offset === todayOffset
+                      d.offset === Math.min(Math.max(daysLeft - 1, 0), MATH_EXAM_PLAN.length - 1)
                         ? 'border-rose-500/40 bg-rose-500/5'
                         : 'border-border',
                     )}
@@ -964,20 +610,7 @@ export function ExamPrepCard() {
                       <Badge variant="outline" className={cn('border text-[10px]', KIND_STYLE[d.kind])}>
                         {KIND_LABEL[d.kind]}
                       </Badge>
-                      {d.offset === todayOffset && (
-                        <Badge className="border-0 bg-rose-500 text-[9px] text-white">hoje</Badge>
-                      )}
-                      {/* Estados honestos do passado: feito ✓ (tarefas marcadas
-                          ou simulado oficial feito) em emerald — a cor que o Hub
-                          já consagrou para done; atrasado só no que PENDE de verdade. */}
-                      {d.offset > todayOffset &&
-                        d.offset > 0 &&
-                        (doneDay(d.offset) || (d.kind === 'simulado' && simuladoDoneOnPlanDate)) && (
-                          <Badge className="border-0 bg-emerald-600 text-[9px] text-white">
-                            feito ✓
-                          </Badge>
-                        )}
-                      {behind.some((m) => m.offset === d.offset) && (
+                      {missed.some((m) => m.offset === d.offset) && (
                         <Badge className="border-0 bg-amber-500 text-[9px] text-white">atrasado</Badge>
                       )}
                       <p className="min-w-0 flex-1 text-sm font-medium">{d.titulo}</p>
@@ -1010,27 +643,11 @@ export function ExamPrepCard() {
                                   type="button"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: t.materialId });
+                                    openMethod({ materialId: t.materialId });
                                   }}
                                   className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
                                 >
                                   <BookOpen className="size-2.5" /> material
-                                </button>
-                              )}
-                              {t.exercisePool && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    openPractice({
-                                      disciplineCode: MATH_EXAM.disciplineCode,
-                                      exerciseIds: t.exercisePool,
-                                    });
-                                  }}
-                                  title={`Abrir no Praticar só os exercícios de apoio: ${t.exercisePool.join(', ')}`}
-                                  className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
-                                >
-                                  <Dumbbell className="size-2.5" /> apoio ({t.exercisePool.length})
                                 </button>
                               )}
                             </label>
@@ -1043,64 +660,11 @@ export function ExamPrepCard() {
               </ol>
             </section>
 
-            {/* Travadas das listas — espelho digital das marcas de caneta.
-                O plano manda FAZER as listas no papel; o que travou vira
-                registro aqui e a véspera (kit + folha) refaz SÓ estas. */}
-            <section id="dlg-travadas" aria-label="Questões que travaram nas listas" className="scroll-mt-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  <PenLine className="size-3.5" /> Travadas das listas (espelho do papel)
-                </h3>
-                {travadasCount > 0 && (
-                  <Badge className="border-0 bg-rose-600 px-1.5 text-[10px] text-white shadow-sm shadow-rose-600/30">
-                    {travadasCount} {travadasCount === 1 ? 'travada' : 'travadas'}
-                  </Badge>
-                )}
-                <a
-                  href="/folha-revisao"
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Na folha impressa, as travadas aparecem listadas para refazer na véspera"
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                >
-                  <Printer className="size-3" aria-hidden />
-                  Folha para imprimir
-                </a>
-              </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                Fez a lista no papel? Toque nos números que travaram — o Kit da véspera e a
-                folha impressa usam este registro para montar o que refazer. Toque de novo para
-                desmarcar.
-              </p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {MATH_LISTAS.map((lista) => (
-                  <TravadasRow
-                    key={lista.id}
-                    lista={lista}
-                    travadas={travadas}
-                    onToggle={toggleTravada}
-                  />
-                ))}
-              </div>
-            </section>
-
             {/* Fórmulas */}
-            <section id="dlg-formulas" aria-label="Fórmulas essenciais" className="scroll-mt-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  <Sparkles className="size-3.5" /> Fórmulas essenciais (dos materiais)
-                </h3>
-                <a
-                  href="/folha-revisao"
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Abrir a folha de revisão pronta para imprimir (fórmulas + checklist + kit)"
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                >
-                  <Printer className="size-3" aria-hidden />
-                  Folha para imprimir
-                </a>
-              </div>
+            <section aria-label="Fórmulas essenciais">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="size-3.5" /> Fórmulas essenciais (dos materiais)
+              </h3>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {MATH_FORMULAS.map((f) => (
                   <Card
@@ -1345,536 +909,6 @@ function masteryTextCls(pct: number): string {
   return 'text-rose-600 dark:text-rose-400';
 }
 
-/* ================= KIT DA VÉSPERA ================= */
-
-/**
- * A reta final da Av1 num bloco só — D-2 (noite do simulado) até D-0 (prova).
- *
- * Gramática visual NOTURNA (indigo/slate): distinta de todas as famílias do
- * card — rose = prova/urgência, amber = recuperação/retomada, violet = IA,
- * teal = flashcards, emerald = acerto. Indigo aqui é CALMA: a véspera não é
- * dia de urgência, é dia de recitar o que já sabe e dormir cedo.
- *
- * Linhas acionáveis com deep-links reais (nada de decorativo), em cascata:
- *   erros pendentes → Simulado Pro (o card rose do setup monta a prova)
- *   travadas das listas (quando existem) → plano completo na seção delas
- *   recitar fórmulas → abre o plano JÁ ROLADO até a seção das fórmulas
- *   baralho Leitner → adiciona ao deck OU abre a aba Flashcards
- *   autoavaliação → resumo IA da Lista de Matrizes (perguntas de autoavaliação)
- *   kit do dia → estático (o que levar), sem ação — numeração calculada da
- *   fila (as linhas condicionais não deixam buraco nos números).
- * Honestidade: sem erros pendentes a linha some; sem travadas, idem; sem dias,
- * o bloco inteiro.
- */
-function VesperaKit({
-  daysLeft,
-  mistakePending,
-  simuladoDoneToday,
-  verdict,
-  runs,
-  oficialDate,
-  deckAdded,
-  flashcardsDue,
-  travadasCount,
-  travadasLabel,
-  onOpenErrors,
-  onOpenFormulas,
-  onOpenTravadas,
-  onDeckAction,
-  onOpenFlashcards,
-  onOpenSelfAssessment,
-}: {
-  daysLeft: number;
-  mistakePending: number;
-  /** Prova de Matemática encerrada HOJE — o badge do D-2 vira "feito" (calma, não cobrança). */
-  simuladoDoneToday: boolean;
-  /** Veredito do run oficial (fonte única: simuladoVerdictFor) — null = sem run, kit no estado de espera. */
-  verdict: SimuladoVerdict | null;
-  /** Runs do Simulado Pro (mesmo registro do pai) — de onde o leitor do drill
-   *  acha o treino 'topico' do foco. undefined/null = sem drill (estado honesto). */
-  runs?: DrillRunLike[] | null;
-  /** Data (ISO) do run oficial — a ORDEM DO TEMPO manda (107): só drill
-   *  DEPOIS do diagnóstico cumpre a promessa; treino antes é preparo e não
-   *  ganha recibo (nenhum 'subiu' com a ordem dos fatos invertida). */
-  oficialDate?: string | null;
-  deckAdded: boolean;
-  flashcardsDue: number;
-  travadasCount: number;
-  travadasLabel: string;
-  onOpenErrors: () => void;
-  onOpenFormulas: () => void;
-  onOpenTravadas: () => void;
-  onDeckAction: () => void;
-  onOpenFlashcards: () => void;
-  onOpenSelfAssessment: () => void;
-}) {
-  const worst = verdict?.worst ?? null;
-
-  // O FOCO DA REVISÃO: pulouTudo ?? worst. Um bloco INTEIRO sem tentativa
-  // (o tempo acabou nele, ou o aluno passou reto) é o diagnóstico mais grave
-  // que existe — nem taxa houve para comparar — e o placar honesto ('Matrizes
-  // 0/5') já mostrava o sinal sem dar a ele VOZ na ação: o drill apontava
-  // para o pior tópico RESPONDIDO enquanto o bloco nunca visto ficava mudo.
-  // A promessa do plano ('o bloco com mais erros vira a revisão') se cumpre
-  // no sentido que importa: o bloco todo pulado É o bloco com mais erros.
-  // worst segue com o contrato documentado para quem só olha número.
-  const foco = verdict?.pulouTudo ?? worst;
-  const focoPulou = foco != null && foco.pct == null;
-
-  // O DRILL RESPONDE: a linha do foco promete ('a revisão de amanhã') e o CTA
-  // abre o treino daquele tópico — mas o kit nunca soube se o treino
-  // ACONTECEU: depois do drill a linha seguia idêntica, o badge continuava no
-  // % do simulado e o aluno não via o efeito do esforço da noite anterior.
-  // O leitor puro acha o run 'topico' mais recente do foco e o recibo diz a
-  // verdade do número: subiu (emerald), não subiu (amber, honesto) — e a
-  // comparação só existe quando os dois lados têm taxa (bloco pulado não
-  // inventa delta). Render-time (sem effect, lição 79): run novo no storage
-  // re-renderiza e o recibo aparece no mesmo frame.
-  const drill = foco
-    ? mathDrillFeedbackFor(runs, foco.topic, foco.pct, oficialDate)
-    : null;
-  const drillDia = (() => {
-    if (!drill) return '';
-    const d = new Date(drill.dateISO).toDateString();
-    if (d === new Date().toDateString()) return 'treino de hoje';
-    if (d === new Date(Date.now() - 86_400_000).toDateString()) return 'treino de ontem';
-    return 'treino recente';
-  })();
-
-  const contextBadge =
-    daysLeft === 3
-      ? 'véspera do simulado — amanhã é o ensaio real'
-      : daysLeft === 2
-        ? simuladoDoneToday
-          ? verdict
-            ? verdict.metaBatida
-              ? `simulado feito — ${verdict.pct}% ≥ meta, véspera leve`
-              : `simulado feito — ${verdict.pct}%: abaixo da meta`
-            : 'simulado feito hoje — agora é só o kit, com calma'
-          : 'depois do simulado de hoje — comece por aqui'
-        : daysLeft === 1
-          ? verdict
-            ? verdict.metaBatida
-              ? `véspera — ${verdict.pct}% no simulado, manter o plano`
-              : `véspera — ${verdict.pct}% no simulado: bloco fraco primeiro`
-            : 'véspera — revisão leve, sem conteúdo novo'
-          : 'hoje é o dia — só reler e respirar';
-
-  // Cor = significado no badge do kit: emerald = meta batida (calma, a mesma
-  // família do "Feito"); amber = abaixo da meta (atenção com número real
-  // atrás — nunca urgência inventada); indigo = espera / dia da prova (D-0
-  // mantém a calma do reler-e-respirar, venha como vier o veredito).
-  const badgeTone =
-    verdict && daysLeft >= 1
-      ? verdict.metaBatida
-        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
-        : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
-      : simuladoDoneToday && daysLeft === 2
-        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
-        : 'border-indigo-400/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300';
-
-  const rows: {
-    icon: typeof Moon;
-    title: string;
-    sub?: string;
-    /** Placar do simulado em chips (pulada ganha voz: dashed = nem tentou). */
-    subNode?: React.ReactNode;
-    action: () => void;
-    badge?: { text: string; tone: string };
-    cta: string;
-    /** Acento de ESTADO da linha (ex.: recibo do drill = fechamento emerald à esquerda). */
-    accent?: string;
-  }[] = [
-    // A VÉSPERA DO SIMULADO (D-3): a noite em que o ensaio real é AMANHÃ.
-    // O kit abre um dia antes para PREPARAR — a linha diz o que amanhã exige
-    // (escopo, condição, meta) e o CTA abre o simulado com o preset oficial,
-    // a mesma porta do botão do card. Só existe em D-3: em D-2 a linha do
-    // veredito assume o palco (o run oficial vira a fonte do que a linha diz).
-    ...(daysLeft === 3
-      ? [
-          {
-            icon: Target,
-            title: 'O ensaio real é amanhã',
-            sub: `Simulado da Av1: escopo completo (${MATH_EXAM.topicosEscopo.join(
-              ' + ',
-            )}), sem consulta, meta ${MATH_META}%. Depois do run, este kit lê o resultado e aponta a revisão.`,
-            action: () => openSimulado({ preset: 'math_exam' }),
-            badge: {
-              text: `meta ${MATH_META}`,
-              tone: 'border-indigo-400/40 bg-indigo-500/10 tabular-nums text-indigo-600 dark:text-indigo-300',
-            },
-            cta: 'Ver o simulado',
-          },
-        ]
-      : []),
-    // A PROMESSA DO PLANO, AGORA COM NÚMEROS: o run oficial diz qual bloco
-    // errou mais — e, quando um bloco INTEIRO ficou sem tentativa, é ELE que
-    // manda (pulouTudo ?? worst). A linha abre o drill daquele tópico (a
-    // mesma entrada do FOCO DA PROVA, mas com o dado DO SIMULADO, não a
-    // tendência geral). D-0 some: prova não treina (a faixa rose da 92
-    // manda só leveza).
-    ...(foco && daysLeft >= 1
-      ? [
-          {
-            icon: Crosshair,
-            title:
-              daysLeft === 2
-                ? focoPulou
-                  ? `${curto(foco.topic)}: pulou tudo — a revisão de amanhã`
-                  : `${curto(foco.topic)}: a revisão de amanhã`
-                : focoPulou
-                  ? `${curto(foco.topic)}: pulou tudo — começa por ela`
-                  : `${curto(foco.topic)}: começa a revisão de hoje`,
-            subNode: (
-              <>
-                <span className="block">
-                  {'No simulado: '}
-                  <PlacarChips porTopico={verdict?.porTopico ?? []} />
-                  {' — '}
-                  {focoPulou
-                    ? 'pular um bloco inteiro também é diagnóstico: a revisão começa por ele.'
-                    : 'o plano promete: o bloco com mais erros vira a revisão.'}
-                </span>
-                {/* O RECIBO DO DRILL — a promessa ganhou resposta: o treino do
-                    foco vira uma linha própria, com ponto-colorido (emerald =
-                    subiu, amber = não subiu, honesto) e o delta real quando
-                    os dois lados têm taxa. Sem drill a linha não existe —
-                    nada inventado (a regra da 88). */}
-                {drill && drill.pct !== null && (
-                  <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'size-1.5 shrink-0 rounded-full',
-                        drill.melhorou ? 'bg-emerald-500' : 'bg-amber-500',
-                      )}
-                    />
-                    <span className="tabular-nums">
-                      {`${drillDia}: ${drill.solved}/${drill.total} no drill`}
-                      {drill.melhorou === true
-                        ? ` · subiu de ${foco.pct}% para ${drill.pct}%`
-                        : ''}
-                      {drill.melhorou === false
-                        ? ` · ${drill.pct}% no treino — vale outra passada`
-                        : ''}
-                      {focoPulou && drill.melhorou === null
-                        ? ' · o bloco saiu do zero'
-                        : ''}
-                    </span>
-                  </span>
-                )}
-              </>
-            ),
-            action: () =>
-              openSimulado({
-                disciplineCode: MATH_EXAM.disciplineCode,
-                topicScope: foco.topic,
-              }),
-            badge:
-              drill && drill.pct !== null
-                ? {
-                    text: `${drill.pct}% no treino${drill.pct >= MATH_META ? ' ✓' : ''}`,
-                    tone:
-                      drill.pct >= MATH_META
-                        ? 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
-                        : 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400',
-                  }
-                : focoPulou
-                  ? {
-                      text: `${foco.skipped} ${foco.skipped === 1 ? 'pulada' : 'puladas'}`,
-                      tone:
-                        'border-rose-400/60 bg-rose-500/10 tabular-nums text-rose-600 dark:border-rose-400/60 dark:bg-rose-500/10 dark:text-rose-400',
-                    }
-                  : {
-                      text: `${foco.pct ?? 0}% no bloco`,
-                      tone:
-                        (foco.pct ?? 0) < 70
-                          ? 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400'
-                          : 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
-                    },
-            cta: drill ? 'Treinar de novo' : `Treinar ${curto(foco.topic)}`,
-            accent: drill
-              ? 'border-l-2 border-l-emerald-500/60 bg-emerald-500/[0.05] hover:border-l-emerald-500/70'
-              : undefined,
-          },
-        ]
-      : []),
-    ...(mistakePending > 0
-      ? [
-          {
-            icon: RotateCcw,
-            title: 'Fechar os seus erros',
-            sub: 'Revisão dirigida no Simulado Pro: o card rose do setup monta a prova só com o que você errou.',
-            action: onOpenErrors,
-            badge: {
-              text: `${mistakePending} ${mistakePending === 1 ? 'pendente' : 'pendentes'}`,
-              tone: 'border-rose-300/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
-            },
-            cta: 'Treinar',
-          },
-        ]
-      : []),
-    ...(travadasCount > 0
-      ? [
-          {
-            icon: PenLine,
-            title: 'Refazer as travadas no papel',
-            sub: `${travadasLabel} — sem consultar a fórmula; conferir com o card só depois.`,
-            action: onOpenTravadas,
-            badge: {
-              text: `${travadasCount} ${travadasCount === 1 ? 'travada' : 'travadas'}`,
-              tone: 'border-rose-300/60 bg-rose-500/10 text-rose-600 dark:text-rose-400',
-            },
-            cta: 'Ver lista',
-          },
-        ]
-      : []),
-    {
-      icon: ScrollText,
-      title: 'Recitar as fórmulas de memória',
-      sub:
-        foco && ((foco.pct ?? 0) < 70 || focoPulou) && daysLeft >= 1
-          ? `${curto(foco.topic)} primeiro (${foco.solved}/${foco.total} no simulado), ${curto(
-              MATH_EXAM.topicosEscopo.find((t) => t !== foco.topic) ?? '',
-            )} depois — se travar numa, é só ela que você relê antes de dormir.`
-          : 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
-      action: onOpenFormulas,
-      cta: 'Abrir fórmulas',
-    },
-    {
-      icon: Layers,
-      title: 'Passar o baralho da Av1',
-      sub: deckAdded
-        ? flashcardsDue > 0
-          ? `${flashcardsDue} ${flashcardsDue === 1 ? 'cartão vence' : 'cartões vencem'} hoje no Leitner — recall ativo de 2 minutos por vez.`
-          : 'Nenhum cartão vence agora — de volta amanhã de manhã, antes de sair.'
-        : `${MATH_FLASHCARDS.length} cartões prontos (Matrizes + Lógica) — entram vencidos para a revisão começar hoje.`,
-      action: deckAdded ? onOpenFlashcards : onDeckAction,
-      badge: deckAdded
-        ? {
-            text: flashcardsDue > 0 ? `${flashcardsDue} hoje` : 'em dia',
-            tone:
-              flashcardsDue > 0
-                ? 'border-amber-300/60 bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                : 'border-emerald-300/60 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-          }
-        : undefined,
-      cta: deckAdded ? 'Abrir flashcards' : 'Adicionar',
-    },
-    {
-      icon: BookOpen,
-      title: 'Autoavaliação dos resumos IA',
-      sub: 'Perguntas de autoavaliação do resumo da Lista — responda de cabeça, confira depois. 10 minutos.',
-      action: onOpenSelfAssessment,
-      cta: 'Abrir resumo',
-    },
-  ];
-
-  const kit = MATH_EXAM_KIT;
-
-  return (
-    <div className="border-t border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.09] via-slate-500/[0.05] to-transparent">
-      {/* Cabeçalho do kit — medalhão Moon + contexto da reta final */}
-      <div className="flex flex-wrap items-center gap-2.5 px-4 pt-3.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-indigo-500/30 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
-          <Moon className="size-4" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            Kit da véspera
-            <Badge
-              variant="outline"
-              className={cn(
-                'text-[10px] font-medium',
-                // Cor = significado (badgeTone): emerald = meta batida (calma),
-                // amber = abaixo da meta (atenção com número real), indigo =
-                // espera / D-0 (o dia da prova mantém o reler-e-respirar).
-                badgeTone,
-              )}
-            >
-              {contextBadge}
-            </Badge>
-          </h3>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-            A prova já está no seu preparo — estes passos fecham o que falta e guardam o resto
-            para o sono.
-          </p>
-        </div>
-      </div>
-
-      {/* Linhas numeradas — cada uma uma ação real, entrada em cascata */}
-      <ol className="px-4 py-3">
-        {rows.map((row, i) => {
-          const Icon = row.icon;
-          return (
-            <motion.li
-              key={row.title}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.25, ease: 'easeOut' }}
-            >
-              <button
-                type="button"
-                onClick={row.action}
-                className={cn(
-                  'group flex w-full items-start gap-3 rounded-lg border border-transparent px-2.5 py-2.5 text-left transition-all hover:border-indigo-500/25 hover:bg-indigo-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40',
-                  row.accent,
-                )}
-              >
-                <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 text-indigo-600 transition-transform group-hover:scale-105 dark:text-indigo-300">
-                  <Icon className="size-3.5" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs font-semibold">{row.title}</span>
-                    {row.badge && (
-                      <Badge
-                        variant="outline"
-                        className={cn('px-1.5 text-[9px]', row.badge.tone)}
-                      >
-                        {row.badge.text}
-                      </Badge>
-                    )}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
-                    {row.subNode ?? row.sub}
-                  </span>
-                </span>
-                <span className="mt-1 flex shrink-0 items-center gap-1 text-[10px] font-medium text-indigo-600 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100 dark:text-indigo-300">
-                  {row.cta} <ArrowUpRight className="size-3" aria-hidden />
-                </span>
-              </button>
-            </motion.li>
-          );
-        })}
-
-        {/* 05 — kit do dia da prova: o único passo SEM ação (nada para clicar,
-            nada para esquecer: é só levar). */}
-        <motion.li
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: rows.length * 0.06, duration: 0.25, ease: 'easeOut' }}
-          className="flex items-start gap-3 rounded-lg px-2.5 py-2.5"
-        >
-          <span className="pt-0.5 text-[10px] font-bold tabular-nums text-indigo-400/70 dark:text-indigo-400/60">
-            {String(rows.length + 1).padStart(2, '0')}
-          </span>
-          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
-            <Backpack className="size-3.5" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="text-xs font-semibold">Kit do dia da prova</span>
-            <span className="mt-1 flex flex-wrap gap-1.5">
-              {kit.map((k) => (
-                <span
-                  key={k.label}
-                  className="rounded-full border border-indigo-500/25 bg-indigo-500/[0.08] px-2 py-0.5 text-[10px] text-indigo-700 dark:text-indigo-300"
-                >
-                  {k.emoji} {k.label}
-                </span>
-              ))}
-            </span>
-          </span>
-        </motion.li>
-      </ol>
-
-      {/* Rodapé do kit — o conselho que nenhum plano de estudo dá + a ponte para o papel */}
-      <div className="border-t border-indigo-500/15 bg-indigo-500/[0.05] px-4 py-2.5">
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          <span className="font-medium text-indigo-600 dark:text-indigo-300">Noite calma:</span>{' '}
-          depois das fórmulas, nada de conteúdo novo — o sono consolida mais que a madrugada de
-          estudo.
-        </p>
-        <a
-          href="/folha-revisao"
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 underline-offset-2 transition-colors hover:underline dark:text-indigo-300"
-        >
-          <Printer className="size-3" aria-hidden />
-          Prefere papel? Abrir a folha de revisão para imprimir →
-        </a>
-      </div>
-    </div>
-  );
-}
-
-/* ================= TRAVADAS DAS LISTAS (linha do diálogo) ================= */
-
-/**
- * Uma lista impressa = cabeçalho + grade de números clicáveis. O número em
- * rose é a marca de caneta espelhada: "essa eu travei na hora de resolver".
- * Tamanho de toque 28px (h-7/w-7) — apertado de propósito para os 35 números
- * caberem em 2–3 linhas sem dominar o diálogo, ainda assim tocável.
- */
-function TravadasRow({
-  lista,
-  travadas,
-  onToggle,
-}: {
-  lista: (typeof MATH_LISTAS)[number];
-  travadas: Record<string, boolean>;
-  onToggle: (key: string) => void;
-}) {
-  const qsDaLista = MATH_LISTAS.find((l) => l.id === lista.id)?.total ?? 0;
-  const marcadas = React.useMemo(() => {
-    let n = 0;
-    for (let q = 1; q <= qsDaLista; q++) if (travadas[`${lista.id}-${q}`]) n++;
-    return n;
-  }, [travadas, lista.id, qsDaLista]);
-
-  return (
-    <Card className="rounded-lg p-3">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <p className="text-xs font-semibold">{lista.nome}</p>
-        {marcadas > 0 ? (
-          <Badge className="border-0 bg-rose-600 px-1.5 text-[9px] text-white shadow-sm">
-            {marcadas}/{lista.total}
-          </Badge>
-        ) : (
-          <span className="text-[10px] text-muted-foreground">nenhuma travada</span>
-        )}
-        <button
-          type="button"
-          onClick={() => openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: lista.fonte })}
-          className="ml-auto inline-flex items-center gap-0.5 rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
-          title={`Abrir ${lista.nome} na Biblioteca`}
-        >
-          <BookOpen className="size-2.5" aria-hidden /> abrir lista
-        </button>
-      </div>
-      <p className="mt-0.5 text-[10px] text-muted-foreground">{lista.resumo}</p>
-      <div className="mt-2 flex flex-wrap gap-1">
-        {Array.from({ length: lista.total }, (_, i) => i + 1).map((q) => {
-          const key = `${lista.id}-${q}`;
-          const on = !!travadas[key];
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={on}
-              aria-label={`Q${q} da ${lista.nome}${on ? ' — travada (toque para desmarcar)' : ' — marcar como travada'}`}
-              title={on ? `Q${q} travada — toque para desmarcar` : `Marcar Q${q} como travada`}
-              onClick={() => onToggle(key)}
-              className={cn(
-                'grid h-7 w-7 place-items-center rounded-md border text-[10px] font-semibold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 active:scale-95',
-                on
-                  ? 'border-rose-600 bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                  : 'border-border bg-muted/50 text-muted-foreground hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400',
-              )}
-            >
-              {q}
-            </button>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
 function ReadinessSection({
   readiness,
   daysLeft,
@@ -2115,7 +1149,7 @@ function ReadinessSection({
 
       <Button
         variant="outline"
-        className="mt-3 w-full !whitespace-normal border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+        className="mt-3 w-full border-amber-300 bg-amber-50 text-amber-800 transition-transform hover:bg-amber-100 active:scale-[0.99] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
         onClick={() =>
           openTutor({
             disciplineCode: MATH_EXAM.disciplineCode,
@@ -2124,7 +1158,7 @@ function ReadinessSection({
         }
         aria-label="Pedir ao tutor um plano para chegar pronto na prova"
       >
-        <Sparkles className="size-3.5 shrink-0" aria-hidden />
+        <Sparkles className="size-3.5" aria-hidden />
         {score === null
           ? 'Por onde começo para ter score? (plano do tutor)'
           : 'Como chego 100% pronto até 01/10? (plano do tutor)'}

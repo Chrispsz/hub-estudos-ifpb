@@ -6,54 +6,19 @@ import {
   Award,
   BookCheck,
   BrainCircuit,
-  CalendarClock,
-  ClipboardCheck,
   Dumbbell,
   Flame,
   Layers,
   Lock,
   Medal,
-  Target,
   Timer,
-  TrendingUp,
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useStudyProgress } from '@/lib/study-progress';
-import {
-  findMathSimuladoRunOficial,
-  mathDrillFeedbackFor,
-  simuladoVerdictFor,
-} from '@/lib/math-exam-prep';
 import { cn } from '@/lib/utils';
-
-/**
- * Snapshot dos indicadores — os 9 de ROTINA (pomodoro/streak/materiais/
- * flashcards) + os 3 da SEMANA DA AV1, derivados dos runs do Praticar pela
- * MESMA fonte única do kit (findMathSimuladoRunOficial → simuladoVerdictFor
- * → mathDrillFeedbackFor): a conquista é RECIBO, não promessa — só existe
- * quando o registro existe (lição 85/86: registro vence relógio).
- */
-interface AchievementSnapshot {
-  totalSessions: number;
-  minutesToday: number;
-  streak: number;
-  topicsDone: number;
-  materialsDone: number;
-  exercisesTried: number;
-  exercisesSolved: number;
-  flashcardsTotal: number;
-  flashcardReviews: number;
-  /** O ensaio oficial da Av1 tem run registrado (mode 'prova', dia 29/09). */
-  simuladoFeito: boolean;
-  /** A promessa do plano cumprida: o bloco fraco do ensaio virou revisão
-   *  DEPOIS do diagnóstico e o treino tem taxa real (pulada não conta). */
-  promessaCumprida: boolean;
-  /** A meta da Av1 batida no ensaio (≥ MATH_META, a régua da fonte única). */
-  metaAv1Batida: boolean;
-}
 
 interface Achievement {
   id: string;
@@ -62,10 +27,20 @@ interface Achievement {
   icon: LucideIcon;
   /** Classes quando desbloqueada (tons emerald/teal/amber/violet/rose — sem azul). */
   unlockedClasses: string;
-  isUnlocked: (s: AchievementSnapshot) => boolean;
+  isUnlocked: (s: {
+    totalSessions: number;
+    minutesToday: number;
+    streak: number;
+    topicsDone: number;
+    materialsDone: number;
+    exercisesTried: number;
+    exercisesSolved: number;
+    flashcardsTotal: number;
+    flashcardReviews: number;
+  }) => boolean;
 }
 
-const ROUTINE_ACHIEVEMENTS: Achievement[] = [
+const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'first-session',
     label: 'Primeiro passo',
@@ -148,89 +123,10 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
-/**
- * AS CONQUISTAS DA SEMANA — a reta final tinha um sistema de recompensa
- * CEGO: as 10 conquistas mediam a ROTINA (foco, streak, materiais) e as
- * três ações que decidem a nota — rodar o ensaio, treinar o bloco fraco,
- * bater a meta — não rendiam NADA. Agora rendem, com a honestidade da
- * casa: desbloqueio DERIVADO do registro (nada persistido, nada inventado)
- * e a ordem do tempo da 107 embutida (treino antes do ensaio é preparo,
- * não revisão cumprida — mathDrillFeedbackFor já nega).
- */
-const EXAM_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'ensaio-real',
-    label: 'Ensaio real',
-    description: 'Rode o simulado oficial da Av1',
-    icon: ClipboardCheck,
-    unlockedClasses: 'border-amber-500/40 bg-amber-500/10 text-amber-400 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]',
-    isUnlocked: (s) => s.simuladoFeito,
-  },
-  {
-    id: 'promessa-cumprida',
-    label: 'A revisão de amanhã',
-    description: 'Depois do ensaio, treine o bloco fraco',
-    icon: TrendingUp,
-    unlockedClasses: 'border-violet-500/40 bg-violet-500/10 text-violet-400 shadow-[0_0_18px_-6px_rgba(139,92,246,0.5)]',
-    isUnlocked: (s) => s.promessaCumprida,
-  },
-  {
-    id: 'meta-av1',
-    label: 'Meta da Av1',
-    description: 'Bata 70% no ensaio oficial',
-    icon: Target,
-    unlockedClasses: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-[0_0_18px_-6px_rgba(16,185,129,0.5)]',
-    isUnlocked: (s) => s.metaAv1Batida,
-  },
-];
-
-const ALL_ACHIEVEMENTS = [...ROUTINE_ACHIEVEMENTS, ...EXAM_ACHIEVEMENTS];
-
-function AchievementCardTile({ a, unlocked, index }: { a: Achievement; unlocked: boolean; index: number }) {
-  const Icon = a.icon;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, delay: index * 0.04 }}
-      className={cn(
-        'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors duration-300',
-        unlocked
-          ? a.unlockedClasses
-          : 'border-border/60 bg-muted/20 text-muted-foreground/70',
-      )}
-      title={unlocked ? `${a.label} — desbloqueada!` : `${a.description} (bloqueada)`}
-    >
-      {unlocked ? (
-        <Icon className="size-5" aria-hidden="true" />
-      ) : (
-        <Lock className="size-4 opacity-50" aria-hidden="true" />
-      )}
-      <span className="text-xs font-semibold leading-tight">{a.label}</span>
-      <span className="text-[10px] leading-tight opacity-80">{a.description}</span>
-    </motion.div>
-  );
-}
-
 export function AchievementsCard() {
   const sp = useStudyProgress();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
-
-  // A fonte única da semana: os runs que o Praticar registra (o MESMO array
-  // que o kit, a fila e o histórico leem — zero segunda fonte, zero hook novo).
-  const runs = sp.progress.simuladoRuns;
-  const oficial = React.useMemo(() => findMathSimuladoRunOficial(runs), [runs]);
-  const verdict = React.useMemo(() => simuladoVerdictFor(oficial), [oficial]);
-  // O foco que decide: pular o bloco INTEIRO é diagnóstico mais grave que a
-  // menor taxa (105) — a MESMA composição do kit e do tutor.
-  const foco = React.useMemo(() => (verdict ? (verdict.pulouTudo ?? verdict.worst) : null), [verdict]);
-  // A ordem do tempo manda (107): só drill DEPOIS do oficial qualifica como
-  // 'a revisão de amanhã' — preparo antes do diagnóstico não cumpre promessa.
-  const feedback = React.useMemo(
-    () => (oficial && foco ? mathDrillFeedbackFor(runs, foco.topic, foco.pct, oficial.date) : null),
-    [oficial, foco, runs],
-  );
 
   // Snapshot dos indicadores — memoizado para não recriar objeto a cada render
   const snapshot = React.useMemo(
@@ -244,11 +140,6 @@ export function AchievementsCard() {
       exercisesSolved: sp.totalExercisesSolved,
       flashcardsTotal: sp.allFlashcards.length,
       flashcardReviews: sp.flashcardStats.reviewsDone,
-      // A semana da Av1: recibo DERIVADO — a conquista existe quando o
-      // registro existe (a taxa do treino conta só sobre RESPONDIDOS).
-      simuladoFeito: oficial !== undefined,
-      promessaCumprida: feedback !== null && feedback.pct !== null,
-      metaAv1Batida: verdict?.metaBatida === true,
     }),
     [
       sp.progress.pomodoroSessions,
@@ -260,20 +151,14 @@ export function AchievementsCard() {
       sp.totalExercisesSolved,
       sp.allFlashcards,
       sp.flashcardStats,
-      oficial,
-      verdict,
-      feedback,
     ],
   );
 
   const unlockedCount = React.useMemo(
-    () => (mounted ? ALL_ACHIEVEMENTS.filter((a) => a.isUnlocked(snapshot)).length : 0),
+    () => (mounted ? ACHIEVEMENTS.filter((a) => a.isUnlocked(snapshot)).length : 0),
     [mounted, snapshot],
   );
-  const pct = Math.round((unlockedCount / ALL_ACHIEVEMENTS.length) * 100);
-  const examUnlocked = mounted
-    ? EXAM_ACHIEVEMENTS.filter((a) => a.isUnlocked(snapshot)).length
-    : 0;
+  const pct = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
 
   return (
     <Card className="rounded-xl border-l-4 border-l-amber-500 bg-card p-4 shadow-sm">
@@ -286,7 +171,7 @@ export function AchievementsCard() {
           variant="outline"
           className="border-amber-500/30 bg-amber-500/10 text-[11px] text-amber-500"
         >
-          {unlockedCount}/{ALL_ACHIEVEMENTS.length} desbloqueadas
+          {unlockedCount}/{ACHIEVEMENTS.length} desbloqueadas
         </Badge>
       </div>
 
@@ -299,44 +184,39 @@ export function AchievementsCard() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {ROUTINE_ACHIEVEMENTS.map((a, i) => (
-          <AchievementCardTile
-            key={a.id}
-            a={a}
-            index={i}
-            unlocked={mounted && a.isUnlocked(snapshot)}
-          />
-        ))}
-      </div>
-
-      {/* A SEMANA DA AV1 — as três ações que decidem a nota, na própria fileira
-          (3 colunas = fileira cheia). O divisor é a gramática da casa: rótulo
-          pequeno + fio, o relógio da família da espera SEM pulso. */}
-      <div className="mt-5 flex items-center gap-2" aria-hidden="true">
-        <CalendarClock className="size-3 text-amber-500/80" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Semana da Av1
-        </span>
-        <div className="h-px flex-1 bg-border/60" />
-        <span className="text-[10px] tabular-nums text-muted-foreground">
-          {examUnlocked}/3
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        {EXAM_ACHIEVEMENTS.map((a, i) => (
-          <AchievementCardTile
-            key={a.id}
-            a={a}
-            index={i}
-            unlocked={mounted && a.isUnlocked(snapshot)}
-          />
-        ))}
+        {ACHIEVEMENTS.map((a, i) => {
+          const unlocked = mounted && a.isUnlocked(snapshot);
+          const Icon = a.icon;
+          return (
+            <motion.div
+              key={a.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, delay: i * 0.04 }}
+              className={cn(
+                'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors duration-300',
+                unlocked
+                  ? a.unlockedClasses
+                  : 'border-border/60 bg-muted/20 text-muted-foreground/70',
+              )}
+              title={unlocked ? `${a.label} — desbloqueada!` : `${a.description} (bloqueada)`}
+            >
+              {unlocked ? (
+                <Icon className="size-5" aria-hidden="true" />
+              ) : (
+                <Lock className="size-4 opacity-50" aria-hidden="true" />
+              )}
+              <span className="text-xs font-semibold leading-tight">{a.label}</span>
+              <span className="text-[10px] leading-tight opacity-80">{a.description}</span>
+            </motion.div>
+          );
+        })}
       </div>
 
       <p className="mt-3 text-[11px] text-muted-foreground">
         {unlockedCount === 0
           ? 'Complete sua primeira sessão de foco para começar a desbloquear.'
-          : unlockedCount < ALL_ACHIEVEMENTS.length
+          : unlockedCount < ACHIEVEMENTS.length
             ? 'Continue estudando para desbloquear as próximas!'
             : 'Incrível! Você desbloqueou todas as conquistas. 👑'}
       </p>
