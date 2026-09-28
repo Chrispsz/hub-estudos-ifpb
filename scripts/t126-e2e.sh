@@ -203,9 +203,18 @@ RES=$(qa_storage_get "Object.keys(p.materialProgress||{}).length")
   || bad "seed não confirmado no storage ($RES)"
 qa_clean_all
 sleep 1
-FLOOR=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$STORE')||'{}');return String(Object.keys(p).length)})()" 2>/dev/null | tr -d '"')
-[ "$FLOOR" = "0" ] && ok "qa_clean_all zerou o store" || bad "store ainda tem $FLOOR chaves"
+# LIÇÃO 134: a lib carregava a chave FANTASMA ('estudios') — este check lia a
+# chave errada e 'zerou o store' passava vago. Com o STORE curado, o clean
+# toca o chão REAL e o app re-hidrata o esqueleto padrão (21 chaves) — o que
+# define 'limpo' não é 0 chaves, é RESÍDUO ZERO: o plantado sumiu.
+FLOOR=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$STORE')||'{}');return 'mp='+(p.materialProgress?Object.keys(p.materialProgress).length:0)+'|fake='+(p.materialProgress&&p.materialProgress.fake?1:0)+'|runs='+((p.simuladoRuns||[]).length)})()" 2>/dev/null | tr -d '"')
+[ "$FLOOR" = "mp=0|fake=0|runs=0" ] && ok "qa_clean_all limpou o resíduo do chão REAL (o esqueleto do app é vida, não sujeira)" || bad "resíduo sobreviveu ao clean ($FLOOR)"
 qa_hygiene_check
+
+# LIÇÃO 133: a fase B arma o mock 29/09 por init-script e o close do helper
+# vem ANTES do open — a suíte terminava com a SESSÃO viva e armada; a próxima
+# suíte herdava o relógio. O chão de higiene é bidimensional: storage E sessão.
+agent-browser close >/dev/null 2>&1; sleep 2
 
 echo
 if [ "$QA_FAIL" = "0" ]; then

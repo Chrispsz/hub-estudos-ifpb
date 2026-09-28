@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  BookX,
   BrainCircuit,
   CalendarCheck,
   CalendarClock,
@@ -70,6 +71,10 @@ import {
   flashcardExamBriefFor,
   type FlashcardExamBrief,
 } from '@/lib/math-exam-prep';
+import {
+  mistakeCardSeedsFor,
+  type MistakeCardSeed,
+} from '@/lib/mistake-notebook';
 
 // ---------- Helpers ----------
 
@@ -271,10 +276,16 @@ function ExamBriefStrip({
   brief,
   mathCards,
   onStart,
+  mistakeSeeds,
+  onFromMistake,
 }: {
   brief: FlashcardExamBrief;
   mathCards: number;
   onStart: () => void;
+  /** Sementes da Av1 esperando virar cartão — a porta só existe com estoque
+   * real (regra 88: sem registro não há linha; aqui, sem erro não há porta). */
+  mistakeSeeds: number;
+  onFromMistake: () => void;
 }) {
   const v = EXAM_BRIEF_VISUAL[brief.kind];
   return (
@@ -298,20 +309,43 @@ function ExamBriefStrip({
           <p className={cn('mt-1 text-xs leading-snug', v.sub)}>{brief.chamada}</p>
         </div>
       </div>
-      <Button
-        size="sm"
-        onClick={onStart}
-        disabled={mathCards === 0}
-        title={
-          mathCards === 0
-            ? 'Nenhum cartão de Matemática no baralho — adicione o baralho de fórmulas no card da prova (Visão Geral)'
-            : undefined
-        }
-        className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
-        aria-label={brief.cta}
-      >
-        <Zap className="size-3.5" /> {brief.cta}
-      </Button>
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+        {/* A PORTA DA PROMESSA (134): a chamada diz 'os erros de hoje viram
+            cartões' e o caminho era copiar o enunciado à mão — a semente leva
+            o material do acervo ao diálogo de criação (a lição da 127: anunciar
+            é metade, levar é a outra). Família amber = o caderno (a espera da
+            casa, gramática da 131/132); o cram continua sendo o CTA principal. */}
+        {mistakeSeeds > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onFromMistake}
+            className={cn(
+              'shrink-0 gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800',
+              'dark:text-amber-400 dark:hover:text-amber-300',
+              'focus-visible:ring-2 focus-visible:ring-amber-500/40',
+            )}
+            aria-label={`Transformar um erro em cartão (${mistakeSeeds} prontos)`}
+          >
+            <BookX className="size-3.5" aria-hidden="true" />
+            Do erro ao cartão (<span className="tabular-nums">{mistakeSeeds}</span>)
+          </Button>
+        )}
+        <Button
+          size="sm"
+          onClick={onStart}
+          disabled={mathCards === 0}
+          title={
+            mathCards === 0
+              ? 'Nenhum cartão de Matemática no baralho — adicione o baralho de fórmulas no card da prova (Visão Geral)'
+              : undefined
+          }
+          className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
+          aria-label={brief.cta}
+        >
+          <Zap className="size-3.5" /> {brief.cta}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -436,6 +470,20 @@ export function FlashcardsView() {
           : null,
       )
     : null;
+
+  // A SEMENTE DO ERRO (134): pendências do caderno com material completo no
+  // acervo e ainda sem cartão nascido delas. A fonte é a MESMA do caderno
+  // (collectMistakes + pendingMistakes — zero segunda derivação, a gramática
+  // da 125/132) e a contagem da faixa filtra a Av1 (a promessa da faixa é da
+  // semana dela); o seletor no diálogo mostra o acervo inteiro, do semestre.
+  const mistakeSeeds = React.useMemo(
+    () => mistakeCardSeedsFor(sp.progress, sp.progress.flashcards ?? []),
+    [sp.progress],
+  );
+  const mathMistakeSeeds = React.useMemo(
+    () => mistakeSeeds.filter((s) => s.disciplineCode === MATH_EXAM.disciplineCode).length,
+    [mistakeSeeds],
+  );
 
   if (mode === 'review' || mode === 'cram') {
     return (
@@ -589,6 +637,8 @@ export function FlashcardsView() {
         <ExamBriefStrip
           brief={examBrief}
           mathCards={mathCardCount}
+          mistakeSeeds={mathMistakeSeeds}
+          onFromMistake={() => setAddOpen(true)}
           onStart={() => {
             setCramScope(MATH_EXAM.disciplineCode);
             setMode('cram');
@@ -737,7 +787,12 @@ export function FlashcardsView() {
       )}
 
       {/* Diálogos */}
-      <AddCardDialog open={addOpen} onOpenChange={setAddOpen} sp={sp} />
+      <AddCardDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        sp={sp}
+        seeds={mistakeSeeds}
+      />
       <GenerateCardsDialog open={generateOpen} onOpenChange={setGenerateOpen} sp={sp} />
     </div>
   );
@@ -1105,28 +1160,66 @@ function GradeButton({
 
 // ---------- Diálogo: novo cartão manual ----------
 
+const SEED_NONE = '__nenhum__';
+
 function AddCardDialog({
   open,
   onOpenChange,
   sp,
+  seeds,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   sp: StudyProgressHook;
+  /** Sementes do caderno (134) — pendências com material completo no acervo e
+   * ainda sem cartão nascido delas. Vazio = o seletor não existe (a porta
+   * não anuncia o que não tem — regra 88). */
+  seeds: MistakeCardSeed[];
 }) {
   const [disciplineCode, setDisciplineCode] = React.useState<string>(disciplines[0].code);
   const [front, setFront] = React.useState('');
   const [back, setBack] = React.useState('');
+  /** A semente escolhida — a referência que acompanha o cartão criado
+   * (fromMistake) e o dedupe do seletor (um erro vira UM cartão). */
+  const [seedKey, setSeedKey] = React.useState<string>(SEED_NONE);
+
+  // Diálogo fechado = semente esquecida: a próxima abertura nasce neutra
+  // (a porta 'Do erro ao cartão' da faixa pode querer outra semente).
+  React.useEffect(() => {
+    if (!open) {
+      setSeedKey(SEED_NONE);
+    }
+  }, [open]);
+
+  const pickedSeed = seeds.find((s) => s.key === seedKey) ?? null;
+
+  function handlePickSeed(key: string) {
+    setSeedKey(key);
+    if (key === SEED_NONE) return;
+    const s = seeds.find((x) => x.key === key);
+    if (!s) return;
+    setDisciplineCode(s.disciplineCode);
+    setFront(s.statement);
+    setBack(s.hint); // sem hint no acervo = verso vazio — o aluno escreve a resolução
+  }
 
   function handleAdd() {
     if (!front.trim() || !back.trim()) {
       toast.error('Preencha a frente e o verso do cartão.');
       return;
     }
-    sp.addFlashcards([newCardFields(disciplineCode, front.trim(), back.trim(), 'manual')]);
-    toast.success('Cartão adicionado ao baralho!');
+    const base = newCardFields(disciplineCode, front.trim(), back.trim(), 'manual');
+    sp.addFlashcards([
+      pickedSeed ? { ...base, fromMistake: pickedSeed.key } : base,
+    ]);
+    toast.success(
+      pickedSeed
+        ? 'O erro virou cartão — o cram da véspera já o encontra no baralho!'
+        : 'Cartão adicionado ao baralho!',
+    );
     setFront('');
     setBack('');
+    setSeedKey(SEED_NONE);
     onOpenChange(false);
   }
 
@@ -1142,6 +1235,48 @@ function AddCardDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          {/* A SEMENTE (134): nascer de um erro do caderno — frente e disciplina
+              chegam prontas do acervo, o verso traz a dica SE ela existir (a
+              resposta verdadeira é a que o aluno escreve). Família amber = o
+              caderno (a gramática da 131/132); contagem tabular-nums. */}
+          {seeds.length > 0 && (
+            <div className="space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.04] p-3">
+              <Label
+                htmlFor="fc-add-seed"
+                className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400"
+              >
+                <BookX className="size-3.5" aria-hidden="true" />
+                Nascer de um erro do caderno (
+                <span className="tabular-nums">{seeds.length}</span>)
+              </Label>
+              <Select
+                value={seedKey}
+                onValueChange={handlePickSeed}
+              >
+                <SelectTrigger id="fc-add-seed" aria-label="Escolher erro do caderno como semente">
+                  <SelectValue placeholder="Escolher um erro preenche a frente e o verso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEED_NONE}>Sem semente — escrever do zero</SelectItem>
+                  {seeds.map((s) => {
+                    const disc = getDisciplineByCode(s.disciplineCode);
+                    return (
+                      <SelectItem key={s.key} value={s.key}>
+                        {disc?.shortName ?? s.disciplineCode} · {s.label}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                {pickedSeed
+                  ? pickedSeed.hint
+                    ? 'A frente nasceu do enunciado e o verso da dica do acervo — ajuste com as suas palavras.'
+                    : 'A frente nasceu do enunciado; o acervo não tem dica — escreva o caminho da resolução no verso.'
+                  : 'Os pendentes do Caderno de Erros, com enunciado completo, prontos para virar cartão.'}
+              </p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="fc-add-disc">Disciplina</Label>
             <Select value={disciplineCode} onValueChange={setDisciplineCode}>
@@ -1174,7 +1309,11 @@ function AddCardDialog({
               rows={3}
               value={back}
               onChange={(e) => setBack(e.target.value)}
-              placeholder="Ex.: Retorna o número de itens de uma sequência (lista, string, tupla...)."
+              placeholder={
+                pickedSeed && !pickedSeed.hint
+                  ? 'Escreva o caminho da resolução com as suas palavras — o verso é o que você quer lembrar amanhã.'
+                  : 'Ex.: Retorna o número de itens de uma sequência (lista, string, tupla...).'
+              }
             />
           </div>
         </div>

@@ -26,7 +26,13 @@
 # ============================================================================
 
 QA_FAIL=0
-STORE='hub-estudios-ifpb:v2'
+# A CHAVE REAL DO APP (lição 134): 'estudos' — a lib inteira carregava
+# 'estudios' (typo de nascença) e qa_seed/qa_clean_all/qa_hygiene_check
+# operavam numa chave FANTASMA: o clean nunca limpou o store real e o seed
+# nunca pousou nele — as suítes só passavam porque cada uma hardcodava a
+# chave certa nos próprios evals (a infra era teatro; a auditoria da 134
+# pegou o fantasma porque a higiene da [E] passou a LER o chão real).
+STORE='hub-estudos-ifpb:v2'
 # O chão de limpeza (uma linha por chave; suites antigas copiavam à mão).
 QA_FLOOR_KEYS='simuladoRuns __poke realGrades materialProgress'
 
@@ -80,8 +86,14 @@ qa_console_errors() {
 }
 
 qa_clean_all() { # wipe total do store (o esquecido pelo suite antigo não existe)
-  qa_seed 'localStorage.setItem(k,"{}")' >/dev/null 2>&1
-  agent-browser eval "localStorage.removeItem('$STORE')" >/dev/null 2>&1
+# LIÇÃO 134: a versão antiga passava 'localStorage.setItem(k,"{}")' como $1 do
+# qa_seed — mas o qa_seed faz p=parse(current) ANTES de rodar $1 e DEPOIS grava
+# stringify(p): o '{}' era sobrescrito pelo ESTADO VELHO e o dispatch re-armava
+# a memória do app. A suíte seguinte herdava o estado (e um reload re-persistia:
+# o pagehide escreve a memória de volta). Cura: '{}' + dispatch REAL do vazio +
+# remove — a memória do app reseta junto (o chão é bidimensional: storage E
+# memória; a 133 disse para a sessão, esta diz para o estado vivo).
+  agent-browser eval "(function(){var k='$STORE';localStorage.setItem(k,'{}');window.dispatchEvent(new StorageEvent('storage',{key:k,newValue:'{}'}));localStorage.removeItem(k);return 'ok'})()" >/dev/null 2>&1
 }
 
 # O CHÃO: todas as chaves do QA_FLOOR_KEYS vazias/ausentes + console limpo.

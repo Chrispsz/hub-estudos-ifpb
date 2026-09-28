@@ -40,6 +40,7 @@ import { getDisciplineByCode } from '@/data/course-data';
 import { exercises } from './exercise-extractor';
 import {
   flashcardBoxLabel,
+  type Flashcard,
   type StudyProgress,
 } from './study-progress';
 import { capQuestion } from './tutor-stream';
@@ -549,6 +550,73 @@ export function fullStatementFor(it: MistakeItem): string | null {
     it.key.startsWith('ex:') || it.key.startsWith('sim:') ? it.key.slice(3) : null;
   if (!id) return null;
   return exercises.find((e) => e.id === id)?.statement ?? null;
+}
+
+// ---------- O cartão que nasce do erro (a semente do cram) ----------
+
+/**
+ * O ERRO QUE VIRA CARTÃO (134) — o brief dos flashcards promete "os erros de
+ * hoje viram cartões" (flashcardExamBriefFor, a voz da semana da Av1) e a
+ * criação era 100% manual: o aluno que acabou de fechar o ensaio teria que
+ * copiar o enunciado À MÃO no diálogo. A semente transporta o MATERIAL do
+ * acervo para o diálogo de criação — frente = enunciado completo
+ * (fullStatementFor, o MESMO padrão do papel da 125: truncado não resolve),
+ * verso semeado = hint do acervo SE existir (material real; sem hint o verso
+ * nasce vazio e o aluno escreve a resolução com as próprias palavras — o app
+ * transporta, nunca inventa resposta). O aluno CONFIRMA: o cartão entra como
+ * source 'manual' honesto.
+ *
+ * Regras (a mesma honestidade do papel, regra 88):
+ *  - PENDENTE (pendingMistakes) — revisado já foi reffeito; cartão dele seria
+ *    revisar duas vezes o mesmo cansaço;
+ *  - COM par no acervo (fullStatementFor !== null) — 'simx:' (sem enunciado
+ *    gravado) e 'fc:' (já É um cartão) não resolvem: sem material completo
+ *    a frente nasceria truncada ou duplicada;
+ *  - SEM cartão nascido dele ainda (fromMistake) — a referência volta para
+ *    cá: um erro vira UM cartão, o seletor não oferece o que já ofertou.
+ *
+ * Genérica por design (o caderno serve o semestre inteiro): a filtragem por
+ * disciplina da Av1 fica com o chamador que conhece o escopo (flashcards,
+ * MESMA divisão da 113/115 — quem pede, passa o contexto).
+ */
+export interface MistakeCardSeed {
+  /** A referência que o cartão criado carrega (Flashcard.fromMistake). */
+  key: string;
+  /** Disciplina do erro — o seletor pré-ajusta o select do diálogo. */
+  disciplineCode: string;
+  /** Frente semeada — enunciado completo do acervo. */
+  statement: string;
+  /** Verso semeado — hint do acervo ('' honesto quando não há). */
+  hint: string;
+  /** Linha curta do seletor — o que o aluno reconhece sem abrir. */
+  label: string;
+}
+
+export function mistakeCardSeedsFor(
+  progress: StudyProgress,
+  cards: Flashcard[],
+): MistakeCardSeed[] {
+  const carded = new Set(
+    (Array.isArray(cards) ? cards : [])
+      .map((c) => c.fromMistake)
+      .filter((k): k is string => typeof k === 'string'),
+  );
+  const items = pendingMistakes(collectMistakes(progress), progress.notebookRevised);
+  const seeds: MistakeCardSeed[] = [];
+  for (const it of items) {
+    if (carded.has(it.key)) continue;
+    const statement = fullStatementFor(it);
+    if (!statement) continue; // 'simx:'/'fc:' — sem material completo, sem semente
+    const id = it.key.slice(3);
+    seeds.push({
+      key: it.key,
+      disciplineCode: it.disciplineCode,
+      statement,
+      hint: exercises.find((e) => e.id === id)?.hint ?? '',
+      label: truncate(statement, 72),
+    });
+  }
+  return seeds;
 }
 
 export interface PaperNotebook {

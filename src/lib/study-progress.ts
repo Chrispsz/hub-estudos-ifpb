@@ -172,6 +172,14 @@ export interface Flashcard {
   reviews: number;
   lapses: number;
   lastReviewedAt?: string; // ISO
+  /**
+   * A origem no caderno (134) — a chave do erro que semeou este cartão
+   * (ex: 'ex:mat-ex01'). Campo OPCIONAL: cartões antigos não o têm (storage
+   * tolerante, zero migração) e cartões manuais comuns nunca o têm. Uso:
+   * dedupe honesto da semente — um erro já virou cartão não volta ao seletor
+   * (criar o mesmo erro duas vezes seria spam no baralho, não revisão).
+   */
+  fromMistake?: string;
 }
 
 /** Intervalo (dias) por caixa — índice = box. Box 0 usa minutos (5 min). */

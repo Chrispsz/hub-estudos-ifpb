@@ -142,6 +142,11 @@ has 'rg=0' "$RG" H5-realGrades-intocado
 ERR=$(ab errors)
 if [ -z "$ERR" ] || ! echo "$ERR" | grep -qiE "error"; then ok H6-console-sem-erros; else no H6-console-sem-erros; fi
 
+# LIÇÃO 133: o mock por init-script VIVE NA SESSÃO — a t93 termina com 27/09
+# armado; sem este close, a SUÍTE SEGUINTE herda o relógio falso (o chão do
+# storage não basta; a SESSÃO também entra no chão de higiene).
+ab close >/dev/null 2>&1; sleep 2
+
 echo ""
 echo "=== RESULTADO: PASS=$PASS FAIL=$FAIL ==="
 [ "$FAIL" -eq 0 ] && echo "ALL GREEN" || echo "HÁ FALHAS — revisar acima"
