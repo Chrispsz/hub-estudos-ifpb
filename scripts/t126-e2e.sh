@@ -49,21 +49,19 @@ cat > "$MOCKJS" <<EOF
 EOF
 }
 
-open_mocked() { # SESSÃO NOVA por fase (init-script só registra na 1ª navegação)
+open_mocked() { # $1 ISO · $2 URL · $3 toDateString esperado — sessão nova COM
+  # VERIFICAÇÃO do mock: a estreia mostrou o open perder a corrida com o close
+  # (o eval seguinte auto-lança um browser LIMPO, sem init-script — relógio
+  # real e página vazia). O mock se CONFIRMA, nunca se presume.
   write_mock "$1"
-  agent-browser close >/dev/null 2>&1
-  sleep 1
-  agent-browser open --init-script "$MOCKJS" "http://localhost:3000$2" >/dev/null 2>&1
-  sleep 6
-}
-
-go_progress() { # lição 102.1: 'Progresso' mora dentro do submenu 'Mais'
-  for _ in 1 2 3 4; do
-    agent-browser eval "(function(){var els=document.querySelectorAll('button');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Mais'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
-    sleep 1
-    agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Progresso'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
-    sleep 2
-    [ "$(qa_has 'Mapa de consistência')" = "1" ] && return 0
+  local got
+  for _ in 1 2 3; do
+    agent-browser close >/dev/null 2>&1
+    sleep 3   # o close precisa assentar
+    agent-browser open --init-script "$MOCKJS" "http://localhost:3000$2" >/dev/null 2>&1
+    sleep 6
+    got=$(agent-browser eval "new Date().toDateString()" 2>/dev/null | tr -d '"')
+    [ "$got" = "$3" ] && return 0
   done
   return 1
 }
@@ -77,6 +75,7 @@ if git clone --local --quiet /home/z/my-project "$CLONE" 2>/dev/null; then
   # suite segue self-sufficient (o clone só tem o HEAD).
   mkdir -p "$CLONE/hooks"
   cp hooks/pre-commit "$CLONE/hooks/pre-commit"
+  cp hooks/commit-msg "$CLONE/hooks/commit-msg"
   cp scripts/install-hooks.sh "$CLONE/scripts/install-hooks.sh"
   ( cd "$CLONE" && bash scripts/install-hooks.sh >/dev/null 2>&1
     git config user.email qa@fence.local; git config user.name "QA Fence" )
@@ -124,6 +123,20 @@ if git clone --local --quiet /home/z/my-project "$CLONE" 2>/dev/null; then
   ( cd "$CLONE" && git commit -m "limpo" >/dev/null 2>&1 ); RC=$?
   [ "$RC" -eq 0 ] && ok "commit limpo passa sem FENCE_ALLOW" \
                  || bad "a cerca bloqueou commit LEGÍTIMO (rc=$RC)"
+
+  # A6: O SELO DA MENSAGEM (a lição AO VIVO da 126 — o incidente aconteceu
+  # ENQUANTO esta cerca era construída): o sweep da paralela (31f169b) comitou
+  # caminhos LEGÍTIMOS de dois agentes com o trace-id de cron como mensagem —
+  # a cerca de caminhos não via estrago nenhum; o estrago mora no NOME.
+  echo "// ok" > "$CLONE/src/fence-msg.txt"
+  ( cd "$CLONE" && git add src/fence-msg.txt >/dev/null 2>&1 )
+  OUT=$( cd "$CLONE" && git commit -m "0c67d8b1-cf55-4bc7-a7e6-5303e72a11dc" 2>&1 ); RC=$?
+  [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "selo da mensagem" \
+    && ok "trace-id como mensagem BLOQUEADO (a lacuna que a 126 revelou, fechada)" \
+    || bad "mensagem-trace-id passou (rc=$RC)"
+  OUT=$( cd "$CLONE" && git commit -m "fix: mensagem de verdade passa pelo selo" 2>&1 ); RC=$?
+  [ "$RC" -eq 0 ] && ok "mensagem de verdade atravessa o selo sem ruído" \
+                 || bad "selo bloqueou mensagem legítima (rc=$RC)"
   rm -rf "$CLONE"
   ok "clone temporário removido"
 else
@@ -132,16 +145,16 @@ fi
 
 # ============================================================================
 echo "=== [B] O RECIBO DA ENTREGA (mock 29/09, o clique REAL do dono) ==="
-# A frota COMPARTILHA o agent-browser — uma suite concorrente pode roubar a
-# sessão no meio da fase (aconteceu na estreia). Pré-requisito com RETRY
-# honesto: tenta de novo com sessão própria; se a página não cooperar, a fase
-# declara e NÃO finge nada (o clique só roda com o pré-requisito na mão).
+# O card de recuperação mora na HOME (Visão Geral) — nada de navegar: o mock
+# 29/09 + a fila 'Faça hoje' na própria entrada são o palco. A frota
+# COMPARTILHA o agent-browser (e o dev server recompila com HMR de edição ao
+# vivo — 404s transitórios vistos na estreia): pré-requisito com RETRY
+# honesto; se a página não cooperar, a fase declara e NÃO finge nada.
 B_OK=0
 for ATT in 1 2 3; do
   [ "$ATT" -gt 1 ] && sleep 15
-  open_mocked "2026-09-29T12:00:00" "/"
-  go_progress
-  if [ "$(qa_has 'Faça hoje')" = "1" ] \
+  if open_mocked "2026-09-29T12:00:00" "/" "Tue Sep 29 2026" \
+     && [ "$(qa_has 'Faça hoje')" = "1" ] \
      && [ "$(qa_has 'PRAZO HOJE: entrega da S3')" = "1" ]; then
     B_OK=1
     ok "pré-requisitos da fase B aterrissados (tentativa $ATT)"
@@ -160,9 +173,12 @@ if [ "$B_OK" = "1" ]; then
   sleep 1
   [ "$CLICK" = "ok" ] && ok "checkbox da S3 clicado na UI real" || bad "checkbox não encontrado ($CLICK)"
 
-  [ "$(qa_has 'entrega registrada ✓')" = "1" ] \
-    && ok "o RECIBO emerald aparece ('entrega registrada ✓')" \
+  [ "$(qa_has 'Entrega da S3 registrada')" = "1" ] \
+    && ok "o RECIBO emerald fica na fila ('Entrega da S3 registrada — os programas seguem no Classroom')" \
     || bad "recibo não apareceu após o clique"
+  [ "$(qa_has 'Semana 2 no Praticar')" = "1" ] \
+    && ok "a trilha volta à primeira ação pendente (S2 assume o lugar)" \
+    || bad "fila não convergiu para a S2 após a entrega"
   [ "$(qa_has 'prazo hoje')" = "0" ] \
     && ok "o chip amber cumpre sua palavra (some quando entregue)" \
     || bad "chip 'prazo hoje' ainda presente após marcar"

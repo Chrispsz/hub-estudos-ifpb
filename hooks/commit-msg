@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# ============================================================================
+# O SELO DA MENSAGEM (Task 126, a lição AO VIVO) — a cerca de caminhos viu o
+# acidente acontecer e não pôde gritar: o sweep da paralela (31f169b, escrito
+# ENQUANTO a cerca era construída) comitou só caminhos legítimos — dois
+# agentes de trabalho de uma vez — com o NOME do trace-id de cron como
+# mensagem. O estrago mora na mensagem, não nos caminhos. Este hook rejeita a
+# assinatura do sweep: mensagens que são trace-ids (UUID hex de 8-4-4-4-12 ou
+# prefixos tipo 'abc12345-cron') nunca são uma mensagem de verdade.
+#
+# Instalação: bash scripts/install-hooks.sh (arma pre-commit + commit-msg)
+# ============================================================================
+set -u
+
+msgfile="$1"
+[ -f "$msgfile" ] || exit 0
+msg="$(head -n 1 "$msgfile" | tr -d '[:space:]')"
+[ -z "$msg" ] && exit 0   # merge/amend com template — deixa o pre-commit falar
+
+FENCE_ALLOW="${FENCE_ALLOW:-0}"
+
+# Trace-id de cron: 8-4-4-4-12 hex (ex.: 0c67d8b1-cf55-4bc7-a7e6-5303e72a11dc)
+# ou qualquer 'xxxx-cron' — a família de mensagens-lixo das varreduras.
+if echo "$msg" | grep -qE '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$|^[0-9a-fA-F]{6,}-cron$' ; then
+  if [ "$FENCE_ALLOW" = "1" ]; then
+    echo "[cerca] FENCE_ALLOW=1 — mensagem-lixo liberada à mão (exceção registrada)" >&2
+    exit 0
+  fi
+  cat >&2 <<'EOF'
+
+╔══════════════════════════════════════════════════════════════════╗
+║  A CERCA DO REPOSITÓRIO BLOQUEOU ESTE COMMIT (selo da mensagem)   ║
+╠══════════════════════════════════════════════════════════════════╣
+║  A mensagem do commit é um TRACE-ID de cron, não uma mensagem —   ║
+║  a assinatura exata das varreduras que já destruíram a árvore     ║
+║  (a 114 e a de hoje, 31f169b, escrita ao vivo diante da cerca).   ║
+║                                                                   ║
+║  Commit com mensagem DE VERDADE: o que foi feito, para quê.       ║
+║  Exceção REAL e rara: FENCE_ALLOW=1 git commit ...                ║
+╚══════════════════════════════════════════════════════════════════╝
+EOF
+  exit 1
+fi
+
+exit 0

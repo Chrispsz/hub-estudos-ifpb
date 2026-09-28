@@ -39,7 +39,7 @@ import {
   TRACK_STATUS_LABEL,
   type TrackStatus,
 } from '@/lib/recovery-plan';
-import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 
 const STATUS_STYLE: Record<TrackStatus, string> = {
@@ -273,24 +273,6 @@ export function RecoveryCard() {
                             <Clock4 className="size-2.5 animate-pulse" aria-hidden /> prazo hoje
                           </Badge>
                         )}
-                        {/* O RECIBO DA ENTREGA (125) — a voz que fica quando o
-                            prazo cumpre: o chip amber CALAVA ao marcar (o aluno
-                            entregou um trabalho REAL avaliado e a fila só fazia
-                            o chip sumir — 'marquei, e agora?', a lição 123 que
-                            a casa já consagrou: registro que o aluno não vê
-                            vira dúvida). O recibo diz o que o checkbox É: o
-                            registro LOCAL da entrega — os programas seguem no
-                            Classroom para a correção. Feito é calmo: emerald
-                            sólido-contorno, sem pulso (a mesma gramática do
-                            done da casa). */}
-                        {action.prazoHoje && isDone && (
-                          <Badge
-                            title="O checkbox registra aqui no Hub que a entrega foi feita — os programas seguem no Classroom para a correção."
-                            className="gap-1 border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300"
-                          >
-                            <CircleCheck className="size-2.5" aria-hidden /> entrega registrada ✓
-                          </Badge>
-                        )}
                         {/* Chip do veredito do simulado — MESMA gramática do
                             badge da nota real (87): emerald sólido-contorno
                             quando ≥ meta, amber informativo quando abaixo. */}
@@ -347,6 +329,26 @@ export function RecoveryCard() {
                 );
               })}
             </ul>
+          )}
+          {/* O RECIBO DA ENTREGA (126) — a voz que fica quando o prazo cumpre.
+              A entrega da S3 é trabalho REAL avaliado e o checkbox dela tira a
+              linha da fila (o design manda: a trilha volta à primeira ação
+              pendente) — mas 'marquei, e agora?' ficou no ar (lição 123: registro
+              que o aluno não vê vira dúvida). NO DIA do prazo, com a entrega
+              marcada, a fila diz o que o registro É e para onde o programa vai:
+              emerald calmo (a cor do feito da casa), sem pulso. Fora do dia a
+              fila não fala — a trilha já segue o próprio caminho. */}
+          {done['alg-s3-entrega'] && daysUntilDate(MATH_SIMULADO_DATE) === 0 && (
+            <p
+              role="status"
+              className="mt-2 flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+            >
+              <CircleCheck className="size-4 shrink-0" aria-hidden />
+              <span>
+                Entrega da S3 registrada — os programas seguem no Classroom para a
+                correção. A trilha de Algoritmos segue na próxima ação pendente.
+              </span>
+            </p>
           )}
         </div>
 
