@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import {
+  Camera,
   PlayCircle,
   BookOpen,
   CalendarDays,
@@ -14,6 +15,7 @@ import {
   Library,
   Lightbulb,
   ListChecks,
+  Loader2,
   Scale,
   Sparkles,
   SquareCode,
@@ -68,6 +70,9 @@ import {
   categoryLabel,
 } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { openTutor } from '@/lib/hub-events';
+import { captureElementToDataUrl } from '@/lib/dom-capture';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { VideoPlayerDialog } from './video-player-dialog';
@@ -158,6 +163,30 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
     [discipline],
   );
 
+  // PRINT DOS ASSUNTOS (140 — a terceira via da captura): o corpo do diálogo
+  // (a aba ativa — assuntos, avaliação, dicas) vira imagem e entra DIRETO no
+  // chat do tutor via openTutor({image}) — o canal aberto pela 139. O aluno
+  // pergunta "o que cai na unidade 2?" SEM tirar print do sistema: nada toca
+  // o disco, o anexo morre com o envio (a mesma vida dos prints colados).
+  // Hooks ANTES do early return null (Rules of Hooks — o diálogo alterna
+  // null↔disciplina ao abrir/fechar; hook depois do return = crash de render).
+  const [capturing, setCapturing] = React.useState(false);
+  const captureBodyRef = React.useRef<HTMLDivElement>(null);
+  const captureAssuntos = async (disc: { code: string } | null | undefined) => {
+    const el = captureBodyRef.current;
+    if (!el || capturing || !disc) return;
+    setCapturing(true);
+    try {
+      const image = await captureElementToDataUrl(el);
+      openTutor({ image, disciplineCode: disc.code });
+      toast.success('Print da tela anexado ao tutor — nada foi salvo no seu computador.');
+    } catch {
+      toast.error('Não consegui capturar esta tela. Tente de novo.');
+    } finally {
+      setCapturing(false);
+    }
+  };
+
   if (!discipline) return null;
 
   const color = getColorClasses(discipline.color);
@@ -200,6 +229,20 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                     {discipline.chWeekly}h/semana
                   </DialogDescription>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => void captureAssuntos(discipline)}
+                  disabled={capturing}
+                  aria-label="Print da tela para o tutor"
+                  title="Print desta tela — anexa ao tutor para perguntar sobre os assuntos (nada é salvo no seu computador)"
+                  className="ml-auto shrink-0 self-start rounded-full bg-card/80 p-2 text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-500/30 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 disabled:opacity-50 dark:text-emerald-400 dark:hover:text-emerald-300"
+                >
+                  {capturing ? (
+                    <Loader2 className="size-4.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Camera className="size-4.5" aria-hidden />
+                  )}
+                </button>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {/* max-w-full + wrap: sem isso, "Fabio Gomes de Andrade · Doutor…"
@@ -254,7 +297,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                 Radix usa display:table, cujo shrink-to-fit por max-content
                 estourava o diálogo no mobile (grid-cols-2 da ementa → 421px
                 num viewport de 390). Div com overflow-y mantém o wrap normal. */}
-            <div className="max-h-[60vh] min-w-0 overflow-y-auto">
+            <div ref={captureBodyRef} className="max-h-[60vh] min-w-0 overflow-y-auto">
               <div className="p-5 sm:p-6">
                 <TabsContent value="overview" className="mt-0 space-y-5 outline-none">
                   {matrixInfo && (

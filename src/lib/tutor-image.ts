@@ -56,6 +56,31 @@ export function downscaleCanvas(source: HTMLCanvasElement): string {
   );
 }
 
+/**
+ * A mesma régua (JPEG 1400px) para um data URL pronto (ex.: o PNG que o
+ * html-to-image devolve na captura de um elemento DOM — lib/dom-capture).
+ * Carrega num <img> em memória e passa pelo mesmo scaledCanvas dos prints.
+ */
+export function downscaleDataUrl(dataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        resolve(
+          scaledCanvas(img, img.naturalWidth, img.naturalHeight).toDataURL(
+            'image/jpeg',
+            JPEG_QUALITY,
+          ),
+        );
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('falha ao reduzir imagem'));
+      }
+    };
+    img.onerror = () => reject(new Error('imagem inválida'));
+    img.src = dataUrl;
+  });
+}
+
 /** Extrai o primeiro arquivo de imagem de um evento de colar (Ctrl+V). */
 export function imageFromClipboard(e: React.ClipboardEvent): File | null {
   const files = e.clipboardData?.files;

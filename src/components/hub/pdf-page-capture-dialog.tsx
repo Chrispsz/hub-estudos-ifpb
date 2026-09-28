@@ -32,6 +32,8 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange }: Props) {
   const [selected, setSelected] = React.useState<number | null>(null);
   const [rendering, setRendering] = React.useState(false);
   const [attached, setAttached] = React.useState(false);
+  /** Espelho de selected para os listeners de teclado lerem o valor vivo. */
+  const selectedRef = React.useState({ current: null as number | null })[0];
 
   const thumbsRef = React.useRef<HTMLDivElement>(null);
   const previewRef = React.useRef<HTMLCanvasElement>(null);
@@ -70,6 +72,7 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange }: Props) {
       setState('idle');
       setPageCount(0);
       setSelected(null);
+      selectedRef.current = null;
       setAttached(false);
       return;
     }
@@ -165,9 +168,30 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange }: Props) {
 
   const pick = (n: number) => {
     setSelected(n);
+    selectedRef.current = n;
     setAttached(false);
     void renderPreview(n);
+    // a miniatura escolhida segue o teclado (folhear com ←/→ sem caçar o scroll)
+    const thumb = thumbsRef.current?.querySelector<HTMLCanvasElement>(
+      `canvas[data-page="${n}"]`,
+    );
+    thumb?.scrollIntoView({ block: 'nearest' });
   };
+
+  // NAVEGAÇÃO POR TECLADO (140): ←/→ folheiam a lista com o teclado — a mão
+  // esquerda vira a página, a direita pergunta. Vive só com o diálogo aberto.
+  React.useEffect(() => {
+    if (!open || state !== 'ready') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const cur = selectedRef.current ?? 0;
+      const next = Math.min(pageCount, Math.max(1, cur + (e.key === 'ArrowRight' ? 1 : -1)));
+      if (next !== cur) pick(next);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, state, pageCount]);
 
   /** Anexa ao tutor: canvas → JPEG 1400px (a mesma régua dos prints) → chat. */
   const attach = () => {
