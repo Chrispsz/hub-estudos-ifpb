@@ -62,12 +62,75 @@ const SUMMARY_INSTRUCTION = (id, label) => [
   'Baseie-se EXCLUSIVAMENTE no texto íntegro abaixo (transcrição fiel do PDF). Nada de conteúdo externo.',
   'Responda APENAS com um JSON válido (sem markdown, sem cercas) com EXATAMENTE estas chaves:',
   '{"titulo": string, "conceitos_chave": [{"conceito": string, "explicacao": string, "exemplo": string}], "pontos_importantes": string[], "erros_comuns": string[], "formulas_regras": string[]}',
-  'Regras: 5 a 9 conceitos_chave (explicação 1-2 frases, exemplo curto concreto, matemática em LaTeX $...$ quando couber); 3 a 6 pontos_importantes (o que costuma cair em prova); 2 a 4 erros_comuns de aluno; 3 a 6 formulas_regras (fórmulas e definições literais do material). Se o material for uma LISTA de exercícios, descreva nos pontos_importantes quais tipos de questão ela treina (quantas por tema).',
+  'Regras: 5 a 9 conceitos_chave (explicação 1-2 frases, exemplo curto concreto); 3 a 6 pontos_importantes (o que costuma cair em prova); 2 a 4 erros_comuns de aluno; 3 a 6 formulas_regras (fórmulas e definições literais do material). Se o material for uma LISTA de exercícios, descreva nos pontos_importantes quais tipos de questão ela treina (quantas por tema).',
+  'IMPORTANTE: NADA de LaTeX nos textos (o resumo é exibido em TEXTO PURO para o aluno — $\\frac{1}{2}$ apareceia como \\frac). Escreva matemática em NOTAÇÃO LINEAR: matriz [[3, 5], [0, -1]]; fração a/b; ×, ≤, ≥, ≠, →, ∼; subscrito a_ij; potência a^2; raiz sqrt(x).',
 ].join('\n');
 
-/** Sanitiza escapes LaTeX dentro de JSON (\b, \f, \n do LLM não são escapes JSON). */
+/** Sanitiza escapes LaTeX dentro de JSON — WALKER (lição da 138: um regex de
+ * lookahead quebra pares `\\` legítimos, pois olha a 2ª barra sozinha). O walker
+ * anda caractere a caractere e decide por PAR:
+ *   \\\\          → par válido, preserva (row break do LaTeX)
+ *   \\u + 4 hex   → unicode válido, preserva
+ *   \\[bfnrt"\\/] → escape JSON legítimo, preserva
+ *   \\outro       → LaTeX cru (\\begin, \\frac) → dobra a barra
+ */
 function fixJsonEscapes(raw) {
-  return raw.replace(/^```(?:json)?/, '').replace(/```$/, '').trim().replace(/\\(?![\\/"bfnrtu])/g, '\\\\');
+  const s = raw.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] !== '\\') { out += s[i]; continue; }
+    const n = s[i + 1];
+    if (n === undefined) { out += '\\\\'; break; }
+    if (n === '\\') { out += '\\\\'; i++; continue; }
+    if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(s.slice(i + 2, i + 6))) {
+      out += s.slice(i, i + 6); i += 5; continue;
+    }
+    if (/[bfnrt"/]/.test(n)) { out += s.slice(i, i + 2); i++; continue; }
+    out += '\\\\' + n; i++; continue;
+  }
+  return out;
+}
+
+/** Mini-linearizador para os campos do RESUMO (a convenção linear é da 139;
+ * aqui o mesmo espírito em JS puro — o resumo é TEXTO PURO na UI, LaTeX nele
+ * apareceria cru ao aluno). Aplica-se a TODA string do JSON. */
+function linearizeSummaryStrings(obj) {
+  const conv = (t) => t
+    .replace(/\\begin\{(b|p)?matrix\}([\s\S]*?)\\end\{(b|p)?matrix\}/g, (_m, _k, body) =>
+      '[' + body.split(/\\\\/g).map((r) =>
+        '[' + r.split(/&/g).map((c) => c.trim()).filter(Boolean).join(', ') + ']'
+      ).join(', ') + ']')
+    .replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (_m, body) =>
+      '{ ' + body.split(/\\\\/g).map((l) => l.trim()).filter(Boolean).join('; ') + ' }')
+    .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '$1/$2')
+    .replace(/\\sqrt\{([^{}]*)\}/g, 'sqrt($1)')
+    .replace(/\\times/g, '×')
+    .replace(/\\leq/g, '≤')
+    .replace(/\\geq/g, '≥')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\rightarrow/g, '→')
+    .replace(/\\leftrightarrow/g, '↔')
+    .replace(/\\land/g, '∧')
+    .replace(/\\lor/g, '∨')
+    .replace(/\\sim/g, '∼')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\in/g, '∈')
+    .replace(/\\sum/g, 'Σ')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\alpha/g, 'α')
+    .replace(/\\beta/g, 'β')
+    .replace(/\$/g, '')
+    .replace(/\\/g, '');
+  const walk = (v) => {
+    if (typeof v === 'string') return conv(v);
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === 'object') {
+      for (const k of Object.keys(v)) v[k] = walk(v[k]);
+      return v;
+    }
+    return v;
+  };
+  return walk(obj);
 }
 
 // SOBREVIVÊNCIA (lição da 138): o SDK às vezes rejeita FORA da nossa cadeia
@@ -190,8 +253,24 @@ async function main() {
     await fs.writeFile(txtPath, fullText, 'utf8');
     console.log(`  texto limpo: ${txtPath} (${fullText.length} chars)`);
 
-    // 3) resumo regenerado a partir do texto LIMPO
-    const corpus = fullText.replace(/<!-- página \d+ -->/g, '').slice(0, 14_000);
+    // 2b) NOTAÇÃO FINAL DO ACERVO (conciliação 138×139): a 139 decidiu a
+    // notação LINEAR ([[a,b],[c,d]], a/b) para os textos de matemática — o
+    // retrieval alimenta a IA com tokens limpos, sem LaTeX cru. O linearize
+    // da 139 é idempotente: rodar aqui deixa TODA a frota na MESMA convenção.
+    try {
+      await execFileAsync('bun', ['scripts/linearize-math-text.ts'], { cwd: process.cwd() });
+      console.log('  linearize (139) aplicado — notação linear em toda a matemática');
+    } catch (e) {
+      console.log(`  linearize indisponível (${e.message?.slice(0, 80)}) — texto fica em LaTeX`);
+    }
+
+    // 3) resumo regenerado a partir do texto FINAL (pós-linearize — o resumo
+    // descreve a MESMA notação que o retrieval vai servir à IA)
+    await new Promise((r) => setTimeout(r, 300));
+    const corpus = (await fs.readFile(txtPath, 'utf8'))
+      .replace(/<!-- página \d+ -->/g, '')
+      .slice(0, 14_000);
+    let raw = '';
     try {
       const res = await zai.chat.completions.create({
         messages: [
@@ -199,13 +278,13 @@ async function main() {
           { role: 'user', content: `${SUMMARY_INSTRUCTION(target.id, target.label)}\n\n=== TEXTO ÍNTEGRO DO MATERIAL ===\n${corpus}` },
         ],
       });
-      const raw = res.choices?.[0]?.message?.content?.trim() ?? '';
-      const json = JSON.parse(fixJsonEscapes(raw));
+      raw = res.choices?.[0]?.message?.content?.trim() ?? '';
+      const json = linearizeSummaryStrings(JSON.parse(fixJsonEscapes(raw)));
       await fs.writeFile(sumPath, JSON.stringify(json, null, 2), 'utf8');
       console.log(`  resumo regenerado: ${sumPath}`);
     } catch (err) {
       // Diagnóstico: o bruto do LLM vai para /tmp — reparo manual se precisar.
-      try { await fs.writeFile(`/tmp/summary-debug-${target.id}.txt`, raw ?? '(vazio)', 'utf8'); } catch {}
+      try { await fs.writeFile(`/tmp/summary-debug-${target.id}.txt`, raw || '(vazio)', 'utf8'); } catch {}
       console.log(`  resumo FALHOU (mantido o anterior): ${err.message?.slice(0, 140)}`);
     }
   }

@@ -1,1 +1,71 @@
-{"titulo":"Matemática — Matrizes (Parte 1)","disciplina":"Matemática Aplicada à Computação","tipo":"resumo_conceitual","tempo_estudo_minutos":30,"resumo_geral":"Este resumo aborda os conceitos fundamentais de matrizes, incluindo definição, tipos, operações (soma, subtração, multiplicação por escalar, produto matricial, transposição, inversão) e propriedades. O material foca em aplicações práticas e resolução de problemas típicos de álgebra linear para cursos de computação.","conceitos_chave":[{"conceito":"Matriz","explicacao":"Arranjo retangular de números, símbolos ou expressões dispostos em linhas e colunas. Uma matriz de ordem m×n tem m linhas e n colunas. O elemento a_ij está na i-ésima linha e j-ésima coluna.","exemplo":"A = [a11 a12; a21 a22] é uma matriz 2x2."},{"conceito":"Matriz Especial","explicacao":"Matrizes com propriedades específicas: Matriz Nula (todos os elementos são zero), Matriz Identidade (diagonal principal com 1s e o resto com 0s), Matriz Diagonal (após a diagonal principal são zeros), Matriz Simétrica (A = A^t), Matriz Antissimétrica (A = -A^t).","exemplo":"Matriz Identidade 2x2: I = [1 0; 0 1]"},{"conceito":"Operações com Matrizes","explicacao":"Soma/Subtração: Somar/subtrar elementos correspondentes (somente para matrizes de mesma ordem). Multiplicação por Escalar: Multiplicar cada elemento da matriz por um número real. Produto Matricial: Multiplicação de linhas por colunas (requere que o número de colunas da primeira matriz seja igual ao número de linhas da segunda).","exemplo":"Se A = [1 2; 3 4] e k=2, então 2A = [2 4; 6 8]."},{"conceito":"Transposição e Inversão","explicacao":"Transposição (A^t): Trocar linhas por colunas. Inversão (A^-1): Matriz que, multiplicada pela original, resulta na matriz identidade. Nem toda matriz tem inversa (matrizes singulares não têm).","exemplo":"Se A = [1 2; 3 4], então A^t = [1 3; 2 4]."},{"conceito":"Determinante","explicacao":"Valor escalar calculado a partir dos elementos de uma matriz quadrada. Usado para verificar se uma matriz é invertida (det ≠ 0) e em sistemas de equações lineares.","exemplo":"Para A = [a b; c d], det(A) = ad - bc."}],"pontos_importantes":["A ordem de uma matriz é o número de linhas (m) pelo número de colunas (n).","Para somar ou subtrair matrizes, elas devem ter a mesma ordem.","A multiplicação matricial não é comutativa, em geral, AB ≠ BA.","O produto de uma matriz m×n por uma matriz n×p resulta em uma matriz m×p.","Uma matriz quadrada é invertível se e somente se o seu determinante for diferente de zero.","Matrizes simétricas são iguais à sua transposta (A = A^t), e antissimétricas são o negativo da sua transposta (A = -A^t)."],"formulas_regras":["Soma: (A + B)ij = Aij + Bij","Multiplicação por escalar: (kA)ij = k * Aij","Produto matricial: (AB)ij = Σk (Aik * Bkj)","Transposição: (A^t)ij = Aji","Determinante 2x2: det(A) = a11*a22 - a12*a21","Inversa 2x2: A^-1 = (1/det(A)) * [a22 -a12; -a21 a11]"],"erros_comuns":["Tentar somar matrizes de ordens diferentes.","Assumir que a multiplicação matricial é comutativa.","Confundir a multiplicação elemento a elemento com o produto matricial.","Esquecer que nem toda matriz tem inversa.","Calcular o determinante incorretamente para matrizes de ordem superior a 2."],"exercicios_sugeridos":["Construir matrizes com base em regras para a_ij (exercícios 1 e 2).","Resolver sistemas de equações matriciais para encontrar matrizes desconhecidas (exercícios 3, 4, 11, 15).","Calcular somas, diferenças e produtos de matrizes dadas (exercícios 7, 9, 17).","Encontrar a transposta e a inversa de matrizes (exercícios 2b, 26a, 27, 31).","Determinar valores de variáveis para que matrizes sejam simétricas ou antissimétricas (exercícios 28, 29)."],"proximos_passos":["Estudar sistemas de equações lineares usando matrizes (método de Cramer, Gauss-Jordan).","Aprofundar em determinantes e regras de Sarrus/Laplace.","Explorar aplicações de matrizes em geometria linear (transformações, vetores).","Aprender sobre espaços vetoriais e base.","Estudar matrizes de permutação e matrizes block."],"perguntas_autoavaliacao":["O que é uma matriz e como ela é representada?","Quais são as condições para somar duas matrizes? E para multiplicá-las?","Como se calcula a transposta de uma matriz? E a sua inversa?","Dê um exemplo de uma matriz simétrica e explique por quê.","Qual é a diferença entre o produto elemento a elemento e o produto matricial?"]}
+{
+  "titulo": "Matrizes — Aula 01 (Lista)",
+  "conceitos_chave": [
+    {
+      "conceito": "Matriz",
+      "explicacao": "Arranjo retangular de números dispostos em linhas e colunas, representado por $A = (a_{ij})_{m \\times n}$, onde $m$ é o número de linhas e $n$ o número de colunas.",
+      "exemplo": "$A = [[1, 2], [3, 4]]$ é uma matriz $2 \\times 2$"
+    },
+    {
+      "conceito": "Elemento de uma matriz",
+      "explicacao": "Cada número dentro de uma matriz, identificado por sua posição $a_{ij}$, onde $i$ é o índice da linha e $j$ o índice da coluna.",
+      "exemplo": "Na matriz $A = [[1, 2], [3, 4]]$, $a_{12} = 2$"
+    },
+    {
+      "conceito": "Matriz quadrada",
+      "explicacao": "Matriz com o mesmo número de linhas e colunas ($m = n$).",
+      "exemplo": "$A = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]$ é uma matriz $3 \\times 3$"
+    },
+    {
+      "conceito": "Matriz identidade",
+      "explicacao": "Matriz quadrada com elementos na diagonal principal iguais a 1 e os demais iguais a 0, denotada por $I_n$.",
+      "exemplo": "$I_2 = [[1, 0], [0, 1]]$"
+    },
+    {
+      "conceito": "Matriz transposta",
+      "explicacao": "Matriz obtida trocando linhas por colunas de uma matriz original, denotada por $A^t$.",
+      "exemplo": "Se $A = [[1, 2], [3, 4]]$, então $A^t = [[1, 3], [2, 4]]$"
+    },
+    {
+      "conceito": "Matriz simétrica",
+      "explicacao": "Matriz quadrada que é igual à sua transposta, ou seja, $A = A^t$.",
+      "exemplo": "$A = [[1, 2], [2, 3]]$ é simétrica"
+    },
+    {
+      "conceito": "Matriz antissimétrica",
+      "explicacao": "Matriz quadrada onde $a_{ij} = -a_{ji}$ para todos $i, j$ e os elementos da diagonal principal são zero.",
+      "exemplo": "$A = [[0, -2], [2, 0]]$ é antissimétrica"
+    },
+    {
+      "conceito": "Matriz inversa",
+      "explicacao": "Matriz $A^{-1}$ tal que $A \\cdot A^{-1} = I_n$, onde $I_n$ é a matriz identidade.",
+      "exemplo": "Se $A = [[1, 2], [3, 4]]$, então $A^{-1} = [[-2, 1], [1.5, -0.5]]$"
+    },
+    {
+      "conceito": "Soma de matrizes",
+      "explicacao": "Operação que soma elementos correspondentes de matrizes de mesma ordem, resultando em uma nova matriz $C = A + B$ onde $c_{ij} = a_{ij} + b_{ij}$.",
+      "exemplo": "Se $A = [[1, 2], [3, 4]]$ e $B = [[5, 6], [7, 8]]$, então $A + B = [[6, 8], [10, 12]]$"
+    }
+  ],
+  "pontos_importantes": [
+    "Construção de matrizes com elementos definidos por fórmulas (exercícios 1-5)",
+    "Operações básicas com matrizes: soma, subtração, multiplicação por escalar (exercícios 7-11, 12)",
+    "Cálculo de matrizes transpostas, simétricas e antissimétricas (exercícios 26-29)",
+    "Multiplicação de matrizes e potenciação (exercícios 17-19, 24)",
+    "Cálculo de matrizes inversas e resolução de equações matriciais (exercícios 31-35)",
+    "Verificação de comutatividade entre matrizes (exercícios 23-24)"
+  ],
+  "erros_comuns": [
+    "Confundir a ordem das matrizes ao realizar operações (ex: somar matrizes de ordens diferentes)",
+    "Esquecer que a multiplicação de matrizes não é comutativa (AB ≠ BA na maioria dos casos)",
+    "Calcular incorretamente a matriz transposta, invertendo apenas a diagonal principal"
+  ],
+  "formulas_regras": [
+    "Matriz $A = (a_{ij})_{m \\times n}$, onde $m$ é o número de linhas e $n$ o número de colunas",
+    "Soma de matrizes: $C = A + B$, onde $c_{ij} = a_{ij} + b_{ij}$",
+    "Multiplicação por escalar: $k \\cdot A$, onde cada elemento é multiplicado por $k$",
+    "Multiplicação de matrizes: $C = A \\cdot B$, onde $c_{ij} = \\sum_{k=1}^{n} a_{ik} \\cdot b_{kj}$",
+    "Matriz inversa: $A \\cdot A^{-1} = I_n$",
+    "Matriz transposta: $(A^t)_{ij} = A_{ji}$"
+  ]
+}

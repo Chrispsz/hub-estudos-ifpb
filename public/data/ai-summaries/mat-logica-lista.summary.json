@@ -1,1 +1,68 @@
-{"titulo":"Lógica Matemática para Computação","disciplina":"Matemática Aplicada à Computação","tipo":"resumo_conceitual","tempo_estudo_minutos":120,"resumo_geral":"Este material aborda os fundamentos da lógica matemática aplicada à computação, incluindo proposições, conectivos lógicos, tabelas-verdade, argumentos válidos e resolução de problemas lógicos. O conteúdo é essencial para compreender a base de sistemas de computação e algoritmos.","conceitos_chave":[{"conceito":"Proposição","explicacao":"Uma declaração que pode ser avaliada como verdadeira (V) ou falsa (F), mas não ambas simultaneamente.","exemplo":"5∙4=20 (V) ou Fortaleza é a capital do Maranhão (F)"},{"conceito":"Conectivos Lógicos","explicacao":"Operadores que combinam proposições formando novas proposições, como conjunção (e), disjunção (ou), negação (não), implicação (se...então) e bicondicional (se e somente se).","exemplo":"p ∨ ∼q (p ou não q)"},{"conceito":"Tabela-Verdade","explicacao":"Um método sistemático para determinar o valor lógico de uma proposição composta considerando todas as combinações possíveis de valores das proposições simples.","exemplo":"Tabela para p ∧ q mostra que só é verdadeiro quando p e q são ambos verdadeiros"},{"conceito":"Tautologia","explicacao":"Uma proposição que é sempre verdadeira, independentemente dos valores de suas variáveis proposicionais.","exemplo":"p ∨ ∼p (sempre verdadeiro)"},{"conceito":"Contradição","explicacao":"Uma proposição que é sempre falsa, independentemente dos valores de suas variáveis proposicionais.","exemplo":"p ∧ ∼p (sempre falso)"},{"conceito":"Argumento Válido","explicacao":"Um conjunto de proposições (premissas) que levam a uma conclusão de forma lógica, onde se as premissas são verdadeiras, a conclusção também deve ser verdadeira.","exemplo":"Se chove, então o chão está molhado. Está chovendo. Logo, o chão está molhado."}],"pontos_importantes":["Identificar corretamente proposições e determinar seu valor lógico","Dominar a tradução entre linguagem simbólica e linguagem corrente","Construir tabelas-verdade para proposições compostas","Reconhecer tautologias, contradições e contingências","Resolver problemas lógicos com múltiplas premissas","Analisar argumentos para determinar sua validade"],"formulas_regras":["p ∧ q (conjunção: p e q)","p ∨ q (disjunção: p ou q)","∼p (negação: não p)","p → q (implicação: se p então q)","p ↔ q (bicondicional: p se e somente se q)","Leis de De Morgan: ∼(p ∧ q) = ∼p ∨ ∼q e ∼(p ∨ q) = ∼p ∧ ∼q"],"erros_comuns":["Confundir ordem de operações lógicas","Esquecer que uma implicação só é falsa quando o antecedente é verdadeiro e o consequente falso","Não considerar todas as combinações na construção de tabelas-verdade","Errar na tradução de linguagem simbólica para linguagem corrente e vice-versa"],"exercicios_sugeridos":["Identificar proposições e determinar seu valor lógico em diferentes contextos","Traduzir proposições entre linguagem simbólica e linguagem corrente","Construir tabelas-verdade para proposições compostas","Classificar proposições como tautologia, contradição ou contingência","Resolver problemas lógicos com múltiplas premissas e conclusões"],"proximos_passos":["Estudar lógica de primeira ordem com quantificadores","Aprofundar em lógica matemática para aplicações em programação","Explorar fundamentos de lógica fuzzy e probabilística","Estudar aplicações de lógica em banco de dados e sistemas de conhecimento"],"perguntas_autoavaliacao":["Como identificar corretamente uma proposição e determinar seu valor lógico?","Como construir uma tabela-verdade para uma proposição composta com três variáveis?","Qual é a diferença entre uma tautologia, uma contradição e uma contingência?","Como verificar se um argumento é válido usando tabelas-verdade?","Como resolver problemas lógicos com múltiplas premissas e conclusões?"]}
+{
+  "titulo": "Lógica Matemática — Lista de Exercícios",
+  "conceitos_chave": [
+    {
+      "conceito": "Proposição",
+      "explicacao": "Enunciado que pode ser classificado como verdadeiro (V) ou falso (F).",
+      "exemplo": "5 · 4 = 20 é uma proposição verdadeira."
+    },
+    {
+      "conceito": "Conectivos lógicos",
+      "explicacao": "Operadores que combinam proposições formando novas proposições.",
+      "exemplo": "∼ (negação), ∧ (conjunção), ∨ (disjunção), → (condicional), ↔ (bicondicional)."
+    },
+    {
+      "conceito": "Tabela-verdade",
+      "explicacao": "Tabela que mostra o valor lógico de uma proposição composta para todas as combinações possíveis de valores das proposições simples.",
+      "exemplo": "Para p → q, tabela mostra F apenas quando p=V e q=F."
+    },
+    {
+      "conceito": "Tautologia",
+      "explicacao": "Proposição que sempre é verdadeira, independentemente dos valores das proposições simples.",
+      "exemplo": "p ∨ ∼p é uma tautologia."
+    },
+    {
+      "conceito": "Contradição",
+      "explicacao": "Proposição que sempre é falsa, independentemente dos valores das proposições simples.",
+      "exemplo": "p ∧ ∼p é uma contradição."
+    },
+    {
+      "conceito": "Contingência",
+      "explicacao": "Proposição que pode ser verdadeira ou falsa dependendo dos valores das proposições simples.",
+      "exemplo": "p ∨ q pode ser V ou F dependendo de p e q."
+    },
+    {
+      "conceito": "Negação de proposições",
+      "explicacao": "Operação que inverte o valor lógico de uma proposição.",
+      "exemplo": "Negação de 'p: 2+2=4' é '∼p: 2+2≠4'."
+    },
+    {
+      "conceito": "Argumento lógico",
+      "explicacao": "Conjunto de premissas que levam a uma conclusão através de inferências válidas.",
+      "exemplo": "Se p→q e p, então q (modus ponens)."
+    }
+  ],
+  "pontos_importantes": [
+    "Identificação de proposições e seus valores lógicos (exercícios 1, 4, 7)",
+    "Tradução entre linguagem corrente e simbólica (exercícios 2, 3)",
+    "Cálculo de valor lógico de proposições compostas (exercícios 5, 9)",
+    "Construção de tabelas-verdade (exercício 8)",
+    "Classificação de proposições como tautologia, contradição ou contingência (exercício 10)",
+    "Determinação de negações de proposições (exercício 12)",
+    "Resolução de problemas de lógica com personagens e situações (exercícios 13-17)"
+  ],
+  "erros_comuns": [
+    "Confundir proposições com frases interrogativas ou imperativas",
+    "Esquecer que uma proposição deve ter valor lógico definido (V ou F)",
+    "Inverter o valor lógico de condicionais ao calcular negações",
+    "Cometer erros ao construir tabelas-verdade, especialmente em proposições complexas"
+  ],
+  "formulas_regras": [
+    "p ∨ q é verdadeira se pelo menos uma das proposições for verdadeira",
+    "p ∧ q é verdadeira apenas se ambas as proposições forem verdadeiras",
+    "p → q é falsa apenas quando p é verdadeira e q é falsa",
+    "p ↔ q é verdadeira quando p e q têm o mesmo valor lógico",
+    "∼(p ∨ q) ↔ ∼p ∧ ∼q (lei de De Morgan)",
+    "∼(p ∧ q) ↔ ∼p ∨ ∼q (lei de De Morgan)"
+  ]
+}
