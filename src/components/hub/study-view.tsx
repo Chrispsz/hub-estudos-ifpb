@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
+  BookOpen,
   CalendarCheck,
   CheckCircle2,
   Clock,
@@ -1004,6 +1005,14 @@ export function StudyView({
       .trim();
     if ((!q && !chatImage) || chatLoading) return;
     const image = chatImage;
+    // O TUTOR CONTA (123, o P2 que a 118 deixou pendente): a dúvida enviada com
+    // material selecionado É estudo do material — o retrieval lê o conteúdo REAL
+    // dele para responder, e o registro entra na MESMA fonte (markAccessed) da
+    // abertura: "tiro dúvidas com a tutor" deixou de ser invisível para o
+    // progresso (dono, 28/09). No ENVIO, não na abertura do chat: abrir e
+    // cancelar não provou nada. Idempotente e barato: marcar de novo só
+    // atualiza o lastAccessedAt.
+    if (selectedMaterial) sp.markAccessed(selectedMaterial.id);
     // Memória da conversa: últimas 12 mensagens (sem bolhas de erro) — o tutor
     // usa isso para CONTINUAR o raciocínio em vez de recomeçar o assunto.
     const history = messages
@@ -1588,6 +1597,21 @@ export function StudyView({
                       {examWeek.simulado
                         ? ` · simulado ${examWeek.simulado.pct}%`
                         : ''}
+                    </span>
+                  </div>
+                )}
+                {/* O RECIBO HONESTO DA NOVIDADE (123): dúvidas com material
+                    selecionado agora contam como estudo — o chip diz isso
+                    ANTES de o aluno perguntar (emerald, a família do registro
+                    que a casa já consagrou; o mesmo tom do chip da semana). */}
+                {selectedMaterial && (
+                  <div className="mt-1.5">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400"
+                      title={`Dúvidas enviadas aqui contam como estudo de "${selectedMaterial.title}" — o Hub registra sozinho, na mesma fonte da abertura do material`}
+                    >
+                      <BookOpen className="size-3 shrink-0" aria-hidden />
+                      dúvidas contam como estudo
                     </span>
                   </div>
                 )}
