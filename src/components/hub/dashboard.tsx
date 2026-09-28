@@ -38,7 +38,11 @@ import { DisciplineIcon } from '@/lib/discipline-icons';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
-import { countDisciplinesOnTrack, countTotalTopicsDone } from '@/lib/study-topics';
+import { countTotalTopicsDone } from '@/lib/study-topics';
+import {
+  activityBadgeFor,
+  disciplineActivityFor,
+} from '@/lib/discipline-activity';
 import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import type { Discipline, Material } from '@/data/course-data';
@@ -69,9 +73,6 @@ interface Props {
   onOpenLibrary?: () => void;
   onOpenPractice?: () => void;
 }
-
-/** Percentual de tópicos concluídos para considerar a disciplina "em dia". */
-const ON_TRACK_PCT = 50;
 
 export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice }: Props) {
   const sp = useStudyProgress();
@@ -146,10 +147,24 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
 
   // KPIs V3 adicionais
   const totalTopicsDone = countTotalTopicsDone(sp.progress.topicProgress);
-  const disciplinesOnTrack = countDisciplinesOnTrack(sp.progress.topicProgress);
+  // O FLUXO REAL CONTA (116): disciplinas com atividade nos últimos 7 dias —
+  // derivado da MESMA fonte dos cards de avaliação (discipline-activity).
+  // Antes: 'Disciplinas em dia' media checkboxes manuais e ficava em 0 para
+  // o aluno que aprende abrindo material — ruído que ele aprendeu a ignorar.
+  const activeDisciplines = React.useMemo(
+    () =>
+      disciplines.filter((d) => disciplineActivityFor(d.code, sp.progress)?.emEstudo).length,
+    [sp.progress],
+  );
 
   // Linhas derivadas das próximas avaliações (memoizado) — o nowMin entra
   // como chave: virou o dia, a linha recalcula no mesmo frame (lição 79).
+  // O PROGRESSO QUE SE REGISTRA SOZINHO (116): a barra e o selo leem a
+  // ATIVIDADE REAL (materiais abertos + questões tentadas, fonte única
+  // discipline-activity) — não os checkboxes manuais que ninguém marca.
+  // Selo honesto: 'em dia' acompanhou o dado · 'em estudo' tem atividade ·
+  // 'sem registro' NÃO acusa (o registro é que não existe ainda) — a palavra
+  // 'atrasada' saiu do vocabulário do painel.
   const upcomingRows = React.useMemo(() => {
     if (!nowMin) return [];
     const now = nowMin;
@@ -157,20 +172,17 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
       const disc = getDisciplineByCode(e.disciplineCode);
       const color = getColorClasses(disc?.color ?? 'slate');
       const daysLeft = e.date ? daysUntilDate(e.date, now) : -1;
-      // Status: em dia (progresso PPC ≥ ON_TRACK_PCT%) ou atrasada
-      const discTopics = sp.progress.topicProgress[e.disciplineCode] ?? {};
-      const allTopics = disc?.conteudoProgramatico.flatMap((u) => u.topicos) ?? [];
-      const doneTopics = allTopics.filter((t) => discTopics[t]).length;
-      const pct = allTopics.length === 0 ? 0 : Math.round((doneTopics / allTopics.length) * 100);
+      const act = disciplineActivityFor(e.disciplineCode, sp.progress);
+      const badge = act ? activityBadgeFor(act) : null;
       const dateLabel = e.date
         ? new Date(`${e.date}T12:00:00`).toLocaleDateString('pt-BR', {
             day: '2-digit',
             month: '2-digit',
           })
         : 'A definir';
-      return { e, disc, color, daysLeft, pct, onTrack: pct >= ON_TRACK_PCT, dateLabel };
+      return { e, disc, color, daysLeft, pct: act?.pctAcompanha ?? null, badge, dateLabel };
     });
-  }, [upcoming, nowMin, sp.progress.topicProgress]);
+  }, [upcoming, nowMin, sp.progress]);
 
   return (
     <div className="space-y-6">
@@ -417,14 +429,14 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
           value={totalTopicsDone}
           icon={<CheckCircle2 className="size-4" />}
           color="teal"
-          hint="do total do PPC"
+          hint="marcados por você na aba Estudo"
         />
         <KpiCard
-          label="Disciplinas em dia"
-          value={disciplinesOnTrack}
+          label="Disciplinas ativas"
+          value={activeDisciplines}
           icon={<Layers className="size-4" />}
           color="amber"
-          hint="progresso ≥ 50%"
+          hint="atividade nos últimos 7 dias"
         />
         <KpiCard
           label="Streak"
@@ -450,10 +462,11 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
               </span>
             </Card>
           ) : (
-            upcomingRows.map(({ e, disc, color, daysLeft, pct, onTrack, dateLabel }) => {
+            upcomingRows.map(({ e, disc, color, daysLeft, pct, badge, dateLabel }) => {
               return (
                 <Card
                   key={`${e.disciplineCode}-${e.evaluationName}-${e.date ?? 'adefinir'}`}
+                  data-eval-row={`${e.disciplineCode}-${e.evaluationName}`}
                   className={cn(
                     'rounded-xl border-l-4 bg-card p-3 shadow-sm',
                     color.border,
@@ -509,23 +522,46 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     {e.description}
                   </p>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    {/* A barra mede ACOMPANHAMENTO DO DADO (116): do conteúdo dado
+                        em aula, o quanto já foi tocado pela atividade real.
+                        Sem material registrado não há régua — a barra some em vez
+                        de mostrar 0% (zero medido ≠ zero esforço). */}
+                    {pct !== null && (
                       <div
-                        className={cn('h-full rounded-full', color.bgSolid)}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        'shrink-0 border text-[9px]',
-                        onTrack
-                          ? 'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
-                          : 'border-rose-200 bg-rose-100 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
-                      )}
-                    >
-                      {onTrack ? 'em dia' : 'atrasada'}
-                    </Badge>
+                        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={pct}
+                        aria-label={`Acompanha ${pct}% do conteúdo dado em aula`}
+                      >
+                        <div
+                          className={cn('h-full rounded-full', color.bgSolid)}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                    {/* Selo honesto (116): em dia = acompanhou o dado (emerald);
+                        em estudo = tem atividade sua (a família da espera, amber,
+                        sem pulso — não é prazo); sem registro = neutro, SEM
+                        acusação — a palavra 'atrasada' saiu do painel. */}
+                    {badge && (
+                      <Badge
+                        variant="outline"
+                        title={badge.title}
+                        className={cn(
+                          'shrink-0 border text-[9px]',
+                          badge.tone === 'dia' &&
+                            'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
+                          badge.tone === 'estudo' &&
+                            'border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300',
+                          badge.tone === 'registro' &&
+                            'border-white/10 bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {badge.label}
+                      </Badge>
+                    )}
                   </div>
                 </Card>
               );

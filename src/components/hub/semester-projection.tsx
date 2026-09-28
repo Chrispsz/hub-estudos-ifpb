@@ -12,6 +12,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
+  disciplines,
   evaluationPeriods,
   getDisciplineByCode,
 } from '@/data/course-data';
@@ -21,6 +22,10 @@ import { examWeekMilestoneFor, type ExamWeekMilestone } from '@/lib/math-exam-pr
 import { cn } from '@/lib/utils';
 import { currentWeekOfSemester, daysUntilDate, weekStartDate } from '@/lib/semester';
 import { getAllDisciplinesTopics } from '@/lib/study-topics';
+import {
+  activityBadgeFor,
+  disciplineActivityFor,
+} from '@/lib/discipline-activity';
 import { useStudyProgress } from '@/lib/study-progress';
 
 /** Rótulo de data curto da semana (ex.: "21-27/09"). */
@@ -85,6 +90,18 @@ export function SemesterProjection() {
     () => getAllDisciplinesTopics(sp.progress.topicProgress),
     [sp.progress.topicProgress],
   );
+  // O PROGRESSO QUE SE REGISTRA SOZINHO (117): a prévia lê a MESMA fonte do
+  // painel (discipline-activity) — a barra por disciplina passa a medir o
+  // ACOMPANHAMENTO DO DADO (material-first) e o selo nunca diz 'atrasada':
+  // em dia / em estudo / sem registro. Os checkboxes manuais seguem visíveis
+  // como contagem N/M (marcados por você) — honestos sobre a própria natureza.
+  const activityByCode = React.useMemo(() => {
+    const map = new Map<string, ReturnType<typeof disciplineActivityFor>>();
+    for (const d of disciplines) {
+      map.set(d.code, disciplineActivityFor(d.code, sp.progress));
+    }
+    return map;
+  }, [sp.progress]);
 
   // A PRÓXIMA AVALIAÇÃO DATADA de cada disciplina (fonte única: course-data) —
   // o gate da reta final: a 7 dias da prova da PRÓPRIA disciplina, sugerir
@@ -373,34 +390,61 @@ export function SemesterProjection() {
         <div className="space-y-2">
           {topicSummaries.map((s) => {
             const color = getColorClasses(s.discipline.color);
+            // FONTE ÚNICA (117): a mesma atividade real do painel — barra mede
+            // acompanhamento do dado; sem material registrado, sem régua (a
+            // barra some em vez de exibir 0%).
+            const act = activityByCode.get(s.discipline.code) ?? null;
+            const badge = act ? activityBadgeFor(act) : null;
             return (
-              <div key={s.discipline.code} className="flex items-center gap-3 text-xs">
+              <div
+                key={s.discipline.code}
+                data-activity-row={s.discipline.code}
+                className="flex items-center gap-3 text-xs"
+              >
                 <span className={cn('size-2.5 shrink-0 rounded-full', color.dot)} />
                 <span className="w-32 shrink-0 truncate font-medium">
                   {s.discipline.shortName}
                 </span>
-                <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                {act?.pctAcompanha != null ? (
                   <div
-                    className={cn('h-full rounded-full transition-all', color.bgSolid)}
-                    style={{ width: `${s.progress}%` }}
-                  />
-                </div>
-                <span className="w-20 shrink-0 text-right text-muted-foreground">
+                    className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={act.pctAcompanha}
+                    aria-label={`Acompanha ${act.pctAcompanha}% do conteúdo dado em aula`}
+                  >
+                    <div
+                      className={cn('h-full rounded-full transition-all', color.bgSolid)}
+                      style={{ width: `${act.pctAcompanha}%` }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-2 flex-1" />
+                )}
+                <span
+                  className="w-20 shrink-0 text-right text-muted-foreground"
+                  title="Tópicos marcados por você na aba Estudo (o resto o Hub registra sozinho)"
+                >
                   {s.doneTopics}/{s.totalTopics}
                 </span>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'shrink-0 border text-[9px]',
-                    s.isComplete
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
-                      : s.progress >= 50
-                        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400'
-                        : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400',
-                  )}
-                >
-                  {s.isComplete ? '✓' : s.progress >= 50 ? 'em dia' : 'atrasada'}
-                </Badge>
+                {badge && (
+                  <Badge
+                    variant="outline"
+                    title={badge.title}
+                    className={cn(
+                      'shrink-0 border text-[9px]',
+                      badge.tone === 'dia' &&
+                        'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
+                      badge.tone === 'estudo' &&
+                        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400',
+                      badge.tone === 'registro' &&
+                        'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400',
+                    )}
+                  >
+                    {s.isComplete ? '✓' : badge.label}
+                  </Badge>
+                )}
               </div>
             );
           })}

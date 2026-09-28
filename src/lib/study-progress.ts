@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
 import type { AttemptMode } from './simulado-resume';
+import { materials } from '@/data/course-data';
+import { exercises } from './exercise-extractor';
 
 const STORAGE_KEY = 'hub-estudos-ifpb:v2';
 
@@ -494,6 +496,14 @@ export function useStudyProgress() {
           { id: materialId, accessedAt: nowIso },
           ...prev.recentMaterials.filter((m) => m.id !== materialId),
         ].slice(0, 10);
+        // O FLUXO REAL REGISTRA (dono, 28/09): abrir um material É estudar a
+        // disciplina — antes só markCompleted/addFocusSession tocavam o
+        // lastStudiedAt e o aluno que aprende abrindo material aparecia como
+        // 'estudo atrasado' em todo lugar. Fonte do código: course-data.
+        const discCode = materials.find((m) => m.id === materialId)?.disciplineCode;
+        const disc = discCode
+          ? prev.disciplineProgress[discCode] ?? { studiedMinutes: 0, materialsCompleted: 0 }
+          : null;
         return {
           ...prev,
           recentMaterials: recent,
@@ -504,6 +514,14 @@ export function useStudyProgress() {
               lastAccessedAt: nowIso,
             },
           },
+          ...(disc && discCode
+            ? {
+                disciplineProgress: {
+                  ...prev.disciplineProgress,
+                  [discCode]: { ...disc, lastStudiedAt: nowIso },
+                },
+              }
+            : {}),
         };
       });
     },
@@ -922,6 +940,13 @@ export function useStudyProgress() {
         if (!wasInCaderno && isInCaderno && temHistorico) {
           next.lapses = (cur.lapses ?? 0) + 1;
         }
+        // RESOLVER TAMBÉM É ESTUDAR (dono, 28/09): praticar exercício toca o
+        // lastStudiedAt da disciplina — o 'estudo atrasado' não pode cobrar
+        // quem está resolvendo. Código da disciplina vem do próprio acervo.
+        const discCode = exercises.find((e) => e.id === exerciseId)?.disciplineCode;
+        const disc = discCode
+          ? prev.disciplineProgress[discCode] ?? { studiedMinutes: 0, materialsCompleted: 0 }
+          : null;
         return {
           ...prev,
           notebookRevised: revised,
@@ -929,6 +954,14 @@ export function useStudyProgress() {
             ...prev.exerciseProgress,
             [exerciseId]: next,
           },
+          ...(disc && discCode
+            ? {
+                disciplineProgress: {
+                  ...prev.disciplineProgress,
+                  [discCode]: { ...disc, lastStudiedAt: next.lastPracticedAt },
+                },
+              }
+            : {}),
         };
       });
     },
