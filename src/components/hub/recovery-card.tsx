@@ -273,6 +273,24 @@ export function RecoveryCard() {
                             <Clock4 className="size-2.5 animate-pulse" aria-hidden /> prazo hoje
                           </Badge>
                         )}
+                        {/* O RECIBO DA ENTREGA (125) — a voz que fica quando o
+                            prazo cumpre: o chip amber CALAVA ao marcar (o aluno
+                            entregou um trabalho REAL avaliado e a fila só fazia
+                            o chip sumir — 'marquei, e agora?', a lição 123 que
+                            a casa já consagrou: registro que o aluno não vê
+                            vira dúvida). O recibo diz o que o checkbox É: o
+                            registro LOCAL da entrega — os programas seguem no
+                            Classroom para a correção. Feito é calmo: emerald
+                            sólido-contorno, sem pulso (a mesma gramática do
+                            done da casa). */}
+                        {action.prazoHoje && isDone && (
+                          <Badge
+                            title="O checkbox registra aqui no Hub que a entrega foi feita — os programas seguem no Classroom para a correção."
+                            className="gap-1 border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300"
+                          >
+                            <CircleCheck className="size-2.5" aria-hidden /> entrega registrada ✓
+                          </Badge>
+                        )}
                         {/* Chip do veredito do simulado — MESMA gramática do
                             badge da nota real (87): emerald sólido-contorno
                             quando ≥ meta, amber informativo quando abaixo. */}

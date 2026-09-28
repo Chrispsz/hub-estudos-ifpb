@@ -532,6 +532,61 @@ export function pendingMistakes(
   return items.filter((it) => !revisedMap[it.key]);
 }
 
+// ---------- O papel do caderno (a folha da véspera) ----------
+
+/**
+ * O ENUNCIADO COMPLETO do acervo para um item do caderno — a resolução que
+ * a folha do papel (/caderno-papel) imprime e o botão do caderno conta.
+ * Só as linhas que nasceram de um PAR do acervo (`ex:{id}` exercício pendente,
+ * `sim:{id}` questão perdida em simulado casada com o acervo) têm enunciado
+ * completo garantido: o `title` da linha é truncado na coleta (TITLE_MAX), o
+ * papel não publica truncamento. `simx:` (sem par — corrida antiga ou questão
+ * editada) e `fc:` (cartão — o VERSO é parte da prática, papel perde a
+ * resposta) não resolvem: null honesto.
+ */
+export function fullStatementFor(it: MistakeItem): string | null {
+  const id =
+    it.key.startsWith('ex:') || it.key.startsWith('sim:') ? it.key.slice(3) : null;
+  if (!id) return null;
+  return exercises.find((e) => e.id === id)?.statement ?? null;
+}
+
+export interface PaperNotebook {
+  /** Pendências com enunciado completo no acervo — a folha imprime. */
+  printable: MistakeItem[];
+  /** Cartões frágeis que ficam de fora (o verso é parte da prática). */
+  cartoes: number;
+  /** Registros sem par no acervo (corrida antiga / questão editada). */
+  semAcervo: number;
+}
+
+/**
+ * A FONTE ÚNICA do papel do caderno — consumida pelo caderno na tela (o botão
+ * "Levar N ao papel" e o CTA da faixa da véspera) e pela folha (rota
+ * /caderno-papel, que re-coleta e re-filtra com a MESMA função — zero segunda
+ * derivação, a mesma gramática de collectMistakes/pendingMistakes). Um item
+ * só vai ao papel quando o acervo CONFIRMA o enunciado completo agora (id
+ * órfão não imprime enunciado que não existe mais).
+ */
+export function paperNotebookFor(
+  items: MistakeItem[],
+  revisedMap?: { [key: string]: string } | null,
+): PaperNotebook {
+  const pendentes = pendingMistakes(items, revisedMap);
+  const printable: MistakeItem[] = [];
+  let cartoes = 0;
+  let semAcervo = 0;
+  for (const it of pendentes) {
+    if (it.kind === 'flashcard') {
+      cartoes += 1;
+      continue;
+    }
+    if (fullStatementFor(it) !== null) printable.push(it);
+    else semAcervo += 1;
+  }
+  return { printable, cartoes, semAcervo };
+}
+
 const NOTEBOOK_MAX = 40;
 
 /**

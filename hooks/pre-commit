@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# ============================================================================
+# A CERCA DO REPOSITÓRIO (Task 125) — o pre-commit que impede o acidente que
+# já aconteceu: na rodada 114 o sweep-cron fez `git add -A` num estado sujo
+# de terceiros e COMMITOU LIXO no main (dir `*-cron`, 7e0e...) — a árvore P0
+# foi destruída e precisou de restauração manual. Esta cerca bloqueia o
+# commit de caminhos que NUNCA pertencem ao app (artefatos do ambiente, logs,
+# estado de execução, segredos) — mesmo que venham via `git add -f`.
+#
+# ESCAPE HATCH honesto: em caso raro de EXCEÇÃO REAL (nunca houve até hoje),
+# rode `FENCE_ALLOW=1 git commit ...` — a cerca registra na saída que foi
+# liberada à mão.
+#
+# Instalação (idempotente): bash scripts/install-hooks.sh
+#   - aponta core.hooksPath → hooks/ (a versão commitada é a fonte da verdade)
+#   - copia para .git/hooks/ como reserva caso a config se perca num reboot
+#
+# Regra da casa que a cerca REFLETE (não substitui): commit só com caminhos
+# EXPLÍCITOS do seu próprio trabalho — `git add -A` com árvore suja de
+# terceiros é o gesto que a cerca existe para tornar impossível.
+# ============================================================================
+
+set -u
+
+FENCE_ALLOW="${FENCE_ALLOW:-0}"
+
+# Só ADIÇÕES/MODIFICAÇÕES são bloqueadas — deletar lixo é TRABALHO LEGÍTIMO
+# (a cerca não pode impedir a limpeza que ela motiva).
+staged=$(git diff --cached --name-only --diff-filter=AM)
+[ -z "$staged" ] && exit 0
+
+blocked=""
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    # Lixo de cron/sweep (o acidente da 114: dir nomeado com trace-id)
+    *-cron|*-cron/*|*-cron.*)
+      blocked="$blocked$f\n" ;;
+    # Artefatos e estado do ambiente (gitignored de dia, à prova de -f de noite)
+    .zscripts/*|agent-ctx/*|cron-logs/*|tool-results/*|mini-services/*|\
+    upload/*|download/*|tests/*|examples/*|db/*|coverage/*|.next/*|out/*|\
+    node_modules/*|.git/*)
+      blocked="$blocked$f\n" ;;
+    # Documento de handover vive no branch 'worklog' — NUNCA no main
+    worklog.md|worklog-backup.md|*/worklog.md|*/worklog-backup.md)
+      blocked="$blocked$f\n" ;;
+    # Logs e builds locais
+    dev.log|dev.out.log|server.log|*.out.log|*.log|*.tsbuildinfo)
+      blocked="$blocked$f\n" ;;
+    # Segredos (o .env.example é o único env que o repo conhece)
+    .env|*/.env|.env.*|*/.env.*)
+      case "$f" in
+        *.example|.env.example|*/.env.example) ;; # permitido
+        *) blocked="$blocked$f\n" ;;
+      esac ;;
+  esac
+done <<< "$staged"
+
+if [ -n "$blocked" ]; then
+  if [ "$FENCE_ALLOW" = "1" ]; then
+    echo "[cerca] FENCE_ALLOW=1 — liberado à mão (exceção registrada neste log):" >&2
+    printf "$blocked" | sed 's/^/[cerca]   /' >&2
+    exit 0
+  fi
+  cat >&2 <<'EOF'
+
+╔══════════════════════════════════════════════════════════════════╗
+║  A CERCA DO REPOSITÓRIO BLOQUEOU ESTE COMMIT                      ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Caminhos que nunca pertencem ao app estão no stage:              ║
+EOF
+  printf "$blocked" | sed 's/^/║    /' >&2
+  cat >&2 <<'EOF'
+║  O acidente da rodada 114 (sweep com git add -A em estado sujo    ║
+║  comitou lixo no main e destruiu a árvore P0) não se repete.      ║
+║                                                                   ║
+║  Faça o certo: staging EXPLÍCITO dos seus caminhos                ║
+║    git restore --staged <arquivo-limpo>                           ║
+║    git add <somente os seus arquivos>                             ║
+║                                                                   ║
+║  Exceção REAL e rara: FENCE_ALLOW=1 git commit ...                ║
+╚══════════════════════════════════════════════════════════════════╝
+EOF
+  exit 1
+fi
+
+exit 0

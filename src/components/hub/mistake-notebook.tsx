@@ -22,6 +22,7 @@ import {
   Dumbbell,
   FileQuestion,
   GraduationCap,
+  Printer,
   Repeat2,
   RotateCcw,
   Target,
@@ -41,6 +42,7 @@ import {
   isRecorrenteMistake,
   MISTAKE_WINDOWS,
   notebookStats,
+  paperNotebookFor,
   pendingMistakes,
   windowCounts,
   type MistakeItem,
@@ -256,23 +258,44 @@ export function MistakeNotebook() {
       ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
       : null,
   );
+  // O PAPEL DO CADERNO (125): o caderno INTEIRO (não a janela) — a folha é a
+  // missão completa da véspera, no mesmo espírito do mathPendentes acima.
+  // A MESMA fonte paperNotebookFor que a rota /caderno-papel re-lê (zero
+  // segunda derivação): só pendências com enunciado completo no acervo.
+  const paper = React.useMemo(
+    () => paperNotebookFor(items, revisedMap),
+    [items, revisedMap],
+  );
+  const paperCount = paper.printable.length;
+  const openPaper = React.useCallback(
+    () => window.open('/caderno-papel', '_blank', 'noopener'),
+    [],
+  );
   // CTA por estado: "Abrir o simulado" (mesma entrada pré-configurada do card
   // da prova) no D-2 sem run; "Ver as frescas (N)" no D-2 com run — só quando
   // a janela de 48h TEM erros (run perfeito = nada fresco = botão cala).
+  // VÉSPERA (125): o dia do papel ganha a ferramenta do papel — o brief diz
+  // "refaça no papel" e o CTA FAZ: abre a folha com as N pendências impressas
+  // (só quando existe papel a fazer; sem pendência imprimível o dia fala
+  // por si, cta null como sempre foi).
   const examCtaLabel =
-    examBrief?.cta == null
-      ? null
-      : examBrief.kind === 'simulado-feito'
-        ? counts['48h'] > 0
-          ? `${examBrief.cta} (${counts['48h']})`
-          : null
-        : examBrief.cta;
+    examBrief?.kind === 'vespera' && paperCount > 0
+      ? `Imprimir as ${paperCount} questões para o papel`
+      : examBrief?.cta == null
+        ? null
+        : examBrief.kind === 'simulado-feito'
+          ? counts['48h'] > 0
+            ? `${examBrief.cta} (${counts['48h']})`
+            : null
+          : examBrief.cta;
   const examOnCta =
     examBrief?.kind === 'simulado-hoje'
       ? () => openSimulado({ preset: 'math_exam' })
       : examBrief?.kind === 'simulado-feito'
         ? () => setWin('48h')
-        : undefined;
+        : examBrief?.kind === 'vespera' && paperCount > 0
+          ? openPaper
+          : undefined;
 
   if (items.length === 0) {
     return (
@@ -341,6 +364,24 @@ export function MistakeNotebook() {
               <Repeat2 className="mr-0.5 size-2.5" aria-hidden />
               {recorrentes.length} recorrente{recorrentes.length > 1 ? 's' : ''}
             </Badge>
+          )}
+          {/* O PAPEL DO CADERNO (125): a véspera manda refazer no papel e o
+              botão FAZ — abre a folha (rota /caderno-papel) com as pendências
+              de enunciado completo, numeradas, prontas para a impressora.
+              Conta o caderno INTEIRO (não a janela) e CALA quando não há
+              papel a fazer (regra do silêncio honesto da 88). */}
+          {paperCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 rounded-full border-zinc-300 px-2.5 text-[11px] text-zinc-700 shadow-sm hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              onClick={openPaper}
+              aria-label={`Abrir a folha do papel com ${paperCount} questões pendentes do caderno`}
+              title="Abre a folha para imprimir: as pendências com enunciado completo, numeradas e com espaço de trabalho — a véspera é o dia do papel."
+            >
+              <Printer className="size-3" aria-hidden />
+              Levar <span className="tabular-nums">{paperCount}</span> ao papel
+            </Button>
           )}
           {/* Legenda dos 3 tipos — mesma gramática da legenda do histórico */}
           <span className="ml-auto flex items-center gap-3 text-[11px] text-muted-foreground">
