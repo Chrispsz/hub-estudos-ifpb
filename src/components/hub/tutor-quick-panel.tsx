@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import {
   useScreenCapture,
 } from '@/lib/screen-capture';
@@ -476,6 +477,23 @@ export function TutorQuickPanel({
               if (f) {
                 e.preventDefault();
                 void attachImage(f);
+                return;
+              }
+              // MESMA régua do chat principal (141): PDF colado rasgado é
+              // remontado antes de entrar no campo — o painel rápido é onde
+              // o aluno cola de volta do PDF aberto ao lado.
+              const t = e.clipboardData.getData('text/plain');
+              if (t && looksFragmentedPaste(t)) {
+                e.preventDefault();
+                const ta = e.currentTarget;
+                const pos = ta.selectionStart ?? input.length;
+                const end = ta.selectionEnd ?? pos;
+                setInput(
+                  (input.slice(0, pos) + normalizePdfPaste(t) + input.slice(end)).slice(0, 2000),
+                );
+                toast.info(
+                  'Colagem de PDF organizada — as linhas quebradas foram unidas para a IA ler melhor.',
+                );
               }
             }}
             rows={1}

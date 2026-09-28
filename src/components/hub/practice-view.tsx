@@ -5,11 +5,13 @@ import { motion } from 'framer-motion';
 import {
   BarChart3,
   CalendarCheck,
+  Camera,
   ChevronDown,
   Dumbbell,
   GraduationCap,
   Layers,
   Lightbulb,
+  Loader2,
   MessageCircleQuestion,
   NotebookPen,
   Repeat2,
@@ -55,6 +57,7 @@ import {
 } from '@/lib/math-exam-prep';
 import type { AttemptMode } from '@/lib/simulado-resume';
 import { openSimulado, openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { captureElementToDataUrl } from '@/lib/dom-capture';
 import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
 import {
@@ -957,6 +960,28 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
   // "Mostrar futuros" ligado).
   const stage = getExerciseStage(exercise);
 
+  // PRINT DA QUESTÃO (141 — a porta da LISTA, pedido do dono: "no site dos
+  // assuntos, lista e etc"): o conteúdo da questão (enunciado + dica, SEM os
+  // controles de progresso) vira imagem e entra direto no chat do tutor via
+  // openTutor({image}) — a MESMA porta do print do PDF (139) e dos assuntos
+  // (140). Nada toca o disco: o anexo morre com o envio.
+  const [capturing, setCapturing] = React.useState(false);
+  const questionRef = React.useRef<HTMLDivElement>(null);
+  const captureQuestion = async () => {
+    const el = questionRef.current;
+    if (!el || capturing) return;
+    setCapturing(true);
+    try {
+      const image = await captureElementToDataUrl(el);
+      openTutor({ image, disciplineCode: exercise.disciplineCode, materialId: exercise.linkedMaterials?.[0] });
+      toast.success('Print da questão anexado ao tutor — nada foi salvo no seu computador.');
+    } catch {
+      toast.error('Não consegui capturar esta questão. Tente de novo.');
+    } finally {
+      setCapturing(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }}
@@ -971,7 +996,8 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
           progress?.marked && !progress?.solved && 'border-amber-400/50 bg-amber-500/[0.03]',
         )}
       >
-        <div className="flex flex-wrap items-start gap-2">
+        <div ref={questionRef}>
+          <div className="flex flex-wrap items-start gap-2">
           <Badge
             variant="outline"
             className={cn('border text-[10px]', color.badge)}
@@ -1025,13 +1051,14 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
           >
             <Star className={cn('size-4', progress?.marked && 'fill-current')} />
           </button>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-foreground/90">{exercise.statement}</p>
+          {exercise.hint && (
+            <p className="mt-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
+              <Lightbulb className="mt-0.5 size-3 shrink-0" /> {exercise.hint}
+            </p>
+          )}
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/90">{exercise.statement}</p>
-        {exercise.hint && (
-          <p className="mt-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
-            <Lightbulb className="mt-0.5 size-3 shrink-0" /> {exercise.hint}
-          </p>
-        )}
 
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3">
           <label className="flex cursor-pointer items-center gap-2 text-xs">
@@ -1063,11 +1090,28 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             />
             <span className="text-muted-foreground">Precisei de ajuda</span>
           </label>
+          {/* Print da questão (141): a porta da LISTA — vira imagem e entra no
+              chat do tutor com a disciplina/material pré-selecionados. */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto size-7 shrink-0 border-emerald-500/40 p-0 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            onClick={() => void captureQuestion()}
+            disabled={capturing}
+            aria-label="Print da questão para o tutor"
+            title="Print desta questão — anexa ao tutor para perguntar sobre ela (nada é salvo no seu computador)"
+          >
+            {capturing ? (
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+            ) : (
+              <Camera className="size-3" aria-hidden />
+            )}
+          </Button>
           {/* Tutor contextual: a IA recebe a questão + a dica, com o material vinculado */}
           <Button
             size="sm"
             variant="outline"
-            className="ml-auto h-7 gap-1 border-emerald-500/40 px-2 text-[11px] text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            className="h-7 gap-1 border-emerald-500/40 px-2 text-[11px] text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
             onClick={() =>
               openTutor({
                 disciplineCode: exercise.disciplineCode,

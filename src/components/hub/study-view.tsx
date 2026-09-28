@@ -84,6 +84,7 @@ import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
 import { buildHubContext } from '@/lib/tutor-context';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import { useScreenCapture } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
@@ -1997,6 +1998,24 @@ export function StudyView({
                   if (f) {
                     e.preventDefault();
                     void attachChatImage(f);
+                    return;
+                  }
+                  // Colagem de PDF rasgada (a dor do dono: "copiar e colar
+                  // vai todo quebrado e ela ainda pode errar na montagem") —
+                  // se o texto tem perfil de rasgo, remonta ANTES de entrar
+                  // no campo. Colagem normal do aluno passa intocada.
+                  const t = e.clipboardData.getData('text/plain');
+                  if (t && looksFragmentedPaste(t)) {
+                    e.preventDefault();
+                    const ta = e.currentTarget;
+                    const pos = ta.selectionStart ?? chatInput.length;
+                    const end = ta.selectionEnd ?? pos;
+                    setChatInput(
+                      chatInput.slice(0, pos) + normalizePdfPaste(t) + chatInput.slice(end),
+                    );
+                    toast.info(
+                      'Colagem de PDF organizada — as linhas quebradas foram unidas para a IA ler melhor.',
+                    );
                   }
                 }}
                 rows={1}
