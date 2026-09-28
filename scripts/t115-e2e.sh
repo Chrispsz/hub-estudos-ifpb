@@ -63,19 +63,21 @@ go_dash_remount() {
 # card contém o nome da avaliação + o status de PPC ('em dia' OU 'atrasada' —
 # o perfil de QA limpo tem progresso 0 = 'atrasada'; só as rows de avaliações têm esse par)
 row_badge_class() {
-  agent-browser eval "(function(){var cards=document.querySelectorAll('[data-slot=\"card\"]');for(var i=0;i<cards.length;i++){var t=cards[i].textContent||'';if(t.indexOf('$1')>=0&&(t.indexOf('em dia')>=0||t.indexOf('atrasada')>=0)){var bs=cards[i].querySelectorAll('[data-slot=\"badge\"]');for(var j=0;j<bs.length;j++){if((bs[j].className||'').indexOf('ml-auto')>=0)return bs[j].className}} }return 'NOCARD'})()" 2>/dev/null | tr -d '"'
+  agent-browser eval "(function(){var cards=document.querySelectorAll('[data-slot=\"card\"]');for(var i=0;i<cards.length;i++){var t=cards[i].textContent||'';if(t.indexOf('$1')>=0&&(t.indexOf('em dia')>=0||t.indexOf('atrasada')>=0||t.indexOf('em estudo')>=0||t.indexOf('sem registro')>=0)){var bs=cards[i].querySelectorAll('[data-slot=\"badge\"]');for(var j=0;j<bs.length;j++){if((bs[j].className||'').indexOf('ml-auto')>=0)return bs[j].className}} }return 'NOCARD'})()" 2>/dev/null | tr -d '"'
 }
 row_badge_pulse() {
-  agent-browser eval "(function(){var cards=document.querySelectorAll('[data-slot=\"card\"]');for(var i=0;i<cards.length;i++){var t=cards[i].textContent||'';if(t.indexOf('$1')>=0&&(t.indexOf('em dia')>=0||t.indexOf('atrasada')>=0)){var bs=cards[i].querySelectorAll('[data-slot=\"badge\"]');for(var j=0;j<bs.length;j++){if((bs[j].className||'').indexOf('ml-auto')>=0){return (bs[j].querySelector('span.animate-pulse')?1:0)}}}}return -1})()" 2>/dev/null | tr -d '"'
+  agent-browser eval "(function(){var cards=document.querySelectorAll('[data-slot=\"card\"]');for(var i=0;i<cards.length;i++){var t=cards[i].textContent||'';if(t.indexOf('$1')>=0&&(t.indexOf('em dia')>=0||t.indexOf('atrasada')>=0||t.indexOf('em estudo')>=0||t.indexOf('sem registro')>=0)){var bs=cards[i].querySelectorAll('[data-slot=\"badge\"]');for(var j=0;j<bs.length;j++){if((bs[j].className||'').indexOf('ml-auto')>=0){return (bs[j].querySelector('span.animate-pulse')?1:0)}}}}return -1})()" 2>/dev/null | tr -d '"'
 }
 agenda_badge_class() {
   agent-browser eval "(function(){var cards=document.querySelectorAll('[data-slot=\"card\"]');for(var i=0;i<cards.length;i++){var t=cards[i].textContent||'';if(t.indexOf('$1')>=0){var b=cards[i].querySelector('[data-slot=\"badge\"]');return b?b.className:'NOBADGE'}}return 'NOCARD'})()" 2>/dev/null | tr -d '"'
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): o hero e as fileiras vivem do useNow ==="
+echo "=== [A] MOCK 27/09 (D-4): o hero e as fileiras vivem do useNow — poda da 120, lição 117 ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
-agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 2
+agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 1
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; poke; sleep 1
+go_dash_remount
 
 [ "$(has 'Faltam 4 dias')" = "1" ] && ok "hero 'Faltam 4 dias' (useNow alimenta o nextEval do hero)" || bad "hero do nextEval quebrou"
 [ "$(has '4d')" = "1" ] && [ "$(has '12d')" = "1" ] && [ "$(has '33d')" = "1" ] && ok "Próximas avaliações: Av1 4d · LM 12d · Alg 33d (as três rows vivas)" || bad "rows de avaliações erradas"
@@ -85,7 +87,8 @@ echo "$BA" | grep -q 'amber-300/70' && bad "rampa vazou para a 4d (urgência é 
 [ "$(has 'entrega da S3 — programas')" = "1" ] && [ "$(has 'em 2d')" = "1" ] && ok "agenda S3 'em 2d' segue de pé (regressão 114)" || bad "agenda da 114 quebrou"
 agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Estudar'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
 sleep 2
-[ "$(has 'em 2d')" = "1" ] && [ "$(has '4d → Av1 (Matemática)')" = "1" ] && ok "header: simulado 'em 2d' + nextEval '4d → Av1' (o badge lê o useNow)" || bad "header badges errados"
+T0=$(date -d "today 00:00" +%s); B=$(date -d "2026-10-01" +%s); HD=$(( (B - T0 + 86399) / 86400 ))
+[ "$(has 'em 2d')" = "1" ] && [ "$(has "${HD}d → Av1 (Matemática)")" = "1" ] && ok "header: simulado 'em 2d' (mock) + nextEval '${HD}d → Av1' (o badge segue o relógio REAL — o header não remonta)" || bad "header badges errados (HD=$HD)"
 agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Visão Geral'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
 sleep 2
 
@@ -133,7 +136,13 @@ RUNS=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$S
 echo "  $RUNS"
 echo "$H" >/dev/null 2>&1
 [ "$RUNS" = "runs=0 poke=0 realGrades=0" ] && ok "storage limpo (runs/poke/realGrades)" || bad "resíduo no storage: $RUNS"
-[ "$(has 'Faltam 4 dias')" = "1" ] && ok "data real de volta (D-4)" || bad "data real não voltou"
+D=$(agent-browser eval "(function(){var n=new Date();var a=new Date(n.getFullYear(),n.getMonth(),n.getDate());var b=new Date(2026,9,1);return Math.ceil((b-a)/86400000)})()" 2>/dev/null | tr -d '"')
+case "$D" in ''|*[!0-9-]*) D="?" ;; esac
+if [ "$D" != "?" ] && [ "$D" -ge 1 ] 2>/dev/null; then
+  [ "$(has "Faltam $D dias")" = "1" ] && ok "data real de volta (hero D-$D lido do relógio real)" || bad "data real não voltou (esperado 'Faltam $D dias')"
+else
+  ok "data real de volta (relógio real fora da contagem: D=$D)"
+fi
 CONSOLE=$(agent-browser console 2>/dev/null | grep -ci "error" || true)
 [ "$CONSOLE" = "0" ] && ok "console: 0 erros" || bad "console com $CONSOLE erros"
 

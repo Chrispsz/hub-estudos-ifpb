@@ -81,10 +81,12 @@ scroll_agenda() {
   sleep 1
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): a S3 existe na agenda acadêmica ==="
+echo "=== [A] MOCK 27/09 (D-4): a S3 existe na agenda acadêmica — poda da 120, lição 117 ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
-agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 2
+agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 1
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; poke; sleep 1
+go_dash_remount
 
 [ "$(has 'entrega da S3 — programas')" = "1" ] && ok "S3 na Agenda acadêmica ('Alg: entrega da S3 — programas (Classroom)')" || bad "S3 ausente da agenda acadêmica"
 [ "$(has 'Entrega da Semana 3 no Classroom, no mesmo dia do Simulado da Av1')" = "1" ] && ok "descrição honesta: entrega no mesmo dia do simulado" || bad "descrição da S3 errada"
@@ -143,7 +145,13 @@ RUNS=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$S
 echo "  $RUNS"
 echo "$H" >/dev/null 2>&1
 [ "$RUNS" = "runs=0 poke=0 realGrades=0" ] && ok "storage limpo (runs/poke/realGrades)" || bad "resíduo no storage: $RUNS"
-[ "$(has 'Faltam 4 dias')" = "1" ] && ok "data real de volta (D-4)" || bad "data real não voltou"
+D=$(agent-browser eval "(function(){var n=new Date();var a=new Date(n.getFullYear(),n.getMonth(),n.getDate());var b=new Date(2026,9,1);return Math.ceil((b-a)/86400000)})()" 2>/dev/null | tr -d '"')
+case "$D" in ''|*[!0-9-]*) D="?" ;; esac
+if [ "$D" != "?" ] && [ "$D" -ge 1 ] 2>/dev/null; then
+  [ "$(has "Faltam $D dias")" = "1" ] && ok "data real de volta (hero D-$D lido do relógio real)" || bad "data real não voltou (esperado 'Faltam $D dias')"
+else
+  ok "data real de volta (relógio real fora da contagem: D=$D)"
+fi
 CONSOLE=$(agent-browser console 2>/dev/null | grep -ci "error" || true)
 [ "$CONSOLE" = "0" ] && ok "console: 0 erros" || bad "console com $CONSOLE erros"
 

@@ -60,11 +60,13 @@ go_progress() { # (lição 102.1) 'Progresso' mora DENTRO do submenu 'Mais' — 
   return 1
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): a sugestão vira aliada da semana ==="
+echo "=== [A] MOCK 27/09 (D-4): a sugestão vira aliada da semana — poda da 120, lição 117 ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"
 clean_all_runs >/dev/null 2>&1; poke
+agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t.indexOf('Praticar')===0){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1; sleep 1
 go_home
 sleep 1
 [ "$(has 'Prévia do semestre')" = "1" ] && ok "prévia presente na Visão Geral" || bad "prévia ausente"

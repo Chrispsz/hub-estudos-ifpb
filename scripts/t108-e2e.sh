@@ -69,10 +69,11 @@ go_home() {
   sleep 2
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): a calculadora é só calculadora ==="
+echo "=== [A] MOCK 27/09 (D-4): a calculadora é só calculadora — poda da 120, lição 117 ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; poke
 clean_all
 go_progress || bad "navegação Progresso falhou"
 [ "$(has 'Minhas notas reais')" = "1" ] && ok "seção Minhas notas reais renderiza" || bad "seção ausente"

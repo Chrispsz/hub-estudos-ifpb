@@ -93,7 +93,8 @@ agent-browser set viewport 1440 900 >/dev/null 2>&1
 snap_accessed
 if go_library_rows; then ok "Biblioteca com linhas Resumo IA visíveis"; else bad "Biblioteca não abriu"; fi
 
-echo "=== [A] DATA REAL (D-4): dialog do material do ESCOPO — chip + ponte ==="
+echo "=== [A] MOCK 27/09 (D-4): dialog do material do ESCOPO — chip + ponte — poda da 120, lição 117 ==="
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; sleep 1
 echo "  open: $(open_mat_dialog 'Matrizes — Aula 00')"
 sleep 2
 dlg_json 'resumo gerado por ia' | grep -q '"resumo gerado por ia":1' && ok "dialog do resumo aberto" || { bad "dialog não abriu"; }

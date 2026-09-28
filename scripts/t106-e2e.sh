@@ -76,13 +76,14 @@ go_home() {
   sleep 2
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): sanity ==="
+echo "=== [A] MOCK 27/09 (D-4): sanity — poda da 120, lição 117 ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
-sleep 2
+sleep 1
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; poke; sleep 1
 KIT=$(has 'Kit da véspera')
-[ "$KIT" = "0" ] && ok "data real D-4: kit ausente" || bad "data real: kit presente fora da janela"
+[ "$KIT" = "0" ] && ok "mock D-4: kit ausente" || bad "kit presente fora da janela"
 
 echo "=== [B] D-1 (30/09) com run oficial: a promessa SEM recibo (estado da 105) ==="
 echo "  $(mock_date '2026-09-30T15:00:00')"; poke

@@ -81,11 +81,13 @@ scroll_card() {
   sleep 1
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4, dia off): o AGORA no cabeçalho ==="
+echo "=== [A] MOCK 27/09 (D-4, domingo/dia off): o AGORA no cabeçalho — poda da 120, lição 117 ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
-sleep 2
+sleep 1
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; poke; sleep 1
+agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t.indexOf('Praticar')===0){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1; sleep 1
 go_home; sleep 1
 
 [ "$(has 'Dia de descanso')" = "1" ] && ok "domingo honesto: 'Dia de descanso' (dia off do padrão)" || bad "domingo não mostra descanso (plano mudou?)"
@@ -150,7 +152,9 @@ RUNS=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$S
 echo "  $RUNS"
 echo "$H" >/dev/null 2>&1
 [ "$RUNS" = "runs=0 poke=0 realGrades=0" ] && ok "storage limpo (runs/poke/realGrades)" || bad "resíduo no storage: $RUNS"
-[ "$(has 'Dia de descanso')" = "1" ] && ok "data real de volta (domingo, descanso)" || bad "data real não voltou"
+NC=$(now_clock); REAL=$(agent-browser eval "(function(){var d=new Date();var p=function(x){return (x<10?'0':'')+x};return p(d.getHours())+':'+p(d.getMinutes())})()" 2>/dev/null | tr -d '"')
+if [ "$NC" != "$REAL" ]; then sleep 2; NC=$(now_clock); REAL=$(agent-browser eval "(function(){var d=new Date();var p=function(x){return (x<10?'0':'')+x};return p(d.getHours())+':'+p(d.getMinutes())})()" 2>/dev/null | tr -d '"'); fi
+[ -n "$NC" ] && [ "$NC" = "$REAL" ] && ok "data real de volta (AGORA=$NC = relógio real)" || bad "data real não voltou (AGORA=$NC vs real=$REAL)"
 CONSOLE=$(agent-browser console 2>/dev/null | grep -ci "error" || true)
 [ "$CONSOLE" = "0" ] && ok "console: 0 erros" || bad "console com $CONSOLE erros"
 

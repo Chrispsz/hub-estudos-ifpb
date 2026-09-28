@@ -76,16 +76,17 @@ shot_card() { # scrollIntoView block:'start' (lição da 95: 'center' não chega
   agent-browser screenshot "$1" >/dev/null 2>&1
 }
 
-echo "=== [PREP] storage limpo + aba Progresso (data real dom 27/09, D-4) ==="
+echo "=== [PREP] storage limpo + aba Progresso (mock dom 27/09 20:00, D-4 — poda da 120) ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 agent-browser eval "(function(){localStorage.clear();return 'cleared'})()" >/dev/null 2>&1
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 5
+echo "  mock D-4: $(mock_date 2026-09-27T20:00:00)"; poke; sleep 1
 if go_progress; then ok "aba Progresso aberta (h2 'Relatório semanal' visível)"; else bad "navegação para Progresso falhou"; fi
 
-echo "=== [A] DATA REAL (D-4): relatório normal, faixa fora da janela (regra da 88) ==="
+echo "=== [A] MOCK 27/09 (D-4): relatório normal, faixa fora da janela (regra da 88) — poda da 120, lição 117 ==="
 rep_json 'é hoje: simulado da av1|véspera da prova|é hoje: prova da av1|complete um pomodoro' | grep -q '"card-nao":1' && bad "card do relatório não encontrado" || true
 rep_hasnt 'é hoje: simulado da av1' && ok "sem faixa do simulado (D-4 fora da janela de 3 dias)" || bad "faixa apareceu fora da janela"
 rep_hasnt 'véspera da prova' && ok "sem faixa da véspera" || bad "véspera vazou"
