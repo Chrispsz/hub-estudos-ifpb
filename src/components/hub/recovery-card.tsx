@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import {
   BookOpen,
   Calculator,
+  CalendarClock,
   ChevronDown,
   CircleCheck,
   Clock4,
@@ -208,13 +209,15 @@ export function RecoveryCard() {
                         ? 'border-emerald-500/25 bg-emerald-500/5'
                         : action.prazoHoje
                           ? 'border-amber-500/60 bg-amber-500/[0.08]'
-                          : metaBatida
-                            ? 'border-emerald-500/40 bg-emerald-500/[0.07]'
-                            : falaSimulado
-                              ? 'border-amber-500/40 bg-amber-500/[0.06]'
-                              : isPointer
-                                ? 'border-rose-500/25 bg-rose-500/[0.04]'
-                                : 'border-border bg-muted/20',
+                          : action.prazoAmanha
+                            ? 'border-amber-500/40 bg-amber-500/[0.05]'
+                            : metaBatida
+                              ? 'border-emerald-500/40 bg-emerald-500/[0.07]'
+                              : falaSimulado
+                                ? 'border-amber-500/40 bg-amber-500/[0.06]'
+                                : isPointer
+                                  ? 'border-rose-500/25 bg-rose-500/[0.04]'
+                                  : 'border-border bg-muted/20',
                     )}
                   >
                     <span
@@ -277,6 +280,17 @@ export function RecoveryCard() {
                         {action.prazoHoje && !isDone && (
                           <Badge className="gap-1 border border-amber-500/60 bg-amber-500/15 px-1.5 py-0 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
                             <Clock4 className="size-2.5 animate-pulse" aria-hidden /> prazo hoje
+                          </Badge>
+                        )}
+                        {/* Chip da VÉSPERA DO PRAZO (137) — o mesmo prazo no D-1,
+                            na família "a espera" da casa: amber CALMO, CalendarClock
+                            (a gramática de espera do banner 121) e SEM pulso — o
+                            pulso é do dia (o é-hoje do relógio corre quando vence,
+                            não quando anuncia). A urgência com data real tem
+                            véspera; o tom é o que distende. */}
+                        {action.prazoAmanha && !isDone && (
+                          <Badge className="gap-1 border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
+                            <CalendarClock className="size-2.5" aria-hidden /> prazo amanhã
                           </Badge>
                         )}
                         {/* O CONTE (133): a preparação é CONTAGEM (x de y questões

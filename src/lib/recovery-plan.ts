@@ -126,6 +126,13 @@ export interface RecoveryAction {
    *  A fila tinta o item com a família "é hoje" (amber + pulso no chip) —
    *  a única urgência que a fila inventa é a que tem DATA REAL atrás. */
   prazoHoje?: boolean;
+  /** A VÉSPERA DO PRAZO (137): o MESMO prazo, na véspera dele. A urgência
+   *  com data real também tem D-1 — o aluno que abre a fila na véspera
+   *  precisa saber que amanhã vence, não só no dia (quando fechar o que
+   *  falta já pode ser tarde). Família amber em tom CALMO: sem pulso (o
+   *  pulso é do dia) e CalendarClock (a gramática de espera da casa, a do
+   *  banner 121) — o prazo antecipa-se, a voz não grita. */
+  prazoAmanha?: boolean;
 }
 
 /**
@@ -153,6 +160,32 @@ const S3_ENTREGA_HOJE: RecoveryAction = {
 };
 
 /**
+ * A VÉSPERA DO PRAZO (137): o mesmo prazo, no D-1. O design da 93 limitava a
+ * voz do prazo ao DIA ('a fila no dia dela') — mas o aluno que abria a fila na
+ * véspera via só a ação genérica da trilha (S2, sem data nenhuma), enquanto a
+ * entrega REAL (nota, Classroom) vencia AMANHÃ, junto com o simulado: acordar
+ * com 'PRAZO HOJE' + ensaio + entrega no mesmo dia é descobrir o prazo tarde,
+ * quando fechar o que falta já não cabe. Na véspera o slot da trilha VIRA o
+ * prazo em tom de véspera: o texto manda FECHAR hoje o que falta (amanhã só
+ * envia), o chip é a família de espera (sem pulso — o pulso é do dia) e o
+ * checkbox segue sendo o registro da entrega (126). Marcado na véspera, a
+ * trilha volta à primeira ação pendente como no dia. Depois do dia, a ação
+ * segue sumindo sozinha (prazo vencido não inventa culpa — regra da 93).
+ * MESMO id do prazo do dia (alg-s3-entrega): um prazo, um registro — o done
+ * marcado na véspera vale no dia (não existe 'entreguei duas vezes').
+ */
+const S3_ENTREGA_AMANHA: RecoveryAction = {
+  id: 'alg-s3-entrega',
+  texto:
+    'PRAZO AMANHÃ: entrega da S3 — as 8 questões if/else (bissexto, quadrantes, triângulo retângulo, regra do 0,7) estão no Praticar; resolva hoje o que faltar para amanhã ser só enviar os programas no Classroom',
+  minutos: 100,
+  tab: 'practice',
+  materialId: 'alg-questoes-semana3',
+  linkedMaterial: 'alg-questoes-semana3',
+  prazoAmanha: true,
+};
+
+/**
  * O CONTE DA S3 (133): a ação do prazo dizia 'as 8 questões estão no
  * Praticar; resolva e envie' — mas nunca dizia QUANTAS o aluno já havia
  * resolvido. Na véspera e no dia da entrega, o número é a pergunta real
@@ -175,16 +208,20 @@ export function s3ProgressoFor(
 
 function s3EntregaActionFor(
   exerciseProgress?: Record<string, { solved?: boolean }> | null,
+  vespera = false,
 ): RecoveryAction {
+  const base = vespera ? S3_ENTREGA_AMANHA : S3_ENTREGA_HOJE;
   const { feito, total } = s3ProgressoFor(exerciseProgress);
-  if (total === 0) return S3_ENTREGA_HOJE; // sem acervo amarrado, o texto fica como sempre foi
+  if (total === 0) return base; // sem acervo amarrado, o texto fica como sempre foi
   const sufixo =
     feito >= total
-      ? ` — ${feito}/${total} resolvidas: só falta enviar os programas`
+      ? vespera
+        ? ` — ${feito}/${total} resolvidas: amanhã é só enviar os programas`
+        : ` — ${feito}/${total} resolvidas: só falta enviar os programas`
       : ` (${feito}/${total} resolvida${feito === 1 ? '' : 's'})`;
   return {
-    ...S3_ENTREGA_HOJE,
-    texto: `${S3_ENTREGA_HOJE.texto}${sufixo}`,
+    ...base,
+    texto: `${base.texto}${sufixo}`,
     progresso: { feito, total },
   };
 }
@@ -549,6 +586,9 @@ export function todayRecoveryActions(
 ): { track: RecoveryTrack; action: RecoveryAction }[] {
   const out: { track: RecoveryTrack; action: RecoveryAction }[] = [];
   const daysToExam = daysUntilDate(MATH_EXAM.date);
+  // A distância do PRAZO da S3 (137): a véspera (1) e o dia (0) são os dois
+  // únicos dias em que a entrega fala na fila — cada um na voz do seu dia.
+  const diasAteS3 = daysUntilDate(MATH_SIMULADO_DATE);
   // A nota REAL lida do REGISTRO (fonte única — a Calculadora fala e a fila obedece).
   const notaReal = findNotaRealAv1(realGrades);
   // O simulado oficial também fala: mesmo registro de card, hero e histórico.
@@ -561,12 +601,14 @@ export function todayRecoveryActions(
       if (action) out.push({ track, action });
       continue;
     }
-    // O PRAZO DA S3 NO DIA DELA (29/09): a entrega vence junto com o simulado
-    // e o aluno não pode descobrir isso pelo strip do Praticar só. Enquanto a
-    // entrega não está marcada, o item da trilha alg É o prazo; entregue (ou
+    // O PRAZO DA S3 NA VÉSPERA E NO DIA (137/93): a entrega vence junto com o
+    // simulado e o aluno não pode descobrir isso tarde — na VÉSPERA o item da
+    // trilha alg JÁ é o prazo (tom de véspera: fechar hoje o que falta, chip
+    // sem pulso); no DIA, o prazo em voz cheia ('PRAZO HOJE', 93/126/133).
+    // Enquanto a entrega não está marcada, o slot É o prazo; entregue (ou
     // passado o dia), a trilha volta à primeira ação pendente de sempre.
-    if (track.id === 'alg' && daysUntilDate(MATH_SIMULADO_DATE) === 0 && !done[S3_ENTREGA_HOJE.id]) {
-      out.push({ track, action: s3EntregaActionFor(exerciseProgress) });
+    if (track.id === 'alg' && !done[S3_ENTREGA_HOJE.id] && (diasAteS3 === 0 || diasAteS3 === 1)) {
+      out.push({ track, action: s3EntregaActionFor(exerciseProgress, diasAteS3 === 1) });
       continue;
     }
     const action = track.acoes.find((a) => !done[a.id]);
