@@ -16,6 +16,7 @@ import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import {
+  screenCaptureSupported,
   useScreenCapture,
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
@@ -126,6 +127,12 @@ export function TutorQuickPanel({
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
+  const camFileRef = React.useRef<HTMLInputElement>(null);
+  /** getDisplayMedia existe aqui? (SSR renderiza true; o effect corrige no
+   * mount — 1º paint do cliente igual ao servidor, zero mismatch.) */
+  const [screenOk, setScreenOk] = React.useState(true);
+  React.useEffect(() => setScreenOk(screenCaptureSupported()), []);
   /** Modo dica: tutor socrático — pistas antes da solução completa. */
   const [hintMode, setHintMode] = React.useState(false);
 
@@ -517,6 +524,20 @@ export function TutorQuickPanel({
               e.target.value = '';
             }}
           />
+          {/* Câmera nativa — fallback do botão de captura sem getDisplayMedia
+              (celular): a foto da questão entra no MESMO tubo (downscale →
+              anexo → morre no envio). */}
+          <input
+            ref={camFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              void attachImage(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
           <Button
             type="button"
             variant="ghost"
@@ -561,14 +582,25 @@ export function TutorQuickPanel({
                 ? 'text-emerald-500'
                 : 'text-muted-foreground hover:text-foreground',
             )}
-            onClick={() => void startCapture()}
+            onClick={() => {
+              // Com getDisplayMedia → recorte ao vivo da tela. Sem (celular)
+              // → CÂMERA NATIVA em vez do toast de erro repetido.
+              if (screenOk) void startCapture();
+              else camFileRef.current?.click();
+            }}
             disabled={loading}
-            aria-pressed={capturing}
-            aria-label="Capturar a tela e recortar para o tutor"
+            aria-pressed={screenOk ? capturing : undefined}
+            aria-label={
+              screenOk
+                ? 'Capturar a tela e recortar para o tutor'
+                : 'Tirar foto da questão com a câmera e anexar ao tutor'
+            }
             title={
               capturing
                 ? 'Escolhendo a tela… clique de novo para soltar'
-                : 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+                : screenOk
+                  ? 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+                  : 'Sem captura de tela neste navegador — abre a câmera para fotografar a questão (nada é salvo no seu computador)'
             }
           >
             <Camera className={cn('size-4', capturing && 'animate-pulse')} />

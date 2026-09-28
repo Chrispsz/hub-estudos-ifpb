@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
   AlertTriangle,
   BookOpenText,
+  Camera,
   CheckCircle2,
   CircleHelp,
   ClipboardList,
@@ -46,6 +47,7 @@ import {
   libraryExamBriefFor,
 } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
+import { captureElementToDataUrl } from '@/lib/dom-capture';
 import { cn } from '@/lib/utils';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 
@@ -117,6 +119,35 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
     setPdfOpen(false);
     setPdfMaterial(null);
   }, []);
+
+  // PRINT DO RESUMO (146 — a superfície que faltava na captura): o corpo do
+  // resumo IA vira imagem e entra DIRETO no tutor via openTutor({image}) — o
+  // aluno pergunta "explica esse conceito do resumo" com o resumo INTEIRO na
+  // mão (o ref pega o conteúdo completo, não só o visível no scroll). Nada
+  // toca o disco: a imagem morre com o envio, como os prints colados.
+  // Hooks ANTES dos early returns (Rules of Hooks — o diálogo alterna
+  // material null↔cheio ao abrir/fechar).
+  const [capturing, setCapturing] = React.useState(false);
+  const captureBodyRef = React.useRef<HTMLDivElement>(null);
+  const captureSummary = async () => {
+    const el = captureBodyRef.current;
+    if (!el || capturing || !material || loading || !summary) return;
+    setCapturing(true);
+    try {
+      const image = await captureElementToDataUrl(el);
+      onOpenChange(false);
+      openTutor({
+        image,
+        disciplineCode: material.disciplineCode,
+        materialId: material.id,
+      });
+      toast.success('Print do resumo anexado ao tutor — nada foi salvo no seu computador.');
+    } catch {
+      toast.error('Não consegui capturar este resumo. Tente de novo.');
+    } finally {
+      setCapturing(false);
+    }
+  };
 
   const discipline: Discipline | undefined = material
     ? getDisciplineByCode(material.disciplineCode)
@@ -305,7 +336,7 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
         </div>
 
         <ScrollArea className="max-h-[70vh]">
-          <div className="p-5 sm:p-6">
+          <div ref={captureBodyRef} className="p-5 sm:p-6">
             {loading ? (
               <div className="flex flex-col items-center gap-3 py-16 text-center">
                 <Loader2 className={cn('size-8 animate-spin', color.text)} />
@@ -448,6 +479,22 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
               aria-label="Tirar dúvida sobre este material com o tutor IA"
             >
               <Sparkles className="size-3.5" aria-hidden /> Perguntar à IA
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className={cn(touchBtn, 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60')}
+              disabled={capturing || loading || !summary}
+              onClick={() => void captureSummary()}
+              aria-label="Capturar o resumo e anexar ao tutor IA"
+              title="Print do resumo inteiro — anexa ao tutor para perguntar sobre ele (nada é salvo no seu computador)"
+            >
+              {capturing ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Camera className="size-3.5" aria-hidden />
+              )}
+              {capturing ? 'Capturando…' : 'Print para o tutor'}
             </Button>
           </div>
         )}

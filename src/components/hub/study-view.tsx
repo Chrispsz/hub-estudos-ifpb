@@ -85,7 +85,10 @@ import { buildHubContext } from '@/lib/tutor-context';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
-import { useScreenCapture } from '@/lib/screen-capture';
+import {
+  screenCaptureSupported,
+  useScreenCapture,
+} from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
@@ -366,6 +369,12 @@ export function StudyView({
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [chatImage, setChatImage] = React.useState<string | null>(null);
   const chatFileRef = React.useRef<HTMLInputElement>(null);
+  /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
+  const camFileRef = React.useRef<HTMLInputElement>(null);
+  /** getDisplayMedia existe neste navegador? (SSR renderiza true — o effect
+   * corrige no mount; sem mismatch porque o 1º paint do cliente é igual.) */
+  const [screenOk, setScreenOk] = React.useState(true);
+  React.useEffect(() => setScreenOk(screenCaptureSupported()), []);
   /** Captura de tela em recorte — o frame bruto vive só até o diálogo fechar. */
   const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
   const [captureOpen, setCaptureOpen] = React.useState(false);
@@ -1863,6 +1872,20 @@ export function StudyView({
                 e.target.value = '';
               }}
             />
+            {/* Câmera nativa — o fallback do botão de captura onde não há
+                getDisplayMedia (celular): fotografar a questão/lista impressa
+                entra no MESMO tubo (downscale → anexo → morre no envio). */}
+            <input
+              ref={camFileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                void attachChatImage(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
             {/* Bloco de código — separado da mensagem (pedido do dono): cola formatado,
                 vai para a IA em ```lang e volta como bloco igual ao da resposta. */}
             {codeOpen && (
@@ -1949,14 +1972,26 @@ export function StudyView({
                     ? 'text-emerald-500'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
-                onClick={() => void startCapture()}
+                onClick={() => {
+                  // Navegador com captura de tela → recorte ao vivo. Sem
+                  // getDisplayMedia (celular) → CÂMERA NATIVA: fotografar a
+                  // questão vale mais que um toast de erro toda vez.
+                  if (screenOk) void startCapture();
+                  else camFileRef.current?.click();
+                }}
                 disabled={chatLoading}
-                aria-pressed={capturing}
-                aria-label="Capturar a tela e recortar para o tutor"
+                aria-pressed={screenOk ? capturing : undefined}
+                aria-label={
+                  screenOk
+                    ? 'Capturar a tela e recortar para o tutor'
+                    : 'Tirar foto da questão com a câmera e anexar ao tutor'
+                }
                 title={
                   capturing
                     ? 'Escolhendo a tela… clique de novo para soltar'
-                    : 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+                    : screenOk
+                      ? 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+                      : 'Sem captura de tela neste navegador — abre a câmera para fotografar a questão (nada é salvo no seu computador)'
                 }
               >
                 <Camera className={cn('size-4', capturing && 'animate-pulse')} />
