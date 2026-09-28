@@ -70,6 +70,7 @@ import {
   MATH_FORMULAS,
   MATH_LISTAS,
   MATH_META,
+  MATH_NOTA_REAL_KEY,
   MATH_PLAN_KEY,
   MATH_SIMULADO_DATE,
   MATH_TOPICO_CURTO,
@@ -81,6 +82,7 @@ import {
   isVesperaWindow,
   mathDrillFeedbackFor,
   normalizeTravadas,
+  notaRealAv1Valida,
   planDayChecked,
   planDayFor,
   planDaysBehind,
@@ -310,30 +312,92 @@ export function ExamPrepCard() {
     toast.success(`${novas.length} cartões da Av1 adicionados — revise na aba Praticar → Flashcards.`);
   }
 
-  // Prova passou → estado compacto, sem ruído — mas com o próximo passo real:
-  // a nota vai para a Calculadora (deep-link, não só menção no texto).
+  // Prova passou → estado compacto, sem ruído — mas com o próximo passo REAL.
+  // O CARD ACORDA PÓS-PROVA (124): o registro na Calculadora manda (registro
+  // vence relógio, lição 85/86) — a fonte é a MESMA do kit, da fila e da
+  // calculadora (realGrades[MATH_NOTA_REAL_KEY] + notaRealAv1Valida; zero
+  // segunda derivação). Antes o card pedia 'Registre a nota' PARA SEMPRE,
+  // mesmo com a nota lançada — fóssil confirmado no rehearsal de 02/10, o
+  // único dia que nenhuma suíte tinha ensaiado (a 121 cobriu 29/09 e 01/10;
+  // a 122, 28/09 e 30/09). TRÊS estados, cor = significado (a gramática do
+  // badge do Plano de Recuperação, que já falava os três): pendente = rose
+  // (o convite honesto fica), nota ≥ meta = emerald (a cor que a casa
+  // consagrou para done), nota < meta = amber (informativo — Av2 e Av3
+  // abrem caminho, nunca alarme). Registro suspeito (lançado antes do dia)
+  // NÃO conta: notaRealAv1Valida devolve false e a voz volta a 'Registre a
+  // nota' — o % do ensaio não vira nota (lição 108).
   if (daysLeft < 0) {
+    const notaEntry = sp.progress.realGrades[MATH_NOTA_REAL_KEY];
+    const temNota = notaRealAv1Valida(notaEntry);
+    const nota =
+      temNota && notaEntry && typeof notaEntry.grade === 'number' ? notaEntry.grade : null;
+    const metaBatida = nota !== null && nota >= MATH_META;
     return (
-      <Card className="rounded-xl border-rose-500/20 bg-gradient-to-r from-rose-500/5 to-transparent p-4 shadow-sm">
+      <Card
+        className={cn(
+          'rounded-xl border p-4 shadow-sm',
+          nota === null
+            ? 'border-rose-500/20 bg-gradient-to-r from-rose-500/5 to-transparent'
+            : metaBatida
+              ? 'border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent'
+              : 'border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-transparent',
+        )}
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-rose-500/15 text-rose-500">
+          <span
+            className={cn(
+              'grid size-9 shrink-0 place-items-center rounded-lg',
+              nota === null
+                ? 'bg-rose-500/15 text-rose-500'
+                : metaBatida
+                  ? 'bg-emerald-500/15 text-emerald-500'
+                  : 'bg-amber-500/15 text-amber-500',
+            )}
+          >
             <CircleCheck className="size-4.5" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">Prova de Matemática (Av1) realizada</p>
-            <p className="text-xs text-muted-foreground">
-              Registre a nota na Calculadora quando sair o resultado — a média do semestre
-              acompanha na hora.
-            </p>
+            {nota === null ? (
+              <p className="text-xs text-muted-foreground">
+                Registre a nota na Calculadora quando sair o resultado — a média do semestre
+                acompanha na hora.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Nota <span className="font-semibold tabular-nums text-foreground">{nota}</span>{' '}
+                registrada · meta <span className="tabular-nums">{MATH_META}</span>{' '}
+                {metaBatida ? (
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400">✓</span>
+                ) : (
+                  <span className="font-medium text-amber-600 dark:text-amber-500">
+                    — Av2 e Av3 abrem caminho
+                  </span>
+                )}{' '}
+                — a média do semestre acompanha na Calculadora.
+              </p>
+            )}
           </div>
           <Button
             size="sm"
             variant="outline"
             onClick={() => openProgress()}
-            className="h-9 shrink-0 gap-1.5 border-rose-500/30 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 sm:h-8"
-            aria-label="Abrir a Calculadora de notas na aba Progresso"
+            className={cn(
+              'h-9 shrink-0 gap-1.5 sm:h-8',
+              nota === null
+                ? 'border-rose-500/30 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300'
+                : metaBatida
+                  ? 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300'
+                  : 'border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300',
+            )}
+            aria-label={
+              nota === null
+                ? 'Abrir a Calculadora de notas na aba Progresso'
+                : 'Abrir a Calculadora de notas na aba Progresso para ver a média do semestre'
+            }
           >
-            <Calculator className="size-3.5" /> Abrir a Calculadora
+            <Calculator className="size-3.5" />{' '}
+            {nota === null ? 'Abrir a Calculadora' : 'Ver a média na Calculadora'}
           </Button>
         </div>
       </Card>
