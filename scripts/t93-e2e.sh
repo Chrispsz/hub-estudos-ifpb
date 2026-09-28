@@ -27,10 +27,24 @@ mock() { # mock <iso-SEM-aspas> <poke-json> — o template já tem as aspas
   sleep 0.6
 }
 
-echo "=== FASE A — data real (dom 27/09, D-4) ==="
+echo "=== FASE A — mock 27/09 (o dia em que a suíte foi escrita: D-4) — LIÇÃO 128: a fase
+que correla asserção com relógio REAL apodrece no dia seguinte (a t93 dormiu por
+UM dia e a 133 a pegou vermelha: o sweep da 128/129/130 não a listou e o D-4
+virou D-3). A casa manda a suíte PLANTAR o dia, nunca herdá-lo — e a sessão é
+NOVA com init-script, para não herdar o mock de quem veio antes (lição 133). ==="
 ab set viewport 1440 900 >/dev/null
-ab open http://localhost:3000 >/dev/null
-sleep 3
+MOCKJS93=/tmp/t93-mock.js
+cat > "$MOCKJS93" <<'EOF'
+(function(){var M=new Date('2026-09-27T10:00:00').getTime();class F extends Date{constructor(...a){a.length===0?super(M):super(...a)}static now(){return M}}window.Date=F})()
+EOF
+for ATT in 1 2 3; do
+  ab close >/dev/null 2>&1; sleep 3
+  ab open --init-script "$MOCKJS93" http://localhost:3000 >/dev/null 2>&1
+  sleep 6
+  D=$(ab eval 'new Date().toDateString()')
+  echo "$D" | grep -qF 'Sun Sep 27 2026' && break
+  [ "$ATT" = 3 ] && echo "FAIL A0-mock-nao-aterrissou ($D)" && FAIL=$((FAIL+1))
+done
 poke '{}' # NORMALIZA: o done do perfil pode ter resto de QAs anteriores —
           # o poke de B precisa ser uma TRANSIÇÃO de valor (o guard engole
           # valor idêntico — lição 90), senão a fila nunca recomputa.
@@ -105,7 +119,16 @@ ab scrollintoview '#rec-alg-s3-entrega' >/dev/null; sleep 0.5
 ab screenshot scripts/qa93-fila-prazo-mobile390.png >/dev/null && ok G2-shot-mobile
 ab set viewport 1440 900 >/dev/null; sleep 0.5
 
-echo "=== FASE H — higiene e console ==="
+echo "=== FASE H — higiene e console (mock 27/09 de novo: a fase RESTAURADORA também
+herdava o relógio real — a lição 129 chamou isso de 'asserção de restauração
+apodrece'; planta o dia da escrita e a restauração volta a significar) ==="
+for ATT in 1 2 3; do
+  ab close >/dev/null 2>&1; sleep 3
+  ab open --init-script "$MOCKJS93" http://localhost:3000 >/dev/null 2>&1
+  sleep 6
+  D=$(ab eval 'new Date().toDateString()')
+  echo "$D" | grep -qF 'Sun Sep 27 2026' && break
+done
 poke '{}' '{}'
 ab reload >/dev/null; sleep 3
 T=$(ab eval "document.body.innerText")

@@ -21,6 +21,13 @@ import {
   planDayFor,
 } from './math-exam-prep';
 import { daysUntilDate } from './semester';
+import { exercises } from './exercise-extractor';
+
+/** Contagem viva de preparação (o CONTE da S3, 133) — só para contagem. */
+export interface RecoveryProgresso {
+  feito: number;
+  total: number;
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -112,6 +119,9 @@ export interface RecoveryAction {
   /** Percentual do simulado oficial quando o TEXTO lê o registro (o chip da
    *  fila renderiza com COR = SIGNIFICADO: emerald ≥ meta, amber abaixo). */
   pct?: number;
+  /** Contagem viva da preparação (ex.: a S3 conta x/8 resolvidas — 133).
+   *  Só para CONTAGEM (a gramática da 130); registro binário não tem trilho. */
+  progresso?: RecoveryProgresso;
   /** Ação de PRAZO QUE VENCE HOJE (ex.: entrega da S3 no dia do simulado).
    *  A fila tinta o item com a família "é hoje" (amber + pulso no chip) —
    *  a única urgência que a fila inventa é a que tem DATA REAL atrás. */
@@ -141,6 +151,43 @@ const S3_ENTREGA_HOJE: RecoveryAction = {
   linkedMaterial: 'alg-questoes-semana3',
   prazoHoje: true,
 };
+
+/**
+ * O CONTE DA S3 (133): a ação do prazo dizia 'as 8 questões estão no
+ * Praticar; resolva e envie' — mas nunca dizia QUANTAS o aluno já havia
+ * resolvido. Na véspera e no dia da entrega, o número é a pergunta real
+ * ('estou pronto para enviar?'). A contagem lê a MESMA fonte do Praticar
+ * (exerciseProgress — a única verdade de resolução) sobre as questões
+ * amarradas ao material da S3 (linkedMaterials — a MESMA amarra do chip
+ * 'praticar'). Contagem é contagem: trilho fino + x/y no card (a gramática
+ * da 130 — micro-progresso é para CONTAGEM); o registro binário da entrega
+ * continua sendo só o checkbox (recibo não tem meio-caminho).
+ */
+export function s3ProgressoFor(
+  exerciseProgress?: Record<string, { solved?: boolean }> | null,
+): RecoveryProgresso {
+  const qs = exercises.filter((e) => e.linkedMaterials?.includes('alg-questoes-semana3'));
+  const feito = exerciseProgress
+    ? qs.filter((e) => exerciseProgress[e.id]?.solved === true).length
+    : 0;
+  return { feito, total: qs.length };
+}
+
+function s3EntregaActionFor(
+  exerciseProgress?: Record<string, { solved?: boolean }> | null,
+): RecoveryAction {
+  const { feito, total } = s3ProgressoFor(exerciseProgress);
+  if (total === 0) return S3_ENTREGA_HOJE; // sem acervo amarrado, o texto fica como sempre foi
+  const sufixo =
+    feito >= total
+      ? ` — ${feito}/${total} resolvidas: só falta enviar os programas`
+      : ` (${feito}/${total} resolvida${feito === 1 ? '' : 's'})`;
+  return {
+    ...S3_ENTREGA_HOJE,
+    texto: `${S3_ENTREGA_HOJE.texto}${sufixo}`,
+    progresso: { feito, total },
+  };
+}
 
 /**
  * Veredito do SIMULADO OFICIAL para a fila — derivado do MESMO registro que
@@ -498,6 +545,7 @@ export function todayRecoveryActions(
   done: Record<string, boolean> = {},
   realGrades?: Record<string, { grade?: number }> | null,
   simuladoRuns?: SimuladoRunsLike,
+  exerciseProgress?: Record<string, { solved?: boolean }> | null,
 ): { track: RecoveryTrack; action: RecoveryAction }[] {
   const out: { track: RecoveryTrack; action: RecoveryAction }[] = [];
   const daysToExam = daysUntilDate(MATH_EXAM.date);
@@ -518,7 +566,7 @@ export function todayRecoveryActions(
     // entrega não está marcada, o item da trilha alg É o prazo; entregue (ou
     // passado o dia), a trilha volta à primeira ação pendente de sempre.
     if (track.id === 'alg' && daysUntilDate(MATH_SIMULADO_DATE) === 0 && !done[S3_ENTREGA_HOJE.id]) {
-      out.push({ track, action: S3_ENTREGA_HOJE });
+      out.push({ track, action: s3EntregaActionFor(exerciseProgress) });
       continue;
     }
     const action = track.acoes.find((a) => !done[a.id]);

@@ -89,8 +89,14 @@ export function RecoveryCard() {
     [sp.progress.realGrades],
   );
   const todayItems = React.useMemo(
-    () => todayRecoveryActions(done, sp.progress.realGrades, sp.progress.simuladoRuns),
-    [done, sp.progress.realGrades, sp.progress.simuladoRuns],
+    () =>
+      todayRecoveryActions(
+        done,
+        sp.progress.realGrades,
+        sp.progress.simuladoRuns,
+        sp.progress.exerciseProgress,
+      ),
+    [done, sp.progress.realGrades, sp.progress.simuladoRuns, sp.progress.exerciseProgress],
   );
   const allActions = React.useMemo(
     () => RECOVERY_TRACKS.flatMap((t) => t.acoes.map((a) => ({ track: t, action: a }))),
@@ -272,6 +278,32 @@ export function RecoveryCard() {
                           <Badge className="gap-1 border border-amber-500/60 bg-amber-500/15 px-1.5 py-0 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
                             <Clock4 className="size-2.5 animate-pulse" aria-hidden /> prazo hoje
                           </Badge>
+                        )}
+                        {/* O CONTE (133): a preparação é CONTAGEM (x de y questões
+                            resolvidas) — trilho fino + x/y tabular-nums, a MESMA
+                            gramática do micro-progresso da 130. O registro binário
+                            da entrega NÃO tem trilho (o checkbox abaixo é o
+                            recibo; recibo não tem meio-caminho). Some quando
+                            marcada — entregue, a contagem se aposenta com o item. */}
+                        {action.progresso && action.progresso.total > 0 && !isDone && (
+                          <span
+                            className="flex items-center gap-1.5"
+                            title={`${action.progresso.feito} de ${action.progresso.total} questões já resolvidas no Praticar`}
+                          >
+                            <span className="h-0.5 w-10 overflow-hidden rounded-full bg-muted">
+                              <span
+                                className="block h-full rounded-full bg-amber-500/70 transition-all duration-500"
+                                style={{
+                                  width: `${Math.round(
+                                    (action.progresso.feito / action.progresso.total) * 100,
+                                  )}%`,
+                                }}
+                              />
+                            </span>
+                            <span className="tabular-nums text-[9px] font-semibold text-amber-700 dark:text-amber-300">
+                              {action.progresso.feito}/{action.progresso.total}
+                            </span>
+                          </span>
                         )}
                         {/* Chip do veredito do simulado — MESMA gramática do
                             badge da nota real (87): emerald sólido-contorno
