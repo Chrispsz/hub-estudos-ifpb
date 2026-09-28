@@ -126,3 +126,47 @@ qa_mobile_check() {
     qa_bad "mobile ${w}px com overflow (${dims})"
   fi
 }
+
+# ============================================================================
+# LIÇÃO 138 — A ESCRITA FANTASMA (o setItem é CHAMADO e não persiste)
+#
+# A auditoria da 138 provou com matriz 2×2 (real/mock × toggle/run, build
+# PRISTINO, `rm -rf .next` + restart) que DUAS variáveis produzem a MESMA
+# assinatura: o app atualiza o estado (fiber: tried/runs presentes,
+# hydrated=true), o UI funciona, o persist effect RODA e chama setItem —
+# e o storage NÃO recebe nada (ler de volta dá ''/ausente), sem exceção:
+#   (a) mock de Date via `agent-browser open --init-script` (a classe
+#       FD extends Date, padrão das suites) envenena a aba inteira;
+#   (b) o dev server com MUITA idade/sessões acumuladas degrada do mesmo
+#       jeito — TEST1 (toggle) e TEST3 (run) passaram num server recém-
+#       nascido; 40min depois o MESMO código reverteu a falhar (V1).
+# Em produção (Vercel, sem HMR, sem dev-mode) o caminho é o do server
+# novo: o aluno está fora disso. CURA IMEDIATA EM QA: `pkill next; rm -rf
+# .next; restart` — e rodar as asserções de persistência CEDO na vida do
+# server. Nunca confie num 'não persistiu' sem antes reiniciar o server.
+# Consequências para a frota:
+#   1. Suites com --init-script mockando Data NÃO PODEM confiar em escrita
+#      do app no storage durante a sessão mockada (o 'ALL GREEN' das velhas
+#      era cego a isso — nenhuma assertava persistência do run).
+#   2. Padrão SEGURO p/ mockar o dia: abrir SEM init-script, injetar o mock
+#      por eval DEPOIS do mount e despertar com qa_seed '__poke' — o
+#      qa_mock_date abaixo faz isso (retorna o toDateString confirmado).
+#   3. t138 é a SUÍTE-CANÁRIO: verifica persistência real (toggle + run +
+#      reload) sob relógio verdadeiro — se o ambiente apodrecer, ela falha
+#      ALTA em vez de deixar a frota dançando num storage teatro.
+# ============================================================================
+qa_mock_date() { # $1 = ISO datetime — injeção PÓS-mount, nunca init-script
+  agent-browser eval "(function(){var M=new Date('$1').getTime();var RD=Date;function MD(a,b,c,d,e,f,g){if(arguments.length===0)return new RD(M);switch(arguments.length){case 1:return new RD(a);case 2:return new RD(a,b);case 3:return new RD(a,b,c);case 4:return new RD(a,b,c,d);case 5:return new RD(a,b,c,d,e);case 6:return new RD(a,b,c,d,e,f);default:return new RD(a,b,c,d,e,f,g)}}MD.now=function(){return M};MD.parse=RD.parse?function(s){return RD.parse(s)}:undefined;MD.UTC=RD.UTC;MD.prototype=RD.prototype;window.Date=MD;return new Date().toDateString()})()" 2>/dev/null | tr -d '"'
+}
+
+qa_restart_dev() { # a cura da escrita fantasma — mata, limpa .next, sobe novo
+  pkill -f "next dev" 2>/dev/null; pkill -f "next-server" 2>/dev/null
+  sleep 3
+  rm -rf /home/z/my-project/.next
+  ( cd /home/z/my-project && setsid nohup bun run dev >> dev.log 2>&1 < /dev/null & )
+  for _ in $(seq 1 45); do
+    curl -s -o /dev/null --max-time 3 http://localhost:3000 && break
+    sleep 2
+  done
+  curl -s -o /dev/null -w 'server: %{http_code}\n' --max-time 10 http://localhost:3000
+}
