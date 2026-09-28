@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, Camera, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, Camera, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,20 @@ interface TutorQuickPanelProps {
   materialId?: string;
   /** Perguntas prontas exibidas como chips antes da 1ª resposta. */
   suggestions?: string[];
+  /** Cabeçalho próprio (título + limpar) — usado no modo tela dividida,
+   * onde o painel tem coluna exclusiva e precisa se identificar. */
+  showHeader?: boolean;
+  /**
+   * Imagem anexada por FORA (ex.: "Print de página" capturado no próprio
+   * diálogo dividido): entra no mesmo pendingImage dos prints — o tutor
+   * lê a página que está sendo vista SEM abrir o chat principal atrás.
+   * O dono do estado chama onExternalImageConsumed para zerar a fonte.
+   */
+  externalImage?: string | null;
+  onExternalImageConsumed?: () => void;
+  /** Aviso de resposta: a 1ª parte da resposta chegou — o diálogo marca o
+   * ponto não lido na aba Tutor quando o aluno está vendo o PDF no mobile. */
+  onAssistantReply?: () => void;
   className?: string;
 }
 
@@ -60,6 +74,10 @@ export function TutorQuickPanel({
   materialTitle,
   materialId,
   suggestions,
+  showHeader,
+  externalImage,
+  onExternalImageConsumed,
+  onAssistantReply,
   className,
 }: TutorQuickPanelProps) {
   const sp = useStudyProgress();
@@ -90,6 +108,25 @@ export function TutorQuickPanel({
     const id = nextIdRef.current++;
     setMessages((m) => [...m, { ...msg, id }]);
   }, []);
+
+  /** Limpa a conversa efêmera do painel (o aluno recomeça a dúvida). */
+  const clearConversation = () => {
+    setMessages([]);
+    setStreamText(null);
+    notifiedRef.current = false;
+  };
+
+  /** Anexo vindo de FORA do painel (print de página no modo dividido):
+   * entra no MESMO pendingImage dos prints — vida efêmera igual. */
+  React.useEffect(() => {
+    if (externalImage) {
+      setPendingImage(externalImage);
+      onExternalImageConsumed?.();
+    }
+  }, [externalImage, onExternalImageConsumed]);
+
+  /** Notifica "resposta chegou" UMA vez por turno — o ponto da aba Tutor. */
+  const notifiedRef = React.useRef(false);
 
   const defaultSuggestions = React.useMemo(
     () => [
@@ -140,6 +177,7 @@ export function TutorQuickPanel({
     if ((!q && !image) || loading) return;
     setInput('');
     setPendingImage(null);
+    notifiedRef.current = false;
     // Memória da conversa: últimas 12 mensagens sem bolhas de erro — o tutor
     // continua o raciocínio anterior em vez de responder algo desconexo.
     const history = messages
@@ -171,10 +209,18 @@ export function TutorQuickPanel({
         (_piece, full) => {
           setLoading(false);
           setStreamText(full);
+          if (!notifiedRef.current && full.trim()) {
+            notifiedRef.current = true;
+            onAssistantReply?.();
+          }
         },
       );
       appendMessage({ role: 'assistant', content: result.answer, model: result.model, time: hhmm() });
     } catch (err) {
+      if (!notifiedRef.current) {
+        notifiedRef.current = true;
+        onAssistantReply?.();
+      }
       const partial = err instanceof TutorStreamError ? err.partial : '';
       if (partial.trim()) {
         appendMessage({ role: 'assistant', content: partial, time: hhmm() });
@@ -204,6 +250,26 @@ export function TutorQuickPanel({
 
   return (
     <div className={cn('flex min-h-0 flex-col', className)}>
+      {showHeader && (
+        <div className="flex items-center gap-2 border-b bg-muted/30 px-3 py-2">
+          <div className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <Bot className="size-3.5" aria-hidden />
+          </div>
+          <p className="min-w-0 flex-1 truncate text-xs font-medium" aria-hidden>
+            Tutor IA{materialTitle ? ` · ${materialTitle}` : ''}
+          </p>
+          <button
+            type="button"
+            onClick={clearConversation}
+            disabled={loading || messages.length === 0}
+            aria-label="Limpar conversa do painel"
+            title="Limpar conversa do painel"
+            className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+          </button>
+        </div>
+      )}
       <div
         ref={scrollRef}
         role="log"

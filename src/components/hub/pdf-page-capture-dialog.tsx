@@ -21,12 +21,19 @@ interface Props {
   material: Material;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Destino do print: quando fornecido (modo tela dividida), a página entra
+   * no painel do tutor que está AO LADO do PDF — sem abrir o chat principal
+   * por cima. Sem o prop, mantém o comportamento histórico (openTutor →
+   * chat da aba Estudar).
+   */
+  onAttach?: (image: string) => void;
 }
 
 /** Estado de carregamento do documento/página — a UI mostra o que acontece. */
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
-export function PdfPageCaptureDialog({ material, open, onOpenChange }: Props) {
+export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }: Props) {
   const [state, setState] = React.useState<LoadState>('idle');
   const [pageCount, setPageCount] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
@@ -199,11 +206,17 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange }: Props) {
     if (!canvas || !canvas.width || selected === null) return;
     try {
       const image = downscaleCanvas(canvas);
-      openTutor({
-        image,
-        disciplineCode: material.disciplineCode,
-        materialId: material.id,
-      });
+      if (onAttach) {
+        // Modo dividido: o painel do tutor mora AO LADO — o anexo nem sai
+        // do diálogo (o print já nasce do lado de quem vai ler).
+        onAttach(image);
+      } else {
+        openTutor({
+          image,
+          disciplineCode: material.disciplineCode,
+          materialId: material.id,
+        });
+      }
       setAttached(true);
       toast.success(
         `Página ${selected} anexada ao tutor — nada foi salvo no seu computador.`,

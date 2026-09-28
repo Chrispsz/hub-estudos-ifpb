@@ -1598,7 +1598,7 @@ export function StudyView({
 
       {/* ===== Chat IA lateral ===== */}
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>
-        <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
+        <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-lg lg:max-w-xl">
           <SheetHeader className="border-b border-white/10 pr-12">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">

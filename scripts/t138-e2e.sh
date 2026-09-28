@@ -74,14 +74,17 @@ echo "=== [C] O QUICK PANEL do PDF (a superfície onde a dor era REAL) ==="
 agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t.indexOf('Biblioteca')===0){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
 sleep 2
 # biblioteca REFEITA pela 139/140 (agrupada, títulos reescritos): resumo IA
-# da Aula 01 → "Abrir PDF" → Tutor IA — o caminho REAL do aluno hoje
+# da Aula 01 → "Abrir PDF" → Tela dividida (142: o tutor agora mora AO LADO
+# do PDF, com coluna própria — o botão do painel virou o toggle do split)
 agent-browser eval "(function(){var bs=[...document.querySelectorAll('button')];var b=bs.find(function(x){return (x.getAttribute('aria-label')||'').indexOf('resumo IA de Matrizes — Aula 01')>=0});if(!b) return 'no-btn';b.click();return 'ok'})()" >/dev/null 2>&1
 sleep 2
 agent-browser eval "(function(){var d=document.querySelector('[role=dialog]');if(!d) return 'no-dialog';var b=[...d.querySelectorAll('button')].find(function(x){return (x.textContent||'').trim().indexOf('Abrir PDF')>=0});if(!b) return 'no-pdf-btn';b.click();return 'ok'})()" >/dev/null 2>&1
 sleep 3
-TUTOR=$(agent-browser eval "(function(){var dl=[...document.querySelectorAll('[role=dialog]')];for(var i=0;i<dl.length;i++){var t=[...dl[i].querySelectorAll('button')].find(function(x){return (x.textContent||'').indexOf('Tutor IA')>=0});if(t){t.click();return '1'}}return '0'})()" 2>/dev/null | tr -d '"')
+TUTOR=$(agent-browser eval "(function(){var dl=[...document.querySelectorAll('[role=dialog]')];for(var i=0;i<dl.length;i++){var t=[...dl[i].querySelectorAll('button')].find(function(x){return (x.textContent||'').indexOf('Tela dividida')>=0});if(t){t.click();return '1'}}return '0'})()" 2>/dev/null | tr -d '"')
 sleep 2
-[ "$TUTOR" = "1" ] && ok "painel do tutor aberto dentro do diálogo do PDF" || bad "Tutor IA não abriu no diálogo (t=$TUTOR)"
+[ "$TUTOR" = "1" ] && ok "modo tela dividida ligado (tutor AO LADO do PDF — 143)" || bad "Tela dividida não abriu no diálogo (t=$TUTOR)"
+SPLIT=$(agent-browser eval "(function(){var d=[...document.querySelectorAll('[role=dialog]')].find(function(x){return x.querySelector('[data-split-pane=material]')});if(!d) return '0';var p=d.querySelector('[data-split-pane=material]').getBoundingClientRect();var t=d.querySelector('[data-split-pane=tutor]').getBoundingClientRect();var sep=d.querySelector('[role=separator]');var side=p.left<t.left&&p.right<=t.left+2;return (side&&sep)?'1':'0'})()" 2>/dev/null | tr -d '"')
+[ "$SPLIT" = "1" ] && ok "geometria do split: PDF à esquerda, tutor à direita, divisor presente" || bad "geometria do split errada (s=$SPLIT)"
 CAM2=$(agent-browser eval "(function(){var b=[...document.querySelectorAll('[role=dialog] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});return c?'1':'0'})()" 2>/dev/null | tr -d '"')
 [ "$CAM2" = "1" ] && ok "câmera de captura de pé NO DIÁLOGO DO PDF (lendo a lista, captura na hora)" || bad "câmera ausente no quick panel do PDF (cam=$CAM2)"
 agent-browser screenshot scripts/qa138-captura-pdf-dialog.png >/dev/null 2>&1 && ok "screenshot: scripts/qa138-captura-pdf-dialog.png"
