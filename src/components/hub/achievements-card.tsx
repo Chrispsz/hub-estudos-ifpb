@@ -63,6 +63,11 @@ interface Achievement {
   /** Classes quando desbloqueada (tons emerald/teal/amber/violet/rose — sem azul). */
   unlockedClasses: string;
   isUnlocked: (s: AchievementSnapshot) => boolean;
+  /** O progresso contável da rotina (x de y) — só as conquistas de CONTAGEM
+   *  têm; os recibos da semana não têm meio-caminho (ou o registro existe,
+   *  ou não existe — a honestidade da casa). O card de Locked usa para
+   *  mostrar O QUANTO FALTA em vez de só 'bloqueada'. */
+  progressOf?: (s: AchievementSnapshot) => { have: number; need: number };
 }
 
 const ROUTINE_ACHIEVEMENTS: Achievement[] = [
@@ -73,6 +78,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Timer,
     unlockedClasses: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-[0_0_18px_-6px_rgba(16,185,129,0.5)]',
     isUnlocked: (s) => s.totalSessions >= 1,
+    progressOf: (s) => ({ have: s.totalSessions, need: 1 }),
   },
   {
     id: 'ten-sessions',
@@ -81,6 +87,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Medal,
     unlockedClasses: 'border-teal-500/40 bg-teal-500/10 text-teal-400 shadow-[0_0_18px_-6px_rgba(20,184,166,0.5)]',
     isUnlocked: (s) => s.totalSessions >= 10,
+    progressOf: (s) => ({ have: s.totalSessions, need: 10 }),
   },
   {
     id: 'marathon',
@@ -89,6 +96,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Trophy,
     unlockedClasses: 'border-amber-500/40 bg-amber-500/10 text-amber-400 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]',
     isUnlocked: (s) => s.minutesToday >= 120,
+    progressOf: (s) => ({ have: s.minutesToday, need: 120 }),
   },
   {
     id: 'streak-3',
@@ -97,6 +105,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Flame,
     unlockedClasses: 'border-rose-500/40 bg-rose-500/10 text-rose-400 shadow-[0_0_18px_-6px_rgba(244,63,94,0.5)]',
     isUnlocked: (s) => s.streak >= 3,
+    progressOf: (s) => ({ have: s.streak, need: 3 }),
   },
   {
     id: 'topics-10',
@@ -105,6 +114,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: BookCheck,
     unlockedClasses: 'border-violet-500/40 bg-violet-500/10 text-violet-400 shadow-[0_0_18px_-6px_rgba(139,92,246,0.5)]',
     isUnlocked: (s) => s.topicsDone >= 10,
+    progressOf: (s) => ({ have: s.topicsDone, need: 10 }),
   },
   {
     id: 'reader-5',
@@ -113,6 +123,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: BookCheck,
     unlockedClasses: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-[0_0_18px_-6px_rgba(16,185,129,0.5)]',
     isUnlocked: (s) => s.materialsDone >= 5,
+    progressOf: (s) => ({ have: s.materialsDone, need: 5 }),
   },
   {
     id: 'practice-10',
@@ -121,6 +132,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Dumbbell,
     unlockedClasses: 'border-teal-500/40 bg-teal-500/10 text-teal-400 shadow-[0_0_18px_-6px_rgba(20,184,166,0.5)]',
     isUnlocked: (s) => s.exercisesTried >= 10,
+    progressOf: (s) => ({ have: s.exercisesTried, need: 10 }),
   },
   {
     id: 'solver-5',
@@ -129,6 +141,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Award,
     unlockedClasses: 'border-amber-500/40 bg-amber-500/10 text-amber-400 shadow-[0_0_18px_-6px_rgba(245,158,11,0.5)]',
     isUnlocked: (s) => s.exercisesSolved >= 5,
+    progressOf: (s) => ({ have: s.exercisesSolved, need: 5 }),
   },
   {
     id: 'cards-10',
@@ -137,6 +150,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: Layers,
     unlockedClasses: 'border-violet-500/40 bg-violet-500/10 text-violet-400 shadow-[0_0_18px_-6px_rgba(139,92,246,0.5)]',
     isUnlocked: (s) => s.flashcardsTotal >= 10,
+    progressOf: (s) => ({ have: s.flashcardsTotal, need: 10 }),
   },
   {
     id: 'reviews-25',
@@ -145,6 +159,7 @@ const ROUTINE_ACHIEVEMENTS: Achievement[] = [
     icon: BrainCircuit,
     unlockedClasses: 'border-teal-500/40 bg-teal-500/10 text-teal-400 shadow-[0_0_18px_-6px_rgba(20,184,166,0.5)]',
     isUnlocked: (s) => s.flashcardReviews >= 25,
+    progressOf: (s) => ({ have: s.flashcardReviews, need: 25 }),
   },
 ];
 
@@ -186,7 +201,17 @@ const EXAM_ACHIEVEMENTS: Achievement[] = [
 
 const ALL_ACHIEVEMENTS = [...ROUTINE_ACHIEVEMENTS, ...EXAM_ACHIEVEMENTS];
 
-function AchievementCardTile({ a, unlocked, index }: { a: Achievement; unlocked: boolean; index: number }) {
+function AchievementCardTile({
+  a,
+  unlocked,
+  index,
+  progress,
+}: {
+  a: Achievement;
+  unlocked: boolean;
+  index: number;
+  progress?: { have: number; need: number } | null;
+}) {
   const Icon = a.icon;
   return (
     <motion.div
@@ -199,7 +224,13 @@ function AchievementCardTile({ a, unlocked, index }: { a: Achievement; unlocked:
           ? a.unlockedClasses
           : 'border-border/60 bg-muted/20 text-muted-foreground/70',
       )}
-      title={unlocked ? `${a.label} — desbloqueada!` : `${a.description} (bloqueada)`}
+      title={
+        unlocked
+          ? `${a.label} — desbloqueada!`
+          : progress
+            ? `${a.description} — ${progress.have}/${progress.need} (bloqueada)`
+            : `${a.description} (bloqueada)`
+      }
     >
       {unlocked ? (
         <Icon className="size-5" aria-hidden="true" />
@@ -208,6 +239,25 @@ function AchievementCardTile({ a, unlocked, index }: { a: Achievement; unlocked:
       )}
       <span className="text-xs font-semibold leading-tight">{a.label}</span>
       <span className="text-[10px] leading-tight opacity-80">{a.description}</span>
+      {/* O QUANTO FALTA (estilo): locked de CONTAGEM mostra o próprio progresso
+          (x/y tabular-nums + trilho fino tingido da espera amber) — 'bloqueada'
+          sozinha não diz se falta muito ou pouco. Os recibos da semana não têm
+          meio-caminho: sem progressOf, sem barra (a honestidade da casa). */}
+      {!unlocked && progress && (
+        <div className="w-full" aria-hidden="true">
+          <div className="h-0.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-amber-500/40 transition-all duration-500"
+              style={{
+                width: `${Math.min(100, Math.round((progress.have / progress.need) * 100))}%`,
+              }}
+            />
+          </div>
+          <span className="mt-0.5 block text-[9px] tabular-nums text-muted-foreground/80">
+            {progress.have}/{progress.need}
+          </span>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -305,6 +355,7 @@ export function AchievementsCard() {
             a={a}
             index={i}
             unlocked={mounted && a.isUnlocked(snapshot)}
+            progress={mounted && a.progressOf ? a.progressOf(snapshot) : null}
           />
         ))}
       </div>
@@ -329,6 +380,7 @@ export function AchievementsCard() {
             a={a}
             index={i}
             unlocked={mounted && a.isUnlocked(snapshot)}
+            progress={null}
           />
         ))}
       </div>

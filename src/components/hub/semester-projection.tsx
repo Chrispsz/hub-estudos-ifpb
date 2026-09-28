@@ -27,6 +27,7 @@ import {
   disciplineActivityFor,
 } from '@/lib/discipline-activity';
 import { useStudyProgress } from '@/lib/study-progress';
+import { useNow } from './clock-widget';
 
 /** Rótulo de data curto da semana (ex.: "21-27/09"). */
 function weekDateRange(week: number): string {
@@ -56,6 +57,17 @@ export function SemesterProjection() {
   React.useEffect(() => {
     setCurrentWeek(currentWeekOfSemester());
   }, []);
+
+  // O RELÓGIO QUE NÃO DORME (linhagem 115/116/129 — a terceira superfície
+  // curada): a janela de 6 semanas e o gate da reta final viviam em memos
+  // com relógio capturado no mount — aba aberta na virada do dia (ou da
+  // semana) congelava 'faltam N dias' e os marcos da Av1 até um reload.
+  // O tick de 60s alimenta os dois: à meia-noite o gate re-deriva sozinho
+  // (setCurrentWeek com o mesmo valor é no-op — React bail-out).
+  const nowMin = useNow(60_000);
+  React.useEffect(() => {
+    if (nowMin) setCurrentWeek(currentWeekOfSemester(nowMin));
+  }, [nowMin]);
 
   // Próximas 6 semanas (se semana atual = 0 — pré/fim de semestre — mostra as 6 primeiras)
   // Só avaliações com DATA OFICIAL aparecem na projeção (política anti-estimativa).
@@ -108,7 +120,10 @@ export function SemesterProjection() {
   // 'reserve 3 semanas' para começar um tópico novo contradiz o kit da véspera.
   const nextEvalDaysByCode = React.useMemo(() => {
     const map = new Map<string, { name: string; days: number }>();
-    const today = new Date();
+    // nowMin ?? new Date(): antes do mount o contrato da useNow é null (113) —
+    // o fallback mantém o primeiro render idêntico ao comportamento antigo;
+    // depois do mount o tick de 60s re-deriva o gate a cada virada do dia.
+    const today = nowMin ?? new Date();
     for (const e of evaluationPeriods) {
       if (!e.date) continue;
       const target = new Date(`${e.date}T12:00:00`);
@@ -124,7 +139,7 @@ export function SemesterProjection() {
       }
     }
     return map;
-  }, []);
+  }, [nowMin]);
 
   // Sugestões de "comece agora"
   const startNowSuggestions = React.useMemo(() => {
