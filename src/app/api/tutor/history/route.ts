@@ -1,6 +1,12 @@
 // /api/tutor/history — memória das conversas do tutor por disciplina.
 //  GET    ?discipline=TEC.1687 → últimas 40 mensagens (ordem cronológica)
 //  DELETE ?discipline=TEC.1687 → apaga a conversa da disciplina ("Nova conversa")
+//  DELETE ?discipline=TEC.1687&after=ISO → apaga SÓ o que nasceu depois do
+//         instante dado — a vassoura cirúrgica dos E2E (t147): o script
+//         anota o relógio antes de mandar a pergunta de teste e se limpa
+//         no fim, sem tocar UMA linha da memória real do aluno. Sem `after`
+//         o DELETE continua apagando a disciplina inteira (é o que o botão
+//         "Nova conversa" da casa espera).
 
 import { db } from '@/lib/db';
 import { normalizeMath } from '@/lib/sanitize-latex';
@@ -50,7 +56,23 @@ export async function DELETE(req: Request) {
     if (!discipline) {
       return Response.json({ error: 'Parâmetro discipline obrigatório.' }, { status: 400 });
     }
-    const del = await db.tutorMessage.deleteMany({ where: { discipline } });
+    // Vassoura cirúrgica (t147): `after` recorta a janela de teste. Data
+    // inválida → 400 alto (NUNCA interpretar lixo como "apagar tudo").
+    const afterRaw = new URL(req.url).searchParams.get('after');
+    let after: Date | null = null;
+    if (afterRaw) {
+      const d = new Date(afterRaw);
+      if (Number.isNaN(d.getTime())) {
+        return Response.json(
+          { error: 'after inválido — use ISO 8601 (ex.: 2026-09-29T12:00:00.000Z).' },
+          { status: 400 },
+        );
+      }
+      after = d;
+    }
+    const del = await db.tutorMessage.deleteMany({
+      where: { discipline, ...(after ? { createdAt: { gt: after } } : {}) },
+    });
     return Response.json({ deleted: del.count });
   } catch (err) {
     // Sem banco → "nada a limpar" (a UI apenas reseta a conversa local).

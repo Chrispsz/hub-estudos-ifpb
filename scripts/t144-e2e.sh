@@ -98,6 +98,10 @@ VTTEXT=$(echo "$VT" | cut -d'|' -f2-)
 [ "$VTTEXT" = "Material $VTNOW% · Tutor $((100 - VTNOW))%" ] && ok "aria-valuetext = 'Material N% · Tutor M%' (número cru virou fala)" || bad "aria-valuetext diverge (now=$VTNOW text='$VTTEXT')"
 
 echo "=== [D] O FIO SOBREVIVE AO FECHAR (a cura central da t144) ==="
+# VASSOURA CIRÚRGICA (t147): anota o relógio ANTES da pergunta de teste —
+# no fim o script apaga SÓ o que nasceu depois, e a memória real do aluno
+# (mesma disciplina no banco compartilhado) fica intocada.
+PRE_TURN=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 Q='pergunta de sobrevivencia t144: o que sao matrizes simetricas?'
 TYPEOUT=$(agent-browser type '[data-split-pane=tutor] textarea' "$Q" 2>&1)
 VAL=$(agent-browser eval "(function(){var ta=document.querySelector('[data-split-pane=tutor] textarea');return ta?ta.value:'no-ta'})()" 2>/dev/null | tr -d '"\\')
@@ -149,6 +153,9 @@ CONSOLE=$(qa_console_errors)
 agent-browser screenshot scripts/qa144-thread-survives.png >/dev/null 2>&1 && ok "screenshot: scripts/qa144-thread-survives.png"
 agent-browser close >/dev/null 2>&1
 ok "sessão fechada — a frota segue limpa"
+# HIGIENE (t147): a pergunta de teste NÃO fica no histórico real do aluno.
+SWEEP=$(curl -s -X DELETE "http://localhost:3000/api/tutor/history?discipline=TEC.1984&after=$PRE_TURN" --max-time 15 2>/dev/null | grep -o '"deleted":[0-9]*' | cut -d: -f2)
+[ -n "$SWEEP" ] && [ "$SWEEP" -ge 2 ] && ok "histórico limpo após o teste (after=$PRE_TURN → ${SWEEP:-0} msgs de QA apagadas)" || bad "vassoura não confirmou a limpeza (deleted='$SWEEP')"
 
 echo ""
 if [ "$FAIL" = "0" ]; then

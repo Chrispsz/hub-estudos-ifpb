@@ -77,6 +77,10 @@ open_chat
 
 echo "=== [3] O ENVIO REGISTRA (fonte única, no momento do envio) ==="
 BEFORE=$(mat_progress)
+# VASSOURA CIRÚRGICA (t147): anota o relógio antes do envio — o cleanup do
+# fim apaga SÓ a janela de teste (o DELETE completo daqui APAGAVA a memória
+# real do aluno em TEC.1687 junto).
+PRE_TURN=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 agent-browser eval "(function(){var ta=document.querySelector('textarea[aria-label=\"Sua pergunta para o tutor\"]');if(!ta) return 'no-textarea';var set=Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set;set.call(ta,'Me explica o que é um vetor com um exemplo');ta.dispatchEvent(new Event('input',{bubbles:true}));return 'filled';})()" >/dev/null 2>&1
 agent-browser eval "(function(){var b=document.querySelector('button[aria-label=\"Enviar mensagem\"]');if(!b) return 'no-send';b.click();return 'sent';})()" >/dev/null 2>&1
 sleep 2
@@ -106,7 +110,17 @@ agent-browser screenshot scripts/qa123-tutor-registra-desktop.png >/dev/null 2>&
 
 echo "=== [5] HIGIENE + CONSOLE (sessão nova, sem mock) ==="
 agent-browser eval "(function(){var k='hub-estudos-ifpb:v2';var p=JSON.parse(localStorage.getItem(k)||'{}');delete p.materialProgress;var s=JSON.stringify(p);localStorage.setItem(k,s);return 'mat-clean';})()" >/dev/null 2>&1
-curl -s -X DELETE "http://localhost:3000/api/tutor/history?discipline=TEC.1687" >/dev/null 2>&1
+# HIGIENE (t147): só a janela de teste morre — a memória real sobrevive.
+# O turno persiste NO FIM do stream (saveTurn pós-resposta): esperar a
+# mensagem chegar ao histórico ANTES de varrer (varredura cedo = 0 apagado
+# e o turno de teste vazando depois).
+for i in $(seq 1 40); do
+  N=$(curl -s "http://localhost:3000/api/tutor/history?discipline=TEC.1687" --max-time 10 2>/dev/null | grep -o '"role"' | wc -l)
+  [ "$N" -ge 2 ] && break
+  sleep 1
+done
+SWEEP=$(curl -s -X DELETE "http://localhost:3000/api/tutor/history?discipline=TEC.1687&after=$PRE_TURN" --max-time 15 2>/dev/null | grep -o '"deleted":[0-9]*' | cut -d: -f2)
+[ -n "$SWEEP" ] && [ "$SWEEP" -ge 2 ] && ok "histórico limpo após o teste (vassoura: ${SWEEP:-0} msgs de teste, after=$PRE_TURN)" || bad "vassoura não confirmou a limpeza (deleted='$SWEEP')"
 agent-browser close 2>/dev/null
 sleep 1
 agent-browser open http://localhost:3000 >/dev/null 2>&1
