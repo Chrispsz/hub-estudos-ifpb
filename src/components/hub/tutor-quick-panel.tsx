@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, Camera, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, Camera, Check, Copy, CornerDownLeft, Download, ImagePlus, Lightbulb, Loader2, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import {
 import { CaptureCropDialog } from './capture-crop-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
+import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import {
   clearThread,
   loadThread,
@@ -112,7 +113,13 @@ export function TutorQuickPanel({
   );
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
-  /** Resposta em streaming (painel efêmero — não persiste no banco). */
+  /**
+   * Resposta em streaming. VERDADE DO TUBO (descoberta na t149): o turno do
+   * painel PASSA pelo mesmo POST /api/tutor e É salvo no histórico da
+   * disciplina — a dúvida com material é estudo (t123) e reaparece no chat
+   * principal. O que é efêmero é só o CACHE de reidratação do painel
+   * (thread-cache de sessão); o banco guarda a memória longa da disciplina.
+   */
   const [streamText, setStreamText] = React.useState<string | null>(null);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [pendingImage, setPendingImage] = React.useState<string | null>(null);
@@ -135,6 +142,15 @@ export function TutorQuickPanel({
   React.useEffect(() => setScreenOk(screenCaptureSupported()), []);
   /** Modo dica: tutor socrático — pistas antes da solução completa. */
   const [hintMode, setHintMode] = React.useState(false);
+  // t149: feedback visual do "copiar" — a resposta copiada vira ✓ copiado por 2s.
+  const [copiedId, setCopiedId] = React.useState<number | null>(null);
+  const copyTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(
+    () => () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
 
   // Anexa mensagem com id único (sequência do módulo — sobrevive à remontagem).
   const appendMessage = React.useCallback((msg: Omit<ChatMessage, 'id'>) => {
@@ -292,11 +308,37 @@ export function TutorQuickPanel({
     }
   }
 
-  /** Copia o texto completo de uma resposta do tutor (pra colar no caderno). */
-  const copyAnswer = (text: string) => {
+  /** Baixa a conversa do painel em .md (t149): o fio do painel é EFÊMERO —
+   * morre no recarregar da página (t144) — e o download é a ÚNICA forma de
+   * levar a explicação embora. Mesmo formato do chat principal (fonte única). */
+  const exportPanelChat = () => {
+    try {
+      downloadTextFile(
+        `tutor-painel-${(disciplineCode || discipline).toLowerCase()}-${new Date()
+          .toISOString()
+          .slice(0, 10)}.md`,
+        buildChatMarkdown(
+          `Conversa com o Tutor — ${materialTitle || discipline} (painel dividido)`,
+          messages,
+        ),
+      );
+      toast.success('Conversa do painel baixada — o painel não guarda histórico ao recarregar.');
+    } catch {
+      toast.error('Não consegui baixar a conversa agora.');
+    }
+  };
+
+  /** Copia o texto completo de uma resposta do tutor (pra colar no caderno).
+   * O botão responde na hora (✓ copiado, 2s) — o toast continua confirmando. */
+  const copyAnswer = (text: string, id: number) => {
     navigator.clipboard
       .writeText(text)
-      .then(() => toast.success('Resposta copiada.'))
+      .then(() => {
+        setCopiedId(id);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
+        toast.success('Resposta copiada.');
+      })
       .catch(() => toast.error('Não consegui copiar agora.'));
   };
 
@@ -310,6 +352,16 @@ export function TutorQuickPanel({
           <p className="min-w-0 flex-1 truncate text-xs font-medium" aria-hidden>
             Tutor IA{materialTitle ? ` · ${materialTitle}` : ''}
           </p>
+          <button
+            type="button"
+            onClick={exportPanelChat}
+            disabled={messages.length === 0}
+            aria-label="Baixar conversa do painel"
+            title="Baixar conversa do painel em Markdown — o painel não guarda histórico ao recarregar"
+            className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Download className="size-3.5" aria-hidden />
+          </button>
           <button
             type="button"
             onClick={clearConversation}
@@ -401,7 +453,7 @@ export function TutorQuickPanel({
                     <img
                       src={m.image}
                       alt="Print anexado à dúvida"
-                      className="mt-2 max-h-40 rounded-lg"
+                      className="mt-2 max-h-40 rounded-lg border border-white/20"
                     />
                   )}
                   {m.time && <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>}
@@ -424,13 +476,22 @@ export function TutorQuickPanel({
                     {!m.error && (
                       <button
                         type="button"
-                        onClick={() => copyAnswer(m.content)}
+                        onClick={() => copyAnswer(m.content, m.id)}
                         aria-label="Copiar resposta"
                         title="Copiar resposta"
-                        className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
+                        className={cn(
+                          'flex items-center gap-1 text-[10px] transition-colors',
+                          copiedId === m.id
+                            ? 'text-emerald-500 dark:text-emerald-400'
+                            : 'text-muted-foreground/60 hover:text-foreground',
+                        )}
                       >
-                        <Copy className="size-3" />
-                        copiar
+                        {copiedId === m.id ? (
+                          <Check className="size-3" />
+                        ) : (
+                          <Copy className="size-3" />
+                        )}
+                        {copiedId === m.id ? 'copiado' : 'copiar'}
                       </button>
                     )}
                   </div>

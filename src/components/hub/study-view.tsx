@@ -7,7 +7,9 @@ import {
   BookOpen,
   CalendarCheck,
   Camera,
+  Check,
   CheckCircle2,
+  ClipboardList,
   Clock,
   Clock3,
   Code2,
@@ -82,6 +84,7 @@ import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
 import { buildHubContext } from '@/lib/tutor-context';
+import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
@@ -422,6 +425,15 @@ export function StudyView({
   );
   /** Texto da resposta em streaming (bubble viva). null = nada em transmissão. */
   const [streamText, setStreamText] = React.useState<string | null>(null);
+  // t149: feedback visual do "copiar" — a resposta copiada vira ✓ copiado por 2s.
+  const [copiedMsg, setCopiedMsg] = React.useState<number | null>(null);
+  const copyTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(
+    () => () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
   /** Modo dica: tutor socrático — pistas antes da solução completa (estudo real). */
   const [chatHints, setChatHints] = React.useState(false);
 
@@ -1165,37 +1177,40 @@ export function StudyView({
     }).catch(() => {});
   };
 
-  /** Baixa a conversa em .md — o aluno arquiva no caderno/documento de estudos. */
+  /** Baixa a conversa em .md — o aluno arquiva no caderno/documento de estudos.
+   * O formato é o mesmo do painel dividido (t149: uma só fonte da verdade). */
   const exportChat = () => {
-    const lines = messages
-      .filter((m) => !m.content.startsWith('⚠️'))
-      .map((m) => {
-        const who = m.role === 'user' ? '**Você**' : `**Tutor**${m.model ? ` (${m.model})` : ''}`;
-        const when = m.time ? ` — ${m.time}` : '';
-        return `${who}${when}\n\n${m.content}\n`;
-      });
-    const header = `# Conversa com o Tutor — ${discipline.name}\n\nExportado do Hub de Estudos em ${new Date().toLocaleDateString('pt-BR')}\n\n---\n\n`;
     try {
-      const blob = new Blob([header + lines.join('\n---\n\n')], {
-        type: 'text/markdown;charset=utf-8',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tutor-${disciplineCode.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.md`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadTextFile(
+        `tutor-${disciplineCode.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.md`,
+        buildChatMarkdown(`Conversa com o Tutor — ${discipline.name}`, messages),
+      );
       toast.success('Conversa baixada em Markdown.');
     } catch {
       toast.error('Não consegui baixar a conversa agora.');
     }
   };
 
-  /** Copia o texto completo de uma resposta do tutor (pra colar no caderno). */
-  const copyAnswer = (text: string) => {
+  /** Copia a conversa INTEIRA (t149) — pra colar no caderno, no grupo de
+   * estudos ou no documento, sem depender de arquivo. */
+  const copyConversation = () => {
+    navigator.clipboard
+      .writeText(buildChatMarkdown(`Conversa com o Tutor — ${discipline.name}`, messages))
+      .then(() => toast.success('Conversa copiada — cola no caderno, no grupo ou no documento.'))
+      .catch(() => toast.error('Não consegui copiar agora.'));
+  };
+
+  /** Copia o texto completo de uma resposta do tutor (pra colar no caderno).
+   * O botão responde na hora (✓ copiado, 2s) — o toast confirma sozinho. */
+  const copyAnswer = (text: string, index: number) => {
     navigator.clipboard
       .writeText(text)
-      .then(() => toast.success('Resposta copiada — cola no caderno ou no documento.'))
+      .then(() => {
+        setCopiedMsg(index);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopiedMsg(null), 2000);
+        toast.success('Resposta copiada — cola no caderno ou no documento.');
+      })
       .catch(() => toast.error('Não consegui copiar agora.'));
   };
 
@@ -1731,6 +1746,19 @@ export function StudyView({
               >
                 <Download className="size-4" />
               </Button>
+              {/* t149: a análise da prova também cabe no grupo de estudos —
+                  copiar a conversa inteira sem depender de arquivo. */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0"
+                onClick={copyConversation}
+                disabled={messages.length <= 1}
+                aria-label="Copiar conversa"
+                title="Copiar a conversa inteira (pra colar no caderno, no grupo ou no documento)"
+              >
+                <ClipboardList className="size-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1779,7 +1807,7 @@ export function StudyView({
                         <img
                           src={m.image}
                           alt="Print anexado à dúvida"
-                          className="mt-2 max-h-44 rounded-lg"
+                          className="mt-2 max-h-44 rounded-lg border border-white/20"
                         />
                       )}
                       {m.time && (
@@ -1806,13 +1834,22 @@ export function StudyView({
                         {m.content.length > 80 && !m.error && (
                           <button
                             type="button"
-                            onClick={() => copyAnswer(m.content)}
+                            onClick={() => copyAnswer(m.content, i)}
                             aria-label="Copiar resposta"
                             title="Copiar resposta"
-                            className="flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground"
+                            className={cn(
+                              'flex items-center gap-1 text-[10px] transition-colors',
+                              copiedMsg === i
+                                ? 'text-emerald-500 dark:text-emerald-400'
+                                : 'text-muted-foreground/60 hover:text-foreground',
+                            )}
                           >
-                            <Copy className="size-3" />
-                            copiar
+                            {copiedMsg === i ? (
+                              <Check className="size-3" />
+                            ) : (
+                              <Copy className="size-3" />
+                            )}
+                            {copiedMsg === i ? 'copiado' : 'copiar'}
                           </button>
                         )}
                       </div>
@@ -1829,7 +1866,7 @@ export function StudyView({
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10">
                   <Bot className="size-4 text-emerald-400" />
                 </div>
-                <div className="max-w-[85%] rounded-xl bg-muted px-3 py-2 text-sm text-foreground">
+                <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-border/60 bg-muted px-3 py-2 text-sm text-foreground shadow-sm">
                   <TutorMarkdown content={streamText} enableCards disciplineCode={discipline.code} />
                   <span
                     className="mt-1 inline-block h-3 w-1.5 animate-pulse rounded-sm bg-emerald-400 align-middle"
