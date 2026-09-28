@@ -3,69 +3,71 @@
   "conceitos_chave": [
     {
       "conceito": "Matriz",
-      "explicacao": "Arranjo retangular de números dispostos em linhas e colunas, representado por $A = (a_{ij})_{m \\times n}$, onde $m$ é o número de linhas e $n$ o número de colunas.",
-      "exemplo": "$A = [[1, 2], [3, 4]]$ é uma matriz $2 \\times 2$"
+      "explicacao": "Arranjo retangular de números dispostos em linhas e colunas, representado por (a_{ij})_{m×n}, onde m é o número de linhas e n o número de colunas.",
+      "exemplo": "A = [[1, 2], [3, 4]] é uma matriz 2×2"
     },
     {
-      "conceito": "Elemento de uma matriz",
-      "explicacao": "Cada número dentro de uma matriz, identificado por sua posição $a_{ij}$, onde $i$ é o índice da linha e $j$ o índice da coluna.",
-      "exemplo": "Na matriz $A = [[1, 2], [3, 4]]$, $a_{12} = 2$"
-    },
-    {
-      "conceito": "Matriz quadrada",
-      "explicacao": "Matriz com o mesmo número de linhas e colunas ($m = n$).",
-      "exemplo": "$A = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]$ é uma matriz $3 \\times 3$"
-    },
-    {
-      "conceito": "Matriz identidade",
-      "explicacao": "Matriz quadrada com elementos na diagonal principal iguais a 1 e os demais iguais a 0, denotada por $I_n$.",
-      "exemplo": "$I_2 = [[1, 0], [0, 1]]$"
+      "conceito": "Elemento de matriz",
+      "explicacao": "Cada número a_{ij} localizado na i-ésima linha e j-ésima coluna da matriz.",
+      "exemplo": "Na matriz [[1, 2], [3, 4]], o elemento a_{12} é 2"
     },
     {
       "conceito": "Matriz transposta",
-      "explicacao": "Matriz obtida trocando linhas por colunas de uma matriz original, denotada por $A^t$.",
-      "exemplo": "Se $A = [[1, 2], [3, 4]]$, então $A^t = [[1, 3], [2, 4]]$"
+      "explicacao": "Matriz obtida trocando linhas por colunas da matriz original, denotada por A^t ou A'.",
+      "exemplo": "Se A = [[1, 2], [3, 4]], então A^t = [[1, 3], [2, 4]]"
+    },
+    {
+      "conceito": "Matriz nula",
+      "explicacao": "Matriz onde todos os elementos são zero, denotada por 0_{m×n}.",
+      "exemplo": "0_{2×2} = [[0, 0], [0, 0]]"
+    },
+    {
+      "conceito": "Matriz identidade",
+      "explicacao": "Matriz quadrada com elementos na diagonal principal iguais a 1 e os demais iguais a 0, denotada por I_n.",
+      "exemplo": "I_2 = [[1, 0], [0, 1]]"
     },
     {
       "conceito": "Matriz simétrica",
-      "explicacao": "Matriz quadrada que é igual à sua transposta, ou seja, $A = A^t$.",
-      "exemplo": "$A = [[1, 2], [2, 3]]$ é simétrica"
+      "explicacao": "Matriz quadrada onde a_{ij} = a_{ji} para todos i, j, ou seja, A = A^t.",
+      "exemplo": "A = [[1, 2], [2, 3]] é simétrica"
     },
     {
       "conceito": "Matriz antissimétrica",
-      "explicacao": "Matriz quadrada onde $a_{ij} = -a_{ji}$ para todos $i, j$ e os elementos da diagonal principal são zero.",
-      "exemplo": "$A = [[0, -2], [2, 0]]$ é antissimétrica"
+      "explicacao": "Matriz quadrada onde a_{ij} = -a_{ji} para todos i, j, com elementos da diagonal principal nulos.",
+      "exemplo": "A = [[0, -2], [2, 0]] é antissimétrica"
     },
     {
-      "conceito": "Matriz inversa",
-      "explicacao": "Matriz $A^{-1}$ tal que $A \\cdot A^{-1} = I_n$, onde $I_n$ é a matriz identidade.",
-      "exemplo": "Se $A = [[1, 2], [3, 4]]$, então $A^{-1} = [[-2, 1], [1.5, -0.5]]$"
+      "conceito": "Matriz diagonal",
+      "explicacao": "Matriz quadrada onde todos os elementos fora da diagonal principal são nulos.",
+      "exemplo": "A = [[2, 0], [0, 3]] é diagonal"
     },
     {
-      "conceito": "Soma de matrizes",
-      "explicacao": "Operação que soma elementos correspondentes de matrizes de mesma ordem, resultando em uma nova matriz $C = A + B$ onde $c_{ij} = a_{ij} + b_{ij}$.",
-      "exemplo": "Se $A = [[1, 2], [3, 4]]$ e $B = [[5, 6], [7, 8]]$, então $A + B = [[6, 8], [10, 12]]$"
+      "conceito": "Inversa de matriz",
+      "explicacao": "Matriz A^{-1} tal que AA^{-1} = A^{-1}A = I_n, onde A é uma matriz quadrada inversível."
     }
   ],
   "pontos_importantes": [
-    "Construção de matrizes com elementos definidos por fórmulas (exercícios 1-5)",
-    "Operações básicas com matrizes: soma, subtração, multiplicação por escalar (exercícios 7-11, 12)",
-    "Cálculo de matrizes transpostas, simétricas e antissimétricas (exercícios 26-29)",
-    "Multiplicação de matrizes e potenciação (exercícios 17-19, 24)",
-    "Cálculo de matrizes inversas e resolução de equações matriciais (exercícios 31-35)",
-    "Verificação de comutatividade entre matrizes (exercícios 23-24)"
+    "Construção de matrizes com elementos definidos por fórmulas (exercícios 1-4)",
+    "Operações com matrizes: soma, subtração, multiplicação por escalar (exercícios 7-11, 12)",
+    "Multiplicação de matrizes (exercícios 17-19)",
+    "Matrizes transpostas, simétricas e antissimétricas (exercícios 26-29)",
+    "Resolução de sistemas de equações matriciais (exercícios 15-16, 21)",
+    "Cálculo de matrizes inversas e aplicações (exercícios 31-35)",
+    "Propriedades de potências de matrizes (exercício 19)"
   ],
   "erros_comuns": [
-    "Confundir a ordem das matrizes ao realizar operações (ex: somar matrizes de ordens diferentes)",
-    "Esquecer que a multiplicação de matrizes não é comutativa (AB ≠ BA na maioria dos casos)",
-    "Calcular incorretamente a matriz transposta, invertendo apenas a diagonal principal"
+    "Confundir a ordem das matrizes na multiplicação (número de colunas da primeira deve ser igual ao número de linhas da segunda)",
+    "Esquecer que a igualdade de matrizes exige que todos os elementos correspondentes sejam iguais",
+    "Não verificar se as matrizes são quadradas ao calcular potências ou inversas",
+    "Confundir as propriedades de matrizes com as de números reais (ex: não há comutatividade na multiplicação)"
   ],
   "formulas_regras": [
-    "Matriz $A = (a_{ij})_{m \\times n}$, onde $m$ é o número de linhas e $n$ o número de colunas",
-    "Soma de matrizes: $C = A + B$, onde $c_{ij} = a_{ij} + b_{ij}$",
-    "Multiplicação por escalar: $k \\cdot A$, onde cada elemento é multiplicado por $k$",
-    "Multiplicação de matrizes: $C = A \\cdot B$, onde $c_{ij} = \\sum_{k=1}^{n} a_{ik} \\cdot b_{kj}$",
-    "Matriz inversa: $A \\cdot A^{-1} = I_n$",
-    "Matriz transposta: $(A^t)_{ij} = A_{ji}$"
+    "Matriz A = (a_{ij})_{m×n} tem m linhas e n colunas",
+    "Matriz transposta: (A^t)_{ij} = A_{ji}",
+    "Soma de matrizes: (A + B)_{ij} = A_{ij} + B_{ij}",
+    "Multiplicação por escalar: (kA)_{ij} = k·A_{ij}",
+    "Multiplicação de matrizes: (AB)_{ij} = Σ_{k=1}^{n} A_{ik}·B_{kj}",
+    "Matriz inversa: A·A^{-1} = A^{-1}·A = I_n",
+    "Distância entre matrizes: d(A,B) = máx|a_{ij} - b_{ij}|"
   ]
 }

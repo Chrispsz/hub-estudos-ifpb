@@ -71,12 +71,15 @@ TA=$(agent-browser eval "(function(){var ta=document.querySelector('textarea[ari
 close_chat
 
 echo "=== [C] O QUICK PANEL do PDF (a superfície onde a dor era REAL) ==="
-agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Biblioteca'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
+agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t.indexOf('Biblioteca')===0){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
 sleep 2
-# abre o PDF da lista de matrizes pelo botão "Abrir" da linha dela
-agent-browser eval "(function(){var rows=[...document.querySelectorAll('li,div')];for(var i=0;i<rows.length;i++){var r=rows[i];if(r.textContent&&r.textContent.indexOf('Matrizes — Aula 01')>=0&&r.textContent.length<400){var bs=[...r.querySelectorAll('button')];var ab=bs.find(function(x){var t=(x.textContent||'').trim();return t.indexOf('Abrir')===0||t==='PDF'});if(ab){ab.click();return 'ok'}}}return 'no-row'})()" >/dev/null 2>&1
+# biblioteca REFEITA pela 139/140 (agrupada, títulos reescritos): resumo IA
+# da Aula 01 → "Abrir PDF" → Tutor IA — o caminho REAL do aluno hoje
+agent-browser eval "(function(){var bs=[...document.querySelectorAll('button')];var b=bs.find(function(x){return (x.getAttribute('aria-label')||'').indexOf('resumo IA de Matrizes — Aula 01')>=0});if(!b) return 'no-btn';b.click();return 'ok'})()" >/dev/null 2>&1
+sleep 2
+agent-browser eval "(function(){var d=document.querySelector('[role=dialog]');if(!d) return 'no-dialog';var b=[...d.querySelectorAll('button')].find(function(x){return (x.textContent||'').trim().indexOf('Abrir PDF')>=0});if(!b) return 'no-pdf-btn';b.click();return 'ok'})()" >/dev/null 2>&1
 sleep 3
-TUTOR=$(agent-browser eval "(function(){var b=[...document.querySelectorAll('[role=dialog] button')];var t=b.find(function(x){return (x.textContent||'').indexOf('Tutor IA')>=0});if(!t) return '0';t.click();return '1'})()" 2>/dev/null | tr -d '"')
+TUTOR=$(agent-browser eval "(function(){var dl=[...document.querySelectorAll('[role=dialog]')];for(var i=0;i<dl.length;i++){var t=[...dl[i].querySelectorAll('button')].find(function(x){return (x.textContent||'').indexOf('Tutor IA')>=0});if(t){t.click();return '1'}}return '0'})()" 2>/dev/null | tr -d '"')
 sleep 2
 [ "$TUTOR" = "1" ] && ok "painel do tutor aberto dentro do diálogo do PDF" || bad "Tutor IA não abriu no diálogo (t=$TUTOR)"
 CAM2=$(agent-browser eval "(function(){var b=[...document.querySelectorAll('[role=dialog] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});return c?'1':'0'})()" 2>/dev/null | tr -d '"')
@@ -91,10 +94,13 @@ if grep -q "a_{ij}" public/data/material-texts/mat-01-matrizes.txt; then
 else
   bad "mat-01-matrizes ainda sem a_{ij} (re-ingestão incompleta?)"
 fi
-if grep -qE "pmatrix|bmatrix" public/data/material-texts/mat-01-matrizes.txt; then
-  ok "matrizes em LaTeX de verdade (pmatrix/bmatrix — não escombros de parênteses)"
+# CONCILIAÇÃO 138×139: a notação final do acervo é LINEAR ([[linha], [linha]]) —
+# decisão da 139, adotada pelo pipeline da 138 (o linearize roda DENTRO da
+# re-ingestão). A asserção chega à INTENÇÃO: a geometria da matriz sobreviveu.
+if grep -qE "\[\[[0-9a-z]" public/data/material-texts/mat-01-matrizes.txt; then
+  ok "matrizes ÍNTEGRAS na notação linear ([[linha], [linha]] — geometria sobreviveu)"
 else
-  bad "mat-01-matrizes sem matrizes LaTeX"
+  bad "mat-01-matrizes sem matriz linear legível"
 fi
 if grep -q "\[página " public/data/material-texts/mat-logica-lista.txt; then
   ok "lista de lógica com marcadores de página (o tutor pode citar a página)"
