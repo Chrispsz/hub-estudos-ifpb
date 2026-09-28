@@ -90,7 +90,7 @@ export function SemesterProjection() {
     () => getAllDisciplinesTopics(sp.progress.topicProgress),
     [sp.progress.topicProgress],
   );
-  // O PROGRESSO QUE SE REGISTRA SOZINHO (117): a prévia lê a MESMA fonte do
+  // O PROGRESSO QUE SE REGISTRA SOZINHO (118): a prévia lê a MESMA fonte do
   // painel (discipline-activity) — a barra por disciplina passa a medir o
   // ACOMPANHAMENTO DO DADO (material-first) e o selo nunca diz 'atrasada':
   // em dia / em estudo / sem registro. Os checkboxes manuais seguem visíveis
@@ -390,7 +390,7 @@ export function SemesterProjection() {
         <div className="space-y-2">
           {topicSummaries.map((s) => {
             const color = getColorClasses(s.discipline.color);
-            // FONTE ÚNICA (117): a mesma atividade real do painel — barra mede
+            // FONTE ÚNICA (118): a mesma atividade real do painel — barra mede
             // acompanhamento do dado; sem material registrado, sem régua (a
             // barra some em vez de exibir 0%).
             const act = activityByCode.get(s.discipline.code) ?? null;

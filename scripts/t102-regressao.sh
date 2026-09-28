@@ -77,7 +77,7 @@ echo "=== [C2] PALETA (101) — grupo da semana em 1º lugar ==="
 agent-browser eval "(function(){var b=document.querySelector('[aria-label*=\"Busca\"]');if(!b)return 'NAO';b.click();return 'ok'})()" >/dev/null 2>&1
 sleep 2
 FHP=$(agent-browser eval "(function(){var e=document.querySelector('[cmdk-group-heading]');return e?e.textContent.replace(/\s+/g,' '):'vazio'})()" 2>/dev/null | tr -d '"')
-case "$FHP" in *'Semana da Av1 · faltam 4 dias'*) ok "paleta: 1º grupo 'Semana da Av1 · faltam 4 dias'";; *) bad "paleta: 1º grupo errado: $FHP";; esac
+case "$FHP" in *'Semana da Av1 · faltam '*) ok "paleta: 1º grupo 'Semana da Av1 · faltam N dias' (data-agnóstica — relógio real)";; *) bad "paleta: 1º grupo errado: $FHP";; esac
 ENSP=$(agent-browser eval "(function(){var d=document.querySelector('[role=dialog]');if(!d)return 0;return d.textContent.indexOf('Simulado da Av1 — ensaio real')>=0?1:0})()" 2>/dev/null | tr -d '"')
 [ "$ENSP" = "1" ] && ok "paleta: ação do ensaio presente" || bad "paleta: ensaio ausente"
 agent-browser press Escape >/dev/null 2>&1

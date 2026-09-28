@@ -378,7 +378,7 @@ export function StudyView({
     () => getDisciplineTopics(disciplineCode, sp.progress.topicProgress),
     [disciplineCode, sp.progress.topicProgress],
   );
-  // ATIVIDADE REAL POR UNIDADE (116): o que o aluno JÁ FAZ — abrir material,
+  // ATIVIDADE REAL POR UNIDADE (118): o que o aluno JÁ FAZ — abrir material,
   // tentar questão — vira evidência visível no checklist. Fonte única:
   // discipline-activity (a mesma do painel; zero segunda fonte).
   const unitActivity = React.useMemo(() => {
@@ -1412,7 +1412,7 @@ export function StudyView({
                       Próximo: <span className="text-foreground">{topicsSummary.nextTopic}</span>
                     </p>
                   )}
-                  {/* A RESPOSTA À PERGUNTA DO DONO (116): "em que momento marco
+                  {/* A RESPOSTA À PERGUNTA DO DONO (118): "em que momento marco
                       esses tópicos?" — o critério didático fica visível, e a
                       linha de atividade prova que o fluxo real (abrir material,
                       resolver questão) já é registrado sozinho. */}
@@ -1456,7 +1456,7 @@ export function StudyView({
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <h4 className="text-sm font-medium leading-snug">{unit.name}</h4>
                           <div className="flex shrink-0 items-center gap-1.5">
-                            {/* EVIDÊNCIA VISÍVEL (116): unidade com atividade real
+                            {/* EVIDÊNCIA VISÍVEL (118): unidade com atividade real
                                 ganha o selo 'em estudo' (a família da espera —
                                 amber, sem pulso: não é prazo) — o aluno vê que o
                                 site acompanhou o que ele já fez. */}
@@ -1506,7 +1506,7 @@ export function StudyView({
                             </label>
                           ))}
                         </div>
-                        {/* A PROVA DO ACOMPANHAMENTO (116): a evidência da sua
+                        {/* A PROVA DO ACOMPANHAMENTO (118): a evidência da sua
                             própria atividade — materiais abertos, questões
                             tentadas, quando foi a última vez. Mudo quando a
                             unidade nunca foi dada nem tocada (nada a acusar). */}

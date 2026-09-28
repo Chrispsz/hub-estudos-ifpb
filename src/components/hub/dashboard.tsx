@@ -147,7 +147,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
 
   // KPIs V3 adicionais
   const totalTopicsDone = countTotalTopicsDone(sp.progress.topicProgress);
-  // O FLUXO REAL CONTA (116): disciplinas com atividade nos últimos 7 dias —
+  // O FLUXO REAL CONTA (118): disciplinas com atividade nos últimos 7 dias —
   // derivado da MESMA fonte dos cards de avaliação (discipline-activity).
   // Antes: 'Disciplinas em dia' media checkboxes manuais e ficava em 0 para
   // o aluno que aprende abrindo material — ruído que ele aprendeu a ignorar.
@@ -159,7 +159,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
 
   // Linhas derivadas das próximas avaliações (memoizado) — o nowMin entra
   // como chave: virou o dia, a linha recalcula no mesmo frame (lição 79).
-  // O PROGRESSO QUE SE REGISTRA SOZINHO (116): a barra e o selo leem a
+  // O PROGRESSO QUE SE REGISTRA SOZINHO (118): a barra e o selo leem a
   // ATIVIDADE REAL (materiais abertos + questões tentadas, fonte única
   // discipline-activity) — não os checkboxes manuais que ninguém marca.
   // Selo honesto: 'em dia' acompanhou o dado · 'em estudo' tem atividade ·
@@ -522,10 +522,11 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                     {e.description}
                   </p>
                   <div className="mt-2 flex items-center gap-2">
-                    {/* A barra mede ACOMPANHAMENTO DO DADO (116): do conteúdo dado
+                    {/* A barra mede ACOMPANHAMENTO DO DADO (118): do conteúdo dado
                         em aula, o quanto já foi tocado pela atividade real.
-                        Sem material registrado não há régua — a barra some em vez
-                        de mostrar 0% (zero medido ≠ zero esforço). */}
+                        Só some quando NADA foi dado (régua inexistente) — com
+                        conteúdo dado e zero atividade, 0% + 'sem registro' é
+                        honesto e aponta o caminho sem acusar. */}
                     {pct !== null && (
                       <div
                         className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
@@ -541,7 +542,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                         />
                       </div>
                     )}
-                    {/* Selo honesto (116): em dia = acompanhou o dado (emerald);
+                    {/* Selo honesto (118): em dia = acompanhou o dado (emerald);
                         em estudo = tem atividade sua (a família da espera, amber,
                         sem pulso — não é prazo); sem registro = neutro, SEM
                         acusação — a palavra 'atrasada' saiu do painel. */}

@@ -169,9 +169,9 @@ def main() -> int:
             "selo 'sem registro' ausente",
         )
         check(
-            row_bar(page, "TEC.1984-Av1") == "NOBAR",
-            "Av1 SEM barra (nenhum material registrado = sem régua; zero medido ≠ zero esforço)",
-            f"Av1 mostra barra sem régua: {row_bar(page, 'TEC.1984-Av1')}",
+            row_bar(page, "TEC.1984-Av1") == "BAR0",
+            "Av1 barra honesta em 0% (conteúdo dado existe, atividade zero — aponta o caminho sem acusar)",
+            f"Av1 barra errada: {row_bar(page, 'TEC.1984-Av1')}",
         )
         check(
             row_badge(page, "TEC.1984-Av1").startswith("sem registro"),
