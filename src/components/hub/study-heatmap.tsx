@@ -2,10 +2,26 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { CalendarClock, CalendarDays, Flame, Sparkles } from 'lucide-react';
+import {
+  Bot,
+  CalendarClock,
+  CalendarDays,
+  Flame,
+  MousePointerClick,
+  Play,
+  Printer,
+  Sparkles,
+  Target,
+  type LucideIcon,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { PomodoroSession } from '@/lib/study-progress';
-import { examWeekMilestoneFor, type ExamWeekMilestone } from '@/lib/math-exam-prep';
+import {
+  MATH_EXAM,
+  examWeekMilestoneFor,
+  type ExamWeekMilestone,
+} from '@/lib/math-exam-prep';
+import { openMethod, openSimulado, openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 
 const DAY_MS = 86_400_000;
@@ -66,6 +82,65 @@ function milestoneCellClass(kind: ExamWeekMilestone['kind']): { ring: string; em
         ring: 'ring-1 ring-amber-500/70',
         empty: 'bg-amber-500/15',
       };
+}
+
+/**
+ * PORTA DO MARCO — cada marco abre a ação que JÁ existe no app (as mesmas
+ * portas do kit e da paleta — zero caminho novo, zero fonte nova): preparo
+ * vira sessão de Método com o tema do dia, simulado inicia o Simulado Pro
+ * com o preset da Av1, véspera abre a Folha de Revisão (o momento clássico
+ * de imprimir) e prova manda a pergunta do kit para o tutor (o kit mora no
+ * dashboard e a aba Progresso não tem porta para ele — o tutor leva o kit
+ * até o aluno com o BASE que já o conhece).
+ */
+interface MarcoDoor {
+  icon: LucideIcon;
+  /** Ação curta exibida no chip (após o '·'). */
+  acao: string;
+  /** Descrição para o aria-label (o que o clique faz de verdade). */
+  aria: string;
+  run: (m: ExamWeekMilestone) => void;
+}
+
+const PROVA_KIT_QUESTION =
+  'Estou no dia da prova da Av1 de Matemática — me dê o kit do dia: o que revisar agora, as fórmulas essenciais e a meta.';
+
+function marcoDoorFor(kind: ExamWeekMilestone['kind']): MarcoDoor {
+  switch (kind) {
+    case 'simulado':
+      return {
+        icon: Play,
+        acao: 'iniciar o simulado',
+        aria: 'abre o Simulado Pro da Av1 no Praticar',
+        run: () => openSimulado({ preset: 'math_exam' }),
+      };
+    case 'vespera':
+      return {
+        icon: Printer,
+        acao: 'abrir a folha',
+        aria: 'abre a Folha de Revisão em nova aba',
+        run: () => window.open('/folha-revisao', '_blank', 'noopener,noreferrer'),
+      };
+    case 'prova':
+      return {
+        icon: Bot,
+        acao: 'kit com o tutor',
+        aria: 'abre o tutor com a pergunta do kit do dia da prova',
+        run: () =>
+          openTutor({ question: PROVA_KIT_QUESTION, disciplineCode: MATH_EXAM.disciplineCode }),
+      };
+    default:
+      return {
+        icon: Target,
+        acao: 'abrir no Método',
+        aria: 'abre uma sessão de Método com o tema do dia',
+        run: (m) =>
+          openMethod({
+            topic: `${m.titulo}${m.subtitulo ? ` — ${m.subtitulo}` : ''}`,
+            disciplineCode: MATH_EXAM.disciplineCode,
+          }),
+      };
+  }
 }
 
 export function StudyHeatmap({
@@ -230,6 +305,57 @@ export function StudyHeatmap({
               <Sparkles className="size-3.5 shrink-0 text-emerald-500" aria-hidden="true" />
               Nenhuma sessão de foco registrada ainda — conclua um Pomodoro na aba Estudar para começar a pintar o mapa.
             </p>
+          )}
+          {/* PORTAS DA SEMANA — um clique por marco (só hoje/futuro: a porta
+              fecha com o dia passado; a história fica no tooltip). Fila FORA do
+              role="img" (a grade é imagem para leitores de tela; os botões têm
+              que existir fora dela para o AT alcançar). Gramática da casa:
+              família amber/rose, HOJE = sólido + pulso (a 114). */}
+          {mounted && hasMilestones && !examWeekPast && (
+            <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <MousePointerClick className="size-3 text-emerald-500" aria-hidden="true" />
+                A semana em ações — um clique por marco
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {weekMilestones
+                  .filter((m) => m.date >= todayKey)
+                  .map((m) => {
+                    const door = marcoDoorFor(m.kind);
+                    const Icon = door.icon;
+                    const isToday = m.date === todayKey;
+                    const rose = m.kind === 'prova';
+                    return (
+                      <button
+                        key={m.kind}
+                        type="button"
+                        onClick={() => door.run(m)}
+                        aria-label={`${m.titulo} (${shortDate(m.date)}) — ${door.aria}`}
+                        title={`${m.titulo} • ${door.aria}`}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] tabular-nums transition-all duration-100',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-1 focus-visible:ring-offset-card active:scale-[0.97]',
+                          isToday
+                            ? rose
+                              ? 'bg-rose-500 text-white shadow-[0_0_6px_-1px_rgba(244,63,94,0.7)]'
+                              : 'bg-amber-500 text-amber-950 shadow-sm'
+                            : rose
+                              ? 'border border-rose-500/35 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400'
+                              : 'border border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400',
+                        )}
+                      >
+                        <Icon
+                          className={cn('size-3', isToday && 'animate-pulse')}
+                          aria-hidden="true"
+                        />
+                        <span className="font-medium">{m.titulo}</span>
+                        <span className={cn('opacity-70', !isToday && 'font-medium')}>{shortDate(m.date)}</span>
+                        <span className="hidden text-[10px] opacity-60 sm:inline">· {door.acao}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
           )}
           <motion.div
             initial={{ opacity: 0, y: 6 }}

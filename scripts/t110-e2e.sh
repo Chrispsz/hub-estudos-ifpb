@@ -3,12 +3,14 @@
 # superfície do app cujo TRABALHO é desenhar o calendário (18 semanas de
 # dias reais) e era a única superfície de calendário cega à semana da Av1:
 # 29/09 (ensaio) e 01/10 (prova) eram células tracejadas mudas idênticas a
-# qualquer dia futuro. Este E2E verifica: [A] data real D-4 = marcos no mapa
+# qualquer dia futuro. Este E2E verifica: [A] mock D-4 = marcos no mapa
 # (células com anel da família + título real + chip do topo + legenda +
 # aria); [B] D-3 = preparo é HOJE (anel amber, 'hoje' no título) e o kit da
 # véspera segue de pé em casa; [C] D-0 = prova é HOJE (rose + brilho);
 # [D] pós-prova = chip cala, anéis ficam como história; [E] mobile 390;
-# [F] higiene zero + console 0.
+# [F] higiene zero + console 0. (117: [A] agora é MOCK-ancorado — a asserção
+# 'Dom, 27 set' era data-real e apodrecia no dia seguinte; mock devolve o
+# determinismo sem tocar nas asserções.)
 set -u
 cd /home/z/my-project
 
@@ -73,10 +75,12 @@ aria_map() {
   agent-browser eval "(function(){var el=document.querySelector('div[role=\"img\"]');return el?el.getAttribute('aria-label'):''})()" 2>/dev/null | tr -d '"'
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): marcos no mapa ==="
+echo "=== [A] MOCK D-4 (dom 27/09): marcos no mapa (ancorado no mock — 117) ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
+mock_date '2026-09-27T20:00:00' >/dev/null; poke
+go_home; sleep 1
 go_progress || bad "não chegou no Progresso"
 sleep 1
 

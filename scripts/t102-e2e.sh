@@ -51,9 +51,14 @@ disc_combo() {
   agent-browser eval "(function(){var e=document.querySelector('[role=combobox]');return e?e.textContent.replace(/\s+/g,' ').slice(0,60):'sem-combo'})()" 2>/dev/null | tr -d '"'
 }
 
-echo "=== [A] Data real (dom 27/09, D-4): faixa + tema do plano a 1 clique ==="
+echo "=== [A] Mock D-4 (dom 27/09, ancorado — 117): faixa + tema do plano a 1 clique ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1; sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 2
+# (lição 117) mock ANTES do nav + poke para re-render — NUNCA reload (o patch
+# de window.Date mora no contexto da página e o reload o mata)
+mock_date '2026-09-27T20:00:00' >/dev/null
+agent-browser eval "(function(){var k='hub-estudos-ifpb:v2';var p=JSON.parse(localStorage.getItem(k)||'{}');p.__poke=((p.__poke||0)+1);var s=JSON.stringify(p);localStorage.setItem(k,s);window.dispatchEvent(new StorageEvent('storage',{key:k,newValue:s}));return 'poked'})()" >/dev/null 2>&1
+sleep 1
 GM=$(go_metodo)
 [ "$GM" = "ok" ] && ok "aba Método aberta" || bad "não achei o nav Método"
 FAIXA=$(has 'Semana da Av1 · faltam 4 dias')

@@ -87,13 +87,17 @@ go_tutor() { # (t102-regressao [B]) o tutor abre da aba 'Estudar' → botão 'Ti
   return 1
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): sanity ==="
+echo "=== [A] MOCK FORA DA JANELA (20/09, ancorado — 117): sanity ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 sleep 2
+# (lição 117) a data REAL apodrece: o kit da véspera É para existir no D-3
+# (kit 109) — o 'ausente' só é verdade fora da semana. Mock fixo fora da
+# janela devolve o determinismo (mock+poke, NUNCA reload).
+mock_date '2026-09-20T20:00:00' >/dev/null; poke; sleep 1
 KIT=$(has 'Kit da véspera')
-[ "$KIT" = "0" ] && ok "data real D-4: kit ausente" || bad "data real: kit presente fora da janela"
+[ "$KIT" = "0" ] && ok "fora da janela (20/09): kit ausente" || bad "fora da janela: kit presente"
 
 echo "=== [B] MOCK 29/09 (D-2) SEM run: a manhã da espera ==="
 echo "  $(mock_date '2026-09-29T09:00:00')"; poke
