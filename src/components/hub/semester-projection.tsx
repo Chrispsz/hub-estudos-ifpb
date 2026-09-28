@@ -4,6 +4,7 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
+  CalendarClock,
   Flag,
   Layers,
   Lightbulb,
@@ -11,14 +12,20 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
+  disciplines,
   evaluationPeriods,
   getDisciplineByCode,
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
+import { examWeekMilestoneFor, type ExamWeekMilestone } from '@/lib/math-exam-prep';
 import { cn } from '@/lib/utils';
 import { currentWeekOfSemester, daysUntilDate, weekStartDate } from '@/lib/semester';
 import { getAllDisciplinesTopics } from '@/lib/study-topics';
+import {
+  activityBadgeFor,
+  disciplineActivityFor,
+} from '@/lib/discipline-activity';
 import { useStudyProgress } from '@/lib/study-progress';
 
 /** Rótulo de data curto da semana (ex.: "21-27/09"). */
@@ -27,6 +34,20 @@ function weekDateRange(week: number): string {
   const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
   const fmt = (d: Date) => `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
   return `${fmt(start)}–${fmt(end)}`;
+}
+
+/** Rótulo curto do marco (a família do mapa da 110: preparo/ensaio/véspera = amber, prova = rose). */
+function milestoneChipLabel(kind: ExamWeekMilestone['kind']): string {
+  switch (kind) {
+    case 'preparo':
+      return 'preparo';
+    case 'simulado':
+      return 'ensaio';
+    case 'vespera':
+      return 'véspera';
+    case 'prova':
+      return 'prova';
+  }
 }
 
 export function SemesterProjection() {
@@ -38,12 +59,24 @@ export function SemesterProjection() {
 
   // Próximas 6 semanas (se semana atual = 0 — pré/fim de semestre — mostra as 6 primeiras)
   // Só avaliações com DATA OFICIAL aparecem na projeção (política anti-estimativa).
+  // Os MARCOS da semana da Av1 (preparo/ensaio/véspera/prova) vêm da FONTE ÚNICA
+  // (examWeekMilestoneFor — a mesma voz da Agenda e do mapa da 110): o simulado
+  // não é avaliação oficial, então a semana do ensaio era invisível aqui.
   const { weeks, criticalWeeks } = React.useMemo(() => {
     const base = currentWeek > 0 ? currentWeek : 1;
     const nextWeeks = Array.from({ length: 6 }, (_, i) => {
       const week = base + i;
       const evals = evaluationPeriods.filter((e) => e.date && e.estimatedWeek === week);
-      return { week, evals };
+      // Marcos da Av1 dentro dos 7 dias da semana (dia LOCAL — a fonte compara
+      // o dia local e weekStartDate já devolve dias locais; sem conversão).
+      const weekStart = weekStartDate(week);
+      const milestones: ExamWeekMilestone[] = [];
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(weekStart.getTime() + d * 24 * 60 * 60 * 1000);
+        const m = examWeekMilestoneFor(day);
+        if (m) milestones.push(m);
+      }
+      return { week, evals, milestones };
     });
     return {
       weeks: nextWeeks,
@@ -57,20 +90,69 @@ export function SemesterProjection() {
     () => getAllDisciplinesTopics(sp.progress.topicProgress),
     [sp.progress.topicProgress],
   );
+  // O PROGRESSO QUE SE REGISTRA SOZINHO (118): a prévia lê a MESMA fonte do
+  // painel (discipline-activity) — a barra por disciplina passa a medir o
+  // ACOMPANHAMENTO DO DADO (material-first) e o selo nunca diz 'atrasada':
+  // em dia / em estudo / sem registro. Os checkboxes manuais seguem visíveis
+  // como contagem N/M (marcados por você) — honestos sobre a própria natureza.
+  const activityByCode = React.useMemo(() => {
+    const map = new Map<string, ReturnType<typeof disciplineActivityFor>>();
+    for (const d of disciplines) {
+      map.set(d.code, disciplineActivityFor(d.code, sp.progress));
+    }
+    return map;
+  }, [sp.progress]);
+
+  // A PRÓXIMA AVALIAÇÃO DATADA de cada disciplina (fonte única: course-data) —
+  // o gate da reta final: a 7 dias da prova da PRÓPRIA disciplina, sugerir
+  // 'reserve 3 semanas' para começar um tópico novo contradiz o kit da véspera.
+  const nextEvalDaysByCode = React.useMemo(() => {
+    const map = new Map<string, { name: string; days: number }>();
+    const today = new Date();
+    for (const e of evaluationPeriods) {
+      if (!e.date) continue;
+      const target = new Date(`${e.date}T12:00:00`);
+      const days = Math.ceil(
+        (new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime() -
+          new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) /
+          (24 * 60 * 60 * 1000),
+      );
+      if (days < 0) continue; // já passou — não é a prova que o aluno encara
+      const prev = map.get(e.disciplineCode);
+      if (!prev || days < prev.days) {
+        map.set(e.disciplineCode, { name: e.evaluationName, days });
+      }
+    }
+    return map;
+  }, []);
 
   // Sugestões de "comece agora"
   const startNowSuggestions = React.useMemo(() => {
-    const suggestions: { discipline: ReturnType<typeof getDisciplineByCode>; topic: string; reason: string }[] = [];
+    const suggestions: {
+      discipline: ReturnType<typeof getDisciplineByCode>;
+      topic: string;
+      reason: string;
+      examDays?: number;
+      examName?: string;
+    }[] = [];
 
     // Para Matemática - Funções (precisa de 3 semanas)
     const mat = topicSummaries.find((s) => s.discipline.code === 'TEC.1984');
     if (mat) {
       const funcoesUnit = mat.units.find((u) => u.name.includes('Funções'));
       if (funcoesUnit && !funcoesUnit.done) {
+        // A RETA FINAL MANDA: a 7 dias da Av1, 'reserve 3 semanas' contradiz o
+        // kit (sem conteúdo novo) — a sugestão vira aliada da semana.
+        const nextEval = nextEvalDaysByCode.get('TEC.1984');
+        const gated = nextEval !== undefined && nextEval.days <= 7;
         suggestions.push({
           discipline: mat.discipline,
           topic: 'Funções',
-          reason: 'Tópico complexo, reserve 3 semanas para dominar.',
+          reason: gated
+            ? `${nextEval.name} ${nextEval.days === 0 ? 'é hoje' : `em ${nextEval.days} ${nextEval.days === 1 ? 'dia' : 'dias'}`} — sem conteúdo novo agora; Funções volta depois da prova.`
+            : 'Tópico complexo, reserve 3 semanas para dominar.',
+          examDays: gated ? nextEval.days : undefined,
+          examName: gated ? nextEval.name : undefined,
         });
       }
     }
@@ -99,7 +181,7 @@ export function SemesterProjection() {
       }
     }
     return suggestions.slice(0, 3);
-  }, [topicSummaries]);
+  }, [topicSummaries, nextEvalDaysByCode]);
 
   return (
     <div className="space-y-4">
@@ -187,12 +269,46 @@ export function SemesterProjection() {
                           </p>
                           <p className="text-xs font-medium leading-snug">{e.evaluationName}</p>
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
-                            {days > 0 ? `Em ${days} dias` : 'esta semana'}
+                            {/* A semana chegou: 'esta semana' virava mentira nos
+                                dois lados — o dia 0 É hoje, e o passado não é
+                                'esta semana' (a data passada diz o que é). */}
+                            {days > 0
+                              ? `Em ${days} dias`
+                              : days === 0
+                                ? 'é hoje!'
+                                : days < 0
+                                  ? 'data passada'
+                                  : 'esta semana'}
                           </p>
                         </li>
                       );
                     })}
                   </ul>
+                )}
+                {/* Os marcos da semana da Av1 (fonte única, a voz do mapa da 110):
+                    o ensaio não é avaliação oficial — sem esta linha, a semana
+                    do simulado era invisível na prévia. */}
+                {w.milestones.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-border/40 pt-2">
+                    <CalendarClock className="size-3 shrink-0 text-amber-500/80" aria-hidden="true" />
+                    {w.milestones.map((m) => {
+                      const isProva = m.kind === 'prova';
+                      return (
+                        <span
+                          key={m.kind}
+                          className={cn(
+                            'rounded border px-1 py-0.5 text-[9px] leading-none tabular-nums',
+                            isProva
+                              ? 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                              : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                          )}
+                          title={`${m.titulo} — ${m.detalhe}`}
+                        >
+                          {milestoneChipLabel(m.kind)} {m.date.slice(8, 10)}
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
               </Card>
             </motion.div>
@@ -228,8 +344,11 @@ export function SemesterProjection() {
                 <div
                   key={i}
                   className={cn(
-                    'rounded-md border-l-4 bg-muted/30 p-3',
+                    'rounded-md border-l-4 p-3',
                     color.border,
+                    // A reta final em vista: a tinta da espera (amber) — a
+                    // sugestão virou aliada da semana, não competidora do kit.
+                    s.examDays !== undefined ? 'bg-amber-500/10' : 'bg-muted/30',
                   )}
                 >
                   <div className="flex items-center gap-2">
@@ -245,6 +364,14 @@ export function SemesterProjection() {
                     <p className={cn('text-xs font-semibold', color.text)}>
                       {s.discipline?.shortName}
                     </p>
+                    {s.examDays !== undefined && (
+                      <Badge
+                        variant="outline"
+                        className="ml-auto border-amber-500/30 bg-amber-500/10 text-[9px] tabular-nums text-amber-600 dark:text-amber-400"
+                      >
+                        reta final
+                      </Badge>
+                    )}
                   </div>
                   <p className="mt-1.5 text-sm font-medium">{s.topic}</p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">{s.reason}</p>
@@ -263,34 +390,61 @@ export function SemesterProjection() {
         <div className="space-y-2">
           {topicSummaries.map((s) => {
             const color = getColorClasses(s.discipline.color);
+            // FONTE ÚNICA (118): a mesma atividade real do painel — barra mede
+            // acompanhamento do dado; sem material registrado, sem régua (a
+            // barra some em vez de exibir 0%).
+            const act = activityByCode.get(s.discipline.code) ?? null;
+            const badge = act ? activityBadgeFor(act) : null;
             return (
-              <div key={s.discipline.code} className="flex items-center gap-3 text-xs">
+              <div
+                key={s.discipline.code}
+                data-activity-row={s.discipline.code}
+                className="flex items-center gap-3 text-xs"
+              >
                 <span className={cn('size-2.5 shrink-0 rounded-full', color.dot)} />
                 <span className="w-32 shrink-0 truncate font-medium">
                   {s.discipline.shortName}
                 </span>
-                <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                {act?.pctAcompanha != null ? (
                   <div
-                    className={cn('h-full rounded-full transition-all', color.bgSolid)}
-                    style={{ width: `${s.progress}%` }}
-                  />
-                </div>
-                <span className="w-20 shrink-0 text-right text-muted-foreground">
+                    className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={act.pctAcompanha}
+                    aria-label={`Acompanha ${act.pctAcompanha}% do conteúdo dado em aula`}
+                  >
+                    <div
+                      className={cn('h-full rounded-full transition-all', color.bgSolid)}
+                      style={{ width: `${act.pctAcompanha}%` }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-2 flex-1" />
+                )}
+                <span
+                  className="w-20 shrink-0 text-right text-muted-foreground"
+                  title="Tópicos marcados por você na aba Estudo (o resto o Hub registra sozinho)"
+                >
                   {s.doneTopics}/{s.totalTopics}
                 </span>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'shrink-0 border text-[9px]',
-                    s.isComplete
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400'
-                      : s.progress >= 50
-                        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400'
-                        : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400',
-                  )}
-                >
-                  {s.isComplete ? '✓' : s.progress >= 50 ? 'em dia' : 'atrasada'}
-                </Badge>
+                {badge && (
+                  <Badge
+                    variant="outline"
+                    title={badge.title}
+                    className={cn(
+                      'shrink-0 border text-[9px]',
+                      badge.tone === 'dia' &&
+                        'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
+                      badge.tone === 'estudo' &&
+                        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400',
+                      badge.tone === 'registro' &&
+                        'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-400',
+                    )}
+                  >
+                    {s.isComplete ? '✓' : badge.label}
+                  </Badge>
+                )}
               </div>
             );
           })}

@@ -42,6 +42,8 @@ import {
 } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
+import { daysUntilDate } from '@/lib/semester';
+import { MATH_EXAM, MATH_SCOPE_MATERIALS } from '@/lib/math-exam-prep';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { VideoPlayerDialog } from './video-player-dialog';
@@ -150,6 +152,16 @@ export function MaterialsList() {
   const handleOpenPdf = React.useCallback((m: Material) => setPdfFor(m), []);
   const handleWatch = React.useCallback((m: Material) => setVideoMaterial(m), []);
 
+  // Semana da Av1 nas linhas: os 4 materiais do escopo ganham o badge 'escopo
+  // Av1' dentro da janela do plano (D-7 → D-0) — a lista é a FONTE ÚNICA
+  // (MATH_SCOPE_MATERIALS, a mesma da faixa do topo). Render-time puro.
+  const examScopeIds = React.useMemo(
+    () => new Set(MATH_SCOPE_MATERIALS.map((m) => m.id)),
+    [],
+  );
+  const examWindowActive =
+    daysUntilDate(MATH_EXAM.date) >= 0 && daysUntilDate(MATH_EXAM.date) <= 7;
+
   return (
     <div className="space-y-4">
       <div>
@@ -200,6 +212,7 @@ export function MaterialsList() {
                   key={m.id}
                   material={m}
                   status="recent"
+                  examScope={examWindowActive && examScopeIds.has(m.id)}
                   onOpen={handleOpen}
                   onOpenPdf={handleOpenPdf}
                   onWatch={handleWatch}
@@ -224,6 +237,7 @@ export function MaterialsList() {
                   key={m.id}
                   material={m}
                   status="completed"
+                  examScope={examWindowActive && examScopeIds.has(m.id)}
                   onOpen={handleOpen}
                   onOpenPdf={handleOpenPdf}
                   onWatch={handleWatch}
@@ -299,6 +313,7 @@ export function MaterialsList() {
                               key={m.id}
                               material={m}
                               status={status}
+                              examScope={examWindowActive && examScopeIds.has(m.id)}
                               onOpen={handleOpen}
                               onOpenPdf={handleOpenPdf}
                               onWatch={handleWatch}
@@ -360,6 +375,7 @@ export function MaterialsList() {
                           key={m.id}
                           material={m}
                           status={status}
+                          examScope={examWindowActive && examScopeIds.has(m.id)}
                           onOpen={handleOpen}
                           onOpenPdf={handleOpenPdf}
                           onWatch={handleWatch}
@@ -420,12 +436,15 @@ function EmptyState({
 const MaterialRow = React.memo(function MaterialRow({
   material,
   status,
+  examScope,
   onOpen,
   onOpenPdf,
   onWatch,
 }: {
   material: Material;
   status: MaterialStatus;
+  /** Dentro da janela da Av1: o material pertence ao escopo da prova. */
+  examScope?: boolean;
   onOpen: (m: Material) => void;
   onOpenPdf: (m: Material) => void;
   onWatch: (m: Material) => void;
@@ -445,6 +464,15 @@ const MaterialRow = React.memo(function MaterialRow({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium leading-tight">{material.title}</p>
           {statusBadge}
+          {examScope && (
+            <Badge
+              variant="outline"
+              title="Material do escopo da Av1 (01/10) — a prova é feita disto"
+              className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-300"
+            >
+              escopo Av1
+            </Badge>
+          )}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
           <Badge variant="outline" className="border-border text-muted-foreground">

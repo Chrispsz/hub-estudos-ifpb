@@ -1,27 +1,43 @@
 'use client';
 
 import * as React from 'react';
-import { Download, GraduationCap, Moon, Sun } from 'lucide-react';
+import { CalendarClock, CircleCheck, Download, GraduationCap, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ClockWidget } from './clock-widget';
+import { ClockWidget, useNow } from './clock-widget';
 import { DownloadsDialog } from './downloads-dialog';
 import { PaletteTriggerButton } from './command-palette';
-import { getNextEvaluation } from '@/lib/semester';
+import { daysUntilDate, getNextEvaluation } from '@/lib/semester';
 import { CURRENT_PERIOD_LABEL } from '@/lib/curriculum';
+import { cn } from '@/lib/utils';
+import { MATH_SIMULADO_DATE, findMathSimuladoRunOficial } from '@/lib/math-exam-prep';
+import { useStudyProgress } from '@/lib/study-progress';
 
 export function Header({ activeTab }: { activeTab?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
-  const [nextEval, setNextEval] = React.useState<ReturnType<typeof getNextEvaluation>>(null);
   const [downloadsOpen, setDownloadsOpen] = React.useState(false);
+  // O badge persistente precisa conhecer o REGISTRO do simulado oficial —
+  // senão na noite de terça (29/09) seguiria gritando "É hoje" com a prova
+  // já feita (o mesmo vício que a rodada 80 matou nos marcos do card).
+  const sp = useStudyProgress();
+  // FONTE ÚNICA (85): o mesmo registro lido pelo hero e pelo card da prova.
+  const runOficialHeader = React.useMemo(
+    () => findMathSimuladoRunOficial(sp.progress.simuladoRuns),
+    [sp.progress.simuladoRuns],
+  );
 
+  // O TICK ÚNICO (113/115): o badge do header lê o useNow (60s) — o
+  // setInterval próprio saiu (mais um loop a menos no mundo); o contrato
+  // null-até-mount continua o mesmo (o servidor não sabe a hora).
+  const nowTick = useNow(60_000);
+  const nextEval = React.useMemo(
+    () => (nowTick ? getNextEvaluation(nowTick) : null),
+    [nowTick],
+  );
   React.useEffect(() => {
     setMounted(true);
-    setNextEval(getNextEvaluation());
-    const id = setInterval(() => setNextEval(getNextEvaluation()), 60_000);
-    return () => clearInterval(id);
   }, []);
 
   const toggleTheme = React.useCallback(() => {
@@ -47,14 +63,79 @@ export function Header({ activeTab }: { activeTab?: string }) {
           <PaletteTriggerButton />
           {/* O hero do Dashboard já mostra a próxima avaliação — evita duplicar a informação */}
           {nextEval && activeTab !== 'dashboard' && (
-            <Badge
-              variant="outline"
-              className="hidden border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300 lg:inline-flex"
-            >
-              {nextEval.daysLeft}d → {nextEval.name} ({nextEval.disciplineShort})
-            </Badge>
+            <>
+              {/* SIMULADO (29/09) — o marco mais próximo também no badge
+                  persistente (mesma janela do hero: nasce a 7 dias, sai no
+                  dia seguinte). Estados honestos com a MESMA família visual
+                  do hero/marcos: emerald "feito ✓" / âmbar sólido "É hoje" /
+                  contorno "amanhã" / contorno "em N dias". Render-time
+                  (lição da 79): reage a mock de relógio no mesmo frame. */}
+              {(() => {
+                const dias = daysUntilDate(MATH_SIMULADO_DATE);
+                if (dias < 0 || dias > 7) return null;
+                const feito = dias === 0 && !!runOficialHeader;
+                if (feito) {
+                  return (
+                    <Badge
+                      aria-label="Simulado da Av1 de hoje já foi feito"
+                      title="O Simulado da Av1 de hoje já foi feito — a correção comentada está no painel"
+                      className="hidden border-emerald-600 bg-emerald-600 text-white shadow-md shadow-emerald-600/30 lg:inline-flex dark:border-emerald-500 dark:bg-emerald-500 dark:text-white"
+                    >
+                      <CircleCheck className="mr-1 size-3" aria-hidden />
+                      Simulado feito ✓
+                    </Badge>
+                  );
+                }
+                return (
+                  <Badge
+                    aria-label={
+                      dias === 0
+                        ? 'Hoje é o dia do Simulado da Av1 e da entrega S3 de Algoritmos'
+                        : dias === 1
+                          ? 'Amanhã é o dia do Simulado da Av1'
+                          : `Simulado da Av1 em ${dias} dias`
+                    }
+                    title={
+                      dias === 0
+                        ? 'Hoje: Simulado da Av1 + entrega S3 de Algoritmos'
+                        : dias === 1
+                          ? 'Amanhã: Simulado da Av1 + entrega S3 de Algoritmos'
+                          : `Simulado da Av1 em ${dias} dias (ter., 29/09)`
+                    }
+                    className={
+                      dias === 0
+                        ? 'hidden border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/30 lg:inline-flex dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900'
+                        : 'hidden border-amber-300/70 bg-amber-50 text-amber-800 lg:inline-flex dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300'
+                    }
+                  >
+                    <CalendarClock
+                      className={cn('size-3 shrink-0', dias === 0 && 'animate-pulse')}
+                      aria-hidden
+                    />
+                    <span className="ml-1">
+                      {dias === 0 ? (
+                        <>
+                          <span className="font-bold">É hoje:</span> Simulado
+                        </>
+                      ) : dias === 1 ? (
+                        'Simulado amanhã'
+                      ) : (
+                        `Simulado em ${dias}d`
+                      )}
+                    </span>
+                  </Badge>
+                );
+              })()}
+              <Badge
+                variant="outline"
+                className="hidden border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300 lg:inline-flex"
+              >
+                {nextEval.daysLeft === 0 ? 'hoje' : `${nextEval.daysLeft}d`} → {nextEval.name}{' '}
+                ({nextEval.disciplineShort})
+              </Badge>
+            </>
           )}
-          <ClockWidget variant="header" />
+          <ClockWidget />
           <Button
             variant="ghost"
             size="icon"

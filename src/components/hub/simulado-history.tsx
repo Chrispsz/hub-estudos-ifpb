@@ -7,15 +7,16 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, History, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { Award, Dumbbell, History, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
+import { normalizeMode } from '@/lib/simulado-resume';
 import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_TOPICO_CURTO, drillTopicOf, findMathSimuladoRunOficial, mathDrillFeedbackFor, simuladoVerdictFor } from '@/lib/math-exam-prep';
 
 function runPct(r: SimuladoRun): number {
   return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
@@ -76,6 +77,48 @@ function runDisciplineCode(r: SimuladoRun): string | undefined {
   return r.filters?.discipline;
 }
 
+/**
+ * Rótulo de MODO da tentativa no histórico — só os EXCEPCIONAIS ganham badge:
+ * prova é o default e fica sem rótulo (a ausência É o padrão, a linha respira);
+ * treino (rose) e treino de tópico (sky) usam o MESMO código de cores do
+ * diálogo (rodada 73) — a cor continua sendo o rótulo, em toda superfície.
+ * (107) O treino de tópico agora DIZ O TÓPICO: na véspera, três 'Treino de
+ * tópico' anônimos não dizem o que foi treinado — o run carrega o tópico
+ * (drillTopicOf: todas as questões do mesmo bloco), o badge fala o nome
+ * curto da casa. Run antigo sem detalhes/misto volta ao rótulo genérico —
+ * nada adivinhado.
+ */
+function runModeBadge(r: SimuladoRun) {
+  const mode = normalizeMode(r.mode);
+  if (mode === 'prova') return null;
+  if (mode === 'treino') {
+    return (
+      <Badge
+        variant="outline"
+        title="Treino do Caderno de Erros — repetição dos erros, não conta como simulado da prova"
+        className="gap-0.5 border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] font-semibold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
+      >
+        <Dumbbell className="size-2.5" aria-hidden /> Treino
+      </Badge>
+    );
+  }
+  const topic = drillTopicOf(r);
+  const label = topic ? (MATH_TOPICO_CURTO[topic] ?? topic) : null;
+  return (
+    <Badge
+      variant="outline"
+      title={
+        label
+          ? `Treino curto só de ${label} — não conta como simulado da prova`
+          : 'Treino curto de um único tópico (replay) — não conta como simulado da prova'
+      }
+      className="gap-0.5 border-sky-300/60 bg-sky-500/[0.07] px-1.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-400"
+    >
+      <Target className="size-2.5" aria-hidden /> {label ? `Treino: ${label}` : 'Treino de tópico'}
+    </Badge>
+  );
+}
+
 // Estado vazio estável (mesma referência) — evita re-render do memo quando não há runs.
 const NO_RUNS: SimuladoRun[] = [];
 
@@ -114,6 +157,15 @@ function DistributionBar({ r, className }: { r: SimuladoRun; className?: string 
 export function SimuladoHistory() {
   const sp = useStudyProgress();
   const runs = sp.progress.simuladoRuns ?? NO_RUNS;
+
+  // A TENTATIVA OFICIAL do plano (29/09, prova de Matemática) — a MESMA fonte
+  // única do hero e do card da prova (85). No histórico ela era anônima:
+  // prova-mode não ganha badge por design, então o run que o app inteiro
+  // reconhece como marco aparecia idêntico a qualquer prova de treino.
+  const runOficial = React.useMemo(() => findMathSimuladoRunOficial(runs), [runs]);
+  // O veredito do oficial alimenta o delta dos drills (fonte única da 95):
+  // a taxa POR TÓPICO é o 'de onde subiu' do chip do histórico.
+  const runOficialVerdict = React.useMemo(() => simuladoVerdictFor(runOficial), [runOficial]);
 
   const stats = React.useMemo(() => {
     if (runs.length === 0) return null;
@@ -184,18 +236,26 @@ export function SimuladoHistory() {
         </div>
       ) : (
         <>
-          {/* Mini gráfico de evolução (últimas 8 tentativas) — com a linha da meta */}
+          {/* Mini gráfico de evolução (últimas 8 tentativas) — com a linha da meta.
+              A coluna da TENTATIVA OFICIAL do plano ganha Medal + anel emerald
+              (prioridade sobre o Trophy de melhor nota — o marco importa mais). */}
           <div className="mt-4 flex items-end justify-start gap-2 sm:justify-between" aria-hidden>
             {chartRuns.map((r, i) => {
               const pct = runPct(r);
-              const isBest = pct === bestChartPct && bestChartPct > 0;
+              const isOficial = !!runOficial && r.id === runOficial.id;
+              const isBest = !isOficial && pct === bestChartPct && bestChartPct > 0;
               return (
                 <div
                   key={r.id}
-                  title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}`}
+                  title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}${isOficial ? ' · TENTATIVA OFICIAL do plano (29/09)' : ''}`}
                   className="flex max-w-[56px] flex-1 flex-col items-center gap-1 transition-transform hover:scale-[1.06]"
                 >
-                  {isBest ? (
+                  {isOficial ? (
+                    <Medal
+                      className="size-3 text-emerald-500"
+                      aria-label={`Tentativa oficial do plano: ${pct}%`}
+                    />
+                  ) : isBest ? (
                     <Trophy
                       className="size-3 text-amber-500"
                       aria-label={`Melhor tentativa: ${pct}%`}
@@ -207,6 +267,7 @@ export function SimuladoHistory() {
                   <div
                     className={cn(
                       'relative flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50',
+                      isOficial && 'ring-1 ring-emerald-500/50 ring-offset-1 ring-offset-background',
                       isBest && 'ring-1 ring-amber-500/50 ring-offset-1 ring-offset-background',
                     )}
                   >
@@ -402,6 +463,20 @@ export function SimuladoHistory() {
           <div className="mt-4 space-y-1.5">
             {runs.slice(0, 5).map((r) => {
               const pct = runPct(r);
+              // O DELTA DO DRILL NO HISTÓRICO (107): treino de tópico do escopo
+              // DEPOIS do oficial e com ganho real — o mesmo leitor do kit
+              // (fonte única), com a taxa POR TÓPICO do oficial como 'de onde
+              // subiu'. Antes do oficial = preparo, sem delta (a ordem do
+              // tempo manda); sem taxa dos dois lados = nada inventado.
+              const drillTopic = normalizeMode(r.mode) === 'topico' ? drillTopicOf(r) : null;
+              const drillDelta = (() => {
+                if (!drillTopic || !runOficial) return null;
+                const oficialPct =
+                  runOficialVerdict?.porTopico.find((t) => t.topic === drillTopic)?.pct ?? null;
+                const d = mathDrillFeedbackFor([r], drillTopic, oficialPct, runOficial.date);
+                if (!d || d.melhorou !== true || oficialPct === null) return null;
+                return { from: oficialPct, to: d.pct ?? 0 };
+              })();
               return (
                 <div
                   key={r.id}
@@ -431,6 +506,29 @@ export function SimuladoHistory() {
                   <Badge variant="outline" className={cn('border text-[10px]', pctTone(pct))}>
                     {pct}%
                   </Badge>
+                  {/* A OFICIAL tem nome: prova-mode fica sem rótulo por design
+                      (a ausência É o padrão), então este é o ÚNICO badge que
+                      uma prova ganha na lista — impossível confundir com treino. */}
+                  {runOficial && r.id === runOficial.id && (
+                    <Badge
+                      title={`A tentativa oficial do plano (${MATH_SIMULADO_DATE.split('-').reverse().slice(0, 2).join('/')}) — é este registro que os marcos do painel, o kit da véspera e o plano reconhecem como "feito"`}
+                      className="gap-0.5 border-emerald-600 bg-emerald-600 px-1.5 text-[10px] font-semibold text-white shadow-sm shadow-emerald-600/25 dark:border-emerald-500 dark:bg-emerald-500"
+                    >
+                      <Medal className="size-2.5" aria-hidden /> Oficial da Av1
+                    </Badge>
+                  )}
+                  {runModeBadge(r)}
+                  {/* O chip do GANHO REAL — a mesma voz do recibo do kit ('subiu
+                      de 40% para 80%'), enxuta: a linha já mostra o % do drill
+                      no badge de taxa; aqui falta só o DE ONDE. */}
+                  {drillDelta && (
+                    <span
+                      className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 tabular-nums dark:text-emerald-400"
+                      title={`Treino depois do oficial: a taxa sobre respondidos subiu de ${drillDelta.from}% para ${drillDelta.to}%`}
+                    >
+                      <TrendingUp className="size-2.5" aria-hidden /> subiu de {drillDelta.from}%
+                    </span>
+                  )}
                   <span className="text-muted-foreground">
                     {fmtDate(r.date)} · {fmtDur(r.durationSec)}
                   </span>
@@ -470,7 +568,27 @@ export function SimuladoHistory() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <Target className="size-3 shrink-0 text-emerald-500" />
-              {stats.count} simulado(s) registrado(s) · cada tentativa do Simulado Pro grava automaticamente aqui.
+              {(() => {
+                // Contagem HONESTA: treinos não viram "simulados" na fala —
+                // a régua da meta se aplica às provas; treinos são repetição.
+                const provas = runs.filter((r) => normalizeMode(r.mode) === 'prova').length;
+                const treinos = runs.length - provas;
+                return (
+                  <>
+                    {stats.count} tentativa(s): {provas} simulado(s)
+                    {treinos > 0 ? ` · ${treinos} treino(s)` : ''}
+                    {runOficial && (
+                      <span className="whitespace-nowrap">
+                        {' '}· oficial da Av1 ({MATH_SIMULADO_DATE.split('-').reverse().slice(0, 2).join('/')}):{' '}
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {runPct(runOficial)}%
+                        </span>
+                      </span>
+                    )}
+                    {' '}· cada tentativa do Simulado Pro grava automaticamente aqui.
+                  </>
+                );
+              })()}
             </p>
             <p className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
               <span className="flex items-center gap-1">

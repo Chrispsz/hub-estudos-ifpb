@@ -4,11 +4,13 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BrainCircuit,
+  CalendarCheck,
   CalendarClock,
   CheckCircle2,
   Clock,
   Download,
   Eye,
+  GraduationCap,
   Layers,
   Loader2,
   Play,
@@ -53,19 +55,30 @@ import { TutorMarkdown } from './tutor-markdown';
 import {
   flashcardBoxLabel,
   flashcardNextIntervalLabel,
+  flashcardStatsFor,
+  flashcardsDueFor,
   useStudyProgress,
   type Flashcard,
   type FlashcardGrade,
   type StudyProgressHook,
 } from '@/lib/study-progress';
+import { useNow } from './clock-widget';
 import { openTutor } from '@/lib/hub-events';
+import {
+  MATH_EXAM,
+  findMathSimuladoRunOficial,
+  flashcardExamBriefFor,
+  type FlashcardExamBrief,
+} from '@/lib/math-exam-prep';
 
 // ---------- Helpers ----------
 
-/** Rótulo amigável do vencimento do cartão. */
-function dueLabel(dueAt: string): { text: string; overdue: boolean } {
+/** Rótulo amigável do vencimento do cartão — o relógio chega por parâmetro
+ * (lição 113/115): a lista respira com o tick de 30s da view, sem Date.now()
+ * congelado no render. */
+function dueLabel(dueAt: string, nowMs: number): { text: string; overdue: boolean } {
   const ms = new Date(dueAt).getTime();
-  const diff = ms - Date.now();
+  const diff = ms - nowMs;
   if (Number.isNaN(ms)) return { text: 'vencido', overdue: true };
   if (diff <= 0) {
     const lateMin = Math.floor(-diff / 60_000);
@@ -198,6 +211,111 @@ function parseDeckFile(raw: string): DeckFile['cards'] | null {
 
 // ---------- View principal ----------
 
+/**
+ * Gramática visual do brief da semana da Av1 — A MESMA de todo o Hub:
+ *   sólido + pulso nos "é hoje" (tratamento D-0 da 76, chips da 85/86),
+ *   emerald sólido SEM pulso quando o registro diz feito (85/86/89),
+ *   tinta translúcida da família no estado de espera (strips da 89).
+ * âmbar = simulado/véspera · rose = prova · emerald = feito.
+ */
+const EXAM_BRIEF_VISUAL: Record<
+  FlashcardExamBrief['kind'],
+  {
+    shell: string;
+    text: string;
+    sub: string;
+    iconBox: string;
+    icon: React.ReactNode;
+    btn: string;
+  }
+> = {
+  'simulado-hoje': {
+    shell:
+      'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <CalendarCheck className="size-4 animate-pulse" aria-hidden />,
+    btn: 'bg-white text-amber-600 hover:bg-amber-50 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-zinc-800',
+  },
+  'simulado-feito': {
+    shell: 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <CheckCircle2 className="size-4" aria-hidden />,
+    btn: 'bg-white text-emerald-600 hover:bg-emerald-50 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-zinc-800',
+  },
+  vespera: {
+    shell:
+      'border-amber-500/40 bg-amber-500/[0.07] dark:border-amber-400/40 dark:bg-amber-400/[0.06]',
+    text: 'text-amber-600 dark:text-amber-300',
+    sub: 'text-amber-700/80 dark:text-amber-300/75',
+    iconBox: 'bg-amber-500/15 dark:bg-amber-400/15',
+    icon: <Zap className="size-4" aria-hidden />,
+    btn: 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300',
+  },
+  'prova-hoje': {
+    shell:
+      'border-rose-500 bg-rose-500 shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <GraduationCap className="size-4 animate-pulse" aria-hidden />,
+    btn: 'bg-white text-rose-600 hover:bg-rose-50 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-zinc-800',
+  },
+};
+
+/** Faixa da semana da Av1 no topo dos Flashcards — o cram escopado a 1 clique. */
+function ExamBriefStrip({
+  brief,
+  mathCards,
+  onStart,
+}: {
+  brief: FlashcardExamBrief;
+  mathCards: number;
+  onStart: () => void;
+}) {
+  const v = EXAM_BRIEF_VISUAL[brief.kind];
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
+        v.shell,
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          className={cn(
+            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+            v.iconBox,
+          )}
+        >
+          {v.icon}
+        </span>
+        <div className="min-w-0">
+          <p className={cn('text-sm font-semibold leading-tight', v.text)}>{brief.titulo}</p>
+          <p className={cn('mt-1 text-xs leading-snug', v.sub)}>{brief.chamada}</p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        onClick={onStart}
+        disabled={mathCards === 0}
+        title={
+          mathCards === 0
+            ? 'Nenhum cartão de Matemática no baralho — adicione o baralho de fórmulas no card da prova (Visão Geral)'
+            : undefined
+        }
+        className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
+        aria-label={brief.cta}
+      >
+        <Zap className="size-3.5" /> {brief.cta}
+      </Button>
+    </div>
+  );
+}
+
 /** Cartão gerado pela IA na prévia editável (id estável p/ keys em lista removível). */
 interface GeneratedCard {
   id: string;
@@ -213,6 +331,9 @@ function toGeneratedCards(cards: Array<{ front: string; back: string }>): Genera
 export function FlashcardsView() {
   const sp = useStudyProgress();
   const [mode, setMode] = React.useState<'list' | 'review' | 'cram'>('list');
+  /** Escopo do modo cram: 'all' (botão Cram original) ou um disciplineCode
+   * (o brief da Av1 abre o cram SÓ de Matemática — a véspera não revisa S3). */
+  const [cramScope, setCramScope] = React.useState<string>('all');
   const [filterDiscipline, setFilterDiscipline] = React.useState<string>('all');
   const [addOpen, setAddOpen] = React.useState(false);
   const [generateOpen, setGenerateOpen] = React.useState(false);
@@ -221,8 +342,20 @@ export function FlashcardsView() {
   const [importing, setImporting] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const stats = sp.flashcardStats;
   const allCards = sp.allFlashcards;
+
+  // A BATIDA DO LEITNER (116): o agendamento do baralho vive no relógio —
+  // o cartão 'Errei' volta em 5min, e uma tab aberta não pode contar a
+  // história antiga. useNow(30s) — a mesma fonte da 113 — re-renderiza a
+  // view; placar, rótulos de vencimento, brief e o botão Revisar leem o
+  // seletor PURO com o agora do tick (lição 79: render-time, sem estado).
+  const now = useNow(30_000);
+  const nowMs = now ? now.getTime() : 0;
+
+  const stats = React.useMemo(
+    () => flashcardStatsFor(allCards, nowMs),
+    [allCards, nowMs],
+  );
 
   /** Exporta todos os cartões como baralho JSON compartilhável. */
   const handleExportDeck = React.useCallback(() => {
@@ -282,11 +415,48 @@ export function FlashcardsView() {
     return [...list].sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
   }, [allCards, filterDiscipline]);
 
+  /** Cartões de Matemática no baralho — o alvo do cram da Av1. */
+  const mathCardCount = React.useMemo(
+    () => allCards.filter((c) => c.disciplineCode === MATH_EXAM.disciplineCode).length,
+    [allCards],
+  );
+
+  // Brief da semana da Av1 — RENDER-TIME (lição 79): calculado no frame,
+  // reage a mock de relógio no remount, sem estado nem interval. O run
+  // oficial vem da FONTE ÚNICA findMathSimuladoRunOficial (85/86/88/89).
+  // A porta é o próprio now (contrato null-até-mount da 113): o tick de
+  // 30s faz o brief flipar sozinho quando a janela da semana vira.
+  const simuladoRunOficial = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
+  const examBrief = now
+    ? flashcardExamBriefFor(
+        now,
+        mathCardCount,
+        simuladoRunOficial
+          ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
+          : null,
+      )
+    : null;
+
   if (mode === 'review' || mode === 'cram') {
     return (
       <ReviewSession
-        cards={mode === 'cram' ? allCards : sp.flashcardsDue}
+        cards={
+          mode === 'cram'
+            ? cramScope === 'all'
+              ? allCards
+              : allCards.filter((c) => c.disciplineCode === cramScope)
+            // A fila da sessão congela NO MOUNT por design (o contrato da
+            // sessão) — mas congela com o agora FRESCO do clique (Date.now()
+            // avaliado no render que monta a sessão), não com um memo
+            // cacheado do passado (116).
+            : flashcardsDueFor(allCards, Date.now())
+        }
         cram={mode === 'cram'}
+        scopeLabel={
+          mode === 'cram' && cramScope !== 'all'
+            ? (getDisciplineByCode(cramScope)?.shortName ?? cramScope)
+            : undefined
+        }
         sp={sp}
         onExit={() => setMode('list')}
       />
@@ -305,6 +475,20 @@ export function FlashcardsView() {
             Memorize com o método Leitner: cartões errados voltam em 5min, acertos progridem até
             30 dias.
           </p>
+          {/* O RELÓGIO DO LEITNER (116) — a promessa da agenda, visível: sem
+              vencidos, a linha antecipa o próximo compromisso do baralho e
+              desce a cada tick de 30s; com vencidos, o botão fala e a linha
+              cala. Honestidade antecipada em vez de botão morto. */}
+          {mounted && stats.due === 0 && stats.total > 0 && stats.nextDueMs !== null && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="size-3 text-amber-500/70" aria-hidden />
+              próxima revisão{' '}
+              <span className="font-medium tabular-nums text-foreground/70">
+                {dueLabel(new Date(nowMs + stats.nextDueMs).toISOString(), nowMs).text}
+              </span>
+              — a contagem corre sozinha
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -329,7 +513,10 @@ export function FlashcardsView() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setMode('cram')}
+            onClick={() => {
+              setCramScope('all');
+              setMode('cram');
+            }}
             disabled={mounted && stats.total === 0}
             className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
             aria-label="Modo cram: revisar todos os cartões ignorando o agendamento"
@@ -395,6 +582,19 @@ export function FlashcardsView() {
           />
         </div>
       </div>
+
+      {/* Semana da Av1 nos flashcards — silêncio honesto fora da janela.
+          Render-time: aparece/desaparece no mesmo frame do mock de relógio. */}
+      {examBrief && (
+        <ExamBriefStrip
+          brief={examBrief}
+          mathCards={mathCardCount}
+          onStart={() => {
+            setCramScope(MATH_EXAM.disciplineCode);
+            setMode('cram');
+          }}
+        />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
@@ -473,7 +673,7 @@ export function FlashcardsView() {
           {filtered.map((card) => {
             const disc = getDisciplineByCode(card.disciplineCode);
             const color = getColorClasses(disc?.color ?? 'slate');
-            const due = dueLabel(card.dueAt);
+            const due = dueLabel(card.dueAt, nowMs);
             return (
               <Card
                 key={card.id}
@@ -499,7 +699,9 @@ export function FlashcardsView() {
                   )}
                   <span
                     className={cn(
-                      'ml-auto inline-flex items-center gap-1 text-[11px]',
+                      // tabular-nums: a contagem viva (116) muda de dígito a
+                      // cada tick sem jitter — a gramática de tempo da casa.
+                      'ml-auto inline-flex items-center gap-1 text-[11px] tabular-nums',
                       due.overdue ? 'font-medium text-amber-500' : 'text-muted-foreground',
                     )}
                   >
@@ -568,12 +770,16 @@ function StatCard({
 function ReviewSession({
   cards,
   cram = false,
+  scopeLabel,
   sp,
   onExit,
 }: {
   cards: Flashcard[];
   /** Modo cram: revisa TUDO ignorando o agendamento (véspera de prova). */
   cram?: boolean;
+  /** Escopo do cram — ex.: 'Matemática' quando o brief da Av1 abriu a sessão.
+   * Sem escopo o badge continua dizendo 'Cram — tudo'. */
+  scopeLabel?: string;
   sp: StudyProgressHook;
   onExit: () => void;
 }) {
@@ -755,7 +961,7 @@ function ReviewSession({
               variant="outline"
               className="gap-1 border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-400"
             >
-              <Zap className="size-3" /> Cram — tudo
+              <Zap className="size-3" /> {scopeLabel ? `Cram — ${scopeLabel}` : 'Cram — tudo'}
             </Badge>
           )}
           <Badge variant="outline" className={cn('border text-[10px]', color.badge)}>

@@ -2,9 +2,26 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Flame, Sparkles } from 'lucide-react';
+import {
+  Bot,
+  CalendarClock,
+  CalendarDays,
+  Flame,
+  MousePointerClick,
+  Play,
+  Printer,
+  Sparkles,
+  Target,
+  type LucideIcon,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { PomodoroSession } from '@/lib/study-progress';
+import {
+  MATH_EXAM,
+  examWeekMilestoneFor,
+  type ExamWeekMilestone,
+} from '@/lib/math-exam-prep';
+import { openMethod, openSimulado, openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 
 const DAY_MS = 86_400_000;
@@ -29,6 +46,8 @@ interface HeatCell {
   minutes: number;
   level: 0 | 1 | 2 | 3 | 4;
   future: boolean;
+  /** Marco da semana da Av1 neste dia (fonte única: examWeekMilestoneFor) — null fora da semana. */
+  milestone: ExamWeekMilestone | null;
 }
 
 /** Classe de cor da célula — escala esmeralda sobre AMOLED, sem azul. */
@@ -44,6 +63,83 @@ function levelClass(level: HeatCell['level']): string {
       return 'bg-emerald-500/70';
     case 4:
       return 'bg-emerald-500 shadow-[0_0_6px_-1px_rgba(16,185,129,0.8)]';
+  }
+}
+
+/**
+ * Célula de marco — a família da casa (a mesma da Agenda, lição 109): prova
+ * = rose (O dia, com o brilho da célula nível 4 em rose), resto = amber (a
+ * espera: preparo, ensaio e véspera). O `empty` tinge a célula sem foco —
+ * com foco, a escala esmeralda fica por baixo e o anel diz o evento.
+ */
+function milestoneCellClass(kind: ExamWeekMilestone['kind']): { ring: string; empty: string } {
+  return kind === 'prova'
+    ? {
+        ring: 'ring-1 ring-rose-500/70 shadow-[0_0_6px_-1px_rgba(244,63,94,0.7)]',
+        empty: 'bg-rose-500/15',
+      }
+    : {
+        ring: 'ring-1 ring-amber-500/70',
+        empty: 'bg-amber-500/15',
+      };
+}
+
+/**
+ * PORTA DO MARCO — cada marco abre a ação que JÁ existe no app (as mesmas
+ * portas do kit e da paleta — zero caminho novo, zero fonte nova): preparo
+ * vira sessão de Método com o tema do dia, simulado inicia o Simulado Pro
+ * com o preset da Av1, véspera abre a Folha de Revisão (o momento clássico
+ * de imprimir) e prova manda a pergunta do kit para o tutor (o kit mora no
+ * dashboard e a aba Progresso não tem porta para ele — o tutor leva o kit
+ * até o aluno com o BASE que já o conhece).
+ */
+interface MarcoDoor {
+  icon: LucideIcon;
+  /** Ação curta exibida no chip (após o '·'). */
+  acao: string;
+  /** Descrição para o aria-label (o que o clique faz de verdade). */
+  aria: string;
+  run: (m: ExamWeekMilestone) => void;
+}
+
+const PROVA_KIT_QUESTION =
+  'Estou no dia da prova da Av1 de Matemática — me dê o kit do dia: o que revisar agora, as fórmulas essenciais e a meta.';
+
+function marcoDoorFor(kind: ExamWeekMilestone['kind']): MarcoDoor {
+  switch (kind) {
+    case 'simulado':
+      return {
+        icon: Play,
+        acao: 'iniciar o simulado',
+        aria: 'abre o Simulado Pro da Av1 no Praticar',
+        run: () => openSimulado({ preset: 'math_exam' }),
+      };
+    case 'vespera':
+      return {
+        icon: Printer,
+        acao: 'abrir a folha',
+        aria: 'abre a Folha de Revisão em nova aba',
+        run: () => window.open('/folha-revisao', '_blank', 'noopener,noreferrer'),
+      };
+    case 'prova':
+      return {
+        icon: Bot,
+        acao: 'kit com o tutor',
+        aria: 'abre o tutor com a pergunta do kit do dia da prova',
+        run: () =>
+          openTutor({ question: PROVA_KIT_QUESTION, disciplineCode: MATH_EXAM.disciplineCode }),
+      };
+    default:
+      return {
+        icon: Target,
+        acao: 'abrir no Método',
+        aria: 'abre uma sessão de Método com o tema do dia',
+        run: (m) =>
+          openMethod({
+            topic: `${m.titulo}${m.subtitulo ? ` — ${m.subtitulo}` : ''}`,
+            disciplineCode: MATH_EXAM.disciplineCode,
+          }),
+      };
   }
 }
 
@@ -67,7 +163,7 @@ export function StudyHeatmap({
   }, [sessions]);
 
   // Grade: WEEKS colunas de semanas terminando na semana atual (Dom..Sáb)
-  const { columns, monthLabels } = React.useMemo(() => {
+  const { columns, monthLabels, todayUtc } = React.useMemo(() => {
     const today = new Date();
     const todayUtc = new Date(
       Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
@@ -94,7 +190,14 @@ export function StudyHeatmap({
         if (dailyGoal > 0 && mins >= dailyGoal * LEVEL_HALF_GOAL) level = 2;
         if (dailyGoal > 0 && mins >= dailyGoal * LEVEL_FULL_GOAL) level = 3;
         if (dailyGoal > 0 && mins >= dailyGoal * LEVEL_PEAK_GOAL) level = 4;
-        col.push({ key, date, minutes: mins, level, future });
+        // Marco da semana da Av1 — FONTE ÚNICA (examWeekMilestoneFor, a mesma
+        // voz da Agenda). A grade mora em UTC-meio-noite, mas a fonte compara
+        // o dia LOCAL (localDateKey): converter para meio-dia local antes de
+        // perguntar — 00:00 UTC em BRT é 21:00 do dia anterior (lição 108).
+        const milestone = examWeekMilestoneFor(
+          new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 12),
+        );
+        col.push({ key, date, minutes: mins, level, future, milestone });
       }
       // Rótulo do mês na 1ª coluna da semana que contém dia 1..7
       const firstCell = col[0];
@@ -105,8 +208,36 @@ export function StudyHeatmap({
       }
       cols.push(col);
     }
-    return { columns: cols, monthLabels: labels };
+    return { columns: cols, monthLabels: labels, todayUtc };
   }, [minutesByDate, dailyGoal]);
+
+  // Marcos da Av1 dentro da janela visível (um por kind, em ordem de dia)
+  const weekMilestones = React.useMemo(() => {
+    const seen = new Map<string, ExamWeekMilestone>();
+    for (const c of columns.flat()) {
+      if (c.milestone && !seen.has(c.milestone.kind)) seen.set(c.milestone.kind, c.milestone);
+    }
+    return [...seen.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }, [columns]);
+
+  // A semana passou? (a prova saiu do relógio — o chip cala, o histórico fica)
+  const examWeekPast = React.useMemo(() => {
+    const prova = columns.flat().find((c) => c.milestone?.kind === 'prova');
+    return prova ? todayUtc.getTime() > prova.date.getTime() : true;
+  }, [columns, todayUtc]);
+
+  const hasMilestones = weekMilestones.length > 0;
+
+  const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  // Chip do topo: só os dois eventos-âncora (preparo/véspera moram nas células)
+  const anchorChipLabel = weekMilestones
+    .filter((m) => m.kind === 'simulado' || m.kind === 'prova')
+    .map((m) => `${m.titulo} ${shortDate(m.date)}`)
+    .join(' · ');
+  // aria: a semana completa
+  const ariaWeekLabel = weekMilestones
+    .map((m) => `${m.titulo} ${shortDate(m.date)}`)
+    .join(', ');
 
   // Estatísticas do período exibido
   const periodStats = React.useMemo(() => {
@@ -138,6 +269,8 @@ export function StudyHeatmap({
       ? `${Math.floor(periodStats.totalMin / 60)}h${periodStats.totalMin % 60 > 0 ? ` ${periodStats.totalMin % 60}min` : ''}`
       : `${periodStats.totalMin} min`;
 
+  const todayKey = utcKey(todayUtc);
+
   return (
     <Card className="rounded-xl bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -155,6 +288,11 @@ export function StudyHeatmap({
               {periodStats.best} {periodStats.best === 1 ? 'dia' : 'dias'}
             </span>
           )}
+          {hasMilestones && !examWeekPast && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-amber-600 dark:text-amber-400">
+              <CalendarClock className="size-3" aria-hidden="true" /> {anchorChipLabel}
+            </span>
+          )}
         </div>
       </div>
 
@@ -167,6 +305,57 @@ export function StudyHeatmap({
               <Sparkles className="size-3.5 shrink-0 text-emerald-500" aria-hidden="true" />
               Nenhuma sessão de foco registrada ainda — conclua um Pomodoro na aba Estudar para começar a pintar o mapa.
             </p>
+          )}
+          {/* PORTAS DA SEMANA — um clique por marco (só hoje/futuro: a porta
+              fecha com o dia passado; a história fica no tooltip). Fila FORA do
+              role="img" (a grade é imagem para leitores de tela; os botões têm
+              que existir fora dela para o AT alcançar). Gramática da casa:
+              família amber/rose, HOJE = sólido + pulso (a 114). */}
+          {mounted && hasMilestones && !examWeekPast && (
+            <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <MousePointerClick className="size-3 text-emerald-500" aria-hidden="true" />
+                A semana em ações — um clique por marco
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {weekMilestones
+                  .filter((m) => m.date >= todayKey)
+                  .map((m) => {
+                    const door = marcoDoorFor(m.kind);
+                    const Icon = door.icon;
+                    const isToday = m.date === todayKey;
+                    const rose = m.kind === 'prova';
+                    return (
+                      <button
+                        key={m.kind}
+                        type="button"
+                        onClick={() => door.run(m)}
+                        aria-label={`${m.titulo} (${shortDate(m.date)}) — ${door.aria}`}
+                        title={`${m.titulo} • ${door.aria}`}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] tabular-nums transition-all duration-100',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-1 focus-visible:ring-offset-card active:scale-[0.97]',
+                          isToday
+                            ? rose
+                              ? 'bg-rose-500 text-white shadow-[0_0_6px_-1px_rgba(244,63,94,0.7)]'
+                              : 'bg-amber-500 text-amber-950 shadow-sm'
+                            : rose
+                              ? 'border border-rose-500/35 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400'
+                              : 'border border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400',
+                        )}
+                      >
+                        <Icon
+                          className={cn('size-3', isToday && 'animate-pulse')}
+                          aria-hidden="true"
+                        />
+                        <span className="font-medium">{m.titulo}</span>
+                        <span className={cn('opacity-70', !isToday && 'font-medium')}>{shortDate(m.date)}</span>
+                        <span className="hidden text-[10px] opacity-60 sm:inline">· {door.acao}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
           )}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
@@ -202,11 +391,38 @@ export function StudyHeatmap({
                 </div>
 
                 {/* Grade de semanas */}
-                <div role="img" aria-label={`Mapa de consistência: ${fmtTotal} de foco em ${periodStats.activeDays} dias ativos nos últimos ${WEEKS} semanas`}>
+                <div
+                  role="img"
+                  aria-label={`Mapa de consistência: ${fmtTotal} de foco em ${periodStats.activeDays} dias ativos nos últimos ${WEEKS} semanas${hasMilestones ? ` · semana da Av1: ${ariaWeekLabel}` : ''}`}
+                >
                   {columns.map((col, w) => (
                     <div key={w} className="mr-[3px] inline-flex flex-col gap-[3px] align-top">
                       {col.map((cell) => {
+                        const dateLabel = `${WEEKDAY_SHORT[cell.date.getUTCDay()]}, ${String(cell.date.getUTCDate()).padStart(2, '0')} ${MONTH_SHORT[cell.date.getUTCMonth()]}`;
+                        const minLabel =
+                          cell.minutes === 0
+                            ? 'sem foco registrado'
+                            : `${cell.minutes} min de foco`;
+                        const isToday = cell.key === todayKey;
                         if (cell.future) {
+                          // Marco futuro: a promessa datada no mapa — família da
+                          // casa, borda tracejada (a espera) e título REAL (as
+                          // células futuras mudas não escondem mais o evento).
+                          if (cell.milestone) {
+                            const rose = cell.milestone.kind === 'prova';
+                            return (
+                              <div
+                                key={cell.key}
+                                className={cn(
+                                  'size-3 rounded-[3px] border border-dashed transition-transform duration-100 hover:scale-125',
+                                  rose
+                                    ? 'border-rose-500/50 bg-rose-500/10 ring-1 ring-rose-500/35 hover:ring-rose-400/70'
+                                    : 'border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/35 hover:ring-amber-400/70',
+                                )}
+                                title={`${dateLabel} • ${cell.milestone.titulo}${cell.milestone.subtitulo ? ` (${cell.milestone.subtitulo})` : ''} • ${cell.milestone.detalhe}`}
+                              />
+                            );
+                          }
                           return (
                             <div
                               key={cell.key}
@@ -214,19 +430,34 @@ export function StudyHeatmap({
                             />
                           );
                         }
-                        const dateLabel = `${WEEKDAY_SHORT[cell.date.getUTCDay()]}, ${String(cell.date.getUTCDate()).padStart(2, '0')} ${MONTH_SHORT[cell.date.getUTCMonth()]}`;
-                        const minLabel =
-                          cell.minutes === 0
-                            ? 'sem foco registrado'
-                            : `${cell.minutes} min de foco`;
+                        const milestoneStyle = cell.milestone
+                          ? milestoneCellClass(cell.milestone.kind)
+                          : null;
+                        const milestoneTitle = cell.milestone
+                          ? `${cell.milestone.titulo}${cell.milestone.subtitulo ? ` (${cell.milestone.subtitulo})` : ''}${isToday ? ' • hoje' : ''}${cell.minutes > 0 ? ` • ${minLabel}` : ''}`
+                          : minLabel;
                         return (
                           <div
                             key={cell.key}
                             className={cn(
-                              'size-3 rounded-[3px] transition-transform duration-100 hover:scale-125 hover:ring-1 hover:ring-emerald-400/60',
-                              levelClass(cell.level),
+                              'size-3 rounded-[3px] transition-transform duration-100',
+                              // Marco presente: o anel da família manda; a escala
+                              // esmeralda fica por baixo (o dia teve foco E evento).
+                              milestoneStyle
+                                ? cn(
+                                    milestoneStyle.ring,
+                                    'hover:scale-125',
+                                    cell.level > 0 ? levelClass(cell.level) : milestoneStyle.empty,
+                                  )
+                                : cn(
+                                    'hover:scale-125 hover:ring-1 hover:ring-emerald-400/60',
+                                    levelClass(cell.level),
+                                    // O AGORA: anel esmeralda no dia de hoje —
+                                    // (o GitHub pinta o presente; o mapa também).
+                                    isToday && 'ring-1 ring-emerald-400/70',
+                                  ),
                             )}
-                            title={`${dateLabel} • ${minLabel}`}
+                            title={`${dateLabel} • ${milestoneTitle}`}
                           />
                         );
                       })}
@@ -242,6 +473,21 @@ export function StudyHeatmap({
                   <div key={l} className={cn('size-3 rounded-[3px]', levelClass(l))} />
                 ))}
                 <span>Mais</span>
+                {hasMilestones && (
+                  <>
+                    <span className="ml-1.5">· marco:</span>
+                    <div
+                      className="size-3 rounded-[3px] bg-amber-500/15 ring-1 ring-amber-500/70"
+                      aria-hidden="true"
+                    />
+                    <span>ensaio</span>
+                    <div
+                      className="size-3 rounded-[3px] bg-rose-500/15 ring-1 ring-rose-500/70"
+                      aria-hidden="true"
+                    />
+                    <span>prova</span>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

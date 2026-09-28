@@ -4,11 +4,14 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
+  CalendarCheck,
   CheckCircle2,
   Clock,
+  Clock3,
   Code2,
   Copy,
   Download,
+  FileText,
   History,
   ImagePlus,
   Lightbulb,
@@ -16,6 +19,7 @@ import {
   Maximize2,
   Minimize2,
   Pause,
+  PenLine,
   Play,
   RotateCcw,
   Send,
@@ -74,6 +78,7 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
+import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
 import { buildHubContext } from '@/lib/tutor-context';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
@@ -373,8 +378,51 @@ export function StudyView({
     () => getDisciplineTopics(disciplineCode, sp.progress.topicProgress),
     [disciplineCode, sp.progress.topicProgress],
   );
+  // ATIVIDADE REAL POR UNIDADE (118): o que o aluno JÁ FAZ — abrir material,
+  // tentar questão — vira evidência visível no checklist. Fonte única:
+  // discipline-activity (a mesma do painel; zero segunda fonte).
+  const unitActivity = React.useMemo(() => {
+    const map = new Map<string, ReturnType<typeof unitActivityFor>>();
+    if (!topicsSummary) return map;
+    for (const unit of topicsSummary.units) {
+      map.set(
+        unit.name,
+        unitActivityFor(
+          disciplineCode,
+          unit.name,
+          sp.progress,
+          unit.topics.filter((t) => t.done).length,
+          unit.topics.length,
+        ),
+      );
+    }
+    return map;
+  }, [disciplineCode, topicsSummary, sp.progress]);
+  // Resumo da atividade real da disciplina (a linha que devolve o ânimo:
+  // 0 marcado ≠ 0 estudo — o Hub VIU as unidades que o aluno já tocou).
+  const activitySummary = React.useMemo(() => {
+    if (!topicsSummary) return null;
+    const acts = topicsSummary.units
+      .map((u) => unitActivity.get(u.name))
+      .filter((a): a is NonNullable<typeof a> => !!a);
+    const tocadas = acts.filter((a) => a.tocada).length;
+    const last = acts.reduce<string | null>((acc, a) => {
+      if (!a.lastActivityAt) return acc;
+      return !acc || a.lastActivityAt > acc ? a.lastActivityAt : acc;
+    }, null);
+    return { tocadas, lastLabel: lastActivityLabel(last) };
+  }, [topicsSummary, unitActivity]);
   const colors = getColorClasses(discipline.color);
   const chatTopic = topicsSummary?.nextTopic ?? 'geral';
+
+  // A SEMANA DA AV1 NO CHAT — o mesmo examWeek que o tutor recebe (fonte
+  // única: buildHubContext). O badge no header do chat torna o contexto
+  // VISÍVEL: o aluno sabe que a IA sabe (plano de hoje, veredito do simulado
+  // quando existir, travadas) — sem mágica silenciosa.
+  const examWeek = React.useMemo(
+    () => buildHubContext(disciplineCode, sp).examWeek,
+    [disciplineCode, sp.progress],
+  );
 
   const cycleTotal = Math.max(1, cfg.cyclesBeforeLong);
   const doneInCycle = live.cycleCount % cycleTotal;
@@ -1364,6 +1412,24 @@ export function StudyView({
                       Próximo: <span className="text-foreground">{topicsSummary.nextTopic}</span>
                     </p>
                   )}
+                  {/* A RESPOSTA À PERGUNTA DO DONO (118): "em que momento marco
+                      esses tópicos?" — o critério didático fica visível, e a
+                      linha de atividade prova que o fluxo real (abrir material,
+                      resolver questão) já é registrado sozinho. */}
+                  {activitySummary && activitySummary.tocadas > 0 ? (
+                    <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400/90">
+                      <Sparkles className="size-3 shrink-0" aria-hidden />
+                      <span>
+                        {activitySummary.tocadas}{' '}
+                        {activitySummary.tocadas === 1 ? 'unidade' : 'unidades'} com atividade sua
+                        {activitySummary.lastLabel && ` · última ${activitySummary.lastLabel}`}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Marque o tópico quando conseguir resolver sem olhar o material — materiais abertos e questões tentadas o Hub registra sozinho.
+                    </p>
+                  )}
                 </div>
 
                 {topicsSummary.isComplete && (
@@ -1376,18 +1442,42 @@ export function StudyView({
                 <div className="max-h-[480px] space-y-3 overflow-y-auto pr-1 [scrollbar-width:thin]">
                   {topicsSummary.units.map((unit) => {
                     const unitDone = unit.topics.filter((t) => t.done).length;
+                    const act = unitActivity.get(unit.name);
+                    const ultima = act ? lastActivityLabel(act.lastActivityAt) : null;
+                    // O rodapé entra quando há MATERIAIS na unidade (0/N também
+                    // — é o ponteiro didático do que abrir) ou questões já
+                    // tentadas (a evidência). Unidade sem material nem esforço
+                    // fica muda — nada a acusar.
+                    const temEvidencia =
+                      !!act &&
+                      (act.materiaisTotal > 0 || act.questoesTentadas > 0);
                     return (
                       <div key={unit.name} className="rounded-xl border border-white/10 p-4">
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <h4 className="text-sm font-medium leading-snug">{unit.name}</h4>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              unit.done && 'border-emerald-500/40 text-emerald-400',
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {/* EVIDÊNCIA VISÍVEL (118): unidade com atividade real
+                                ganha o selo 'em estudo' (a família da espera —
+                                amber, sem pulso: não é prazo) — o aluno vê que o
+                                site acompanhou o que ele já fez. */}
+                            {act?.tocada && !unit.done && (
+                              <Badge
+                                variant="outline"
+                                title="Você já abriu material ou tentou questões desta unidade — o Hub registrou sozinho."
+                                className="border-amber-300/70 bg-amber-50 text-[9px] text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-300"
+                              >
+                                em estudo
+                              </Badge>
                             )}
-                          >
-                            {unitDone}/{unit.topics.length}
-                          </Badge>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                unit.done && 'border-emerald-500/40 text-emerald-400',
+                              )}
+                            >
+                              {unitDone}/{unit.topics.length}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="space-y-2.5">
                           {unit.topics.map((topic) => (
@@ -1416,6 +1506,37 @@ export function StudyView({
                             </label>
                           ))}
                         </div>
+                        {/* A PROVA DO ACOMPANHAMENTO (118): a evidência da sua
+                            própria atividade — materiais abertos, questões
+                            tentadas, quando foi a última vez. Mudo quando a
+                            unidade nunca foi dada nem tocada (nada a acusar). */}
+                        {act && temEvidencia && (
+                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/5 pt-2.5 text-[11px] text-muted-foreground">
+                            {act.materiaisTotal > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1"
+                                title="Materiais desta unidade que você já abriu"
+                              >
+                                <FileText className="size-3" aria-hidden />
+                                {act.materiaisVistos}/{act.materiaisTotal} materiais
+                              </span>
+                            )}
+                            {act.questoesTotal > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1 tabular-nums"
+                                title="Questões em sala desta unidade que você já tentou ou resolveu"
+                              >
+                                <PenLine className="size-3" aria-hidden />
+                                {act.questoesTentadas}/{act.questoesTotal} questões
+                              </span>
+                            )}
+                            {ultima && (
+                              <span className="inline-flex items-center gap-1">
+                                <Clock3 className="size-3" aria-hidden />última {ultima}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1456,6 +1577,20 @@ export function StudyView({
                 <SheetDescription className="truncate">
                   Tutor de {discipline.shortName} · tópico: {chatTopic}
                 </SheetDescription>
+                {examWeek && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium tabular-nums text-amber-600 dark:text-amber-400"
+                      title="O tutor recebe o estado ao vivo da semana da Av1: plano de hoje, o veredito do simulado (quando feito) e as travadas marcadas"
+                    >
+                      <CalendarCheck className="size-3 shrink-0" aria-hidden />
+                      contexto: semana da Av1 · D-{examWeek.provaDaysLeft}
+                      {examWeek.simulado
+                        ? ` · simulado ${examWeek.simulado.pct}%`
+                        : ''}
+                    </span>
+                  </div>
+                )}
               </div>
               <Button
                 variant="ghost"

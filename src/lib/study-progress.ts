@@ -2,8 +2,19 @@
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
+import type { AttemptMode } from './simulado-resume';
+import { materials } from '@/data/course-data';
+import { exercises } from './exercise-extractor';
 
 const STORAGE_KEY = 'hub-estudos-ifpb:v2';
+
+/**
+ * Chave pública do progresso para LEITURAS SÓ-LEITURA (ex.: Folha de Revisão
+ * lendo simuladoRuns para imprimir o foco do simulado). NUNCA escreva nesta
+ * chave fora do useStudyProgress — o objeto inteiro (runs, flashcards, notas,
+ * caderno) vive aqui, e um write parcial destruiria o resto.
+ */
+export const STUDY_PROGRESS_KEY = STORAGE_KEY;
 
 // ---------- Tipos ----------
 export interface RecentMaterial {
@@ -131,6 +142,12 @@ export interface ExerciseProgressEntry {
   /** Questão marcada pelo aluno (⭐) — ex.: para revisar com o tutor ou antes da prova. */
   marked?: boolean;
   lastPracticedAt: string;
+  /**
+   * "Erros de sempre": quantas vezes o item VOLTOU ao Caderno de Erros depois
+   * de já ter sido resolvido (ou já ter histórico de prática). 0/undefined =
+   * erro de primeira viagem; ≥1 = recorrente — prioridade máxima na véspera.
+   */
+  lapses?: number;
 }
 
 export interface ExerciseProgress {
@@ -159,6 +176,35 @@ export interface Flashcard {
 
 /** Intervalo (dias) por caixa — índice = box. Box 0 usa minutos (5 min). */
 export const FLASHCARD_BOX_DAYS = [0, 1, 3, 7, 14, 30] as const;
+
+/**
+ * SELETOR PURO do Leitner — cartões vencidos (inclui novas — dueAt =
+ * createdAt), mais atrasados primeiro. O relógio chega por PARÂMETRO
+ * (lição 113/115: quem pede "agora" passa o agora): a derivação existe
+ * UMA vez e as superfícies vivas (flashcards 30s, dashboard 60s) passam
+ * o tick — o memo do hook mantém o comportamento cacheado para quem não
+ * tem batida própria, sem segunda derivação no app.
+ */
+export function flashcardsDueFor(cards: Flashcard[], nowMs: number): Flashcard[] {
+  return cards
+    .filter((c) => new Date(c.dueAt).getTime() <= nowMs)
+    .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+}
+
+/** SELETOR PURO do placar do baralho — mesma forma do flashcardStats do hook. */
+export function flashcardStatsFor(cards: Flashcard[], nowMs: number) {
+  const due = flashcardsDueFor(cards, nowMs);
+  return {
+    total: cards.length,
+    due: due.length,
+    learning: cards.filter((c) => c.box <= 1).length,
+    mastered: cards.filter((c) => c.box >= 4).length,
+    reviewsDone: cards.reduce((acc, c) => acc + c.reviews, 0),
+    nextDueMs: cards.length
+      ? Math.min(...cards.map((c) => new Date(c.dueAt).getTime())) - nowMs
+      : null,
+  };
+}
 
 /** Label curta do intervalo que a nota aplicaria (hint dos botões de revisão). */
 export function flashcardNextIntervalLabel(box: number, grade: FlashcardGrade): string {
@@ -215,6 +261,8 @@ export interface RunQuestionDetail {
 export interface SimuladoRun {
   id: string;
   date: string; // ISO
+  /** Natureza da tentativa (opcional p/ compat com runs antigos) — histórico e IA honestos. */
+  mode?: AttemptMode;
   total: number;
   solved: number;
   missed: number;
@@ -448,6 +496,14 @@ export function useStudyProgress() {
           { id: materialId, accessedAt: nowIso },
           ...prev.recentMaterials.filter((m) => m.id !== materialId),
         ].slice(0, 10);
+        // O FLUXO REAL REGISTRA (dono, 28/09): abrir um material É estudar a
+        // disciplina — antes só markCompleted/addFocusSession tocavam o
+        // lastStudiedAt e o aluno que aprende abrindo material aparecia como
+        // 'estudo atrasado' em todo lugar. Fonte do código: course-data.
+        const discCode = materials.find((m) => m.id === materialId)?.disciplineCode;
+        const disc = discCode
+          ? prev.disciplineProgress[discCode] ?? { studiedMinutes: 0, materialsCompleted: 0 }
+          : null;
         return {
           ...prev,
           recentMaterials: recent,
@@ -458,6 +514,14 @@ export function useStudyProgress() {
               lastAccessedAt: nowIso,
             },
           },
+          ...(disc && discCode
+            ? {
+                disciplineProgress: {
+                  ...prev.disciplineProgress,
+                  [discCode]: { ...disc, lastStudiedAt: nowIso },
+                },
+              }
+            : {}),
         };
       });
     },
@@ -866,6 +930,23 @@ export function useStudyProgress() {
         // não resolveu de novo), o item REABRE sozinho no caderno.
         const revised = { ...(prev.notebookRevised ?? {}) };
         if (next.tried && !next.solved) delete revised[`ex:${exerciseId}`];
+        // "Erros de sempre": reentrada no caderno COM histórico de prática
+        // anterior = o aluno já tinha virado este acerto e recaiu. Conta a
+        // recaída (lapses) — é o item que merece prioridade na véspera.
+        // 1ª marcação da vida (sem histórico) NÃO é recaída: lapses fica 0.
+        const wasInCaderno = cur.neededHelp || (cur.tried && !cur.solved);
+        const isInCaderno = next.neededHelp || (next.tried && !next.solved);
+        const temHistorico = cur.tried || cur.solved || cur.neededHelp;
+        if (!wasInCaderno && isInCaderno && temHistorico) {
+          next.lapses = (cur.lapses ?? 0) + 1;
+        }
+        // RESOLVER TAMBÉM É ESTUDAR (dono, 28/09): praticar exercício toca o
+        // lastStudiedAt da disciplina — o 'estudo atrasado' não pode cobrar
+        // quem está resolvendo. Código da disciplina vem do próprio acervo.
+        const discCode = exercises.find((e) => e.id === exerciseId)?.disciplineCode;
+        const disc = discCode
+          ? prev.disciplineProgress[discCode] ?? { studiedMinutes: 0, materialsCompleted: 0 }
+          : null;
         return {
           ...prev,
           notebookRevised: revised,
@@ -873,6 +954,14 @@ export function useStudyProgress() {
             ...prev.exerciseProgress,
             [exerciseId]: next,
           },
+          ...(disc && discCode
+            ? {
+                disciplineProgress: {
+                  ...prev.disciplineProgress,
+                  [discCode]: { ...disc, lastStudiedAt: next.lastPracticedAt },
+                },
+              }
+            : {}),
         };
       });
     },
@@ -1098,27 +1187,19 @@ export function useStudyProgress() {
     [progress.flashcards],
   );
 
-  /** Cartões vencidos (inclui novas — dueAt = createdAt), mais atrasados primeiro. */
-  const flashcardsDue = React.useMemo(() => {
-    const now = Date.now();
-    return allFlashcards
-      .filter((c) => new Date(c.dueAt).getTime() <= now)
-      .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
-  }, [allFlashcards]);
+  /** Cartões vencidos (inclui novas — dueAt = createdAt), mais atrasados primeiro.
+   * A derivação mora no seletor PURO flashcardsDueFor (o relógio por parâmetro);
+   * o memo mantém o comportamento cacheado — superfícies vivas chamam o seletor
+   * direto com o próprio tick (lição 113/115: uma fonte, várias cadências). */
+  const flashcardsDue = React.useMemo(
+    () => flashcardsDueFor(allFlashcards, Date.now()),
+    [allFlashcards],
+  );
 
-  const flashcardStats = React.useMemo(() => {
-    const now = Date.now();
-    return {
-      total: allFlashcards.length,
-      due: flashcardsDue.length,
-      learning: allFlashcards.filter((c) => c.box <= 1).length,
-      mastered: allFlashcards.filter((c) => c.box >= 4).length,
-      reviewsDone: allFlashcards.reduce((acc, c) => acc + c.reviews, 0),
-      nextDueMs: allFlashcards.length
-        ? Math.min(...allFlashcards.map((c) => new Date(c.dueAt).getTime())) - now
-        : null,
-    };
-  }, [allFlashcards, flashcardsDue]);
+  const flashcardStats = React.useMemo(
+    () => flashcardStatsFor(allFlashcards, Date.now()),
+    [allFlashcards],
+  );
 
   // ----- Selectors do Protocolo HUB -----
 

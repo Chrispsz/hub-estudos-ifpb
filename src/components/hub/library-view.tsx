@@ -15,7 +15,15 @@ import { disciplines, materials, type Discipline } from '@/data/course-data';
 import { getColorClasses, priorityClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER } from '@/lib/curriculum';
+import { cn } from '@/lib/utils';
+import { daysUntilDate } from '@/lib/semester';
+import {
+  disciplineExamBriefFor,
+  MATH_EXAM,
+  type DisciplineExamBrief,
+} from '@/lib/math-exam-prep';
 import { DisciplinesView } from './disciplines-view';
+import { LibraryExamStrip } from './library-exam-strip';
 import { MaterialsList } from './materials-list';
 
 type CategoryFilter = 'todos' | Discipline['category'];
@@ -90,6 +98,9 @@ export function LibraryView() {
   const [tab, setTab] = React.useState<string>('disciplinas');
   const [filtro, setFiltro] = React.useState<CategoryFilter>('todos');
 
+  // Semana da Av1 no card filtrado (mesma fonte da visão completa — zero
+  // segunda verdade): render-time puro, janela honesta D-7→D-0 no módulo puro.
+  const mathExamBrief = disciplineExamBriefFor(daysUntilDate(MATH_EXAM.date));
   const filteredDisciplines = React.useMemo(
     () =>
       filtro === 'todos'
@@ -129,6 +140,10 @@ export function LibraryView() {
           </Badge>
         </div>
       </header>
+
+      {/* A semana da Av1 vista pela Biblioteca: escopo a 1 clique + D-N
+          honesto (janela D-7 → D-0 — fora dela a faixa cala, regra da 88). */}
+      <LibraryExamStrip />
 
       <Tabs
         value={tab}
@@ -219,6 +234,7 @@ export function LibraryView() {
                         key={d.code}
                         discipline={d}
                         materialsCount={MATERIAL_COUNT_BY_CODE.get(d.code) ?? 0}
+                        examChip={d.code === MATH_EXAM.disciplineCode ? mathExamBrief : null}
                         onClick={verVisaoCompleta}
                       />
                     ))}
@@ -253,10 +269,14 @@ export function LibraryView() {
 const FilteredDisciplineCard = React.memo(function FilteredDisciplineCard({
   discipline,
   materialsCount,
+  examChip,
   onClick,
 }: {
   discipline: Discipline;
   materialsCount: number;
+  /** Semana da Av1 (fonte única: disciplineExamBriefFor) — só a disciplina
+   *  da prova recebe; null = chip ausente (silêncio honesto). */
+  examChip?: DisciplineExamBrief | null;
   onClick: () => void;
 }) {
   const color = getColorClasses(discipline.color);
@@ -294,6 +314,41 @@ const FilteredDisciplineCard = React.memo(function FilteredDisciplineCard({
             {discipline.name}
           </p>
         </div>
+
+        {/* Chip da semana da Av1 — mesma gramática do card da visão completa
+            (pulso só nos é-hoje; amber na semana, rose só na prova). */}
+        {examChip && (
+          <div
+            role="status"
+            aria-label={`Av1 da disciplina: ${examChip.chip}`}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium',
+              examChip.kind === 'prova'
+                ? 'border-rose-500/50 bg-rose-500/[0.07] text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/[0.08] dark:text-rose-400'
+                : 'border-amber-500/40 bg-amber-500/[0.06] text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/[0.08] dark:text-amber-400',
+            )}
+          >
+            {examChip.kind === 'prova' || examChip.kind === 'simulado' ? (
+              <span aria-hidden className="relative flex size-1.5 shrink-0">
+                <span
+                  className={cn(
+                    'absolute inline-flex h-full w-full animate-ping rounded-full opacity-75',
+                    examChip.kind === 'prova' ? 'bg-rose-500' : 'bg-amber-500',
+                  )}
+                />
+                <span
+                  className={cn(
+                    'relative inline-flex size-1.5 rounded-full',
+                    examChip.kind === 'prova' ? 'bg-rose-500' : 'bg-amber-500',
+                  )}
+                />
+              </span>
+            ) : (
+              <Clock aria-hidden className="size-3 shrink-0" />
+            )}
+            <span className="tabular-nums">{examChip.chip}</span>
+          </div>
+        )}
 
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">

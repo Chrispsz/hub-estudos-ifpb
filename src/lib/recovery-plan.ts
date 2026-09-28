@@ -10,7 +10,17 @@
 // trilha muda sozinha (topicosCobertos/material-first) — aqui a fonte é a
 // conversa + arquivo autoral, então o estado é declarado explicitamente.
 
-import { MATH_EXAM } from './math-exam-prep';
+import {
+  MATH_EXAM,
+  MATH_EXAM_PLAN,
+  MATH_META,
+  MATH_NOTA_REAL_KEY,
+  MATH_SIMULADO_DATE,
+  findMathSimuladoRunOficial,
+  notaRealAv1Valida,
+  planDayFor,
+} from './math-exam-prep';
+import { daysUntilDate } from './semester';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -90,8 +100,85 @@ export interface RecoveryAction {
   minutos: number;
   /** Material da Biblioteca a abrir (openMethod). */
   materialId?: string;
-  /** Aba para navegar (ex.: 'practice'). */
-  tab?: 'practice';
+  /** Conjunto material-first da ação: o chip 'praticar' abre o Praticar
+   *  pré-filtrado no conjunto EXATO de questões ligadas ao material
+   *  (ex.: a folha da S3 → as 8 questões que saíram dela). */
+  linkedMaterial?: string;
+  /** Aba para navegar (ex.: 'practice' | 'progress'). */
+  tab?: 'practice' | 'progress';
+  /** false = item-POINTER (sem checkbox): o registro vive em outro card
+   *  (ex.: o plano D-N vive no card da prova — duplicar seria dupla verdade). */
+  checkable?: boolean;
+  /** Percentual do simulado oficial quando o TEXTO lê o registro (o chip da
+   *  fila renderiza com COR = SIGNIFICADO: emerald ≥ meta, amber abaixo). */
+  pct?: number;
+  /** Ação de PRAZO QUE VENCE HOJE (ex.: entrega da S3 no dia do simulado).
+   *  A fila tinta o item com a família "é hoje" (amber + pulso no chip) —
+   *  a única urgência que a fila inventa é a que tem DATA REAL atrás. */
+  prazoHoje?: boolean;
+}
+
+/**
+ * A ENTREGA DA S3 FALA NA FILA NO DIA DELA — o prazo que a reta final quase
+ * engole: a S3 vence NO MESMO DIA do simulado (29/09, fonte MATH_SIMULADO_DATE
+ * — a data única da semana), e antes desta ação o aluno que abria a fila na
+ * segunda via só o compromisso de Matemática; a entrega de Algoritmos (nota
+ * real, Classroom) morava escondida na trilha P1 como ação genérica "na semana
+ * dela". No dia, o item da trilha alg VIRA o prazo: resolver as 8 questões
+ * if/else no Praticar e entregar os programas. É CHECKABLE de propósito — o
+ * checkbox é o registro local da entrega (a fila é o lugar do "feito", padrão
+ * da casa); marcado, a trilha volta à primeira ação pendente normal (S2).
+ * Depois do dia, a ação some sozinha (prazo vencido não inventa culpa — a
+ * ação genérica alg-s3 continua na trilha para quem ainda deve a S3).
+ */
+const S3_ENTREGA_HOJE: RecoveryAction = {
+  id: 'alg-s3-entrega',
+  texto:
+    'PRAZO HOJE: entrega da S3 — as 8 questões if/else (bissexto, quadrantes, triângulo retângulo, regra do 0,7) estão no Praticar; resolva e envie os programas no Classroom',
+  minutos: 100,
+  tab: 'practice',
+  materialId: 'alg-questoes-semana3',
+  linkedMaterial: 'alg-questoes-semana3',
+  prazoHoje: true,
+};
+
+/**
+ * Veredito do SIMULADO OFICIAL para a fila — derivado do MESMO registro que
+ * card, hero e histórico leem (findMathSimuladoRunOficial, fonte única).
+ * Só existe na janela D-2..D-0 da prova: antes do dia, o simulado ainda é
+ * compromisso (fila rosa); depois da prova, o veredito não muda mais o HOJE.
+ */
+export interface SimuladoOficialVerdict {
+  /** Aproveitamento do run oficial (0–100). */
+  pct: number;
+  /** true quando hoje é o DIA do simulado (o texto diz "feito hoje"). */
+  feitoHoje: boolean;
+}
+
+/** Runs mínimos para o veredito — genérico mantém o módulo puro. */
+type SimuladoRunsLike =
+  | {
+      date: string;
+      mode?: string;
+      solved: number;
+      total: number;
+      filters?: { discipline?: string };
+      questions?: { disciplineCode?: string }[];
+    }[]
+  | undefined
+  | null;
+
+function simuladoVerdictFor(
+  daysToExam: number,
+  runs: SimuladoRunsLike,
+): SimuladoOficialVerdict | null {
+  if (daysToExam < 0 || daysToExam > 2) return null;
+  const run = findMathSimuladoRunOficial(runs);
+  if (!run) return null;
+  return {
+    pct: Math.round((run.solved / Math.max(run.total, 1)) * 100),
+    feitoHoje: daysToExam === 2,
+  };
 }
 
 export interface RecoveryTrack {
@@ -115,13 +202,13 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
     disciplineCode: MATH_EXAM.disciplineCode,
     status: 'pendente',
     resumo:
-      'Até 24/09 foi só leitura e aula — a hora é FAZER as listas impressas: Lista de Matrizes (35Q, 3 blocos) → Lista de Lógica (18Q, 2 partes) → simulado no D-2. Faltam 7 dias.',
+      'Prova focada no conteúdo dado: as duas listas impressas cobrem tudo — Matrizes (Q1–35, 3 blocos) e Lógica (Q1–18, 2 partes) — e o dia a dia (D-N) vive no card da prova. Determinantes e sistemas lineares NÃO caem (confirmado 24/09).',
     porQue:
       'Único compromisso com DATA. A prova é focada no conteúdo dado: as duas listas cobrem tudo — determinantes e sistemas lineares NÃO caem (confirmado 24/09).',
     acoes: [
       {
         id: 'mat-lista-b1',
-        texto: 'HOJE — Lista de Matrizes, Bloco 1 (Q1–16): construir, igualdade, soma e equações — teoria Aula 00 ao lado só para consultar',
+        texto: '24/09 — Lista de Matrizes, Bloco 1 (Q1–16): construir, igualdade, soma e equações — teoria Aula 00 ao lado só para consultar',
         minutos: 90,
         materialId: 'mat-01-matrizes',
       },
@@ -167,6 +254,8 @@ export const RECOVERY_TRACKS: RecoveryTrack[] = [
         texto: 'Fazer as 8 questões da Semana 3 no Praticar (if/else puro: bissexto, quadrantes, triângulo retângulo, regra do 0,7) — treino direto da Prova 1',
         minutos: 100,
         tab: 'practice',
+        materialId: 'alg-questoes-semana3',
+        linkedMaterial: 'alg-questoes-semana3',
       },
       {
         id: 'alg-lista-q1-97',
@@ -276,11 +365,163 @@ export function recoveryTotalMinutes(): number {
   );
 }
 
-/** Ações "faça hoje": 1ª ação pendente das 3 primeiras trilhas (ordem de prioridade). */
-export function todayRecoveryActions(): { track: RecoveryTrack; action: RecoveryAction }[] {
+// ---------------------------------------------------------------------------
+// TRILHA MAT — ESTADO VIVO (a prova fala o dia; a fila não diverge do card)
+// ---------------------------------------------------------------------------
+
+/** Status da trilha Matemática: pós-prova ela vira 'feito' (a fila não acusa). */
+export function matTrackStatusFor(daysToExam: number): TrackStatus {
+  return daysToExam < 0 ? 'feito' : 'pendente';
+}
+
+// ---------------------------------------------------------------------------
+// A NOTA REGISTRADA FALA — o registro da Calculadora é a FONTE ÚNICA da nota
+// real da Av1 (grade-calculator grava realGrades['TEC.1984-Av1']). Antes, a
+// fila pedia 'Anotar a nota' PARA SEMPRE — mesmo com a nota já registrada —
+// e o resumo dizia 'falta a nota' com a nota anotada (dupla verdade, o mesmo
+// vício que as rodadas 83/84 mataram no plano e na fila).
+// A ORDEM DO TEMPO MANDA (rodada 108, lição 107): a validade do registro é
+// TEMPORAL — nota real da Av1 só existe DEPOIS do dia da prova; um registro
+// lançado antes (ex.: o % do simulado de 29/09 digitado na mesma noite) não
+// vira nota e a fila segue pedindo a nota verdadeira em vez de celebrar um
+// ensaio. Fonte única: notaRealAv1Valida no math-exam-prep (o kit, a fila e
+// a calculadora obedecem ao mesmo relógio).
+// ---------------------------------------------------------------------------
+
+/** Forma mínima de uma nota real — genérico evita importar study-progress (módulo puro). */
+type RealGradeLike = { grade?: number; doneAt?: string };
+
+/**
+ * A NOTA REAL da Av1, se o aluno já a registrou na Calculadora de Médias —
+ * e o registro SOBREVIVE à ordem do tempo (notaRealAv1Valida: pós-prova e,
+ * com timestamp, lançado a partir do dia da prova).
+ * Mesma derivação de chave do grade-calculator: `${disciplineCode}-${evaluationName}`.
+ * Retorna o valor na ESCALA NATURAL da disciplina (0–10 ou 0–100) — normalizar
+ * para comparação com a meta é responsabilidade de quem exibe.
+ */
+export function findNotaRealAv1<T extends Record<string, RealGradeLike>>(
+  realGrades: T | undefined | null,
+  now: Date = new Date(),
+): number | null {
+  const entry = realGrades?.[MATH_NOTA_REAL_KEY];
+  return notaRealAv1Valida(entry, now) ? (entry?.grade as number) : null;
+}
+
+/** Resumo da trilha Matemática: o 'Faltam 7 dias' congelado mentia — agora fala o dia real. */
+export function matTrackResumoFor(daysToExam: number, notaReal: number | null = null): string {
+  if (daysToExam < 0) {
+    if (notaReal !== null) {
+      return notaReal >= MATH_META
+        ? `Prova de Matemática realizada — nota ${notaReal} registrada ✓ acima da meta de aprovação (≥ ${MATH_META}). Av2 e Av3 seguem o plano; a fila agora é do Projeto LM (09/10) e da Prova de Algoritmos (30/10).`
+        : `Prova de Matemática realizada — nota ${notaReal} registrada, abaixo da meta de aprovação (≥ ${MATH_META}). Av2 e Av3 ainda abrem caminho: o plano segue — revise com o caderno de erros e o simulado.`;
+    }
+    return 'Prova de Matemática realizada — falta a nota. Confira a média na Calculadora (aba Progresso) e siga a fila: Projeto LM 09/10 e Prova de Algoritmos 30/10.';
+  }
+  return `Prova focada no conteúdo dado: as duas listas impressas cobrem tudo — Matrizes (Q1–35) e Lógica (Q1–18) — e faltam ${daysToExam} dia(s). O dia a dia (D-${daysToExam}) vive no card da prova; determinantes e sistemas lineares NÃO caem (confirmado 24/09).`;
+}
+
+/**
+ * Ação de HOJE da trilha Matemática — VIVA, derivada do PLANO DA PROVA
+ * (fonte única: MATH_EXAM_PLAN, a mesma verdade do card da prova):
+ * pré-prova = pointer para o dia D-N do plano (sem checkbox — o registro
+ * das tarefas vive lá, duplicar seria dupla verdade); pós-prova = anotar
+ * a nota na Calculadora. Sem dia de plano (D-9+) → null (a fila segue
+ * com as outras trilhas, honesta).
+ */
+export function matTodayActionFor(
+  daysToExam: number,
+  notaReal: number | null = null,
+  simulado: SimuladoOficialVerdict | null = null,
+): RecoveryAction | null {
+  if (daysToExam < 0) {
+    // Nota JÁ REGISTRADA na Calculadora → a fila larga o 'Anotar a nota':
+    // o registro vence o checkbox (a verdade do registro, padrão da 83/84).
+    if (notaReal !== null) return null;
+    return {
+      id: 'mat-pos-prova-nota',
+      texto: 'Anotar a nota da Av1 na Calculadora de Médias e conferir quanto falta para a média final',
+      minutos: 10,
+      tab: 'progress',
+    };
+  }
+  const day = planDayFor(Math.min(Math.max(daysToExam, 0), MATH_EXAM_PLAN.length - 1));
+  if (!day) return null;
+  // O SIMULADO OFICIAL FALA NA FILA (padrão da nota real, rodada 87): o run
+  // é o registro — quando existe, o pointer D-2/D-1/D-0 deixa de tratar o
+  // simulado como compromisso futuro e lê o que aconteceu. Sem run, a fila
+  // fica como era (honesta — sem inventar resultado).
+  if (daysToExam === 2 && simulado) {
+    return {
+      id: `mat-plano-d${day.offset}`,
+      texto:
+        'Simulado da Av1 feito hoje ✓ — agora é refazer no papel as que erraram; as tarefas do dia seguem no card da prova, acima',
+      minutos: day.minutos,
+      pct: simulado.pct,
+      checkable: false,
+    };
+  }
+  if (daysToExam === 1 && simulado) {
+    return {
+      id: `mat-plano-d${day.offset}`,
+      texto:
+        'Plano da prova (D-1): Véspera — simulado de ontem feito: foque o dia nas travadas e no que errou (a folha impressa já traz o foco)',
+      minutos: day.minutos,
+      pct: simulado.pct,
+      checkable: false,
+    };
+  }
+  if (daysToExam === 0 && simulado) {
+    return {
+      id: `mat-plano-d${day.offset}`,
+      texto:
+        'Plano da prova (D-0): DIA DA PROVA — o simulado te preparou: reler os cards de fórmulas, levar o kit e confiar',
+      minutos: day.minutos,
+      pct: simulado.pct,
+      checkable: false,
+    };
+  }
+  return {
+    id: `mat-plano-d${day.offset}`,
+    texto: `Plano da prova (D-${day.offset}): ${day.titulo} — o passo a passo com as tarefas está no card da prova, acima`,
+    minutos: day.minutos,
+    materialId: day.tarefas.find((t) => t.materialId)?.materialId,
+    checkable: false,
+  };
+}
+
+/**
+ * Ações "faça hoje": 1ª ação PENDENTE das 3 primeiras trilhas (ordem de
+ * prioridade) — antes pegava sempre a acoes[0], mesmo feita; e a trilha
+ * Matemática agora entra com o item VIVO (plano do dia / Calculadora).
+ */
+export function todayRecoveryActions(
+  done: Record<string, boolean> = {},
+  realGrades?: Record<string, { grade?: number }> | null,
+  simuladoRuns?: SimuladoRunsLike,
+): { track: RecoveryTrack; action: RecoveryAction }[] {
   const out: { track: RecoveryTrack; action: RecoveryAction }[] = [];
+  const daysToExam = daysUntilDate(MATH_EXAM.date);
+  // A nota REAL lida do REGISTRO (fonte única — a Calculadora fala e a fila obedece).
+  const notaReal = findNotaRealAv1(realGrades);
+  // O simulado oficial também fala: mesmo registro de card, hero e histórico.
+  const simulado = simuladoVerdictFor(daysToExam, simuladoRuns);
   for (const track of RECOVERY_TRACKS.filter((t) => t.status !== 'adiado').slice(0, 3)) {
-    const action = track.acoes[0];
+    if (track.id === 'mat') {
+      // Pós-prova com a nota registrada OU marcada como feita → a trilha sai da lista.
+      if (daysToExam < 0 && (done['mat-pos-prova-nota'] || notaReal !== null)) continue;
+      const action = matTodayActionFor(daysToExam, notaReal, simulado);
+      if (action) out.push({ track, action });
+      continue;
+    }
+    // O PRAZO DA S3 NO DIA DELA (29/09): a entrega vence junto com o simulado
+    // e o aluno não pode descobrir isso pelo strip do Praticar só. Enquanto a
+    // entrega não está marcada, o item da trilha alg É o prazo; entregue (ou
+    // passado o dia), a trilha volta à primeira ação pendente de sempre.
+    if (track.id === 'alg' && daysUntilDate(MATH_SIMULADO_DATE) === 0 && !done[S3_ENTREGA_HOJE.id]) {
+      out.push({ track, action: S3_ENTREGA_HOJE });
+      continue;
+    }
+    const action = track.acoes.find((a) => !done[a.id]);
     if (action) out.push({ track, action });
   }
   return out;

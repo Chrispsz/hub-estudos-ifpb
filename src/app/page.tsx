@@ -28,7 +28,7 @@ import { SettingsView } from '@/components/hub/settings-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
 import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
-import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenPracticeDetail, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { OPEN_PROGRESS_EVENT } from '@/lib/hub-events';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
@@ -112,14 +112,14 @@ export default function Page() {
   }, []);
 
   // Evento hub:open-practice (Plano de Recuperação) — abre a aba Praticar e
-  // pré-filtra a disciplina indicada.
+  // pré-filtra a disciplina/conjunto indicados.
   const [practiceReq, setPracticeReq] = React.useState<
-    { detail: { disciplineCode?: string }; nonce: number } | undefined
+    { detail: OpenPracticeDetail; nonce: number } | undefined
   >(undefined);
   const practiceNonce = React.useRef(0);
   React.useEffect(() => {
     function onOpenPractice(e: Event) {
-      const detail = (e as CustomEvent<{ disciplineCode?: string }>).detail ?? {};
+      const detail = (e as CustomEvent<OpenPracticeDetail>).detail ?? {};
       practiceNonce.current += 1;
       setPracticeReq({ detail, nonce: practiceNonce.current });
       setActiveState('practice');
