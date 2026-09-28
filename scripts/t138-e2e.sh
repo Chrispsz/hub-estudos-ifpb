@@ -54,15 +54,17 @@ CAM=$(agent-browser eval "(function(){var b=[...document.querySelectorAll('[data
 TITLE=$(agent-browser eval "(function(){var b=[...document.querySelectorAll('[data-slot=sheet-content] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});return c?c.getAttribute('title')||'no-title':'no-btn'})()" 2>/dev/null | tr -d '"')
 echo "$TITLE" | grep -q "nada é salvo no seu computador" && ok "a promessa do auto-apagar mora no title do botão" || bad "title sem a promessa ($TITLE)"
 
-echo "=== [B] O CAMINHO GRACIOSO (headless nega a tela — a UI não quebra) ==="
+echo "=== [B] O SELETOR QUE NÃO CANCELA (headless pendura — o 2º clique solta) ==="
 agent-browser eval "(function(){var b=[...document.querySelectorAll('[data-slot=sheet-content] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});if(!c) return 'no-btn';c.click();return 'clicked'})()" >/dev/null 2>&1
-sleep 5
-TOAST=$(agent-browser eval "(function(){var t=document.body.textContent||'';if(t.indexOf('Captura cancelada')>=0) return 'cancelled';if(t.indexOf('Não consegui capturar')>=0) return 'failed';if(t.indexOf('não suporta captura')>=0) return 'unsupported';if(t.indexOf('Recortar a questão')>=0) return 'dialog-open';return 'nothing'})()" 2>/dev/null | tr -d '"')
-case "$TOAST" in
-  cancelled|failed|unsupported) ok "cabeça dura do headless virou toast honesto ($TOAST) — nenhum crash";;
-  dialog-open) ok "headless deixou capturar — diálogo de recorte abriu";;
-  *) bad "nenhuma resposta da captura ($TOAST)";;
-esac
+sleep 2
+PRESSED=$(agent-browser eval "(function(){var b=[...document.querySelectorAll('[data-slot=sheet-content] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});return c?(c.getAttribute('aria-pressed')==='true'?'1':'0'):'no-btn'})()" 2>/dev/null | tr -d '"')
+[ "$PRESSED" = "1" ] && ok "captura em andamento marcada (aria-pressed + pulso) — o estado é honesto" || bad "captura não ficou marcada (pressed=$PRESSED)"
+# o seletor nativo NÃO é cancelável via JS (getDisplayMedia pendura em headless):
+# a escape da casa é o 2º clique = soltar a UI, sem crash e sem anexo fantasma
+agent-browser eval "(function(){var b=[...document.querySelectorAll('[data-slot=sheet-content] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});if(!c) return 'no-btn';c.click();return 'clicked-again'})()" >/dev/null 2>&1
+sleep 2
+RELEASED=$(agent-browser eval "(function(){var t=document.body.textContent||'';var b=[...document.querySelectorAll('[data-slot=sheet-content] button')];var c=b.find(function(x){return (x.getAttribute('aria-label')||'')==='Capturar a tela e recortar para o tutor'});var released=c&&c.getAttribute('aria-pressed')==='false'&&c.disabled===false;var toast=t.indexOf('Captura liberada')>=0||t.indexOf('Captura cancelada')>=0||t.indexOf('Não consegui capturar')>=0;return (released&&toast)?'1':(released?'released-no-toast':'NOT-'+(c?'released':'btn')+(toast?'-toast':'-notoast'))})()" 2>/dev/null | tr -d '"')
+[ "$RELEASED" = "1" ] && ok "2º clique soltou a captura + toast — nenhum travamento" || bad "escape da captura falhou ($RELEASED)"
 # o chat continua utilizável (o composer não travou com o fluxo cancelado)
 TA=$(agent-browser eval "(function(){var ta=document.querySelector('textarea[aria-label=\"Sua pergunta para o tutor\"]');return ta&&!ta.disabled?'1':'0'})()" 2>/dev/null | tr -d '"')
 [ "$TA" = "1" ] && ok "composer segue vivo depois do cancelamento" || bad "composer travou (ta=$TA)"

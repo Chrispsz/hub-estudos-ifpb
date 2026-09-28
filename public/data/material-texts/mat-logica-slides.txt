@@ -1,370 +1,384 @@
-Noções de Lógica Prof. Ms. Eudes Ferreira
+<!-- página 1 -->
+# Noções de Lógica
+**Prof. Ms. Eudes Ferreira**
 
----
+[Figura: Lousa com anotações matemáticas manuscritas, incluindo a definição de derivada pela definição de limite $f(x)=\lim_{h \to 0} \frac{(x+h)^2-x^2}{h}$, e termos como "Tangent Line" e "Lines"]
 
-Conteúdos
-Lógica: proposição,
-negação, proposições
-composta e logicamente
-falsa, condicionais,
-tautologias, relações de
-implicação e equivalência,
-sentenças abertas e
+<!-- página 2 -->
+# Conteúdos
+
+Lógica: proposição,  
+negação, proposições  
+composta e logicamente  
+falsa, condicionais,  
+tautologias, relações de  
+implicação e equivalência,  
+sentenças abertas e  
 negação de proposição.
- Noções de Lógica 2
 
----
+[Figura: Calculadora, régua, compasso, clipe de papel e estilete sobre fundo verde]
 
-Noções de Lógica
+Noções de Lógica 2
 
----
+<!-- página 3 -->
+# Noções de Lógica
 
-Lógica Matemática: É uma
-sub-área da matemática
-que explora as aplicações
-da lógica formal
-para a matemática.
-A lógica matemática é uma das
-ferramentas fundamentais na definição de
-conceitos computacionais. Podemos citar
-algumas de suas aplicações relacionada à
-ciência da computação como:
-• Banco de dados;
-• Inteligência artificial;
-• Construção e verificação de Algoritmos;
-• Linguagem de computação e outros.
+[Figura: Slide de abertura com fundo roxo à esquerda contendo o título "Noções de Lógica" e uma imagem de um personagem de cabeça para baixo com o texto "Lógica? Será que eu vou entender isso?!!!!"; à direita, foto desfocada de teclado de calculadora com as teclas de operações aritméticas visíveis]
 
----
+<!-- página 4 -->
+**Lógica Matemática:** É uma sub-área da matemática que explora as aplicações da lógica formal para a matemática.
 
- PROPOSIÇÃO
-Chama-se proposição ou sentença toda oração declarativa que
-pode ser classificada em verdadeira ou em falsa.
-Observamos que toda proposição apresenta três características
-obrigatórias:
-1ª) sendo oração, tem sujeito e predicado;
-2ª) é declarativa (não é exclamativa nem interrogativa);
-3ª) tem um, e somente um, dos dois valores lógicos: ou é
-verdadeira (V) ou é falsa (F).
+A lógica matemática é uma das ferramentas fundamentais na definição de conceitos computacionais. Podemos citar algumas de suas aplicações relacionada à ciência da computação como:
 
----
+*   Banco de dados;
+*   Inteligência artificial;
+*   Construção e verificação de Algoritmos;
+*   Linguagem de computação e outros.
 
- PRINCÍPIOS DA LÓGICA
+[Figura: Ilustração de um cérebro dividido em dois hemisférios: o esquerdo com fórmulas matemáticas em preto e branco, e o direito com tinta colorida (amarelo, azul, verde, vermelho e rosa).]
 
- PRINCÍPIO DA NÃO CONTRADIÇÃO
- uma proposição não pode ser falsa e verdadeira ao mesmo tempo.
+<!-- página 5 -->
+# PROPOSIÇÃO
 
- PRINCÍPIO DO TERCEIRO EXCLUÍDO
-toda proposição ou é verdadeira ou é falsa, isto é, verifica-se sempre um
- destes casos e nunca um terceiro.
+Chama-se **proposição** ou **sentença** toda oração declarativa que pode ser classificada em verdadeira ou em falsa.
 
----
+Observamos que toda proposição apresenta três características obrigatórias:
 
- EXEMPLOS
-São proposições:
-a) Nove é diferente de cinco. (9 ≠ 5)
-b) Sete é maior que três. (7 > 3)
-c) Dois é um número inteiro. (2∈ ℕ)
-d) Três é divisor de onze. (3 | 11)
-e) Quatro vezes cinco é igual a vinte. (4 X 5 = 20)
-Não são consideradas proposições as frases:
-f) Três vezes cinco mais um. (3 X 5 + 1) – não apresenta predicado.
-g) A raiz quadrada de dois é número racional? ( 2 ∈ ℚ?) – frase interrogativa.
-h) O triplo de um número menos um é igual a onze. (3x - 1 = 11) – não podemos classificar em
-verdadeira ou falsa.
+$1^{\text{a}}$) sendo oração, tem sujeito e predicado;
+
+$2^{\text{a}}$) é declarativa (não é exclamativa nem interrogativa);
+
+$3^{\text{a}}$) tem um, e somente um, dos dois valores lógicos: ou é verdadeira (V) ou é falsa (F).
+
+<!-- página 6 -->
+# PRINCÍPIOS DA LÓGICA
+
+**PRINCÍPIO DA NÃO CONTRADIÇÃO**
+uma proposição não pode ser falsa e verdadeira ao mesmo tempo.
+
+**PRINCÍPIO DO TERCEIRO EXCLUÍDO**
+toda proposição ou é verdadeira ou é falsa, isto é, verifica-se sempre um destes casos e nunca um terceiro.
+
+<!-- página 7 -->
+# EXEMPLOS
+
+**São** proposições:
+
+a) Nove é diferente de cinco. ($9 \neq 5$)
+
+b) Sete é maior que três. ($7 > 3$)
+
+c) Dois é um número inteiro. ($2 \in \mathbb{N}$)
+
+d) Três é divisor de onze. ($3 \mid 11$)
+
+e) Quatro vezes cinco é igual a vinte. ($4 \times 5 = 20$)
+
+**Não** são consideradas proposições as frases:
+
+f) Três vezes cinco mais um. ($3 \times 5 + 1$) – não apresenta predicado.
+
+g) A raiz quadrada de dois é número racional? ($\sqrt{2} \in \mathbb{Q}$?) – frase interrogativa.
+
+h) O triplo de um número menos um é igual a onze. ($3x - 1 = 11$) – não podemos classificar em verdadeira ou falsa.
+
 i) Estude para a prova. – frase imperativa.
 
----
+<!-- página 8 -->
+# VALOR LÓGICO
 
- VALOR LÓGICO
-Denomina-se valor lógico de uma proposição a verdade (que
-representamos por V), se a proposição for verdadeira, ou a
-falsidade (representada por F), se a proposição for falsa.
-Indicaremos o valor lógico de uma proposição p por V(p). Desse
-modo, exprimimos que a proposição p é verdadeira escrevendo
-V(p) = V e que p é falsa escrevendo V(p) = F.
-EXEMPLO: Considere as afirmações (proposições);
+Denomina-se **valor lógico** de uma proposição a verdade (que representamos por V), se a proposição for **verdadeira**, ou a falsidade (representada por F), se a proposição for **falsa**.
+
+Indicaremos o valor lógico de uma proposição p por $V(p)$. Desse modo, exprimimos que a proposição p é verdadeira escrevendo $V(p) = V$ e que p é falsa escrevendo $V(p) = F$.
+
+**EXEMPLO:** Considere as afirmações (proposições);
 a) Os homens são mortais.
 b) As pedras são seres vivos.
 
----
+<!-- página 9 -->
+# PROPOSIÇÕES SIMPLES E COMPOSTAS
 
-PROPOSIÇÕES SIMPLES E COMPOSTAS
- PROPOSIÇÃO SIMPLES: é aquela que não contém nenhuma outra proposição
- como parte integrante de si mesma e representamos por uma letra minúscula
- do alfabeto (p, q, r, ...).
+**PROPOSIÇÃO SIMPLES:** é aquela que não contém nenhuma outra proposição como parte integrante de si mesma e representamos por uma letra minúscula do alfabeto ($p, q, r, ...$).
 
- EXEMPLOS:
- p: A velocidade da luz no vácuo é aproximadamente igual a 300000 km/s.
- q: o número 25 é quadrado perfeito.
+**EXEMPLOS:**
 
- PROPOSIÇÃO COMPOSTA: é aquela formada pela combinação de duas ou
- mais proposições simples e representamos por uma letra maiúscula do
- alfabeto (P, Q, R, ...).
+$p$: A velocidade da luz no vácuo é aproximadamente igual a $300000$ km/s.
 
- EXEMPLOS:
- P: O sol brilha e a luz reflete.
- Q: Se 3 < e o número 8 é um cubo perfeito, então 25 é um número primo.
+$q$: o número 25 é quadrado perfeito.
 
----
+**PROPOSIÇÃO COMPOSTA:** é aquela formada pela combinação de duas ou mais proposições simples e representamos por uma letra maiúscula do alfabeto ($P, Q, R, ...$).
 
- CONECTIVOS
-CONECTIVOS: são palavras que se usam para formar novas
-proposições a partir de outras.
+**EXEMPLOS:**
 
-EXEMPLOS:
-P: O número 6 é par e o número 27 é um cubo perfeito.
-Q: O triângulo ABC é retângulo ou é isósceles.
-R: Não está chovendo em Cajazeiras.
-S: Se vocês cursam ADS, então sabem matemática.
-T: O triângulo ABC é equilátero se, e somente se, é equiângulo.
+$P$: O sol brilha e a luz reflete.
 
----
+$Q$: Se $\sqrt{3} < \pi$ e o número 8 é um cubo perfeito, então 25 é um número primo.
 
-Operações Lógicas
-sobre Proposições
+<!-- página 10 -->
+# CONECTIVOS
 
----
+**CONECTIVOS:** são palavras que se usam para formar novas proposições a partir de outras.
 
- NEGAÇÃO
-A partir de uma proposição p qualquer, sempre podemos construir outra, denominada
-NEGAÇÃO de p e indicada com o símbolo ~p.
-EXEMPLOS:
- p: Nove é diferente de cinco. (9 ≠ 5)
-~p : Nove é igual a cinco. (9 = 5) OBSERVAÇÃO: outra maneira
- de efetuar a negação consiste
- p: Sete é maior que três. (7 > 3)
-~p : Sete é menor ou igual a três. (7 ≤ 3)
- em antepor à proposição dada
- expressões tais como “não é
- p: Dois é um número inteiro. (2 ∈ ℤ) verdade que”, “é falso que”.
-~p : Dois não é um número inteiro. (2 ∉ ℤ)
+**EXEMPLOS:**
 
- p: Quatro vezes cinco é igual a vinte. (4 x 5 = 20)
-~p : Quatro vezes cinco é diferente de vinte. (4 x 5 ≠ 20)
+P: O número 6 é par **e** o número 27 é um cubo perfeito.
 
----
+Q: O triângulo ABC é retângulo **ou** é isósceles.
 
- NEGAÇÃO
-Para que ~p seja realmente uma proposição, devemos ser capazes de classificá-la
-em verdadeira (V) ou falsa (F). Para isso vamos postular (decretar) o seguinte critério
-de classificação:
+R: **Não** está chovendo em Cajazeiras.
 
- A proposição ~ p tem sempre o valor oposto de p, isto é, ~p é
- verdadeira quando p é falsa e ~p é falsa quando p é verdadeira.
+S: **Se** vocês cursam ADS, **então** sabem matemática.
 
-Esse critério está resumido na tabela ao lado, denominada tabela-verdade da
-proposição ~p.
+T: O triângulo ABC é equilátero **se**, **e somente se**, é equiângulo.
 
- p ~p
- V F
- F V
+<!-- página 11 -->
+# Operações Lógicas sobre Proposições
 
----
+[Figura: Slide de abertura com fundo roxo à esquerda contendo o título "Operações Lógicas sobre Proposições" e, à direita, imagem desfocada de teclas de calculadora com os símbolos $\times$, $\div$ e $-$]
 
- NEGAÇÃO
-A negação de uma negação será sempre uma afirmação: isto é ~(~p) = p , conforme
-mostra a seguinte situação hipotética abaixo:
-Ricardão foi à uma balada escondido de sua esposa Maria, mas no dia seguinte ela
-descobre. Desconfiada a respeito da fidelidade do seu esposo ela espera ele retornar
-para casa e eles mantiveram o seguinte diálogo:
+<!-- página 12 -->
+# NEGAÇÃO
+
+A partir de uma proposição p qualquer, sempre podemos construir outra, denominada **NEGAÇÃO** de p e indicada com o símbolo $\sim$p.
+
+**EXEMPLOS:**
+
+p: Nove é diferente de cinco. $(9 \neq 5)$
+$\sim$p : Nove é igual a cinco. $(9 = 5)$
+
+> **OBSERVAÇÃO:** outra maneira de efetuar a **negação** consiste em antepor à proposição dada expressões tais como “não é verdade que”, “é falso que”.
+
+p: Sete é maior que três. $(7 > 3)$
+$\sim$p : Sete é menor ou igual a três. $(7 \leq 3)$
+
+p: Dois é um número inteiro. $(2 \in \mathbb{Z})$
+$\sim$p : Dois não é um número inteiro. $(2 \notin \mathbb{Z})$
+
+p: Quatro vezes cinco é igual a vinte. $(4 \times 5 = 20)$
+$\sim$p : Quatro vezes cinco é diferente de vinte. $(4 \times 5 \neq 20)$
+
+<!-- página 13 -->
+# NEGAÇÃO
+
+Para que $\sim$p seja realmente uma proposição, devemos ser capazes de classificá-la em verdadeira (V) ou falsa (F). Para isso vamos postular (decretar) o seguinte critério de classificação:
+
+> A proposição $\sim$ p tem sempre o valor oposto de p, isto é, $\sim$p é verdadeira quando p é falsa e $\sim$p é falsa quando p é verdadeira.
+
+Esse critério está resumido na tabela ao lado, denominada **tabela-verdade** da proposição $\sim$p.
+
+| p | $\sim$p |
+|:---:|:---:|
+| V | F |
+| F | V |
+
+<!-- página 14 -->
+# NEGAÇÃO
+
+A negação de uma negação será sempre uma afirmação: isto é $\sim(\sim p) = p$, conforme mostra a seguinte situação hipotética abaixo:
+
+Ricardão foi à uma balada escondido de sua esposa Maria, mas no dia seguinte ela descobre. Desconfiada a respeito da fidelidade do seu esposo ela espera ele retornar para casa e eles mantiveram o seguinte diálogo:
+
 - Maria: Ricardão você me traiu na festa?
+
 - Ricardão: Não, não!
-Tendo como base a resposta de Ricardão, Maria especialista em lógica concluiu
-corretamente que seu marido foi infiel ou não?
 
----
+Tendo como base a resposta de Ricardão, Maria especialista em lógica concluiu corretamente que seu marido foi infiel ou não?
 
- CONJUNÇÃO ∧
-Colocando o conectivo ∧ entre duas proposições p e q, obtemos uma nova
-proposição, p ∧ q, denominada conjunção das sentenças p e q.
+<!-- página 15 -->
+# CONJUNÇÃO $\land$
+
+Colocando o conectivo $\land$ entre duas proposições p e q, obtemos uma nova proposição, $p \land q$, denominada **conjunção** das sentenças p e q.
+
 Exemplos:
 
- 1º) 3º)
- p: 2 > 0 p: um quadrado de lado a tem diagonal 2a
- q: 2 ≠ 1 q: um quadrado de lado a tem área a²
- p ∧ q: 2 > 0 e 2 ≠ 1 p ∧ q: um quadrado de lado a tem diagonal 2a e área a²
- 2º) 4º)
- p: -2 < -1 p: 2 | 5 (2 é divisor de 5)
- q: (-2)² < (-1)² q: 3 | 5 (3 é divisor de 5)
- p ∧ q: -2 < -1 e (-2)² < (-1)² p ∧ q: 2 | 5 e 3 | 5
+| 1º) | 3º) |
+|:---|:---|
+| p: $2 > 0$ | p: um quadrado de lado a tem diagonal $2a$ |
+| q: $2 \neq 1$ | q: um quadrado de lado a tem área $a^2$ |
+| $p \land q$: $2 > 0$ e $2 \neq 1$ | $p \land q$: um quadrado de lado a tem diagonal $2a$ e área $a^2$ |
 
----
+| 2º) | 4º) |
+|:---|:---|
+| p: $-2 < -1$ | p: $2 \mid 5$ (2 é divisor de 5) |
+| q: $(-2)^2 < (-1)^2$ | q: $3 \mid 5$ (3 é divisor de 5) |
+| $p \land q$: $-2 < -1$ e $(-2)^2 < (-1)^2$ | $p \land q$: $2 \mid 5$ e $3 \mid 5$ |
 
- CONJUNÇÃO ∧
-A conjunção p ∧ q é verdadeira se p e q são ambas verdadeiras; se ao
-menos uma delas for falsa, então p ∧ q é falsa.
+<!-- página 16 -->
+# CONJUNÇÃO $\land$
 
- TABELA VERDADE
- p q p∧q
- V V V
- V F F
- F V F
- F F F
+A **conjunção** $p \land q$ é verdadeira se p e q são ambas verdadeiras; se ao menos uma delas for falsa, então $p \land q$ é falsa.
 
----
+## TABELA VERDADE
 
- DISJUNÇÃO ∨
-Colocando o conectivo ∨ entre duas proposições p e q, obtemos uma nova
-proposição, p ∨ q, denominada disjunção das sentenças p e q.
+| p | q | $p \land q$ |
+|:---:|:---:|:---:|
+| V | V | V |
+| V | F | F |
+| F | V | F |
+| F | F | F |
+
+<!-- página 17 -->
+# DISJUNÇÃO V
+
+Colocando o conectivo V entre duas proposições p e q, obtemos uma nova proposição, $p \lor q$, denominada **disjunção** das sentenças p e q.
+
 Exemplos:
 
- 1º) 3º)
- p: 5 > 0 p: 10 é número primo
- q: 5 > 1 q: 10 é número composto
- p ∨ q: 5 > 0 ou 5 > 1 p ∨ q: 10 é número primo ou número composto
- 2º) 4º)
- p: 3 = 3 p: 34 < 26
- q: 3 < 3 q:22 < (−3)5
- p ∨ q: 3 ≤ 3 p ∨ q: 34 < 26 ou 22 < (−3)5
+| 1º) | 3º) |
+|:---|:---|
+| $p: 5 > 0$ | $p$: 10 é número primo |
+| $q: 5 > 1$ | $q$: 10 é número composto |
+| $p \lor q: 5 > 0 \text{ ou } 5 > 1$ | $p \lor q$: 10 é número primo ou número composto |
+| 2º) | 4º) |
+| $p: 3 = 3$ | $p: 3^4 < 2^6$ |
+| $q: 3 < 3$ | $q: 2^2 < (-3)^5$ |
+| $p \lor q: 3 \leq 3$ | $p \lor q: 3^4 < 2^6 \text{ ou } 2^2 < (-3)^5$ |
 
----
+<!-- página 18 -->
+# DISJUNÇÃO V
 
- DISJUNÇÃO ∨
-A disjunção p ∨ q é verdadeira se ao menos uma das proposições p ou q
-é verdadeira; se p e q são ambas falsas, então p ∨ q é falsa.
+A **disjunção** $p \lor q$ é verdadeira se ao menos uma das proposições $p$ ou $q$ é verdadeira; se $p$ e $q$ são ambas falsas, então $p \lor q$ é falsa.
 
- TABELA VERDADE
- p q p∨q
- V V V
- V F V
- F V V
- F F F
+## TABELA VERDADE
 
----
+| p | q | pVq |
+|:---:|:---:|:---:|
+| V | V | V |
+| V | F | V |
+| F | V | V |
+| F | F | F |
 
- DISJUNÇÃO EXCLUSIVA ∨
-A disjunção exclusiva de duas proposições p ∨ q, lê-se “ou p ou q”, é
-verdadeira quando p é verdadeira ou q é verdadeira, mas não ambas e é
-falsa quando ambas tem o mesmo valor lógico.
+<!-- página 19 -->
+# DISJUNÇÃO EXCLUSIVA $\underline{\lor}$
 
- TABELA VERDADE
- p q p∨q
- V V F
- V F V
- F V V
- F F F
+A **disjunção exclusiva** de duas proposições $p \ \underline{\lor} \ q$, lê-se “ou p ou q”, é verdadeira quando p é verdadeira ou q é verdadeira, mas não ambas e é falsa quando ambas tem o mesmo valor lógico.
 
----
+| TABELA VERDADE |
+|:---:|:---:|:---:|
+| p | q | p$\underline{\lor}$q |
+| V | V | F |
+| V | F | V |
+| F | V | V |
+| F | F | F |
 
- CONDICIONAL →
-Colocando o condicional → entre duas proposições p e q, obtemos uma nova
-proposição, p → q, que se lê: “se p, então q”, “p é condição suficiente para q”, “q é
-condição necessária para p”.
+<!-- página 20 -->
+# CONDICIONAL $\rightarrow$
+
+Colocando o condicional $\rightarrow$ entre duas proposições p e q, obtemos uma nova proposição, $p \rightarrow q$, que se lê: “se p, então q”, “p é condição suficiente para q”, “q é condição necessária para p”.
+
 Exemplos:
- 1º) 3º)
- p: dois é divisor de quatro (2 | 4) p: cinco é menor que dois (5 < 2)
- q: quatro é divisor de vinte (4 | 20) q: dois é número inteiro (2 ∈ ℤ)
- p → q: se dois é divisor de quatro, p → q: se cinco é menor que dois, então dois é número inteiro (5 < 2 → 2∈
- então quatro é divisor de vinte (2 | ℤ)
- 4 → 4 | 20)
- 2º) 4º)
- p: dois vezes cinco é igual a dez (2 x 1 1
- p: um meio é menor que um terço <
- 2 3
- 5 = 10)
- q:três é igual a 5 (3 = 5)
- q: três é divisor de dez (3 | 10) 1
- p → q: se dois vezes cinco é igual a p → q: se um meio é menor que um terço, então três é igual a cinco:ቀ <
- 2
- dez, então três é divisor de dez (2 x 1
- → 3 = 5ቁ
- 3
- 5 = 10→ 3 | 10)
 
----
+| 1º) | 3º) |
+|:---|:---|
+| **p:** dois é divisor de quatro $(2 \mid 4)$<br>**q:** quatro é divisor de vinte $(4 \mid 20)$<br>**p $\rightarrow$ q:** se dois é divisor de quatro, então quatro é divisor de vinte $(2 \mid 4 \rightarrow 4 \mid 20)$ | **p:** cinco é menor que dois $(5 < 2)$<br>**q:** dois é número inteiro $(2 \in \mathbb{Z})$<br>**p $\rightarrow$ q:** se cinco é menor que dois, então dois é número inteiro $(5 < 2 \rightarrow 2\in \mathbb{Z})$ |
+| 2º) | 4º) |
+| **p:** duas vezes cinco é igual a dez $(2 \times 5 = 10)$<br>**q:** três é divisor de dez $(3 \mid 10)$<br>**p $\rightarrow$ q:** se duas vezes cinco é igual a dez, então três é divisor de dez $(2 \times 5 = 10\rightarrow 3 \mid 10)$ | **p:** um meio é menor que um terço $\left(\frac{1}{2} < \frac{1}{3}\right)$<br>**q:**três é igual a 5 $(3 = 5)$<br>**p $\rightarrow$ q:** se um meio é menor que um terço, então três é igual a cinco:$\left(\frac{1}{2} < \frac{1}{3}\rightarrow 3 = 5\right)$ |
 
- CONDICIONAL →
-O condicional p → q é falso somente quando p é verdadeira e q é falsa;
-caso contrário, p → q é verdadeiro.
+<!-- página 21 -->
+# CONDICIONAL $\rightarrow$
 
- TABELA VERDADE
- p q p→q
- V V V
- V F F
- F V V
- F F V
+O condicional $p \rightarrow q$ é falso somente quando $p$ é verdadeira e $q$ é falsa; caso contrário, $p \rightarrow q$ é verdadeiro.
 
----
+## TABELA VERDADE
 
- BICONDICIONAL
-Colocando o condicional entre duas proposições p e q, obtemos uma nova
-proposição, p q, que se lê: “p se, e somente se, q”, “p é condição necessária e
-suficiente para q”, “q é condição necessária e suficiente para p” ou “se p, então q e
-reciprocamente”.
+| p | q | p$\rightarrow$q |
+|:---:|:---:|:---:|
+| V | V | V |
+| V | F | F |
+| F | V | V |
+| F | F | V |
+
+<!-- página 22 -->
+# BICONDICIONAL $\leftrightarrow$
+
+Colocando o condicional $\leftrightarrow$ entre duas proposições $p$ e $q$, obtemos uma nova proposição, $p \leftrightarrow q$, que se lê: “p se, e somente se, q”, “p é condição necessária e suficiente para q”, “q é condição necessária e suficiente para p” ou “se p, então q e reciprocamente”.
+
 Exemplos:
- 1º) 3º)
- p: 2 | 12 p: 6 = 12 : 3
- q: 2 ⋅ 7 | 12 ⋅7 q: 3 ⋅ 6 = 18
- p q: 2 | 12 2 ⋅ 7 | 12 ⋅7 p q: 6 = 12 : 3 3 ⋅ 6 = 18
- 2º) 4º)
- 3 6 p: 4 ≤ 3
- p: =
- 2 4
- q: 3 ⋅ 4 ≠ 6 ⋅ 2 q: 4 ⋅ 5 ≤ 3 ⋅ 5
- 3 6 p q: 4 ≤ 3 4 ⋅ 5 ≤ 3 ⋅ 5
- p q: = 3⋅4≠6⋅2
- 2 4
 
----
+| 1º) | 3º) |
+|:---|:---|
+| $p$: $2 \mid 12$ | $p$: $6 = 12 : 3$ |
+| $q$: $2 \cdot 7 \mid 12 \cdot 7$ | $q$: $3 \cdot 6 = 18$ |
+| $p \leftrightarrow q$: $2 \mid 12 \leftrightarrow 2 \cdot 7 \mid 12 \cdot 7$ | $p \leftrightarrow q$: $6 = 12 : 3 \leftrightarrow 3 \cdot 6 = 18$ |
 
- BICONDICIONAL
-O condicional é verdadeiro somente quando p e q são ambas
-verdadeiras ou ambas falsas; se isso não acontecer, o condicional é
-falso.
+| 2º) | 4º) |
+|:---|:---|
+| $p$: $\frac{3}{2} = \frac{6}{4}$ | $p$: $4 \leq 3$ |
+| $q$: $3 \cdot 4 \neq 6 \cdot 2$ | $q$: $4 \cdot 5 \leq 3 \cdot 5$ |
+| $p \leftrightarrow q$: $\frac{3}{2} = \frac{6}{4} \leftrightarrow 3 \cdot 4 \neq 6 \cdot 2$ | $p \leftrightarrow q$: $4 \leq 3 \leftrightarrow 4 \cdot 5 \leq 3 \cdot 5$ |
 
- TABELA VERDADE
- p q p q
- V V V
- V F F
- F V F
- F F V
+<!-- página 23 -->
+# BICONDICIONAL $\leftrightarrow$
 
----
+O condicional $\leftrightarrow$ é verdadeiro somente quando p e q são ambas verdadeiras ou ambas falsas; se isso não acontecer, o condicional $\leftrightarrow$ é falso.
 
- EXEMPLO
-1. Sejam as proposições p: Está frio e q: Está chovendo. Traduzir para a
- linguagem corrente as seguintes proposições:
-a) ~p
-b) p ∧ q
-c) p ∨ q
-d) q p
-e) p → ~q
-f) p ∨ ~q
-g) ~p ∧ ~q
-h) p ~q
-i) p ∧ ~ q→p
+## TABELA VERDADE
 
----
+| p | q | $p \leftrightarrow q$ |
+|:---:|:---:|:---:|
+| V | V | V |
+| V | F | F |
+| F | V | F |
+| F | F | V |
 
- EXEMPLO
-2. Sejam as proposições p: Matheus é alto e q: Matheus é elegante.
-Traduzir para a linguagem simbólica as seguintes proposições:
+<!-- página 24 -->
+# EXEMPLO
+
+1. Sejam as proposições **p: Está frio** e **q: Está chovendo**. Traduzir para a linguagem corrente as seguintes proposições:
+
+a) $\sim$p
+
+b) $p \land q$
+
+c) $p \lor q$
+
+d) $q \leftrightarrow p$
+
+e) $p \rightarrow \sim$q
+
+f) $p \lor \sim$q
+
+g) $\sim$p $\land$ $\sim$q
+
+h) $p \leftrightarrow \sim$q
+
+i) $p \land \sim$ q$\rightarrow$p
+
+<!-- página 25 -->
+# EXEMPLO
+
+2. Sejam as proposições **p: Matheus é alto** e **q: Matheus é elegante**. Traduzir para a linguagem simbólica as seguintes proposições:
+
 a) Matheus é alto e elegante.
+
 b) Matheus é alto, mas não é elegante.
+
 c) Não é verdade que Matheus é baixo ou elegante.
+
 d) Matheus não é nem alto e nem elegante.
+
 e) Matheus é alto ou é baixo e elegante.
 
----
+<!-- página 26 -->
+# EXEMPLO
 
- EXEMPLO
-3. Sabendo-se que ( ) = e ( ) = , determine o valor lógico (V ou
-F) de cada uma das seguintes proposições:
-a) ∧ ~
+3. Sabendo-se que $V(p) = V$ e $V(q) = F$, determine o valor lógico (V ou F) de cada uma das seguintes proposições:
 
-b) ∨~
+a) $p \land \sim q$
 
-c) ∧ (∼ ∨ )
+b) $p \lor \sim q$
 
----
+c) $p \land (\sim p \lor q)$
 
- EXEMPLO
-4. (Gestor Fazendário-MG/2005/Esaf) Considere a afirmação P: “A ou B”
+<!-- página 27 -->
+# EXEMPLO
+
+**4.** (Gestor Fazendário-MG/2005/Esaf) Considere a afirmação P: "A ou B"
 Onde A e B, por sua vez, são as seguintes afirmações:
 
-A: “Carlos é dentista”.
+A: "Carlos é dentista".
 
-B: “Se Enio é economista, então Juca é arquiteto”.
+B: "Se Enio é economista, então Juca é arquiteto".
 
 Ora, sabe-se que a afirmação P é falsa. Logo:
 a) Carlos não é dentista; Enio não é economista; Juca não é arquiteto.
@@ -373,239 +387,259 @@ c) Carlos não é dentista; Enio é economista; Juca é arquiteto.
 d) Carlos é dentista; Enio não é economista; Juca não é arquiteto.
 e) Carlos é dentista; Enio é economista; Juca não é arquiteto.
 
----
+<!-- página 28 -->
+# Construção de Tabelas – verdade
 
-Construção de
-Tabelas - verdade
+[Figura: Slide com fundo roxo à esquerda contendo o título e, à direita, foto desfocada de tecla de calculadora com os símbolos $\times$, $\div$ e $-$]
 
----
+<!-- página 29 -->
+# CONSTRUÇÃO DA TABELA VERDADE
 
- CONSTRUÇÃO DA TABELA VERDADE
-Para a construção de uma tabela verdade de uma proposição composta
-seguiremos sempre os seguintes passos:
-• Encontraremos o número de linhas da tabela verdade e para isso
- usaremos a seguinte fórmula 2 onde n é número de proposições
- simples que compõem uma determinada proposição composta P.
-OBS.: Cuidado para não contar duas vezes se aparecer p e p na mesma
-proposição composta.
-• Para distribuir (V) e (F) nas letras ou proposições da tabela usaremos a
- ideia do dobro e começamos sempre a partir da última letra até se
- chegar a primeira sempre dobrando o número de (V) e (F) anterior.
-OBS.: A ordem de precedência dos conectivos lógicos do mais fraco para
-o mais forte é sempre ~, ∧, ∨, →,
+Para a construção de uma tabela verdade de uma proposição composta seguiremos sempre os seguintes passos:
 
----
+* Encontraremos o número de linhas da tabela verdade e para isso usaremos a seguinte fórmula $2^n$ onde n é número de proposições simples que compõem uma determinada proposição composta P.
 
- EXEMPLO
-Construa a tabela verdade P(p, q) = ~(p ∧ ~q).
+**OBS.:** Cuidado para não contar duas vezes se aparecer p e p na mesma proposição composta.
 
----
+* Para distribuir (V) e (F) nas letras ou proposições da tabela usaremos a ideia do dobro e começamos sempre a partir da última letra até se chegar a primeira sempre dobrando o número de (V) e (F) anterior.
 
- EXEMPLO
-Construa a tabela verdade P(p, q, r) = p ∨ ∼r → q ∧ ∼r.
+**OBS.:** A ordem de precedência dos conectivos lógicos do mais fraco para o mais forte é sempre $\sim$, $\land$, $\lor$, $\rightarrow$, $\leftrightarrow$
 
----
+<!-- página 30 -->
+# EXEMPLO
 
-VALOR LÓGICO DE UMA PROPOSIÇÃO
-Dada uma proposição composta ( , , , … ), pode-se sempre determinar
-o seu valor lógico (V ou F) quando são dados ou conhecidos os valores
-lógicos respectivos das proposições componentes , , , …
+Construa a tabela verdade $P(p, q) = \sim(p \land \sim q)$.
 
-Exemplo: Sabendo que os valores lógicos das proposições e são
-respectivamente V e F, determinar o valor lógico (v ou F) da proposição:
- , =∼ ∨ ∼ ∧∼
+[Figura: Tabela vazia com 5 colunas e 5 linhas (1 cabeçalho + 4 linhas de dados), pronta para ser preenchida]
 
-Exemplo: Sejam as proposições: : = 3 e : = 0. Determinar o valor
- 2
-lógico (V ou F) da proposição:
- , = → →( → ∧ )
+<!-- página 31 -->
+# EXEMPLO
 
----
+Construa a tabela verdade $P(p, q, r) = p \lor \sim r \rightarrow q \land \sim r$.
 
-Tautologias,
-Contradições e
-Contigências
+[Figura: Tabela vazia com 7 colunas e 9 linhas (1 cabeçalho + 8 linhas de dados), com células em tons de azul/roxo]
 
----
+<!-- página 32 -->
+# VALOR LÓGICO DE UMA PROPOSIÇÃO
 
- TAUTOLOGIA
-Chama-se tautologia ou proposição logicamente verdadeira toda
-proposição composta cuja última coluna da sua tabela verdade encerra
-somente a letra V (verdade).
+Dada uma proposição composta $P(p,q,r,...)$, pode-se sempre determinar o seu **valor lógico** (V ou F) quando são dados ou conhecidos os valores lógicos respectivos das proposições componentes $p,q,r,...$
 
-EXEMPLOS:
+**Exemplo:** Sabendo que os valores lógicos das proposições $p$ e $q$ são respectivamente V e F, determinar o **valor lógico** (v ou F) da proposição:
+$$P(p,q) =\sim (p \lor q) \leftrightarrow \sim p \land\sim q$$
 
-a) Verifique que a proposição " ∼ b) Verifique que a proposição " ∨∼
-( ∧∼ )“ (Princípio da não “ (Princípio do terceiro excluído)
-contradição) é uma tautologia. é uma tautologia.
+**Exemplo:** Sejam as proposições: $p:\pi = 3$ e $q: sen\frac{\pi}{2} = 0$. Determinar o valor lógico (V ou F) da proposição:
+$$P(p,q) = (p \rightarrow q) \rightarrow (p \rightarrow p \land q)$$
 
----
+<!-- página 33 -->
+# Tautologias, Contradições e Contingências
 
- CONTRADIÇÃO
-Chama-se contradição ou proposição logicamente falsa toda
-proposição composta cuja última coluna da sua tabela verdade encerra
-somente a letra F (falsidade).
+[Figura: Slide com fundo azul à esquerda contendo o título e imagem desfocada de tecla de calculadora com símbolos matemáticos (+, /, -) à direita]
 
-EXEMPLOS:
+<!-- página 34 -->
+# TAUTOLOGIA
 
-a) Verifique que a proposição " ∧∼ b) Verifique que a proposição "
- “ é uma contradição. ∼ “ é uma contradição.
+Chama-se **tautologia** ou **proposição logicamente verdadeira** toda proposição composta cuja última coluna da sua tabela verdade encerra somente a letra V (verdade).
 
----
+**EXEMPLOS:**
 
- CONTINGÊNCIA
-Chama-se contingência toda proposição composta em cuja última
-coluna da sua tabela verdade figuram as letras V e F cada uma pelo menos
-uma vez.
+a) Verifique que a proposição "$\sim (p \land \sim p)$" (**Princípio da não contradição**) é uma tautologia.
 
-EXEMPLO: Verifique que a proposição " →∼ “ é uma contingência.
+|  |  |  |  |
+| :--- | :--- | :--- | :--- |
+|  |  |  |  |
+|  |  |  |  |
+|  |  |  |  |
 
----
+b) Verifique que a proposição "$p \lor \sim p$" (**Princípio do terceiro excluído**) é uma tautologia.
 
- IMPLICAÇÃO LÓGICA
-Dadas as proposições p e q, dizemos que “p implica q” quando na tabela
-de p e q não ocorre VF em nenhuma linha, isto é, quando não temos
-simultaneamente p verdadeira e q falsa.
+|  |  |  |  |
+| :--- | :--- | :--- | :--- |
+|  |  |  |  |
+|  |  |  |  |
 
- Quando p implica q, indicamos p ⇒ q.
+<!-- página 35 -->
+# CONTRADIÇÃO
 
-Observações:
-1ª) Notemos que p implica q quando o condicional p → q é verdadeiro.
-2ª) Todo teorema é uma implicação da forma hipótese ⇒ tese
-Assim, demonstrar um teorema significa mostrar que não ocorre o caso de
-a hipótese ser verdadeira e a tese ser falsa.
+Chama-se **contradição** ou **proposição logicamente falsa** toda proposição composta cuja última coluna da sua tabela verdade encerra somente a letra F (falsidade).
 
-EXEMPLO:
-2 | 4 ⇒ 2 | 4 ∙ 5 significa dizer que o condicional “se 2 é divisor de 4, então
-2 é divisor de 4 ∙ 5” é verdadeiro.
+**EXEMPLOS:**
 
----
+a) Verifique que a proposição "$p \land \sim p$" é uma contradição.
 
- RELAÇÃO DE EQUIVALÊNCIA
-Dadas as proposições p e q, dizemos que “p é equivalente a q” quando p
-e q têm tabelas-verdades iguais, isto é, quando p e q têm sempre o
-mesmo valor lógico.
+|  |  |  |  |
+|:---:|:---:|:---:|:---:|
+|  |  |  |  |
+|  |  |  |  |
+|  |  |  |  |
 
- Quando p é equivalente a q, indicamos: p ⇔ q.
+b) Verifique que a proposição "$p \leftrightarrow \sim p$" é uma contradição.
 
-Observações:
-1ª) Notemos que p equivale a q quando o condicional p q é
-verdadeiro.
-2ª) Todo teorema cujo recíproco também é verdadeiro é uma
-equivalência. hipótese ⇔ tese
+|  |  |  |  |
+|:---:|:---:|:---:|:---:|
+|  |  |  |  |
+|  |  |  |  |
+|  |  |  |  |
 
-EXEMPLO:
-2 | 8 ⇔ mdc (2, 8) = 2 significa dizer que é verdadeiro o bicondicional “2 é
-divisor de 8 se, e somente se, o máximo divisor comum de 2 e 8 é 2”.
+<!-- página 36 -->
+# CONTINGÊNCIA
 
----
+Chama-se **contingência** toda proposição composta em cuja última coluna da sua tabela verdade figuram as letras V e F cada uma pelo menos uma vez.
 
- EXEMPLOS
+**EXEMPLO:** Verifique que a proposição "$p \rightarrow \sim p$" é uma contingência.
+
+[Figura: Tabela verdade com 3 colunas e 3 linhas de células vazias (em tons de azul/roxo), destinada ao preenchimento dos valores lógicos de $p$, $\sim p$ e $p \rightarrow \sim p$]
+
+<!-- página 37 -->
+# IMPLICAÇÃO LÓGICA
+
+Dadas as proposições p e q, dizemos que "**p implica q**" quando na tabela de p e q não ocorre VF em nenhuma linha, isto é, quando não temos simultaneamente p verdadeira e q falsa.
+
+**Quando p implica q, indicamos $p \Rightarrow q$.**
+
+**Observações:**
+
+$1^{\text{a}}$) Notemos que p implica q quando o condicional $p \rightarrow q$ é verdadeiro.
+
+$2^{\text{a}}$) Todo teorema é uma implicação da forma hipótese $\Rightarrow$ tese
+
+Assim, demonstrar um teorema significa mostrar que não ocorre o caso de a hipótese ser verdadeira e a tese ser falsa.
+
+**EXEMPLO:**
+
+$2 \mid 4 \Rightarrow 2 \mid 4 \cdot 5$ significa dizer que o condicional "se 2 é divisor de 4, então 2 é divisor de $4 \cdot 5$" é verdadeiro.
+
+<!-- página 38 -->
+# RELAÇÃO DE EQUIVALÊNCIA
+
+Dadas as proposições p e q, dizemos que "p é **equivalente** a q" quando p e q têm tabelas-verdades iguais, isto é, quando p e q têm sempre o mesmo valor lógico.
+
+**Quando p é equivalente a q, indicamos: $p \leftrightarrow q$.**
+
+**Observações:**
+
+$1^{\text{a}}$) Notemos que p equivale a q quando o condicional $p \leftrightarrow q$ é verdadeiro.
+
+$2^{\text{a}}$) Todo teorema cujo recíproco também é verdadeiro é uma equivalência. hipótese $\leftrightarrow$ tese
+
+**EXEMPLO:**
+
+$2 \mid 8 \leftrightarrow \text{mdc}(2, 8) = 2$ significa dizer que é verdadeiro o bicondicional "2 é divisor de 8 se, e somente se, o máximo divisor comum de 2 e 8 é 2".
+
+<!-- página 39 -->
+# EXEMPLOS
+
 Verifique se:
 
-a) A proposição ∧ ⇒ . b) As proposições → e ∼ ∨
- são equivalentes.
+a) A proposição $p \land q \Rightarrow p \leftrightarrow q$.
 
----
+[Figura: Tabela-verdade com 4 colunas e 5 linhas (cabeçalho + 4 linhas de dados) em tons de azul/roxo]
 
-Sentenças abertas,
- quantificadores e
- negação de
- proposições
+b) As proposições $p \rightarrow q$ e $\sim p \lor q$ são equivalentes.
 
----
+[Figura: Tabela-verdade com 5 colunas e 5 linhas (cabeçalho + 4 linhas de dados) em tons de azul/roxo]
 
- SENTENÇAS ABERTAS
-Orações que contêm variáveis ( − 2 = 5, > 3, ...) são
-chamadas funções proporcionais ou sentenças
-abertas. Tais orações não são proposições, pois seu
-valor lógico (V ou F) é discutível, depende do valor
-dado às variáveis.
-Há, entretanto, duas maneiras de transformar sentenças
-abertas em proposições:
-1ª) atribuir valor às variáveis;
-2ª) utilizar quantificadores.
+<!-- página 40 -->
+# Sentenças abertas, quantificadores e negação de proposições
 
----
+[Figura: Fundo roxo à esquerda com o título do slide; à direita, imagem desfocada de teclas de calculadora com os símbolos $\times$, $\div$ e $+$]
 
- QUANTIFICADORES
+<!-- página 41 -->
+# SENTENÇAS ABERTAS
 
- UNIVERSAL: O quantificador EXISTENCIAL: O
- universal, usado para transformar quantificador existencial é
- sentenças abertas em indicado pelo símbolo ∃,
- proposições, é indicado pelo que se lê: “existe”, “existe
- símbolo ∀, que se lê: “qualquer
- que seja”, “para todo”, “para cada”. pelo menos um” ou
- “existe um”.
+Orações que contêm variáveis ($x - 2 = 5$, $x > 3$, ...) são chamadas **funções proporcionais** ou **sentenças abertas**. Tais orações não são proposições, pois seu valor lógico (V ou F) é discutível, depende do valor dado às variáveis.
 
-1º) (∀ ) ( + 1 = 7), que se lê: 1º) (∃ ) ( + 1 = 7), que se lê:
- “qualquer que seja o número , temos + 1 = 7”. “existe um número tal que + 1 = 7”.
- 2
-2º) (∀ ) ( + 1 > 0), que se lê: 2º) (∃ ) ( 2 + 1 ≤ 0), que se lê:
- 2
-“para todo número , temos +1 é positivo”. “existe um número tal que 2
- + 1 ≤ 0 é não positivo”.
+Há, entretanto, duas maneiras de transformar sentenças abertas em proposições:
 
----
+$1^{\text{a}}$) atribuir valor às variáveis;
 
-NEGAÇÃO DE UMA CONJUNÇÃO
-Tendo em vista que ~(p ∧ q) ⇔ ∼p ∨ ∼q, podemos estabelecer
-que a negação de p ∧ q é a proposição ∼p ∨ ∼q.
+$2^{\text{a}}$) utilizar quantificadores.
 
-EXEMPLO:
-p: a ≠ 0
-q: b ≠ 0
-p ∧ q: a ≠ 0 e b ≠ 0
-∼(p ∧ q): a = 0 ou b = 0
+<!-- página 42 -->
+# QUANTIFICADORES
 
----
+## UNIVERSAL:
+O quantificador universal, usado para transformar sentenças abertas em proposições, é indicado pelo símbolo $\forall$, que se lê: "qualquer que seja", "para todo", "para cada".
 
-NEGAÇÃO DE UMA DISJUNÇÃO
-Tendo em vista que ~(p ∨ q) ⇔ ∼p ∧ ∼q, podemos estabelecer
-que a negação de p ∨ q é a proposição ∼p ∧ ∼q.
+1°) $(\forall x)\,(x + 1 = 7)$, que se lê:  
+"qualquer que seja o número $x$, temos $x + 1 = 7$".
 
-EXEMPLO:
-p: a ≠ 0
-q: b ≠ 0
-p ∧ q: a ≠ 0 ou b ≠ 0
-∼(p ∧ q): a = 0 e b = 0
+2°) $(\forall y)\,(y^2 + 1 > 0)$, que se lê:  
+"para todo número $y$, temos $y^2+1$ é positivo".
 
----
+## EXISTENCIAL:
+O quantificador existencial é indicado pelo símbolo $\exists$, que se lê: "existe", "existe pelo menos um" ou "existe um".
 
-NEGAÇÃO DE UMA CONDICIONAL SIMPLES
-Já que ~(p → q) ⇔ p ∧ ∼q, podemos estabelecer que a
-negação de p → q é a proposição p ∧ ∼q.
+1°) $(\exists x)\,(x + 1 = 7)$, que se lê:  
+"existe um número $x$ tal que $x + 1 = 7$".
 
-EXEMPLO:
-p: 2 ∈ ℤ
-q: 2 ∈ ℚ
-p → q: 2 ∈ ℤ → 2 ∈ ℚ
-∼(p → q): 2 ∈ ℤ e 2 ∉ ℚ
+2°) $(\exists a)\,(a^2 + 1 \leq 0)$, que se lê:  
+"existe um número $a$ tal que $a^2 + 1 \leq 0$ é não positivo".
 
----
+<!-- página 43 -->
+# NEGAÇÃO DE UMA CONJUNÇÃO
 
-NEGAÇÃO DE PROPOSIÇÕES QUANTIFICADAS
-a) Uma sentença quantificada com o quantificador universal, do
-tipo (∀ )( ( )), é negada assim: substitui-se o quantificador
-pelo existencial e nega-se ( ), obtendo: (∃ )(~ ( )).
-EXEMPLO:
-sentença: (∀ ) ( + 3 = 5)
-negação: (∃ ) ( + 3 ≠ 5)
+Tendo em vista que $\sim(p \land q) \Leftrightarrow \sim p \lor \sim q$, podemos estabelecer que a negação de $p \land q$ é a proposição $\sim p \lor \sim q$.
 
-b) Uma sentença quantificada com o quantificador existencial,
-do tipo (∃ )( ( )), é negada assim: substitui-se o quantificador
-pelo universal e nega-se ( ), obtendo: (∀ )(~ ( )).
-EXEMPLO:
-sentença: (∃ ) ( = )
-negação: (∀ ) ( ≠ )
+**EXEMPLO:**
 
----
+$p: a \neq 0$
 
-Obrigado!
-ANTONIO EUDES FERREIRA
+$q: b \neq 0$
+
+$p \land q: a \neq 0$ **e** $b \neq 0$
+
+$\sim(p \land q): a = 0$ **ou** $b = 0$
+
+<!-- página 44 -->
+[página não transcrita — revisar manualmente]
+
+<!-- página 45 -->
+# NEGAÇÃO DE UMA CONDICIONAL SIMPLES
+
+Já que $\sim(p \rightarrow q) \Leftrightarrow p \land \sim q$, podemos estabelecer que a negação de $p \rightarrow q$ é a proposição $p \land \sim q$.
+
+**EXEMPLO:**
+
+$p: 2 \in \mathbb{Z}$
+
+$q: 2 \in \mathbb{Q}$
+
+$p \rightarrow q: 2 \in \mathbb{Z} \rightarrow 2 \in \mathbb{Q}$
+
+$\sim(p \rightarrow q): 2 \in \mathbb{Z} \textbf{ e } 2 \notin \mathbb{Q}$
+
+<!-- página 46 -->
+# NEGAÇÃO DE PROPOSIÇÕES QUANTIFICADAS
+
+a) Uma sentença quantificada com o quantificador universal, do tipo $(\forall x)(p(x))$, é negada assim: substitui-se o quantificador pelo existencial e nega-se $p(x)$, obtendo: $(\exists x)(\sim p(x))$.
+
+**EXEMPLO:**
+
+sentença: $(\forall x) (x + 3 = 5)$
+
+negação: $(\exists x) (x + 3 \neq 5)$
+
+b) Uma sentença quantificada com o quantificador existencial, do tipo $(\exists x)(p(x))$, é negada assim: substitui-se o quantificador pelo universal e nega-se $p(x)$, obtendo: $(\forall x)(\sim p(x))$.
+
+**EXEMPLO:**
+
+sentença: $(\exists x) (x = x)$
+
+negação: $(\forall x) (x \neq x)$
+
+<!-- página 47 -->
+# Obrigado!
+
+**ANTONIO EUDES FERREIRA**
+
 E-mail: antonio.eudes@ifpb.edu.br
+
 Telefone: (83) 996546061
 
- NOÇÕES DE LÓGICA 47
+[Figura: Imagem circular mostrando uma pessoa escrevendo com lápis laranja sobre um caderno, com outra pessoa ao fundo]
 
 ---
+
+NOÇÕES DE LÓGICA
+
+47
