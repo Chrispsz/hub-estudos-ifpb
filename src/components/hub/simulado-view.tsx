@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  BookX,
   CalendarCheck,
   CheckCircle2,
   CheckCheck,
@@ -57,7 +58,7 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
-import { openMethod, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
+import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
@@ -1934,6 +1935,44 @@ function ResultsScreen({
           >
             🎯 Fechar o ciclo: revisar esses erros com uma Sessão guiada do Protocolo HUB →
           </button>
+          {/* A PROMESSA CUMPRIDA (131): a tela de entrega promete "o que faltou
+              alimenta o Caderno de Erros automaticamente" — mas o resultado
+              nunca MOSTROU a promessa acontecer. O recibo mora aqui, onde o
+              aluno aterrissa no instante da entrega (recordRun já gravou: as
+              duas vias — exerciseProgress.tried e o run.questions — são
+              escritas ANTES de setPhase('results'), o recibo nunca mente).
+              A janela de 48h é a MESMA régua do caderno (frescas); a porta é
+              a MESMA do card da prova (openProgress → aba Progresso). Família
+              amber: revisão é "a espera" da casa (a gramática do kit/fila/
+              mapa). Run perfeito cala — sem registro não há linha (regra 88). */}
+          <div className="mt-2.5 flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/[0.07] px-3.5 py-3">
+            <BookX className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+            <div className="min-w-0 flex-1 text-xs leading-relaxed">
+              <p>
+                <span className="font-semibold text-amber-700 dark:text-amber-400">
+                  O que faltou ({missedList.length}) já está no Caderno de Erros
+                </span>
+                <span className="text-muted-foreground">
+                  {' '}— a entrega prometeu, o caderno cumpriu. Revise as frescas em até{' '}
+                  <span className="font-semibold tabular-nums">48h</span> — erro revisitado
+                  logo vira acerto na prova.
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenChange(false);
+                  openProgress();
+                }}
+                title="Abrir o Caderno de Erros na aba Progresso"
+                aria-label="Abrir o Caderno de Erros na aba Progresso"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 dark:text-amber-400"
+              >
+                Abrir o caderno
+                <ChevronRight className="size-3" aria-hidden />
+              </button>
+            </div>
+          </div>
           <p className="mb-2 mt-3 text-xs font-medium text-muted-foreground">
             Para revisar depois ({missedList.length}):
           </p>
