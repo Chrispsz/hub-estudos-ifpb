@@ -36,6 +36,7 @@ import {
   MATH_EXAM_PLAN,
   MATH_FORMULAS,
   MATH_META,
+  examWeekMilestoneFor,
 } from '@/lib/math-exam-prep';
 import type { SimuladoRun } from '@/lib/study-progress';
 
@@ -222,6 +223,20 @@ export function FolhaRevisaoSheet() {
   // (a promessa envelheceu mal) e vira o bloco real quando o run existe.
   const showSlot = !simuladoFoco && !!todayKey && todayKey <= SIMULADO_ISO;
 
+  // O SELO DO PAPEL: a folha impressa não sabe que dia é — o selo diz quando
+  // ela saiu da impressora e nomeia o marco da semana da Av1 quando a
+  // impressão cai num dia dele (28 véspera do simulado, 29 o ensaio, 30
+  // véspera da prova, 01 a prova). Só no papel (hidden print:block — na tela
+  // o relógio já vive na barra de ações); só no cliente (todayKey vazio no
+  // servidor — zero mismatch, o mesmo contrato honesto do slot). A fonte é a
+  // MESMA do mapa/kit/agenda (examWeekMilestoneFor, restaurada na 120) — a
+  // folha volta a falar a língua da casa sem segunda derivação de data.
+  const stampMilestone = React.useMemo(() => {
+    if (!todayKey) return null;
+    const [y, m, d] = todayKey.split('-').map(Number);
+    return examWeekMilestoneFor(new Date(y, (m || 1) - 1, d || 1, 12));
+  }, [todayKey]);
+
   return (
     <div className="min-h-dvh bg-zinc-200/60 print:bg-white">
       {/* Barra de ações — só na tela (some na impressão) */}
@@ -300,6 +315,15 @@ export function FolhaRevisaoSheet() {
                 <strong className="tabular-nums">{MATH_META}</strong> · vale{' '}
                 <strong>33,3%</strong> da média final
               </p>
+              {todayKey && (
+                <p
+                  data-testid="folha-print-stamp"
+                  className="mt-0.5 hidden text-[10px] text-zinc-500 print:block"
+                >
+                  Impresso em <span className="tabular-nums">{fmtDayBR(todayKey)}</span>
+                  {stampMilestone ? <> · {stampMilestone.titulo}</> : null}
+                </p>
+              )}
             </div>
             <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-zinc-900 text-[13px] font-bold text-white">
               Av1
