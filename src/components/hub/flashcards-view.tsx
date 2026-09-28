@@ -65,7 +65,7 @@ import {
   type StudyProgressHook,
 } from '@/lib/study-progress';
 import { useNow } from './clock-widget';
-import { openTutor } from '@/lib/hub-events';
+import { openProgress, openTutor } from '@/lib/hub-events';
 import {
   MATH_EXAM,
   findMathSimuladoRunOficial,
@@ -728,6 +728,21 @@ export function FlashcardsView() {
                       <Sparkles className="size-2.5" /> IA
                     </Badge>
                   )}
+                  {/* A ORIGEM NO BARALHO (136): o cartão nascido de um erro
+                      lembra de onde veio — badge na família amber do caderno,
+                      o par do badge 'IA' (as duas origens da casa: quem
+                      nasceu da máquina e quem nasceu do erro). Dados, não
+                      estado: deriva de card.fromMistake — cartões antigos e
+                      manuais não o têm (zero migração). */}
+                  {card.fromMistake && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 border-amber-300/60 bg-amber-50 text-[10px] text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                      title="Nasceu de um erro do caderno — a pendência de origem está no caderno (aba Progresso)"
+                    >
+                      <BookX className="size-2.5" /> caderno
+                    </Badge>
+                  )}
                   <span
                     className={cn(
                       // tabular-nums: a contagem viva (116) muda de dígito a
@@ -895,6 +910,12 @@ function ReviewSession({
 
   if (finished) {
     const accuracy = reviewed - againCount;
+    // A VOLTA POR CIMA (136): erros que nasceram no caderno voltam a apontar
+    // para ele — o fecho do ciclo erro→caderno→cartão→revisão→(errei de
+    // novo)→caderno, o inverso exato da semente (134) e do chip (135). A
+    // regra 88 manda: sem erro-nascido-do-caderno na sessão, o bloco não
+    // existe — a casa não anuncia o que não aconteceu.
+    const againFromMistake = againCards.filter((c) => c.fromMistake).length;
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
@@ -963,6 +984,31 @@ function ReviewSession({
               </Button>
             </>
           )}
+          {/* O RECIBO DA ORIGEM (136): amber da família do caderno, contagem
+              tabular-nums, a mesma porta 'Abrir o caderno' da 131 — a sessão
+              aponta para onde a pendência VIVE em vez de terminar muda. */}
+          {againFromMistake > 0 && (
+            <div className="w-full rounded-xl border border-amber-500/40 bg-amber-500/[0.06] p-3 text-left">
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-amber-600 dark:text-amber-400">
+                <BookX className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                <span>
+                  <span className="font-semibold tabular-nums">{againFromMistake}</span>{' '}
+                  {againFromMistake === 1 ? 'destes erros nasceu' : 'destes erros nasceram'} do
+                  caderno — a pendência de origem segue lá, esperando a revisão que fecha o ciclo.
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onExit();
+                  openProgress();
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-1 dark:text-amber-400"
+              >
+                Abrir o caderno
+              </button>
+            </div>
+          )}
           <Button onClick={onExit} className="bg-emerald-600 text-white hover:bg-emerald-700">
             <RotateCcw className="size-4" /> Voltar à lista
           </Button>
@@ -1029,16 +1075,31 @@ function ReviewSession({
           animate={{ rotateY: flipped ? 180 : 0 }}
           transition={{ duration: 0.5, ease: [0.4, 0.0, 0.2, 1] }}
         >
-          {/* Frente */}
+          {/* Frente — o anel de foco (136): a revisão é um fluxo de TECLADO
+              (Espaço vira, 1-4 nota); sem anel, a Tab percorre a casa às
+              cegas. Mesma gramática do botão do tutor no verso. */}
           <button
             type="button"
             onClick={() => setFlipped(true)}
-            className="absolute inset-0 flex w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-colors hover:border-emerald-500/40 [backface-visibility:hidden]"
+            className="absolute inset-0 flex w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-colors hover:border-emerald-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1 [backface-visibility:hidden]"
             aria-label="Ver resposta do cartão"
           >
             <Badge variant="outline" className={cn('border text-[10px]', color.badge)}>
               {disc?.shortName ?? current.disciplineCode}
             </Badge>
+            {/* A ORIGEM NA MÃO (136): o cartão nascido de um erro chega na
+                sessão com a memória da origem — o aluno revisa sabendo que
+                este enunciado já o venceu uma vez. Chip na família amber do
+                caderno; a pendência de origem segue lá. Deriva de
+                current.fromMistake — dados, não estado (zero migração). */}
+            {current.fromMistake && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                title="Este cartão nasceu de um erro do caderno — a pendência de origem segue no caderno (aba Progresso)"
+              >
+                <BookX className="size-3" aria-hidden /> do caderno de erros
+              </span>
+            )}
             <p className="text-lg font-medium leading-relaxed text-foreground">
               {current.front}
             </p>
@@ -1101,11 +1162,14 @@ function ReviewSession({
   );
 }
 
+/* O anel de foco acompanha a cor da FAMÍLIA de cada nota (136): a nota é
+   um gesto de teclado (1-4) — o foco invisível era um buraco na estrada
+   que a própria sessão desenha. Mesma gramática de ring-offset do tutor. */
 const GRADE_STYLES: Record<string, string> = {
-  rose: 'border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20',
-  amber: 'border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20',
-  emerald: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20',
-  teal: 'border-teal-500/40 bg-teal-500/10 text-teal-500 hover:bg-teal-500/20',
+  rose: 'border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 focus-visible:ring-rose-500/40',
+  amber: 'border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 focus-visible:ring-amber-500/40',
+  emerald: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 focus-visible:ring-emerald-500/40',
+  teal: 'border-teal-500/40 bg-teal-500/10 text-teal-500 hover:bg-teal-500/20 focus-visible:ring-teal-500/40',
 };
 
 function GradeButton({
@@ -1126,7 +1190,7 @@ function GradeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex flex-col items-center gap-0.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-150 hover:scale-[1.03] active:scale-95',
+        'flex flex-col items-center gap-0.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-150 hover:scale-[1.03] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
         GRADE_STYLES[color],
       )}
     >
