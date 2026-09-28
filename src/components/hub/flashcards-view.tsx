@@ -56,8 +56,10 @@ import { TutorMarkdown } from './tutor-markdown';
 import {
   flashcardBoxLabel,
   flashcardNextIntervalLabel,
+  flashcardReturnSummary,
   flashcardStatsFor,
   flashcardsDueFor,
+  formatFlashcardSessionDuration,
   newCardFields,
   useStudyProgress,
   type Flashcard,
@@ -818,6 +820,36 @@ function StatCard({
 
 // ---------- Sessão de revisão ----------
 
+/* AS FAMÍLIAS DAS NOTAS (150): mesma gramática de cor dos botões de nota
+   (136 — rose/amber/emerald/teal) e dos badges de caixa (boxBadgeClasses);
+   o debrief fala a língua visual que a sessão já ensinou. */
+const GRADE_CHIP_CLASSES: Record<string, string> = {
+  rose: 'border-rose-500/30 bg-rose-500/10 text-rose-500',
+  amber: 'border-amber-500/30 bg-amber-500/10 text-amber-500',
+  emerald: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500',
+  teal: 'border-teal-500/30 bg-teal-500/10 text-teal-500',
+};
+
+/* O RELÓGIO DA SESSÃO (150): pico próprio de 1s — o tick mora AQUI dentro,
+   não no ReviewSession: a sessão inteira não re-renderiza a cada segundo
+   (mesma lição da batida do Leitner 116: quem respira é quem precisa). */
+function SessionClock({ startedAt }: { startedAt: number }) {
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground"
+      title="Duração desta sessão"
+    >
+      <Clock className="size-3" aria-hidden />
+      {formatFlashcardSessionDuration(now - startedAt)}
+    </span>
+  );
+}
+
 function ReviewSession({
   cards,
   cram = false,
@@ -840,15 +872,42 @@ function ReviewSession({
   const [againCount, setAgainCount] = React.useState(0);
   // Cartões notas como "Errei" — alimentam o debriefing da sessão com a IA.
   const [againCards, setAgainCards] = React.useState<Flashcard[]>([]);
+  // O RELÓGIO DA SESSÃO (150): começa congelado no mount da sessão (o clique
+  // é a largada) e congela de vez no fim — o debrief mostra a duração da
+  // passada, não "tempo desde o mount" mutável.
+  const [startedAt, setStartedAt] = React.useState(() => Date.now());
+  const [endedAt, setEndedAt] = React.useState<number | null>(null);
+  // A QUEBRA DAS NOTAS (150): Errei/Difícil/Bom/Fácil contam separado — o
+  // debrief da casa mostra a distribuição real, não só o binário acerto/erro.
+  const [gradeCounts, setGradeCounts] = React.useState<Record<FlashcardGrade, number>>({
+    again: 0,
+    hard: 0,
+    good: 0,
+    easy: 0,
+  });
+  // IDs tocados nesta sessão — a agenda da volta lê os dueAt REAIS pós-nota.
+  const reviewedIdsRef = React.useRef<Set<string>>(new Set());
   const totalPlanned = queue.length + reviewed;
 
   const current = queue[0];
   const finished = queue.length === 0 && reviewed > 0;
 
+  // Congela a duração no primeiro frame do debrief (re-render do pai não
+  // estica o tempo — a sessão acabou quando a fila acabou).
+  React.useEffect(() => {
+    if (finished && endedAt === null) setEndedAt(Date.now());
+  }, [finished, endedAt]);
+
   const grade = React.useCallback(
     (g: FlashcardGrade) => {
       if (!current) return;
-      sp.gradeFlashcard(current.id, g);
+      // A HONESTIDADE DO CRAM (150): maratona é a aula da véspera — as notas
+      // contam para o debrief, mas NÃO reescrevem o baralho. Sem o
+      // gradeFlashcard, "Fácil" no cram não empurra o cartão para +30 dias
+      // e o aluno não acorda no dia da prova com o baralho vazio.
+      if (!cram) sp.gradeFlashcard(current.id, g);
+      setGradeCounts((gc) => ({ ...gc, [g]: gc[g] + 1 }));
+      reviewedIdsRef.current.add(current.id);
       setReviewed((r) => r + 1);
       if (g === 'again') {
         setAgainCount((a) => a + 1);
@@ -860,8 +919,24 @@ function ReviewSession({
       });
       setFlipped(false);
     },
-    [current, sp],
+    [current, sp, cram],
   );
+
+  /** REVISAR OS ERROS AGORA (150): em vez de esperar a janela de 5min, o
+   * aluno reenfila os erros na hora — nova passada só dos cartões que
+   * venceram ele, com relógio e placar zerados (o debrief é por passada). */
+  const redoMissed = React.useCallback(() => {
+    if (againCards.length === 0) return;
+    setQueue([...againCards]);
+    setReviewed(0);
+    setAgainCount(0);
+    setAgainCards([]);
+    setGradeCounts({ again: 0, hard: 0, good: 0, easy: 0 });
+    reviewedIdsRef.current = new Set();
+    setStartedAt(Date.now());
+    setEndedAt(null);
+    setFlipped(false);
+  }, [againCards]);
 
   /** Explica o cartão atual com o tutor — a IA assume que o verso não bastou. */
   const askAboutCurrent = React.useCallback(() => {
@@ -916,6 +991,15 @@ function ReviewSession({
     // regra 88 manda: sem erro-nascido-do-caderno na sessão, o bloco não
     // existe — a casa não anuncia o que não aconteceu.
     const againFromMistake = againCards.filter((c) => c.fromMistake).length;
+    // O FECHO COMPLETO (150): duração congelada no fim, quebra real das 4
+    // notas e a agenda da volta lida do localStorage pós-nota — no cram,
+    // nada mudou no baralho, então a linha da agenda não existe (a casa não
+    // anuncia o que não aconteceu) e a nota de honestidade fala por mim.
+    const durationMs = (endedAt ?? Date.now()) - startedAt;
+    const gradedCards = cram
+      ? []
+      : sp.allFlashcards.filter((c) => reviewedIdsRef.current.has(c.id));
+    const returnSummary = cram ? null : flashcardReturnSummary(gradedCards, Date.now());
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
@@ -945,16 +1029,79 @@ function ReviewSession({
               </p>
               <p className="text-[10px] text-muted-foreground">acerto</p>
             </div>
-            <div className="rounded-lg bg-rose-500/10 px-4 py-2">
-              <p className="text-lg font-bold text-rose-500">{againCount}</p>
-              <p className="text-[10px] text-muted-foreground">erros</p>
+            <div className="rounded-lg bg-muted/60 px-4 py-2">
+              <p className="text-lg font-bold tabular-nums text-foreground/80">
+                {formatFlashcardSessionDuration(durationMs)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">duração</p>
             </div>
           </div>
+          {/* A QUEBRA DAS NOTAS (150): as 4 famílias do Leitner com a cor que
+              elas já têm nos botões (136) — rose/amber/emerald/teal. Contagem
+              tabular-nums; zeros ficam visíveis de propósito (a passada real
+              inclui os “nemtentei” que o binário acerto/erro escondia). */}
+          <div className="flex w-full flex-wrap items-center justify-center gap-1.5">
+            {(
+              [
+                ['again', 'Errei', 'rose'],
+                ['hard', 'Difícil', 'amber'],
+                ['good', 'Bom', 'emerald'],
+                ['easy', 'Fácil', 'teal'],
+              ] as const
+            ).map(([g, label, tone]) => (
+              <span
+                key={g}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-[11px] font-medium tabular-nums',
+                  GRADE_CHIP_CLASSES[tone],
+                )}
+              >
+                {label} {gradeCounts[g]}
+              </span>
+            ))}
+          </div>
+          {/* A AGENDA DA VOLTA (150): para QUANDO cada cartão revisado voltou
+              ao baralho — lido dos dueAt reais pós-nota, não da intenção da
+              nota. Só existe em revisão de verdade; cram não mexe no baralho
+              e a linha cala (regra 88). */}
+          {returnSummary && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <CalendarClock className="mt-0.5 size-3.5 shrink-0 text-teal-500/70" aria-hidden />
+              <span>
+                Agenda do baralho:{' '}
+                <span className="font-medium tabular-nums text-foreground/70">{returnSummary}</span>
+              </span>
+            </p>
+          )}
+          {/* A HONESTIDADE DO CRAM (150): a nota visível do contrato — as
+              notas da maratona não reescrevem o baralho (nem a agenda, nem o
+              placar). O aluno decide sabendo. */}
+          {cram && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-500/70" aria-hidden />
+              <span>
+                Modo maratona — as notas desta sessão{' '}
+                <span className="font-medium">não alteraram o baralho</span>: agenda e placar ficam
+                como estavam.
+              </span>
+            </p>
+          )}
           {againCards.length > 0 && (
             <>
               <p className="text-xs text-muted-foreground">
                 Cartões que errou: {againCards.map((c) => `“${c.front.slice(0, 44)}”`).join(' · ')}
               </p>
+              {/* REVISAR OS ERROS AGORA (150): o caminho curto — a janela de
+                  5min do Leitner existe para a memória, não para o aluno
+                  esperar; a passada nova nasce só dos erros, com o relógio
+                  zerado, e o debrief da passada seguinte é dela. */}
+              <Button
+                onClick={redoMissed}
+                className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                aria-label={`Revisar ${againCards.length === 1 ? 'o cartão errado' : `os ${againCards.length} cartões errados`} agora`}
+              >
+                <RotateCcw className="size-4" /> Revisar {againCards.length === 1 ? 'o erro' : `os ${againCards.length} erros`} agora
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1037,11 +1184,12 @@ function ReviewSession({
     <div className="mx-auto max-w-2xl space-y-4">
       {/* Topo da sessão */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {cram && (
             <Badge
               variant="outline"
               className="gap-1 border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-400"
+              title="Modo maratona: as notas desta sessão NÃO alteram a agenda do baralho"
             >
               <Zap className="size-3" /> {scopeLabel ? `Cram — ${scopeLabel}` : 'Cram — tudo'}
             </Badge>
@@ -1052,10 +1200,16 @@ function ReviewSession({
           <Badge variant="outline" className={cn('border text-[10px]', boxBadgeClasses(current.box))}>
             {flashcardBoxLabel(current.box)}
           </Badge>
+          {cram && (
+            <span className="text-[10px] text-muted-foreground/70">· notas não alteram o baralho</span>
+          )}
         </div>
-        <Button size="sm" variant="ghost" onClick={onExit} aria-label="Encerrar sessão de revisão">
-          <X className="size-4" /> Encerrar
-        </Button>
+        <div className="flex items-center gap-2">
+          <SessionClock startedAt={startedAt} />
+          <Button size="sm" variant="ghost" onClick={onExit} aria-label="Encerrar sessão de revisão">
+            <X className="size-4" /> Encerrar
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-1.5">

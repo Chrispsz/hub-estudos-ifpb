@@ -263,6 +263,62 @@ export function flashcardBoxLabel(box: number): string {
   return 'Dominada';
 }
 
+/**
+ * Duração da sessão de revisão em m:ss (h:mm:ss acima de 1h) — mesmo
+ * formato mm:ss que o simulado e o método já usam nas superfícies da casa.
+ * Negativo (relógio do cliente voltou) devolve 0:00, nunca tempo negativo.
+ */
+export function formatFlashcardSessionDuration(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const ss = String(s).padStart(2, '0');
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${ss}`;
+  return `${m}:${ss}`;
+}
+
+/**
+ * A AGENDA DA VOLTA (150) — a linha do debrief que diz para QUANDO cada
+ * cartão revisado voltou ao baralho ("2 cartões já disponíveis · 3 amanhã ·
+ * 1 em 7 dias"). Lê os dueAt REAIS pós-nota (a verdade do localStorage,
+ * não a intenção da nota) e agrupa em segmentos ordenados pelo relógio.
+ * Pura: relógio por parâmetro (lição 113/115). Null quando nada a dizer.
+ */
+export function flashcardReturnSummary(cards: Flashcard[], nowMs: number): string | null {
+  if (cards.length === 0) return null;
+  const buckets = new Map<string, { n: number; ms: number }>();
+  for (const c of cards) {
+    const due = new Date(c.dueAt).getTime();
+    if (Number.isNaN(due)) continue;
+    const diff = due - nowMs;
+    // Os intervalos de revisão são dias EXATOS (0,1,3,7,14,30) e a leitura
+    // no debrief acontece segundos depois da nota — tolerância de 5min
+    // devolve o dia que a nota prometeu ("amanhã", não "em 23h").
+    const day = Math.round(diff / 86_400_000);
+    const dayDrift = Math.abs(diff - day * 86_400_000);
+    let key: string;
+    if (diff <= 0) key = 'já disponíveis';
+    else if (day >= 1 && dayDrift <= 300_000) key = day === 1 ? 'amanhã' : `em ${day} dias`;
+    else if (diff < 3_600_000) key = `em ${Math.max(1, Math.ceil(diff / 60_000))}min`;
+    else key = `em ${Math.floor(diff / 3_600_000)}h`;
+    const cur = buckets.get(key) ?? { n: 0, ms: diff };
+    buckets.set(key, { n: cur.n + 1, ms: cur.ms });
+  }
+  const segs = [...buckets.entries()]
+    .sort((a, b) => a[1].ms - b[1].ms)
+    .map(([label, { n }]) => {
+      const noun = `${n} ${n === 1 ? 'cartão' : 'cartões'}`;
+      // Concordância do adjetivo no bucket vencido ("1 cartão já disponível",
+      // "2 cartões já disponíveis") — os demais rótulos são advérbios de
+      // tempo e não flexionam.
+      if (label === 'já disponíveis')
+        return `${noun} ${n === 1 ? 'já disponível' : 'já disponíveis'}`;
+      return `${noun} ${label}`;
+    });
+  return segs.length > 0 ? segs.join(' · ') : null;
+}
+
 export interface RealGradeEntry {
   grade: number;
   doneAt: string;
