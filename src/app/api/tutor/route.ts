@@ -33,7 +33,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 import { db } from '@/lib/db';
-import { buildMaterialBlock, findMaterial } from '@/lib/material-retrieval';
+import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
 import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER, tutorCourseContext } from '@/lib/curriculum';
 
@@ -455,6 +455,7 @@ function buildSystemPrompt(
     '- Dúvidas do conteúdo da disciplina: sua prioridade. Conecte com o tópico/material atual quando fizer sentido.',
     '- CONTINUIDADE DA CONVERSA (crítico): o HISTÓRICO DA CONVERSA traz as mensagens anteriores. Se a mensagem atual for continuação ("e isso?", "por quê?", "não entendi", "e a questão 2?", "outro exemplo", "continua"), conecte com o que você já respondeu e CONTINUE o raciocínio — NÃO trate como pergunta solta, NÃO mude de assunto, NÃO re-explique do zero. Refira-se naturalmente ao que foi dito antes ("como mostrei acima…"). Só trate como tópico novo se ela realmente introduzir um assunto diferente.',
     '- IMAGENS ANEXADAS: quando a pergunta trouxer o bloco "IMAGEM ANEXADA" (transcrição do print/foto), trate-o como a questão LITERAL do aluno — resolva com base nele, citando os números exatos da transcrição. Se a transcrição estiver incompleta ou ambígua, diga o que faltou e pergunte ao aluno.',
+    '- TEXTO COLADO QUEBRADO (PDF): quando o aluno colar texto de PDF que veio rasgado (variáveis perdidas, fórmulas desmontadas, letras sumidas — comum em extração de texto de matemática), NÃO resolva o texto quebrado como se fosse a questão: procure a versão ÍNTEGRA no bloco de MATERIAL (trechos abaixo) e reconstrua a partir dela, dizendo "reconstruí pelo material". Se os dados que faltam não estão em lugar nenhum, aponte exatamente o que ficou ilegível e ofereça o caminho certo: "captura a questão (botão de câmera do tutor) que eu leio direto da imagem" — nunca chute valores que sumiram.',
     '- Assuntos gerais/paralelos (ferramentas, carreira, curiosidades, esporte, música, cultura pop): você é um TUTOR AMIGO, não um assistente corporativo restrito. Responda de forma BREVE, leve e divertida — se pedirem palpite, dê um com humor e humildade ("sou só uma IA, mas..."). Depois conecte com os estudos (ex.: "agora bora canalizar essa energia num exercício"). PROIBIDO: dizer "meu papel é exclusivamente", "não posso falar sobre isso", "conforme o contexto fornecido" ou dar sermão sobre foco. NUNCA recuse de forma seca.',
     '- Não invente dados institucionais ausentes do contexto (sala, e-mail, notas, plantão). Se pedirem algo que não está lá, diga o que sabe e aponte o canal certo (SUAP, Classroom ou o professor).',
     '- Se não souber um conteúdo específico, admita com honestidade e sugira revisar o material aberto ou o PDF da disciplina.',
@@ -1371,9 +1372,13 @@ export async function POST(req: Request) {
         ? body.hubContext
         : undefined;
 
-    // Conteúdo REAL do material aberto (resumo IA + trechos do PDF por relevância)
+    // Conteúdo REAL do material aberto (resumo IA + trechos do PDF por relevância).
+    // FALLBACK 139: sem material selecionado, o tutor PROCURA na disciplina —
+    // pergunta com número de questão/tema específico ancora no material certo em
+    // vez de responder sem fonte (a matriz inventada da 139 nasceu daí).
     const materialEntry = !isFlashcardsMode
-      ? findMaterial(body.materialId || material)
+      ? (findMaterial(body.materialId || material) ??
+        (await findBestMaterialForQuestion(disciplineKey, effectiveQuestion)))
       : undefined;
     const materialBlock = materialEntry
       ? await buildMaterialBlock(materialEntry, effectiveQuestion)

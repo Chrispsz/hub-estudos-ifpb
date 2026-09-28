@@ -7,13 +7,17 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, Camera, Copy, CornerDownLeft, ImagePlus, Lightbulb, Loader2, Sparkles, Target, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import {
+  useScreenCapture,
+} from '@/lib/screen-capture';
+import { CaptureCropDialog } from './capture-crop-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { UserBubbleContent } from './chat-code';
@@ -65,6 +69,15 @@ export function TutorQuickPanel({
   const [streamText, setStreamText] = React.useState<string | null>(null);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [pendingImage, setPendingImage] = React.useState<string | null>(null);
+  /** Captura de tela em recorte (o frame bruto vive aqui até o diálogo fechar). */
+  const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
+  const [captureOpen, setCaptureOpen] = React.useState(false);
+  const { capturing, startCapture } = useScreenCapture(
+    React.useCallback((canvas: HTMLCanvasElement) => {
+      setCaptureCanvas(canvas);
+      setCaptureOpen(true);
+    }, []),
+  );
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const nextIdRef = React.useRef(0);
@@ -115,6 +128,11 @@ export function TutorQuickPanel({
       toast.error('Não consegui processar a imagem. Tente outra.');
     }
   };
+
+  /** CAPTURAR A TELA (28/09): pega o frame, abre o recorte, anexa e some —
+   * nada vai para a pasta de prints do aluno; os tracks da transmissão
+   * param no ato (lib/screen-capture — o hook cuida do seletor que não
+   * é cancelável: 2º clique solta a UI). */
 
   async function ask(question: string, image: string | null = null) {
     const q = question.trim();
@@ -421,6 +439,28 @@ export function TutorQuickPanel({
           >
             <ImagePlus className="size-4" />
           </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'shrink-0 transition-colors',
+              capturing
+                ? 'text-emerald-500'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => void startCapture()}
+            disabled={loading}
+            aria-pressed={capturing}
+            aria-label="Capturar a tela e recortar para o tutor"
+            title={
+              capturing
+                ? 'Escolhendo a tela… clique de novo para soltar'
+                : 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+            }
+          >
+            <Camera className={cn('size-4', capturing && 'animate-pulse')} />
+          </Button>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -454,6 +494,18 @@ export function TutorQuickPanel({
           </Button>
         </div>
       </form>
+
+      {/* Recorte da captura de tela — anexa no MESMO pendingImage dos prints. */}
+      <CaptureCropDialog
+        canvas={captureCanvas}
+        open={captureOpen}
+        onOpenChange={(v) => {
+          setCaptureOpen(v);
+          if (!v) setCaptureCanvas(null); // auto-apagar: o frame bruto some com o diálogo
+        }}
+        onAttach={setPendingImage}
+        onRetry={() => void startCapture()}
+      />
     </div>
   );
 }

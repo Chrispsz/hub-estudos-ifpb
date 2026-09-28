@@ -44,7 +44,11 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+  // public/** = estáticos servidos ao browser (workers minificados de libs,
+  // PDFs, imagens de QA) — lintar bundle minificado só produz ruído (os 6
+  // "erros" do pdf.worker da 139). Os scripts de QA continuam lintados de
+  // propósito (2 avisos antigos e conhecidos em qa46/qa49).
+  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "public/**"]
 }];
 
 export default eslintConfig;

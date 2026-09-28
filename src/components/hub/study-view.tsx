@@ -6,6 +6,7 @@ import {
   Bot,
   BookOpen,
   CalendarCheck,
+  Camera,
   CheckCircle2,
   Clock,
   Clock3,
@@ -83,6 +84,8 @@ import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
 import { buildHubContext } from '@/lib/tutor-context';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import { useScreenCapture } from '@/lib/screen-capture';
+import { CaptureCropDialog } from './capture-crop-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { openTutor } from '@/lib/hub-events';
@@ -362,6 +365,15 @@ export function StudyView({
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [chatImage, setChatImage] = React.useState<string | null>(null);
   const chatFileRef = React.useRef<HTMLInputElement>(null);
+  /** Captura de tela em recorte — o frame bruto vive só até o diálogo fechar. */
+  const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
+  const [captureOpen, setCaptureOpen] = React.useState(false);
+  const { capturing, startCapture } = useScreenCapture(
+    React.useCallback((canvas: HTMLCanvasElement) => {
+      setCaptureCanvas(canvas);
+      setCaptureOpen(true);
+    }, []),
+  );
   /** Texto da resposta em streaming (bubble viva). null = nada em transmissão. */
   const [streamText, setStreamText] = React.useState<string | null>(null);
   /** Modo dica: tutor socrático — pistas antes da solução completa (estudo real). */
@@ -928,6 +940,11 @@ export function StudyView({
     if (tutorReq.detail.question) {
       setChatInput(tutorReq.detail.question);
     }
+    // Imagem pré-anexada (print de página do visualizador de PDF, canal da 139):
+    // entra no MESMO chatImage dos prints colados — vida efêmera, nada no disco.
+    if (tutorReq.detail.image) {
+      setChatImage(tutorReq.detail.image);
+    }
     setChatOpen(true);
   }, [tutorReq?.nonce]);
 
@@ -983,6 +1000,11 @@ export function StudyView({
       toast.error('Não consegui processar a imagem. Tente outra.');
     }
   };
+
+  /** CAPTURAR A TELA (28/09): frame → recorte → anexo → some. Os tracks da
+   * transmissão param no ato (lib/screen-capture — o hook cuida do seletor
+   * que não é cancelável: 2º clique solta a UI) e nada é salvo no disco —
+   * a pasta de prints do aluno fica limpa. */
 
   // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha)
   React.useEffect(() => {
@@ -1922,6 +1944,28 @@ export function StudyView({
                 size="icon"
                 className={cn(
                   'shrink-0 transition-colors',
+                  capturing
+                    ? 'text-emerald-500'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => void startCapture()}
+                disabled={chatLoading}
+                aria-pressed={capturing}
+                aria-label="Capturar a tela e recortar para o tutor"
+                title={
+                  capturing
+                    ? 'Escolhendo a tela… clique de novo para soltar'
+                    : 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+                }
+              >
+                <Camera className={cn('size-4', capturing && 'animate-pulse')} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'shrink-0 transition-colors',
                   codeOpen
                     ? 'bg-emerald-500/15 text-emerald-500 hover:text-emerald-400'
                     : 'text-muted-foreground hover:text-foreground',
@@ -1974,6 +2018,18 @@ export function StudyView({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints. */}
+      <CaptureCropDialog
+        canvas={captureCanvas}
+        open={captureOpen}
+        onOpenChange={(v) => {
+          setCaptureOpen(v);
+          if (!v) setCaptureCanvas(null); // auto-apagar: o frame bruto some com o diálogo
+        }}
+        onAttach={setChatImage}
+        onRetry={() => void startCapture()}
+      />
 
       {/* ===== Modo Foco (Zen) — overlay tela-cheia com o timer ===== */}
       <AnimatePresence>

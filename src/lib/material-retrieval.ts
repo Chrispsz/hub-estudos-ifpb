@@ -52,6 +52,37 @@ export function keywordsOf(question: string): string[] {
   return [...new Set(words)];
 }
 
+/**
+ * NÚMERO DA QUESTÃO citado na pergunta (28/09 — dor do dono: "a IA erra em
+ * matemática"; parte do erro era o retrieval que não achava o ENUNCIADO da
+ * questão pedida: "questão 3", "exercicio 12", "q3", "item 5"). Detecta o
+ * número e sobe MUITO o chunk que o contém como cabeçalho de enunciado
+ * ("3-", "3)", "Questão 3") — a lista é a matéria-prima da Av1.
+ * Retorna null quando a pergunta não cita número.
+ */
+export function questionNumberHint(question: string): number | null {
+  const m = normalize(question).match(
+    /\b(?:questao|exercicio|q|item)\s*n?[oº°ª]?\s*(\d{1,2})\b/,
+  );
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  return n >= 1 && n <= 99 ? n : null;
+}
+
+/** O chunk é o ENUNCIADO da questão N? (numeração literal das listas do curso)
+ *  Tolerante à decoração de markdown da transcrição por visão (**9-**, >2-) —
+ *  o `**` antes do número enganava o `(^|\n)\s*` e a questão desaparecia
+ *  do retrieval EXATAMENTE na lista que o aluno estava fazendo. */
+function chunkHasQuestionNumber(chunk: string, n: number): boolean {
+  const c = normalize(chunk);
+  const heads = [
+    new RegExp(`(^|\\n)[*_>#\\s]*${n}\\s*[-).:]`), // "3-" "3)" "3." no início de linha
+    new RegExp(`(^|\\n)[*_>#\\s]*questao\\s*${n}\\b`),
+    new RegExp(`(^|\\n)[*_>#\\s]*exercicio\\s*${n}\\b`),
+  ];
+  return heads.some((re) => re.test(c));
+}
+
 // ---------- chunks ----------
 function chunkText(text: string): string[] {
   const paragraphs = text.split(/\n\n+/);
@@ -168,6 +199,103 @@ export function findMaterial(idOrTitle?: string): Material | undefined {
 }
 
 /**
+ * NENHUM MATERIAL SELECIONADO ≠ NENHUM MATERIAL EXISTE (139 — dor do dono:
+ * "a IA erra com frequência em matemática"). O aluno pergunta "qual é a matriz
+ * D da questão 2?" com o chat limpo — sem este fallback o tutor ficava SEM
+ * bloco de material nenhum e INVENTAVA a matriz. Aqui varremos os materiais da
+ * disciplina (textos + resumos), pontuamos cada um pela MESMA métrica dos
+ * trechos (keyword scoring + bônus de questão numerada) e devolvemos o melhor.
+ * Limiar baixo de corte: match fraco devolve undefined (o tutor responde
+ * honestamente do conhecimento geral em vez de ancorar no material errado).
+ */
+export async function findBestMaterialForQuestion(
+  disciplineCode: string,
+  question: string,
+): Promise<Material | undefined> {
+  const pool = materials.filter((m) => m.disciplineCode === disciplineCode);
+  if (pool.length === 0) return undefined;
+  const kws = keywordsOf(question);
+  if (kws.length === 0) return undefined;
+  const qNum = questionNumberHint(question);
+  // NOME DE MATRIZ citado pelo aluno ("a matriz D da questão 2", "matriz B") —
+  // sinal FORTE e barato: o material que contém essa matriz é o âncora certo,
+  // e a teoria (que fala de A, B, M genéricos) para de vencer por volume de prosa.
+  const namedMx = [
+    ...new Set(
+      [...question.matchAll(/\bmatr[ií]ze?s?\s+([A-Za-z])\b/g)].map((m) => normalize(m[1])),
+    ),
+  ];
+
+  let best: { material: Material; score: number } | undefined;
+  for (const m of pool) {
+    // 1) texto do PDF — onde vivem os enunciados e os números
+    const text = await readCached(textCache, TEXTS_DIR, `${m.id}.txt`);
+    // 2) resumo IA — materiais só-resumo (web, vídeo) competem com desconto
+    const rawSummary = m.summaryFile
+      ? await readCached(summaryCache, SUMMARIES_DIR, m.summaryFile)
+      : null;
+
+    if (!text && !rawSummary) continue;
+
+    // Por chunk: keywords + BÔNUS DE QUESTÃO NUMERADA com peso pela convenção
+    // do curso — listas numeram enunciado com "N-" / "N)" (a pergunta do aluno
+    // mira um ENUNCIADO); teoria usa "N. TÍTULO" (seção). O dash vence o ponto:
+    // "questão 2" com o chat limpo tem que pousar na LISTA, não na seção 2 da
+    // teoria (foi exatamente o empate sujo que inventou a matriz D da 139).
+    const chunkScores: number[] = [];
+    let hasEnunciado = false; // chunk com "N-"/"N)" — ENUNCIADO de lista
+    if (text) {
+      const chunks = chunkText(text);
+      for (const c of chunks) {
+        let s = scoreChunk(c, kws, normalize(c));
+        // matriz NOMEADA: cada material que exibe "matriz D = [[…]]" ganha muito
+        for (const x of namedMx) {
+          const re = new RegExp(`matr[i]ze?s?\\s+${x}\\b`, 'g');
+          const hits = (normalize(c).match(re) ?? []).length;
+          if (hits) s += 150 * Math.min(hits, 2);
+        }
+        if (qNum !== null) {
+          if (chunkHasQuestionNumber(c, qNum)) {
+            // enunciado de LISTA: "N-"/"N)" seguido de letra (não é "2 - 3"
+            // de subtração, não é "N. TÍTULO" de seção de teoria)
+            const enunciado = new RegExp(
+              `(^|\\n)[*_>#\\s]*${qNum}\\s*[-)]\\s*[^\\d\\s]`,
+            ).test(normalize(c));
+            s += enunciado ? 120 : 60;
+            if (enunciado) hasEnunciado = true;
+          }
+        }
+        chunkScores.push(s);
+      }
+    }
+    let materialScore = 0;
+    if (chunkScores.length) {
+      chunkScores.sort((a, b) => b - a);
+      // SOMA dos 2 melhores chunks: material que acerta o enunciado E o contexto
+      // vizinho vale mais que um material com um único trecho sortudo.
+      materialScore = chunkScores[0] + (chunkScores[1] ?? 0);
+    }
+    if (rawSummary) {
+      const norm = normalize(rawSummary.slice(0, 8000));
+      materialScore += scoreChunk(norm, kws, norm) / 4;
+    }
+    // TIER DO ENUNCIADO (a lição da matriz D inventada): quando o aluno cita
+    // "questão N", o material que TEM o enunciado N- vale mais que QUALQUER
+    // prosa — a teoria é densa em palavras e sempre pontua alto, mas ela NÃO
+    // tem a questão. +400 domina qualquer soma de keywords sem apagar o ranking
+    // entre dois materiais que ambos têm enunciado (aí decide o keyword score).
+    if (hasEnunciado) materialScore += 400;
+
+    if (!best || materialScore > best.score) best = { material: m, score: materialScore };
+  }
+
+  // Corte de lixo: abaixo disso a pergunta não aponta para material nenhum —
+  // responder honestamente sem fonte é melhor que ancorar no material errado.
+  const MIN_SCORE = 60;
+  return best && best.score >= MIN_SCORE ? best.material : undefined;
+}
+
+/**
  * Monta o bloco "CONTEÚDO DO MATERIAL" para o prompt do tutor.
  * Retorna '' quando o material não tem nada útil (sem summary, sem texto).
  */
@@ -191,8 +319,15 @@ export async function buildMaterialBlock(material: Material, question: string): 
   const text = await readCached(textCache, TEXTS_DIR, `${material.id}.txt`);
   if (text) {
     const kws = keywordsOf(question);
+    const qNum = questionNumberHint(question);
     const chunks = chunkText(text);
-    const scores = chunks.map((c, i) => scoreChunk(c, kws, normalize(c)) + (i === 0 ? 4 : 0));
+    const scores = chunks.map((c, i) => {
+      let s = scoreChunk(c, kws, normalize(c)) + (i === 0 ? 4 : 0);
+      // A QUESTÃO PEDIDA PRIMEIRO: o enunciado numerado vence qualquer
+      // pontuação de keywords — errar a questão que o aluno citou é o pior erro.
+      if (qNum !== null && chunkHasQuestionNumber(c, qNum)) s += 100;
+      return s;
+    });
     // top-N por relevância própria
     const ranked = scores
       .map((s, i) => ({ s, i }))
@@ -217,8 +352,15 @@ export async function buildMaterialBlock(material: Material, question: string): 
     }
     if (chosen.size) {
       const picked = [...chosen].sort((a, b) => a - b).map((i) => chunks[i]);
+      // O RETRIEVAL SABE DAS PÁGINAS: os marcadores <!-- página N --> da
+      // transcrição por visão viram rótulos legíveis — o tutor pode citar a
+      // página exata da lista quando responder.
+      const withPages = picked.join('\n\n[...]\n\n').replace(
+        /<!-- página (\d+) -->/g,
+        (_, n) => `[página ${n}]`,
+      );
       parts.push(
-        `== TRECHOS DO PDF ORIGINAL (mais relevantes à pergunta) ==\n${picked.join('\n\n[...]\n\n')}`,
+        `== TRECHOS DO PDF ORIGINAL (mais relevantes à pergunta) ==\n${withPages}`,
       );
     }
   }
