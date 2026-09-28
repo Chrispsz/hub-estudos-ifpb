@@ -4,8 +4,8 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   Bot,
-  CalendarClock,
   CalendarDays,
+  ChevronRight,
   Flame,
   MousePointerClick,
   Play,
@@ -22,6 +22,7 @@ import {
   type ExamWeekMilestone,
 } from '@/lib/math-exam-prep';
 import { openMethod, openSimulado, openTutor } from '@/lib/hub-events';
+import { useNow } from './clock-widget';
 import { cn } from '@/lib/utils';
 
 const DAY_MS = 86_400_000;
@@ -153,6 +154,14 @@ export function StudyHeatmap({
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
+  // O MAPA TAMBÉM NÃO DORME NO RELÓGIO (129, a linhagem da 115/116): o 'hoje'
+  // da grade e o anel emerald viviam DENTRO de um useMemo com deps
+  // [sessions, dailyGoal] — com a aba aberta na virada do dia, a coluna da
+  // semana atual e o '• hoje' congelavam no dia de ontem até um reload. O
+  // tick de 60s alimenta o memo: à meia-noite a grade desliza sozinha (e os
+  // marcos da semana, perguntados célula a célula, seguem a fonte única).
+  const nowMin = useNow(60_000);
+
   // Mapa date → minutos de foco
   const minutesByDate = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -164,7 +173,7 @@ export function StudyHeatmap({
 
   // Grade: WEEKS colunas de semanas terminando na semana atual (Dom..Sáb)
   const { columns, monthLabels, todayUtc } = React.useMemo(() => {
-    const today = new Date();
+    const today = nowMin ?? new Date();
     const todayUtc = new Date(
       Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
     );
@@ -209,7 +218,7 @@ export function StudyHeatmap({
       cols.push(col);
     }
     return { columns: cols, monthLabels: labels, todayUtc };
-  }, [minutesByDate, dailyGoal]);
+  }, [minutesByDate, dailyGoal, nowMin]);
 
   // Marcos da Av1 dentro da janela visível (um por kind, em ordem de dia)
   const weekMilestones = React.useMemo(() => {
@@ -271,6 +280,18 @@ export function StudyHeatmap({
 
   const todayKey = utcKey(todayUtc);
 
+  // A PORTA DO CHIP (129, linhagem 'anunciar é metade, levar é a outra' da
+  // 127): o chip do topo anunciava os eventos-âncora e não FAZIA nada — as
+  // portas moravam só nas células da grade. O próximo marco da semana agora
+  // abre a MESMA porta do marco (fonte única marcoDoorFor): no dia do ensaio
+  // o chip é o botão do ensaio; na véspera, a folha; no dia da prova, o tutor.
+  const nextMilestone =
+    hasMilestones && !examWeekPast
+      ? weekMilestones.find((m) => m.date >= todayKey) ?? undefined
+      : undefined;
+  const nextDoor = nextMilestone ? marcoDoorFor(nextMilestone.kind) : undefined;
+  const NextIcon = nextDoor?.icon;
+
   return (
     <Card className="rounded-xl bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -288,10 +309,25 @@ export function StudyHeatmap({
               {periodStats.best} {periodStats.best === 1 ? 'dia' : 'dias'}
             </span>
           )}
-          {hasMilestones && !examWeekPast && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-amber-600 dark:text-amber-400">
-              <CalendarClock className="size-3" aria-hidden="true" /> {anchorChipLabel}
-            </span>
+          {hasMilestones && !examWeekPast && nextMilestone && nextDoor && NextIcon && (
+            <button
+              type="button"
+              onClick={() => nextDoor.run(nextMilestone)}
+              aria-label={`Próximo marco: ${nextMilestone.titulo} (${shortDate(nextMilestone.date)}) — ${nextDoor.aria}`}
+              title={`Próximo marco da semana • ${nextDoor.acao}`}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 tabular-nums text-amber-600 transition-all duration-100 dark:text-amber-400',
+                'hover:bg-amber-500/20 active:scale-[0.97]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-1 focus-visible:ring-offset-card',
+                nextMilestone.kind === 'prova'
+                  ? 'border-rose-500/25 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400'
+                  : 'border-amber-500/25 bg-amber-500/10',
+                nextMilestone.date === todayKey && 'animate-pulse',
+              )}
+            >
+              <NextIcon className="size-3" aria-hidden="true" /> {anchorChipLabel}
+              <ChevronRight className="size-3 opacity-60" aria-hidden="true" />
+            </button>
           )}
         </div>
       </div>

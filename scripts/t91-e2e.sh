@@ -110,7 +110,11 @@ agent-browser screenshot scripts/qa91-notebook-hoje-dark.png >/dev/null 2>&1 || 
 echo "=== [C] Run oficial semeado (com 4 questões): flipa 'feito ✓ — 60%' ==="
 seed_run
 F=$(flags); echo "  flags: $F"
-case "$F" in *hoje=0*feito=1*p60=1*) ok "com run: 'feito ✓ — 60%' (registro vence o relógio)";; *) bad "estado feito esperado: $F";; esac
+# Lição 129 — o contrato do hoje evoluiu: o card 'O que estudar hoje' (na
+# página Progresso) MANTÉM o título 'É hoje: Simulado da Av1' com o run e
+# ganha o chip do veredito (today-study-card: o dia é hoje; o registro vence
+# o relógio) — hoje=1 É a voz certa; o strip do caderno é que flipa 'feito ✓'.
+case "$F" in *hoje=1*feito=1*p60=1*) ok "com run: card mantém 'É hoje' + chip 60%, caderno flipa 'feito ✓'";; *) bad "estado feito esperado: $F";; esac
 [ "$(strip_class 'Simulado da Av1 feito' 'bg-emerald-600')" = "1" ] && ok "sólido emerald sem pulso" || bad "classe emerald ausente"
 C=$(ctas); echo "  ctas: $C"
 case "$C" in *ON:Ver*"(6)"*) ok "CTA 'Ver as frescas (6)' com a contagem da janela 48h";; *) bad "CTA frescas (6) esperado: $C";; esac

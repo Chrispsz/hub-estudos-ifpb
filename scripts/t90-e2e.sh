@@ -72,22 +72,37 @@ seed_cards() {
   sleep 1
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): silêncio honesto ==="
+# Lição 129 — O TICK DE 30s: o examBrief dos Flashcards é render-time sobre
+# `now = useNow(30_000)` (contrato null-até-mount da 113) — o poke re-renderiza
+# a view mas NÃO muda o `now`: o strip só flipa no próximo tick (até 30s de
+# atraso, non-determinístico para o harness). A cura: REMOUNT da tab após cada
+# mock/seed+poke — o useNow dispara setNow(new Date()) no mount e o brief
+# recompõe IMEDIATAMENTE com o relógio plantado (validado ao vivo).
+# ⚠️ Lição 129.2: mousedown na tab JÁ ATIVA não remonta (React bail-out) —
+# o remount tem que TROCAR de tab (Exercícios → Flashcards) para desmontar
+# e montar o conteúdo de verdade (o useNow do mount lê o relógio plantado).
+remount_fc() {
+  agent-browser eval "(function(){var els=document.querySelectorAll('[role=tab]');for(var i=0;i<els.length;i++){if(els[i].textContent.indexOf('Exercícios')>=0){els[i].dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
+  sleep 1
+  goto_flashcards >/dev/null 2>&1
+  sleep 1
+}
+
+echo "=== [A] MOCK 27/09 (D-4): silêncio honesto (Lição 128 — data-rot) ==="
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 sleep 2
-FIBER=$(agent-browser eval "(function(){var m=document.querySelector('main')||document.body;var k=Object.keys(m);for(var i=0;i<k.length;i++){if(k[i].startsWith('__reactFiber'))return 'fiber:true'}return 'fiber:MISSING'})()" 2>/dev/null | tr -d '"')
-echo "hydration: $FIBER"
-[ "$FIBER" = "fiber:true" ] || bad "sem fiber — abortar"
-if goto_flashcards; then ok "navegação: Flashcards aberta"; else bad "não cheguei nos Flashcards — abortar"; fi
+echo "  $(mock_date '2026-09-27T15:30:00')"
+if goto_flashcards; then ok "navegação: Flashcards aberta (mount com D-4 plantado)"; else bad "não cheguei nos Flashcards — abortar"; fi
 F=$(flags); echo "  flags: $F"
-case "$F" in *hoje=0*feito=0*vesp=0*prova=0*cta=0*) ok "data real: nenhuma faixa, nenhum CTA (fora da janela)";; *) bad "data real: faixa/CTA presente";; esac
+case "$F" in *hoje=0*feito=0*vesp=0*prova=0*cta=0*) ok "D-4 plantado: nenhuma faixa, nenhum CTA (fora da janela)";; *) bad "D-4: faixa/CTA presente";; esac
 
-echo "=== [B] MOCK 29/09 + poke: 'É hoje: Simulado da Av1', CTA OFF ==="
+echo "=== [B] MOCK 29/09 + remount: 'É hoje: Simulado da Av1', CTA OFF ==="
 M=$(mock_date "2026-09-29T15:30:00"); echo "  $M"
 [ "$M" = "mock=2026-9-29" ] && ok "date mock confirmado pela página" || bad "mock não confirmado: '$M'"
 poke
+remount_fc
 F=$(flags); echo "  flags: $F"
 case "$F" in *hoje=1*feito=0*) ok "29/09 sem run: 'É hoje: Simulado da Av1'";; *) bad "estado simulado-hoje: $F";; esac
 [ "$(strip_class 'É hoje: Simulado da Av1' 'shadow-amber-500/30')" = "1" ] && ok "sólido âmbar com glow (é-hoje)" || bad "classe sólida âmbar ausente"
@@ -96,6 +111,8 @@ case "$C" in *OFF:Cram*) ok "0 cartões MAT: CTA desabilitado (hint no title)";;
 
 echo "=== [C] 3 cartões MAT semeados: CTA ON com contagem ==="
 seed_cards
+poke
+remount_fc
 C=$(ctas); echo "  ctas: $C"
 case "$C" in *ON:Cram*"(3)"*) ok "CTA 'Cram de Matemática (3)' habilitado (StorageEvent síncrono)";; *) bad "CTA (3) esperado: $C";; esac
 
@@ -111,25 +128,29 @@ agent-browser eval "(function(){var els=document.querySelectorAll('button');for(
 sleep 2
 [ "$(on_flashcards)" = "fc=yes" ] && ok "sessão encerrada (de volta à lista)" || bad "sessão não encerrou"
 
-echo "=== [E] Run oficial semeado: strip flipa 'feito ✓ — 70%' (SEM navegação) ==="
+echo "=== [E] Run oficial semeado: strip flipa 'feito ✓ — 70%' (remount) ==="
 seed_run
+poke
+remount_fc
 F=$(flags); echo "  flags: $F"
 case "$F" in *hoje=0*feito=1*) ok "com run: 'feito ✓' (registro vence o relógio)";; *) bad "estado feito esperado: $F";; esac
 [ "$(has 'feito ✓ — 70%')" = "1" ] && ok "percentual do run no título: 70%" || bad "percentual ausente"
 [ "$(strip_class 'Simulado da Av1 feito' 'bg-emerald-600')" = "1" ] && ok "sólido emerald sem pulso" || bad "classe emerald ausente"
 
-echo "=== [F] MOCK 30/09 + poke: véspera tinted + CTA ==="
+echo "=== [F] MOCK 30/09 + remount: véspera tinted + CTA ==="
 mock_date "2026-09-30T10:00:00" >/dev/null 2>&1
 poke
+remount_fc
 F=$(flags); echo "  flags: $F"
 case "$F" in *feito=0*vesp=1*frescas=1*) ok "véspera: título + chamada, sem 'feito' (janela do simulado saiu)";; *) bad "véspera esperada: $F";; esac
 [ "$(strip_class 'Véspera da Av1' 'bg-amber-500/[0.07]')" = "1" ] && ok "tinta translúcida âmbar (espera)" || bad "classe tinted ausente"
 C=$(ctas); echo "  ctas: $C"
 case "$C" in *ON:Cram*"(3)"*) ok "CTA ativo na véspera";; *) bad "CTA devia estar ON: $C";; esac
 
-echo "=== [G] MOCK 01/10 + poke: prova rose + Revisar fórmulas ==="
+echo "=== [G] MOCK 01/10 + remount: prova rose + Revisar fórmulas ==="
 mock_date "2026-10-01T08:00:00" >/dev/null 2>&1
 poke
+remount_fc
 F=$(flags); echo "  flags: $F"
 case "$F" in *vesp=0*prova=1*) ok "01/10: 'É hoje: Prova da Av1'";; *) bad "prova-hoje esperada: $F";; esac
 [ "$(strip_class 'É hoje: Prova da Av1' 'shadow-rose-500/30')" = "1" ] && ok "sólido rose com glow" || bad "classe rose ausente"

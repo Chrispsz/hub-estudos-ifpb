@@ -62,16 +62,26 @@ agent-browser set viewport 1440 900 >/dev/null 2>&1; sleep 2
 FIBER=$(agent-browser eval "(function(){var m=document.querySelector('main')||document.body;var k=Object.keys(m);for(var i=0;i<k.length;i++){if(k[i].startsWith('__reactFiber'))return 'fiber:true'}return 'fiber:MISSING'})()" 2>/dev/null)
 echo "hydration: $FIBER"
 
-echo "=== [A] DATA REAL (dom 27/09): 3 marcos tinted na grade ==="
+echo "=== [A] MOCK 27/09 (D-4): 3 marcos tinted na grade (Lição 129 — data-rot) ==="
+# Lição 129 — data-rot: [A] herdava o relógio REAL da entrega (27/09 = D-4);
+# dias depois (D-3) o marco do dia EXISTE ('Véspera do simulado', fonte única
+# examWeekMilestoneFor) e a grade honestamente diz 'É hoje'. O teste PLANTA o
+# dia: mock ANTES do goto_agenda — o mount da Agenda captura o now mockado
+# (setNow no mount, sem interval) e as asserções D-4 voltam a valer.
+agent-browser eval "(function(){var M='2026-09-27T09:00:00';class F extends Date{constructor(...a){a.length===0?super(new Date(M)):super(...a)}static now(){return new Date(M)}}window.Date=F;return 'mock '+new window.Date().toString()})()" >/dev/null 2>&1
+echo_mock
 goto_agenda
-body_has '3 marcos da Av1|||simulado em 2 dias'           && ok "resumo: '3 marcos da Av1 — simulado em 2 dias'" || bad "resumo dos marcos"
+# Lição 129: a voz do resumo evoluiu com a fonte — o marco 'preparo' (28/09)
+# entrou na semana (122/128) e o resumo conta 4 marcos nomeando o mais próximo
+# (data-agnóstico por design: reduce no nearest + hoje/amanhã/em N dias).
+body_has '4 marcos da Av1|||preparo do simulado amanhã'   && ok "resumo: '4 marcos da Av1 — preparo do simulado amanhã'" || bad "resumo dos marcos"
 body_has 'Simulado da Av1|||+ S3 de Algoritmos|||em 2 dias' && ok "Ter 29: simulado tinted + S3 + 'em 2 dias'" || bad "strip do simulado (Ter)"
 body_has 'Véspera da prova|||em 3 dias|||montar o kit'    && ok "Qua 30: véspera tinted 'em 3 dias' + dica do kit" || bad "strip da véspera (Qua)"
 body_has 'Prova da Av1|||em 4 dias|||levar o kit'         && ok "Qui 01: prova tinted 'em 4 dias' + dica" || bad "strip da prova (Qui)"
 has_sel 'ring-rose-500/40'                                && ok "anel rose no dia da prova" || bad "anel rose da prova"
 has_sel 'ring-amber-500/40'                               && ok "anel amber nos dias simulado/véspera" || bad "anel amber"
-no_sel 'shadow-amber-500/30' && no_sel 'shadow-rose-600/30' && ok "nenhum strip sólido fora do dia (honesto)" || bad "strip sólido indevido na data real"
-body_lacks 'É hoje:'                                      && ok "sem 'É hoje' no domingo (nada é hoje)" || bad "'É hoje' indevido"
+no_sel 'shadow-amber-500/30' && no_sel 'shadow-rose-600/30' && ok "nenhum strip sólido fora do dia (honesto no D-4)" || bad "strip sólido indevido no D-4 mockado"
+body_lacks 'É hoje:'                                      && ok "sem 'É hoje' no D-4 (nada é hoje)" || bad "'É hoje' indevido no D-4"
 agent-browser screenshot scripts/qa89-agenda-real.png >/dev/null 2>&1
 
 echo "=== [B] MOCK 29/09 (ter): simulado SÓLIDO com pulso ==="

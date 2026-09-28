@@ -63,13 +63,20 @@ goto_home() { # o rótulo REAL do nav da home é 'Visão Geral' (lição 94.2) �
   return 1
 }
 
-echo "=== [A] DATA REAL (dom 27/09, D-4): kit fora da janela ==="
+echo "=== [A] MOCK 27/09 (D-4): kit fora da janela (Lição 128 — data-rot) ==="
+# Lição 128/129: a janela do kit é 0≤D≤3 (isVesperaWindow) — a voz D-3 ('O
+# ensaio de amanhã mede o que já está no seu preparo') entrou na 128. O teste
+# herdava o relógio da entrega (D-4): agora PLANTA o dia (open → mock+poke —
+# o kit é reativo ao poke, provado na [B] da entrega).
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 sleep 2
+echo "  $(mock_date '2026-09-27T15:00:00')"
+poke
+sleep 1
 KIT=$(has 'Kit da véspera')
-[ "$KIT" = "0" ] && ok "data real D-4: kit ausente (só D-2/D-1/D-0)" || bad "data real: kit presente fora da janela"
+[ "$KIT" = "0" ] && ok "D-4 plantado: kit ausente (janela 0≤D≤3)" || bad "D-4 plantado: kit presente fora da janela"
 
 echo "=== [B] MOCK 29/09 (D-2) SEM run: espera honesta ==="
 echo "  $(mock_date '2026-09-29T15:00:00')"; poke
@@ -150,8 +157,16 @@ H=$(clean_runs)
 echo "  storage: $H"
 case "$H" in *runs=0*) ok "runs qa95 removidos";; *) bad "resíduo de runs: $H";; esac
 agent-browser open http://localhost:3000 >/dev/null 2>&1; sleep 5
+# Lição 129 — asserção DINÂMICA (não herda o dia da entrega): o kit respeita
+# a janela 0≤D≤3 com o D REAL do relógio; se o mock de 27/09 tivesse
+# sobrevivido ao reload, o D mockado (4) contradiria o D real e o teste pega.
+DREAL=$(( ( $(date -u -d 2026-10-01 +%s) - $(date -u -d "$(date -u +%F)" +%s) ) / 86400 ))
 KIT=$(has 'Kit da véspera')
-[ "$KIT" = "0" ] && ok "data real restaurada: kit de volta ao silêncio D-4" || bad "kit ainda visível na data real"
+if [ "$DREAL" -ge 0 ] && [ "$DREAL" -le 3 ]; then
+  [ "$KIT" = "1" ] && ok "data real (D-$DREAL): kit na janela 0≤D≤3 (voz certa do dia)" || bad "data real D-$DREAL: kit ausente na janela!"
+else
+  [ "$KIT" = "0" ] && ok "data real (D-$DREAL): kit fora da janela (silêncio)" || bad "data real D-$DREAL: kit presente fora da janela!"
+fi
 RG=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$STORE')||'{}');return 'realGrades='+(p.realGrades?Object.keys(p.realGrades).length:0)+' runs='+((p.simuladoRuns||[]).length)+' poke='+(p.__poke===undefined?0:1)})()" 2>/dev/null | tr -d '"')
 echo "  $RG"
 case "$RG" in *runs=0*poke=0*) ok "storage limpo (runs 0, poke 0)";; *) bad "storage sujo: $RG";; esac

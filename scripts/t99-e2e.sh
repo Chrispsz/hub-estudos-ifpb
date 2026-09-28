@@ -136,8 +136,13 @@ echo "  restore: $(restore_prefs)"
 clean_runs
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 5
-H=$(has 'faltam 4 dias')
-[ "$H" = "1" ] && ok "data real de volta (reload matou o mock)" || bad "data real não voltou"
+# Lição 129 — data-rot na própria fase de RESTAURAÇÃO: 'faltam 4 dias' era a
+# voz do dia da entrega. O reload mata o mock; o N real é calculado na hora
+# (mesma aritmética do app: dias até 01/10) e a busca é case-insensitive
+# (o hero abre a frase com 'Faltam', o kit cita 'faltam' — mesmo dado).
+DREAL=$(( ( $(date -u -d 2026-10-01 +%s) - $(date -u -d "$(date -u +%F)" +%s) ) / 86400 ))
+if [ "$DREAL" -ge 2 ]; then H=$(has "faltam $DREAL dias"); else H=$(has 'faltam'); fi
+[ "$H" = "1" ] && ok "data real de volta (reload matou o mock — 'faltam $DREAL dias')" || bad "data real não voltou (esperado D-$DREAL)"
 card_json "É hoje: Simulado|cede a vez|bloco(s) pendente(s)" | grep -q '"é hoje: simulado":0' && ok "strip sumiu no reload (dia comum de novo)" || bad "strip sobreviveu ao reload"
 R=$(agent-browser eval "(function(){var p=JSON.parse(localStorage.getItem('$STORE')||'{}');return 'dom0='+(p.studyPreferences.days['0'].enabled?'on':'off')+' backup='+(p.__qa99_sp===undefined?'removido':'FICOU')})()" 2>/dev/null | tr -d '"')
 echo "  $R"

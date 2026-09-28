@@ -53,16 +53,22 @@ open_chat() { # Estudar → botão 'Tirar dúvida com IA'
   return 1
 }
 
-echo "=== [A] DATA REAL (D-4): badge do contexto no chat SEM simulado ==="
+echo "=== [A] MOCK 27/09 (D-4): badge do contexto no chat SEM simulado ==="
+# Lição 128/129 — data-rot: a fase herdava o relógio da entrega; o badge lê o
+# dia no render (poke reativo, provado na [C]/[D] que mockam+poke). Plantar
+# o D-4 antes de abrir o chat.
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 sleep 2
+echo "  $(mock_date '2026-09-27T15:00:00')"
+poke
+sleep 1
 agent-browser eval "(function(){var els=document.querySelectorAll('button,a');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Estudar'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
 sleep 2
 if open_chat; then ok "chat aberto (Sheet)"; else bad "chat não abriu — abortar"; FAIL=1; fi
 D4=$(has 'semana da Av1 · D-4'); NOSIM=$(has 'simulado 70%')
-[ "$D4" = "1" ] && ok "badge: 'contexto: semana da Av1 · D-4'" || bad "badge D-4 ausente"
+[ "$D4" = "1" ] && ok "badge: 'contexto: semana da Av1 · D-4' (D-4 plantado)" || bad "badge D-4 ausente"
 [ "$NOSIM" = "0" ] && ok "sem run → badge NÃO mostra simulado (não inventa)" || bad "badge mostra simulado sem run!"
 
 echo "=== [B] RUN 70% (29/09) + poke: badge ganha o veredito ==="

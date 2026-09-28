@@ -364,35 +364,38 @@ export function ScheduleView() {
           <Layers className="size-4 text-amber-400" />
           <b>{weekStats.rotation}</b>&nbsp;disciplinas na rotação
         </span>
-        {weekMilestones.length > 0 && (
-          <>
-            <span className="hidden h-4 w-px bg-border md:block" />
-            <span className="flex items-center gap-1.5">
-              <Flag className="size-4 text-rose-400" />
-              <b>{weekMilestones.length}</b>
-              &nbsp;marco{weekMilestones.length > 1 ? 's' : ''} da Av1
-              {(() => {
-                const nearest = weekMilestones.reduce((a, b) => (a.days <= b.days ? a : b));
-                const dias = nearest.days;
-                const nome =
-                  nearest.milestone.kind === 'simulado'
-                    ? 'simulado'
-                    : nearest.milestone.kind === 'preparo'
-                      ? 'preparo do simulado'
-                      : nearest.milestone.kind === 'vespera'
-                        ? 'véspera'
-                        : 'prova';
-                return (
-                  <span className="text-muted-foreground">
-                    {' '}
-                    — {nome}
-                    {dias === 0 ? ' hoje' : dias === 1 ? ' amanhã' : ` em ${dias} dias`}
-                  </span>
-                );
-              })()}
-            </span>
-          </>
-        )}
+        {weekMilestones.length > 0 && (() => {
+          // A COR É O SIGNIFICADO (a gramática da casa, a mesma do mapa/agenda/
+          // fila): prova = rose, os outros marcos (preparo/simulado/véspera) =
+          // amber. Até hoje a bandeira era rose SEMPRE — mesmo anunciando o
+          // ensaio de amanhã, que é família espera, não família prova.
+          const nearest = weekMilestones.reduce((a, b) => (a.days <= b.days ? a : b));
+          const dias = nearest.days;
+          const isProva = nearest.milestone.kind === 'prova';
+          const nome =
+            nearest.milestone.kind === 'simulado'
+              ? 'simulado'
+              : nearest.milestone.kind === 'preparo'
+                ? 'preparo do simulado'
+                : nearest.milestone.kind === 'vespera'
+                  ? 'véspera'
+                  : 'prova';
+          return (
+            <>
+              <span className="hidden h-4 w-px bg-border md:block" />
+              <span className="flex items-center gap-1.5">
+                <Flag className={isProva ? 'size-4 text-rose-400' : 'size-4 text-amber-400'} />
+                <b className="tabular-nums">{weekMilestones.length}</b>
+                &nbsp;marco{weekMilestones.length > 1 ? 's' : ''} da Av1
+                <span className="text-muted-foreground">
+                  {' '}
+                  — {nome}
+                  {dias === 0 ? ' hoje' : dias === 1 ? ' amanhã' : ` em ${dias} dias`}
+                </span>
+              </span>
+            </>
+          );
+        })()}
       </div>
 
       {/* ---------- Grid semanal ---------- */}

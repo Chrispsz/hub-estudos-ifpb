@@ -68,8 +68,9 @@ cell_title() { # $1 = substring do title → title completo do primeiro match (o
 cell_class() { # $1 = substring do title → className do primeiro match (ou '')
   agent-browser eval "(function(){var els=document.querySelectorAll('div[title]');for(var i=0;i<els.length;i++){var t=els[i].getAttribute('title');if(t.indexOf('$1')>=0)return els[i].className}return ''})()" 2>/dev/null | tr -d '"'
 }
-chip_check() { # $1 = texto do chip âmbar do topo do mapa
-  agent-browser eval "(function(){var els=document.querySelectorAll('span');for(var i=0;i<els.length;i++){var c=els[i].className;if(typeof c==='string'&&c.indexOf('border-amber-500/25')>=0&&els[i].textContent.indexOf('$1')>=0)return 1}return 0})()" 2>/dev/null | tr -d '"'
+chip_check() { # $1 = texto do chip do topo do mapa (agora É A PORTA do próximo
+  # marco — 129: span virou button; a cor da família e o label continuam os mesmos)
+  agent-browser eval "(function(){var els=document.querySelectorAll('span,button');for(var i=0;i<els.length;i++){var c=els[i].className;if(typeof c==='string'&&c.indexOf('border-amber-500/25')>=0&&els[i].textContent.indexOf('$1')>=0)return 1}return 0})()" 2>/dev/null | tr -d '"'
 }
 aria_map() {
   agent-browser eval "(function(){var el=document.querySelector('div[role=\"img\"]');return el?el.getAttribute('aria-label'):''})()" 2>/dev/null | tr -d '"'
@@ -85,7 +86,7 @@ go_progress || bad "não chegou no Progresso"
 sleep 1
 
 CH_S=$(chip_check 'Simulado da Av1 29/09')
-[ "$CH_S" = "1" ] && ok "chip do topo: 'Simulado da Av1 29/09'" || bad "chip do simulado ausente"
+[ "$CH_S" = "1" ] && ok "chip do topo: 'Simulado da Av1 29/09' (agora porta do próximo marco)" || bad "chip do simulado ausente"
 CH_P=$(chip_check 'Prova da Av1 01/10')
 [ "$CH_P" = "1" ] && ok "chip do topo: 'Prova da Av1 01/10'" || bad "chip da prova ausente"
 
@@ -106,6 +107,10 @@ echo "$TT" | grep -q "sem foco registrado" && ok "título do hoje segue honesto 
 
 AR=$(aria_map)
 echo "$AR" | grep -q "semana da Av1" && echo "$AR" | grep -q "Prova da Av1 01/10" && ok "aria-label nomeia a semana completa" || bad "aria sem a semana ($AR)"
+
+# A PORTA DO CHIP (129): o chip do topo virou botão — leva ao próximo marco
+DOOR=$(agent-browser eval "(function(){var els=document.querySelectorAll('button');for(var i=0;i<els.length;i++){var a=els[i].getAttribute('aria-label')||'';if(a.indexOf('Próximo marco')>=0)return a}return ''})()" 2>/dev/null | tr -d '"')
+echo "$DOOR" | grep -q 'Próximo marco' && echo "$DOOR" | grep -q 'abre' && ok "chip-porta: '$(echo "$DOOR" | head -c 90)...'" || bad "porta do chip ausente"
 
 [ "$(has '· marco:')" = "1" ] && [ "$(has 'ensaio')" = "1" ] && ok "legenda explica os marcos (ensaio / prova)" || bad "legenda dos marcos ausente"
 
@@ -141,6 +146,8 @@ TD=$(cell_title 'Prova da Av1')
 TCD=$(cell_class 'Prova da Av1')
 echo "$TD" | grep -q "• hoje" && ok "prova hoje: título diz '• hoje'" || bad "título da prova sem 'hoje' ($TD)"
 echo "$TCD" | grep -q "ring-rose-500/70" && echo "$TCD" | grep -q "shadow-\[" && ok "célula da prova HOJE: anel rose cheio + brilho (a família do dia)" || bad "classe da prova hoje errada ($TCD)"
+DOORD=$(agent-browser eval "(function(){var els=document.querySelectorAll('button');for(var i=0;i<els.length;i++){var a=els[i].getAttribute('aria-label')||'';if(a.indexOf('Próximo marco: Prova da Av1')>=0)return a+(els[i].className.indexOf('animate-pulse')>=0?'|pulso':'|sem-pulso')}return ''})()" 2>/dev/null | tr -d '"')
+echo "$DOORD" | grep -q 'Prova da Av1' && echo "$DOORD" | grep -q 'pulso' && ok "porta D-0: o chip É o botão da prova, pulsando ( gramática da 114)" || bad "porta da prova errada ($DOORD)"
 
 echo "=== [D] PÓS-PROVA (05/10): o chip cala, a história fica ==="
 mock_date '2026-10-05T10:00:00' >/dev/null; poke

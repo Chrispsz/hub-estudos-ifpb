@@ -58,13 +58,19 @@ poke() {
   sleep 1
 }
 
-echo "=== [A] DATA REAL (D-4): o dia de hoje TEM apoio (mat-ex07 + mat-ex08) ==="
+echo "=== [A] MOCK 27/09 (D-4): o dia de hoje TEM apoio (mat-ex07 + mat-ex08) ==="
+# Lição 128/129 — data-rot: a fase herdava o relógio da entrega (D-4, dia
+# 'Lógica Parte 1' com apoio); no D-3 real o plano manda outra tarefa. O chip
+# de apoio é render-time (poke reativo, provado na [F]): plantar o dia.
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 agent-browser set viewport 1440 900 >/dev/null 2>&1
 sleep 2
+echo "  $(mock_date '2026-09-27T15:00:00')"
+poke
+sleep 1
 CH=$(has 'apoio (2)')
-[ "$CH" = "1" ] && ok "chip 'apoio (2)' visível na tarefa do dia (Lógica Parte 1)" || bad "chip de apoio ausente no dia D-4"
+[ "$CH" = "1" ] && ok "chip 'apoio (2)' visível na tarefa do D-4 (Lógica Parte 1)" || bad "chip de apoio ausente no D-4 plantado"
 
 echo "=== [B] CLIQUE: Praticar abre com EXATAMENTE os 2 do apoio ==="
 CB=$(click_btn 'apoio (' 0); sleep 2
