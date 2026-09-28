@@ -72,10 +72,14 @@ go_flashcards() { # 'Praticar' direto na sidebar; Flashcards é tab Radix (ref �
   # Radix Tabs engole cliques na corrida (a 129.2: mousedown confiável ou nada)
   local REF
   for i in 1 2 3; do
-    agent-browser eval "(function(){var els=document.querySelectorAll('button');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='Praticar'){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
+    agent-browser eval "(function(){var els=document.querySelectorAll('button');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t.indexOf('Praticar')===0){els[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
     sleep 3
     for k in 1 2 3 4 5; do
-      REF=$(agent-browser snapshot 2>/dev/null | grep -o 'tab "Flashcards" \[ref=e[0-9]*\]' | grep -oE 'e[0-9]+' | tail -1)
+      # a view LEMBRA a última tab — se já pousou em Flashcards, não há o que clicar
+      [ "$(agent-browser eval "document.body.innerText.indexOf('Novo cartão')>=0?'fc-ok':'fc-no'" 2>/dev/null | tr -d '"')" = "fc-ok" ] && return 0
+      # o snapshot da tab SELECIONADA vira 'tab "Flashcards" [selected, ref=e..]' —
+      # o grep tem que casar as duas formas (a lição da 135: o formato muda com o estado)
+      REF=$(agent-browser snapshot 2>/dev/null | grep -o 'tab "Flashcards.*ref=e[0-9]*\]' | grep -oE 'e[0-9]+' | tail -1)
       [ -n "$REF" ] && agent-browser click "$REF" >/dev/null 2>&1
       sleep 2
       [ "$(agent-browser eval "document.body.innerText.indexOf('Novo cartão')>=0?'fc-ok':'fc-no'" 2>/dev/null | tr -d '"')" = "fc-ok" ] && return 0

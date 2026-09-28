@@ -58,6 +58,7 @@ import {
   flashcardNextIntervalLabel,
   flashcardStatsFor,
   flashcardsDueFor,
+  newCardFields,
   useStudyProgress,
   type Flashcard,
   type FlashcardGrade,
@@ -129,26 +130,6 @@ function parseFlashcardsJSON(raw: string): Array<{ front: string; back: string }
   } catch {
     return null;
   }
-}
-
-function newCardFields(
-  disciplineCode: string,
-  front: string,
-  back: string,
-  source: 'manual' | 'ia',
-): Omit<Flashcard, 'id'> {
-  const nowIso = new Date().toISOString();
-  return {
-    disciplineCode,
-    front,
-    back,
-    source,
-    createdAt: nowIso,
-    box: 0,
-    dueAt: nowIso, // nova → disponível imediatamente para revisão
-    reviews: 0,
-    lapses: 0,
-  };
 }
 
 // ---------- Baralhos compartilháveis (export/import JSON) ----------

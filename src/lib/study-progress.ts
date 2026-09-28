@@ -186,6 +186,33 @@ export interface Flashcard {
 export const FLASHCARD_BOX_DAYS = [0, 1, 3, 7, 14, 30] as const;
 
 /**
+ * A FORMA CANÔNICA de um cartão novo (135 — a criação mora na lib que
+ * publica o tipo): antes era um helper privado do flashcards-view e a 134
+ * precisou dele de novo no caderno — duas derivações do MESMO shape é a
+ * receita do drift (a gramática da casa: zero segunda derivação). Caixa 0 +
+ * dueAt = agora: o cartão novo entra disponível imediatamente para revisão.
+ */
+export function newCardFields(
+  disciplineCode: string,
+  front: string,
+  back: string,
+  source: 'manual' | 'ia',
+): Omit<Flashcard, 'id'> {
+  const nowIso = new Date().toISOString();
+  return {
+    disciplineCode,
+    front,
+    back,
+    source,
+    createdAt: nowIso,
+    box: 0,
+    dueAt: nowIso, // nova → disponível imediatamente para revisão
+    reviews: 0,
+    lapses: 0,
+  };
+}
+
+/**
  * SELETOR PURO do Leitner — cartões vencidos (inclui novas — dueAt =
  * createdAt), mais atrasados primeiro. O relógio chega por PARÂMETRO
  * (lição 113/115: quem pede "agora" passa o agora): a derivação existe

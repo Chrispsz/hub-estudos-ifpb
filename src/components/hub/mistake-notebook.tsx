@@ -22,6 +22,7 @@ import {
   Dumbbell,
   FileQuestion,
   GraduationCap,
+  Layers,
   Printer,
   Repeat2,
   RotateCcw,
@@ -29,6 +30,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -40,11 +42,13 @@ import {
   filterByWindow,
   groupByDiscipline,
   isRecorrenteMistake,
+  mistakeCardSeedsFor,
   MISTAKE_WINDOWS,
   notebookStats,
   paperNotebookFor,
   pendingMistakes,
   windowCounts,
+  type MistakeCardSeed,
   type MistakeItem,
   type MistakeKind,
   type MistakeWindow,
@@ -56,7 +60,7 @@ import {
   type NotebookExamBrief,
 } from '@/lib/math-exam-prep';
 import { getColorClasses } from '@/lib/discipline-colors';
-import { useStudyProgress } from '@/lib/study-progress';
+import { newCardFields, useStudyProgress } from '@/lib/study-progress';
 import { openSimulado, openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 
@@ -209,6 +213,39 @@ export function MistakeNotebook() {
     () => pendingMistakes(visible, revisedMap),
     [visible, revisedMap],
   );
+
+  // O CARTÃO NO CADERNO (135 — a ponte da 134 no lugar onde o erro MOR): a
+  // mesma fonte da porta dos flashcards (mistakeCardSeedsFor — pendências com
+  // par no acervo e ainda sem cartão nascido delas). O chip por item só
+  // existe com VERSO no acervo (hint): criar sem resposta semearia um cartão
+  // oco — para os sem hint, o caminho é o seletor do diálogo (a 134), onde o
+  // verso nasce das palavras do aluno. O criado vira a receita 'no baralho ✓'
+  // — o caderno não esconde o que a ponte já carregou (dedupe honesto).
+  const mistakeSeeds = React.useMemo(
+    () => mistakeCardSeedsFor(sp.progress, sp.progress.flashcards ?? []),
+    [sp.progress],
+  );
+  const seedByKey = React.useMemo(() => {
+    const m = new Map<string, MistakeCardSeed>();
+    for (const s of mistakeSeeds) m.set(s.key, s);
+    return m;
+  }, [mistakeSeeds]);
+  // A receita 'no baralho ✓' — os erros que JÁ viraram cartão (o dedupe os
+  // tira do seletor; aqui eles ganham o recibo de que a ponte passou).
+  const cardedKeys = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const c of sp.progress.flashcards ?? []) {
+      if (typeof c.fromMistake === 'string') s.add(c.fromMistake);
+    }
+    return s;
+  }, [sp.progress.flashcards]);
+
+  function virarCartao(seed: MistakeCardSeed) {
+    sp.addFlashcards([
+      { ...newCardFields(seed.disciplineCode, seed.statement, seed.hint, 'manual'), fromMistake: seed.key },
+    ]);
+    toast.success('O erro virou cartão — o cram da véspera já o encontra no baralho!');
+  }
   const windowMeta = MISTAKE_WINDOWS.find((w) => w.id === win);
   const filtered = win !== 'all';
   // "Erros de sempre" na janela visível — recaída (exercício), falha crônica
@@ -535,6 +572,8 @@ export function MistakeNotebook() {
                     const Icon = meta.icon;
                     const when = fmtWhen(it.when);
                     const revisedAt = revisedMap[it.key];
+                    const seed = seedByKey.get(it.key);
+                    const noBaralho = !revisedAt && cardedKeys.has(it.key);
                     return (
                       <li
                         key={it.key}
@@ -585,6 +624,18 @@ export function MistakeNotebook() {
                               {revisedAt ? (
                                 <span className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400">
                                   <Check className="size-3" aria-hidden /> Revisado {fmtWhen(revisedAt)}
+                                </span>
+                              ) : null}
+                              {/* A ponte já passou por aqui (134/135): o erro virou
+                                  cartão e mora no baralho da véspera — o caderno
+                                  não esconde o que carregou (dedupe honesto). */}
+                              {noBaralho ? (
+                                <span
+                                  className="flex items-center gap-0.5 rounded border border-amber-300/60 bg-amber-500/[0.07] px-1.5 py-0.5 font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+                                  title="Este erro já virou cartão — ele está no baralho para o cram da véspera (o chip de criar sumiu para não criar duplicado)."
+                                >
+                                  <Layers className="size-3" aria-hidden />
+                                  no baralho
                                 </span>
                               ) : null}
                               {/* Erro de sempre: recaída (exercício), falha crônica (cartão)
@@ -704,6 +755,24 @@ export function MistakeNotebook() {
                             >
                               <BookX className="size-3.5" aria-hidden />
                             </button>
+                            {/* O CARTÃO NO CADERNO (135): um clique leva o erro ao
+                                baralho — com o verso do acervo (hint). Só existe com
+                                material completo E hint (sem hint o verso seria oco —
+                                o caminho deles é o seletor do diálogo da 134, onde o
+                                verso nasce das palavras do aluno). Família amber = a
+                                ponte do caderno; dedupe pela fonte: o cardado ganha o
+                                recibo 'no baralho' e o chip se aposenta sozinho. */}
+                            {seed && seed.hint ? (
+                              <button
+                                type="button"
+                                onClick={() => virarCartao(seed)}
+                                title="Transformar este erro em cartão — frente do enunciado, verso da dica do acervo; entra no baralho para o cram da véspera"
+                                aria-label={`Transformar o erro em cartão: ${it.title.slice(0, 60)}`}
+                                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/60 bg-amber-50 text-amber-600 transition-all hover:bg-amber-100 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1 active:scale-95 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                              >
+                                <Layers className="size-3.5" aria-hidden />
+                              </button>
+                            ) : null}
                             {revisedAt ? (
                               <button
                                 type="button"

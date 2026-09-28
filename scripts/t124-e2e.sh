@@ -30,7 +30,11 @@ cd /home/z/my-project
 FAIL=0
 ok()   { echo "  [OK] $1"; }
 bad()  { echo "  [FAIL] $1"; FAIL=1; }
-STORE='hub-estudios-ifpb:v2'
+# A CHAVE REAL DO APP (lição 134): 'estudos' — este suite carregava o typo
+# 'estudios' de nascença: poke/seeds de realGrades nunca pousaram no chão real
+# e as fases rodavam sobre um store fantasma. Curado na 135 (rode antes de
+# editar provou o verde ANTES; a re-corrida prova o verde COM o seed real).
+STORE='hub-estudos-ifpb:v2'
 
 if ! curl -s -o /dev/null --max-time 5 http://localhost:3000; then
   echo "(boot dev server...)"
