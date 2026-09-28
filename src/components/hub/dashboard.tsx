@@ -699,13 +699,25 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
                       )}
                     >
                       <p className="truncate text-sm font-medium">{m.title}</p>
-                      <p className={cn('mt-0.5 text-[11px]', color.text)}>
+                      {/* tabular-nums: a gramática de números da casa — o
+                          timestamp é dado, não texto corrido (a mesma régua
+                          dos badges de data da fila de avaliações). */}
+                      <p className={cn('mt-0.5 text-[11px] tabular-nums', color.text)}>
                         {disc?.shortName} • {new Date(accessedAt).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                       </p>
                     </Card>
                   </button>
                 );
               })}
+              {/* O RECIBO QUE EXPLICA (127): o dono (28/09) não entendia 'em que
+                  momento marco ou como o site acompanha meu progresso' — a 118
+                  fez o fluxo registrar sozinho, mas a lista dos acessos não dizia
+                  O QUE eles fazem. Uma linha didática na própria lista fecha o
+                  loop: a entrada é a prova, a linha é a lição. */}
+              <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+                Abrir um material registra o estudo da disciplina — o painel e o
+                progresso por disciplina acompanham sozinhos.
+              </p>
             </div>
           )}
         </section>
