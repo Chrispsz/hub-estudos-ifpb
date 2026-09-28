@@ -68,7 +68,7 @@ a) X - [[1, 4, 7], [-2, 5, -3]] = [[-1, 2, 11], [-3, 4, 1]]
 b) [[1/2, 1], [0, 2]] + [[5/7, 3/5], [3, 7]] = X - [[-1, -3], [2/3, -1/6]]
 
 [página 2]
-12- Calcule as matrizes 2A, 1/3B, 1/2(A + B) e -3/5≤ft(2A - 4/3B), sendo dadas A = [[1, 1], [5, 7]] e B = [[0, 6], [9, 3]].
+12- Calcule as matrizes 2A, 1/3B, 1/2(A + B) e -3/5(2A - 4/3B), sendo dadas A = [[1, 1], [5, 7]] e B = [[0, 6], [9, 3]].
 
 13- Sejam A e B matrizes quaisquer do tipo m × n e a e b são números reais quaisquer. Mostre que o produto de um número por uma matriz apresenta as seguintes propriedades:
 a) a · (b · A) = (a · b) · A

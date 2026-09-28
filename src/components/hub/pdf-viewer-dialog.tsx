@@ -546,6 +546,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 disciplineCode={material.disciplineCode}
                 materialTitle={material.title}
                 materialId={material.id}
+                materialType={material.type}
                 showHeader={isSplit}
                 externalImage={panelImage}
                 onExternalImageConsumed={consumePanelImage}

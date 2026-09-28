@@ -11,6 +11,13 @@
  * rodar de novo não muda nada (sobram zero comandos \). Roda sobre TODOS os
  * textos de matemática para pegar drift em qualquer página.
  *
+ * LIÇÃO 145 — a ordem dos símbolos era um BUG que CRIAVA entulho: \leq?
+ * casava ANTES de \leftrightarrow/\left (virava ≤ftrightarrow / ≤ft() e
+ * \cdot antes de \cdots (virava ·s) — exatamente o lixo que a IA lia nos
+ * textos de matemática (a reclamação do dono: "a ia erra em matemática").
+ * Agora: comandos LONGOS primeiro, prefixos depois + FASE DE REPARO para o
+ * entulho já escrito + GUARDA final que falha alto se sobrar lixo.
+ *
  * Uso: bun scripts/linearize-math-text.ts
  */
 
@@ -25,6 +32,14 @@ const FILES = [
 
 function linearize(src: string): string {
   let t = src;
+
+  // ---- REPARO (145): entulho deixado por versões antigas deste script —
+  // a ordem antiga casava \le antes de \leftrightarrow/\left e \cdot antes
+  // de \cdots. Determinístico e cirúrgico: só o padrão conhecido, com
+  // fronteira de contexto (não toca "2·s" de multiplicação legítima).
+  t = t.replace(/≤ftrightarrow/g, '↔');
+  t = t.replace(/≤ft/g, '');
+  t = t.replace(/(^|[\s+&[(])·s(?=$|[\s,)&\\\]])/gm, '$1···');
 
   // ---- matrizes/vetores: \begin{bmatrix|pmatrix|vmatrix} … \end{…} ----
   // Linhas separadas por \\, colunas por & → [[a, b], [c, d]]
@@ -64,9 +79,24 @@ function linearize(src: string): string {
   }
 
   // ---- símbolos e comandos comuns ----
+  // REGRA DA ORDEM (145): comando LONGO antes de qualquer PREFIXO seu.
+  // \leq? casava \left e o \le de \leftrightarrow (nascia ≤ft(/≤ftrightarrow)
+  // e \cdot casava o início de \cdots (nascia ·s) — a ordem abaixo conserta.
   const SYMBOLS: [RegExp, string][] = [
-    [/\\times/g, '×'],
+    // pontilhados ANTES de \cdot (o prefixo engolia o "s" de \cdots → ·s)
+    [/\\cdots|\\ldots|\\dots/g, '···'],
+    [/\\vdots/g, '⋮'],
+    [/\\ddots/g, '⋱'],
     [/\\cdot/g, '·'],
+    // setas longas ANTES de \leq?/\geq? (o \le de \leftrightarrow virava ≤ft…)
+    [/\\leftrightarrow/g, '↔'],
+    [/\\Leftrightarrow/g, '↔'],
+    [/\\Leftarrow/g, '⇐'],
+    [/\\Rightarrow/g, '⇒'],
+    [/\\rightarrow|\\to/g, '→'],
+    // delimitadores ANTES de \leq? (o \le de \left( virava ≤ft()
+    [/\\left|\\right/g, ''],
+    [/\\times/g, '×'],
     [/\\ne(q)?/g, '≠'],
     [/\\leq?/g, '≤'],
     [/\\geq?/g, '≥'],
@@ -76,9 +106,6 @@ function linearize(src: string): string {
     [/\\subseteq/g, '⊂'],
     [/\\forall/g, '∀'],
     [/\\exists/g, '∃'],
-    [/\\rightarrow|\\to/g, '→'],
-    [/\\Rightarrow/g, '⇒'],
-    [/\\leftrightarrow/g, '↔'],
     [/\\land|\\wedge/g, '∧'],
     [/\\lor|\\vee/g, '∨'],
     [/\\sim/g, '∼'],
@@ -89,8 +116,9 @@ function linearize(src: string): string {
     [/\\Delta/g, 'Δ'],
     [/\\infty/g, '∞'],
     [/\\sum/g, '∑'],
-    [/\\left|\\right/g, ''],
-    [/\\quad|\\qquad/g, ' '],
+    [/\\prod/g, '∏'],
+    [/\\qquad/g, ' '],
+    [/\\quad/g, ' '],
     [/\\,/g, ' '],
     [/\\;/g, ' '],
     [/\\!/g, ''],
@@ -121,14 +149,31 @@ function linearize(src: string): string {
   return t;
 }
 
+// GUARDA (145): o entulho que a ordem antiga criava não pode mais existir —
+// se sobrar, o script falha ALTO em vez de escrever silenciosamente lixo que
+// a IA vai ler (a reclamação do dono nasceu daqui).
+const DEBRIS = /≤ftrightarrow|≤ft|≥ft|·s/g;
+
 let totalCmds = 0;
+let totalDebris = 0;
 for (const f of FILES) {
   const src = readFileSync(f, 'utf8');
   const out = linearize(src);
   const leftovers = (out.match(/\\[a-zA-Z]+/g) ?? []).length;
+  const debris = (out.match(DEBRIS) ?? []).length;
   const changed = out !== src;
-  writeFileSync(f, out);
+  if (debris === 0) writeFileSync(f, out);
   totalCmds += leftovers;
-  console.log(`${changed ? '✎' : '='} ${f} · comandos \\ residuais: ${leftovers}`);
+  totalDebris += debris;
+  console.log(
+    `${changed ? '✎' : '='} ${f} · comandos \\ residuais: ${leftovers}${debris ? ` · ENTULHO: ${debris} (não escrito!)` : ''}`,
+  );
 }
-console.log(totalCmds === 0 ? 'OK — zero LaTeX residual.' : `ATENÇÃO: ${totalCmds} residuais.`);
+if (totalCmds === 0 && totalDebris === 0) {
+  console.log('OK — zero LaTeX residual, zero entulho.');
+} else {
+  console.error(
+    `ATENÇÃO: ${totalCmds} comandos residuais · ${totalDebris} entulho — CONSERTAR antes de servir à IA.`,
+  );
+  process.exit(1);
+}

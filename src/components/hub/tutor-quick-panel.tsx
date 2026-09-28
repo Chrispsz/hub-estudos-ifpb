@@ -27,6 +27,7 @@ import {
   saveThread,
   threadKey,
 } from '@/lib/tutor-thread-cache';
+import type { Material } from '@/data/course-data';
 import { UserBubbleContent } from './chat-code';
 import { TutorMarkdown } from './tutor-markdown';
 
@@ -65,6 +66,9 @@ interface TutorQuickPanelProps {
   materialId?: string;
   /** Perguntas prontas exibidas como chips antes da 1ª resposta. */
   suggestions?: string[];
+  /** Tipo do material aberto — os chips de início MUDAM com ele: numa LISTA
+   * o aluno não quer "resumir", quer começar a resolver (145). */
+  materialType?: Material['type'];
   /** Cabeçalho próprio (título + limpar) — usado no modo tela dividida,
    * onde o painel tem coluna exclusiva e precisa se identificar. */
   showHeader?: boolean;
@@ -88,6 +92,7 @@ export function TutorQuickPanel({
   materialTitle,
   materialId,
   suggestions,
+  materialType,
   showHeader,
   externalImage,
   onExternalImageConsumed,
@@ -157,12 +162,24 @@ export function TutorQuickPanel({
   const notifiedRef = React.useRef(false);
 
   const defaultSuggestions = React.useMemo(
-    () => [
-      materialTitle ? `Resuma o material "${materialTitle}"` : 'Resuma o tópico atual',
-      'Quais pontos costumam cair na prova?',
-      'Dê um exemplo prático',
-    ],
-    [materialTitle],
+    () =>
+      materialType === 'lista_exercicios'
+        ? // Numa LISTA o 1º gesto real é começar a resolver — "resuma a lista"
+          // não é pergunta que aluno faz; e o retrieval (139) ancora "questão
+          // N" no material certo, então os chips funcionam de ponta a ponta.
+          [
+            materialTitle
+              ? `Como eu começo a ${materialTitle}? Me dá a estratégia.`
+              : 'Como eu começo esta lista? Me dá a estratégia.',
+            'Me explica a questão 1 passo a passo',
+            'Quais questões desta lista são parecidas com as da prova?',
+          ]
+        : [
+            materialTitle ? `Resuma o material "${materialTitle}"` : 'Resuma o tópico atual',
+            'Quais pontos costumam cair na prova?',
+            'Dê um exemplo prático',
+          ],
+    [materialTitle, materialType],
   );
   const chips = suggestions ?? defaultSuggestions;
   const showChips = messages.length === 0 && !loading;

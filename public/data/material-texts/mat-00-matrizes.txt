@@ -26,13 +26,13 @@ d) [[-1, -2], [3, 5]] é matriz 2 × 2.
 Em uma matriz qualquer M, cada elemento é indicado por a_{ij}. O índice i indica a linha e o índice j a coluna às quais o elemento pertence. Com a convenção de que as linhas sejam numeradas de cima para baixo (de 1 até m) e as colunas, da esquerda para a direita (de 1 até n), uma matriz m × n é representada por:
 
 
-M = [[a_{11}, a_{12}, ·s, a_{1n}], [a_{21}, a_{22}, ·s, a_{2n}], [·s, ·s, ·s, ·s], [a_{m1}, a_{m2}, ·s, a_{mn}]]
- ou M = ≤ft(
+M = [[a_{11}, a_{12}, ···, a_{1n}], [a_{21}, a_{22}, ···, a_{2n}], [···, ···, ···, ···], [a_{m1}, a_{m2}, ···, a_{mn}]]
+ ou M = (
 
-a_{11} & a_{12} & ·s & a_{1n} \\
-a_{21} & a_{22} & ·s & a_{2n} \\
-·s & ·s & ·s & ·s \\
-a_{m1} & a_{m2} & ·s & a_{mn}
+a_{11} & a_{12} & ··· & a_{1n} \\
+a_{21} & a_{22} & ··· & a_{2n} \\
+··· & ··· & ··· & ··· \\
+a_{m1} & a_{m2} & ··· & a_{mn}
 
 )
 
@@ -54,7 +54,7 @@ c) **matriz nula** é toda matriz que tem todos os elementos iguais a zero. **Ex
 d) **matriz quadrada de ordem n** é toda matriz do tipo n × n, isto é, uma matriz que tem igual número de linhas e colunas:
 
 
-[[a_{11}, a_{12}, ·s, a_{1n}], [a_{21}, a_{22}, ·s, a_{2n}], [·s, ·s, ·s, ·s], [a_{n1}, a_{n2}, ·s, a_{nn}]]
+[[a_{11}, a_{12}, ···, a_{1n}], [a_{21}, a_{22}, ···, a_{2n}], [···, ···, ···, ···], [a_{n1}, a_{n2}, ···, a_{nn}]]
 
 
 Chama-se **diagonal principal** de uma matriz quadrada de ordem n o conjunto dos elementos que têm os dois índices iguais, isto é, {a_{ij}|i = j} = {a_{11}, a_{22}, ..., a_{nn}}.
@@ -136,7 +136,7 @@ em que A e B são matrizes qualquer do tipo m × n e a e b são números reais q
 
 Dadas duas matrizes, A = (a_{ij})_{m × n} e B = (b_{jk})_{n × p}, chama-se **produto AB** a matriz C = (c_{ik})_{m × p} tal que
 
-c_{ik} = a_{i1} · b_{1k} + a_{i2} · b_{2k} + a_{i3} · b_{3k} + ·s + a_{in} · b_{nk} = ∑_{j=1}^{n} a_{ij}b_{jk}
+c_{ik} = a_{i1} · b_{1k} + a_{i2} · b_{2k} + a_{i3} · b_{3k} + ··· + a_{in} · b_{nk} = ∑_{j=1}^{n} a_{ij}b_{jk}
 
 para todo i ∈ {1, 2, ..., m} e k ∈ {1, 2, ..., p}.
 

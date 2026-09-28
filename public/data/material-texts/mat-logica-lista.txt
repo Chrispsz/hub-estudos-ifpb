@@ -20,7 +20,7 @@ d) O número 125 é um cubo perfeito.
 
 a) q → p
 b) p ∨ ∼ q
-c) q ≤ftrightarrow ∼ p
+c) q ↔ ∼ p
 d) ∼ p → q
 e) ∼ p
 f) ∼ p ∧ q → p
@@ -44,16 +44,16 @@ d) 3 + 4 = 7 se, e somente se, 5^3 = 125.
 a) p → r
 e) p → (q → r)
 
-b) p ≤ftrightarrow q
+b) p ↔ q
 f) p → (q ∨ r)
 
 c) r → p
-g) ∼ p ≤ftrightarrow ∼ q
+g) ∼ p ↔ ∼ q
 
-d) (p ∨ r) ≤ftrightarrow q
-h) ∼ p ≤ftrightarrow r
+d) (p ∨ r) ↔ q
+h) ∼ p ↔ r
 
-**6-** Sendo a proposição p → (r ∨ s) falsa e a proposição (q ∧ ∼ s) ≤ftrightarrow p verdadeira, classifique em verdadeira ou falsa as afirmações p, q, r e s.
+**6-** Sendo a proposição p → (r ∨ s) falsa e a proposição (q ∧ ∼ s) ↔ p verdadeira, classifique em verdadeira ou falsa as afirmações p, q, r e s.
 
 **7-** Considere as proposições:
 
@@ -66,20 +66,20 @@ Determine o **valor lógico** (V ou F) das expressões abaixo:
 a) p → q
 b) ∼(p ∨ r) ∧ q
 c) ∼(q → p) ∧ p
-d) (r ≤ftrightarrow p) ∨ ∼ q
+d) (r ↔ p) ∨ ∼ q
 
 **8-** Construir as **tabelas-verdade** das seguintes proposições:
 
 a) ∼(p ∨ ∼ q)
 b) p ∧ q → p ∨ q
-c) q ≤ftrightarrow ∼ q ∧ p
+c) q ↔ ∼ q ∧ p
 d) ∼ p ∧ r → q ∨ ∼ r
 
 **9-** Sabendo-se que V(p) = V(r) = V e V(q) = V(s) = F, determine o **valor lógico** (V ou F) de cada uma das seguintes proposições:
 
-a) p ∧ q ≤ftrightarrow r ∧ ∼ s
-b) ∼ (p ≤ftrightarrow q) → (s ≤ftrightarrow r)
-c) p ≤ftrightarrow ∼ q ≤ftrightarrow (p ∨ r) ∧ s
+a) p ∧ q ↔ r ∧ ∼ s
+b) ∼ (p ↔ q) → (s ↔ r)
+c) p ↔ ∼ q ↔ (p ∨ r) ∧ s
 
 **10-** Classifique as seguintes proposições em **tautologia**, **contradição** ou **contingência**.
 
@@ -90,7 +90,7 @@ c) ∼ p ∧ (p ∧ ∼ q)
 **11-** Mostre que:
 
 a) p ∧ (p ∨ q) p
-b) q ⇒ p ∧ q ≤ftrightarrow p
+b) q ⇒ p ∧ q ↔ p
 
 **12-** Diga qual é a negação das proposições abaixo:
 

@@ -272,7 +272,7 @@ Exemplos:
 |:---|:---|
 | **p:** dois é divisor de quatro (2 4)<br>**q:** quatro é divisor de vinte (4 20)<br>**p → q:** se dois é divisor de quatro, então quatro é divisor de vinte (2 4 → 4 20) | **p:** cinco é menor que dois (5 < 2)<br>**q:** dois é número inteiro (2 ∈ Z)<br>**p → q:** se cinco é menor que dois, então dois é número inteiro (5 < 2 → 2∈ Z) |
 | 2º) | 4º) |
-| **p:** duas vezes cinco é igual a dez (2 × 5 = 10)<br>**q:** três é divisor de dez (3 10)<br>**p → q:** se duas vezes cinco é igual a dez, então três é divisor de dez (2 × 5 = 10→ 3 10) | **p:** um meio é menor que um terço ≤ft(1/2 < 1/3)<br>**q:**três é igual a 5 (3 = 5)<br>**p → q:** se um meio é menor que um terço, então três é igual a cinco:≤ft(1/2 < 1/3→ 3 = 5) |
+| **p:** duas vezes cinco é igual a dez (2 × 5 = 10)<br>**q:** três é divisor de dez (3 10)<br>**p → q:** se duas vezes cinco é igual a dez, então três é divisor de dez (2 × 5 = 10→ 3 10) | **p:** um meio é menor que um terço (1/2 < 1/3)<br>**q:**três é igual a 5 (3 = 5)<br>**p → q:** se um meio é menor que um terço, então três é igual a cinco:(1/2 < 1/3→ 3 = 5) |
 
 [página 21]
 # CONDICIONAL →
@@ -289,9 +289,9 @@ O condicional p → q é falso somente quando p é verdadeira e q é falsa; caso
 | F | F | V |
 
 [página 22]
-# BICONDICIONAL ≤ftrightarrow
+# BICONDICIONAL ↔
 
-Colocando o condicional ≤ftrightarrow entre duas proposições p e q, obtemos uma nova proposição, p ≤ftrightarrow q, que se lê: “p se, e somente se, q”, “p é condição necessária e suficiente para q”, “q é condição necessária e suficiente para p” ou “se p, então q e reciprocamente”.
+Colocando o condicional ↔ entre duas proposições p e q, obtemos uma nova proposição, p ↔ q, que se lê: “p se, e somente se, q”, “p é condição necessária e suficiente para q”, “q é condição necessária e suficiente para p” ou “se p, então q e reciprocamente”.
 
 Exemplos:
 
@@ -299,22 +299,22 @@ Exemplos:
 |:---|:---|
 | p: 2 12 | p: 6 = 12 : 3 |
 | q: 2 · 7 12 · 7 | q: 3 · 6 = 18 |
-| p ≤ftrightarrow q: 2 12 ≤ftrightarrow 2 · 7 12 · 7 | p ≤ftrightarrow q: 6 = 12 : 3 ≤ftrightarrow 3 · 6 = 18 |
+| p ↔ q: 2 12 ↔ 2 · 7 12 · 7 | p ↔ q: 6 = 12 : 3 ↔ 3 · 6 = 18 |
 
 | 2º) | 4º) |
 |:---|:---|
 | p: 3/2 = 6/4 | p: 4 ≤ 3 |
 | q: 3 · 4 ≠ 6 · 2 | q: 4 · 5 ≤ 3 · 5 |
-| p ≤ftrightarrow q: 3/2 = 6/4 ≤ftrightarrow 3 · 4 ≠ 6 · 2 | p ≤ftrightarrow q: 4 ≤ 3 ≤ftrightarrow 4 · 5 ≤ 3 · 5 |
+| p ↔ q: 3/2 = 6/4 ↔ 3 · 4 ≠ 6 · 2 | p ↔ q: 4 ≤ 3 ↔ 4 · 5 ≤ 3 · 5 |
 
 [página 23]
-# BICONDICIONAL ≤ftrightarrow
+# BICONDICIONAL ↔
 
-O condicional ≤ftrightarrow é verdadeiro somente quando p e q são ambas verdadeiras ou ambas falsas; se isso não acontecer, o condicional ≤ftrightarrow é falso.
+O condicional ↔ é verdadeiro somente quando p e q são ambas verdadeiras ou ambas falsas; se isso não acontecer, o condicional ↔ é falso.
 
 ## TABELA VERDADE
 
-| p | q | p ≤ftrightarrow q |
+| p | q | p ↔ q |
 |:---:|:---:|:---:|
 | V | V | V |
 | V | F | F |
@@ -332,7 +332,7 @@ b) p ∧ q
 
 c) p ∨ q
 
-d) q ≤ftrightarrow p
+d) q ↔ p
 
 e) p → ∼q
 
@@ -340,7 +340,7 @@ f) p ∨ ∼q
 
 g) ∼p ∧ ∼q
 
-h) p ≤ftrightarrow ∼q
+h) p ↔ ∼q
 
 i) p ∧ ∼ q→p
 
@@ -403,7 +403,7 @@ Para a construção de uma tabela verdade de uma proposição composta seguiremo
 
 * Para distribuir (V) e (F) nas letras ou proposições da tabela usaremos a ideia do dobro e começamos sempre a partir da última letra até se chegar a primeira sempre dobrando o número de (V) e (F) anterior.
 
-**OBS.:** A ordem de precedência dos conectivos lógicos do mais fraco para o mais forte é sempre ∼, ∧, ∨, →, ≤ftrightarrow
+**OBS.:** A ordem de precedência dos conectivos lógicos do mais fraco para o mais forte é sempre ∼, ∧, ∨, →, ↔
 
 [página 30]
 # EXEMPLO
@@ -425,7 +425,7 @@ Construa a tabela verdade P(p, q, r) = p ∨ ∼ r → q ∧ ∼ r.
 Dada uma proposição composta P(p,q,r,...), pode-se sempre determinar o seu **valor lógico** (V ou F) quando são dados ou conhecidos os valores lógicos respectivos das proposições componentes p,q,r,...
 
 **Exemplo:** Sabendo que os valores lógicos das proposições p e q são respectivamente V e F, determinar o **valor lógico** (v ou F) da proposição:
-P(p,q) =∼ (p ∨ q) ≤ftrightarrow ∼ p ∧∼ q
+P(p,q) =∼ (p ∨ q) ↔ ∼ p ∧∼ q
 
 **Exemplo:** Sejam as proposições: p:π = 3 e q: senπ/2 = 0. Determinar o valor lógico (V ou F) da proposição:
 P(p,q) = (p → q) → (p → p ∧ q)
@@ -472,7 +472,7 @@ a) Verifique que a proposição "p ∧ ∼ p" é uma contradição.
 | | | | |
 | | | | |
 
-b) Verifique que a proposição "p ≤ftrightarrow ∼ p" é uma contradição.
+b) Verifique que a proposição "p ↔ ∼ p" é uma contradição.
 
 | | | | |
 |:---:|:---:|:---:|:---:|
@@ -513,24 +513,24 @@ Assim, demonstrar um teorema significa mostrar que não ocorre o caso de a hipó
 
 Dadas as proposições p e q, dizemos que "p é **equivalente** a q" quando p e q têm tabelas-verdades iguais, isto é, quando p e q têm sempre o mesmo valor lógico.
 
-**Quando p é equivalente a q, indicamos: p ≤ftrightarrow q.**
+**Quando p é equivalente a q, indicamos: p ↔ q.**
 
 **Observações:**
 
-1^{a}) Notemos que p equivale a q quando o condicional p ≤ftrightarrow q é verdadeiro.
+1^{a}) Notemos que p equivale a q quando o condicional p ↔ q é verdadeiro.
 
-2^{a}) Todo teorema cujo recíproco também é verdadeiro é uma equivalência. hipótese ≤ftrightarrow tese
+2^{a}) Todo teorema cujo recíproco também é verdadeiro é uma equivalência. hipótese ↔ tese
 
 **EXEMPLO:**
 
-2 8 ≤ftrightarrow mdc(2, 8) = 2 significa dizer que é verdadeiro o bicondicional "2 é divisor de 8 se, e somente se, o máximo divisor comum de 2 e 8 é 2".
+2 8 ↔ mdc(2, 8) = 2 significa dizer que é verdadeiro o bicondicional "2 é divisor de 8 se, e somente se, o máximo divisor comum de 2 e 8 é 2".
 
 [página 39]
 # EXEMPLOS
 
 Verifique se:
 
-a) A proposição p ∧ q ⇒ p ≤ftrightarrow q.
+a) A proposição p ∧ q ⇒ p ↔ q.
 
 [Figura: Tabela-verdade com 4 colunas e 5 linhas (cabeçalho + 4 linhas de dados) em tons de azul/roxo]
 
