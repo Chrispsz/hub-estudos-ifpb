@@ -77,9 +77,15 @@ EOF
 open_mocked() { # $1 ISO, $2 URL — sessão nova por fase (close limpa o storage!)
   write_mock "$1"
   agent-browser close >/dev/null 2>&1
-  sleep 1
+  sleep 3
   agent-browser open --init-script "$MOCKJS" "$2" >/dev/null 2>&1
   sleep 6
+}
+# O mock às vezes não registra na sessão (lição 121, intermitente) — verifica
+# pelo RELÓGIO DO HEADER (o mock muda o relógio visível em qualquer view).
+mock_ok() { # $1 = 'Qua, 30 Set' — o texto do relógio do header sob mock
+  local CLK=$(agent-browser eval "(function(){var el=document.querySelector('header');return el?el.textContent:'';})()" 2>/dev/null | tr -d '"')
+  echo "$CLK" | grep -q "$1" && return 0 || return 1
 }
 has() {
   agent-browser eval "(function(){var t=document.body.textContent.replace(/\s+/g,' ');return (t.indexOf('$1')>=0?1:0)})()" 2>/dev/null | tr -d '"'
@@ -99,19 +105,35 @@ go_progress() { # lição 102.1: 'Progresso' mora dentro do submenu 'Mais'
   done
   return 1
 }
-# Clica o checkbox do caderno (label) do exercício cujo cartão contém $1
-state_click() { # $1 marcador do enunciado · $2 rótulo ('Tentei fazer' etc.)
-  agent-browser eval "(function(){var labels=document.querySelectorAll('label');for(var i=0;i<labels.length;i++){var l=labels[i];if((l.textContent||'').trim()==='$2'){var card=l.closest('div.text-card-foreground')||l.closest('div.flex.flex-col');if(card&&card.textContent.indexOf('$1')>=0){l.click();return 'ok'}}}return 'NOTFOUND'})()" 2>/dev/null | tr -d '"'
+# Clica o checkbox do caderno (label) do exercício cujo cartão contém $1 —
+# estado-aware: só clica se o data-state do Radix checkbox difere do desejado
+# ($3 = 'check'|'uncheck'; toggles cegos desmarcavam o que já estava marcado)
+state_click() { # $1 marcador do enunciado · $2 rótulo · $3 desired (default check)
+  local WANT="${3:-check}"
+  agent-browser eval "(function(){var labels=document.querySelectorAll('label');for(var i=0;i<labels.length;i++){var l=labels[i];if((l.textContent||'').trim()==='$2'){var card=l.closest('div.text-card-foreground')||l.closest('div.flex.flex-col');if(card&&card.textContent.indexOf('$1')>=0){var cb=l.querySelector('button[role=checkbox],input[type=checkbox]');var st=cb?(cb.getAttribute('data-state')||(cb.checked?'checked':'unchecked')):'?';var want='$WANT'==='check'?'checked':'unchecked';if(st===want)return 'ALREADY';l.click();return 'ok'}}}return 'NOTFOUND'})()" 2>/dev/null | tr -d '"'
 }
 # Semeia os DOIS exercícios por UI (o ex01 relapsa: Tentei→Consegui→Consegui-off)
+# SELF-VERIFYING: lê o mini-caderno da própria aba ('Caderno de Erros N') e
+# refaz a sequência uma vez se os cliques não aterrissarem (a corrida do
+# write-back já comeu sementes silenciosamente — vitória vazia, lição 124).
 seed_exercicios() {
   go_praticar || return 1
   state_click 'Considere a matriz A' 'Tentei fazer' >/dev/null; sleep 1
   state_click 'Considere a matriz A' 'Consegui resolver' >/dev/null; sleep 1
-  state_click 'Considere a matriz A' 'Consegui resolver' >/dev/null; sleep 1 # uncheck = recaída
+  state_click 'Considere a matriz A' 'Consegui resolver' uncheck >/dev/null; sleep 1 # recaída
   state_click 'Sejam A = [[2, 1]' 'Tentei fazer' >/dev/null; sleep 1
   sleep 3 # settle: o write-back do app precisa aterrissar antes de navegar
-  return 0
+  local N=$(agent-browser eval "(function(){var t=document.body.innerText;var m=t.match(/Caderno de Erros(\\d+)/);return m?m[1]:'0'})()" 2>/dev/null | tr -d '"')
+  if [ "$N" != "2" ]; then
+    echo "  (mini-caderno=$N — re-semeando com estado verificado…)"
+    state_click 'Considere a matriz A' 'Tentei fazer' >/dev/null; sleep 1
+    state_click 'Considere a matriz A' 'Consegui resolver' >/dev/null; sleep 1
+    state_click 'Considere a matriz A' 'Consegui resolver' uncheck >/dev/null; sleep 1
+    state_click 'Sejam A = [[2, 1]' 'Tentei fazer' >/dev/null; sleep 1
+    sleep 3
+    N=$(agent-browser eval "(function(){var t=document.body.innerText;var m=t.match(/Caderno de Erros(\\d+)/);return m?m[1]:'0'})()" 2>/dev/null | tr -d '"')
+  fi
+  [ "$N" = "2" ] && return 0 || { echo "  [warn] mini-caderno=$N (esperado 2)"; return 1; }
 }
 # Cartão por UI: Flashcards (tab Radix via ref) → Novo cartão → Errei
 seed_cartao() {
@@ -120,22 +142,50 @@ seed_cartao() {
   agent-browser press Escape >/dev/null 2>&1
   sleep 2
   REF=$(agent-browser snapshot 2>/dev/null | grep -o 'tab "Flashcards" \[ref=e[0-9]*\]' | grep -oE 'e[0-9]+' | tail -1)
-  [ -n "$REF" ] && agent-browser click "$REF" >/dev/null 2>&1
+  if [ -z "$REF" ]; then echo '  [warn] tab Flashcards não encontrada'; return 1; fi
+  agent-browser click "$REF" >/dev/null 2>&1
   sleep 2
   agent-browser eval "(function(){var b=document.querySelector('button[aria-label=\"Criar novo cartão\"]');if(!b)return 'NO';b.click();return 'ok'})()" >/dev/null 2>&1
   sleep 1
   agent-browser eval "(function(){var tas=document.querySelectorAll('textarea');if(tas.length<2)return 'FEW';var S=Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set;S.call(tas[0],'Definição de matriz identidade');tas[0].dispatchEvent(new Event('input',{bubbles:true}));S.call(tas[1],'Matriz quadrada com 1 na diagonal e 0 fora');tas[1].dispatchEvent(new Event('input',{bubbles:true}));return 'filled'})()" >/dev/null 2>&1
   agent-browser eval "(function(){var bs=document.querySelectorAll('button');for(var i=0;i<bs.length;i++){if((bs[i].textContent||'').trim()==='Adicionar'){bs[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
   sleep 2
+  agent-browser press Escape >/dev/null 2>&1
+  sleep 1
   # verificação intermediária: o cartão existe na lista (senão as fases seguintes
   # passam com vitória vazia — lição 124)
   local CARD_OK=$(has 'Definição de matriz identidade')
-  [ "$CARD_OK" = "1" ] || echo "  [warn] cartão não apareceu na lista (seed_cartao falhou antes)"
-  agent-browser eval "(function(){var bs=document.querySelectorAll('button');for(var i=0;i<bs.length;i++){if((bs[i].textContent||'').trim().indexOf('Revisar agora')>=0){bs[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
-  sleep 2
-  agent-browser eval "(function(){var b=document.querySelector('button[aria-label=\"Ver resposta do cartão\"]');if(!b)return 'NO';b.click();return 'ok'})()" >/dev/null 2>&1
-  sleep 1
-  agent-browser eval "(function(){var bs=document.querySelectorAll('button');for(var i=0;i<bs.length;i++){if((bs[i].textContent||'').trim().indexOf('Errei')===0){bs[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
+  [ "$CARD_OK" = "1" ] || { echo '  [warn] cartão não apareceu na lista'; return 1; }
+  # revisão: Revisar agora → virar → Errei (3 tentativas, cada passo verificado)
+  local TRY=0 E="NAO"
+  while [ $TRY -lt 3 ]; do
+    TRY=$((TRY+1))
+    # passo 1: entrar na revisão (confirmar pelo botão de virar)
+    local FLIP=""
+    for i in 1 2 3; do
+      agent-browser eval "(function(){var bs=document.querySelectorAll('button');for(var i=0;i<bs.length;i++){if((bs[i].textContent||'').trim().indexOf('Revisar agora')>=0){bs[i].click();return 'ok'}}return 'NAO'})()" >/dev/null 2>&1
+      sleep 2
+      FLIP=$(agent-browser eval "(function(){return document.querySelector('button[aria-label=\"Ver resposta do cartão\"]')?'ok':'NO'})()" 2>/dev/null | tr -d '"')
+      [ "$FLIP" = "ok" ] && break
+      sleep 2
+    done
+    if [ "$FLIP" != "ok" ]; then agent-browser press Escape >/dev/null 2>&1; sleep 2; continue; fi
+    # passo 2: virar o cartão
+    agent-browser eval "(function(){var b=document.querySelector('button[aria-label=\"Ver resposta do cartão\"]');if(!b)return 'NO';b.click();return 'ok'})()" >/dev/null 2>&1
+    sleep 1
+    # passo 3: Errei
+    E=$(agent-browser eval "(function(){var bs=document.querySelectorAll('button');for(var i=0;i<bs.length;i++){if((bs[i].textContent||'').trim().indexOf('Errei')===0){bs[i].click();return 'ok'}}return 'NAO'})()" 2>/dev/null | tr -d '"')
+    if [ "$E" = "ok" ]; then sleep 2; return 0; fi
+    agent-browser press Escape >/dev/null 2>&1
+    sleep 2
+  done
+  echo '  [warn] review do cartão não completou (Errei)'
+  return 1
+}
+go_tab_exercicios() { # volta à tab Exercícios (Radix via ref — eventos confiáveis)
+  agent-browser press Escape >/dev/null 2>&1; sleep 1
+  local REF=$(agent-browser snapshot 2>/dev/null | grep -o 'tab "Exercícios" \[ref=e[0-9]*\]' | grep -oE 'e[0-9]+' | tail -1)
+  [ -n "$REF" ] && agent-browser click "$REF" >/dev/null 2>&1
   sleep 2
 }
 paper_btn() { # o botão do papel no cabeçalho do caderno
@@ -200,9 +250,15 @@ agent-browser screenshot scripts/qa125-caderno-papel-desktop.png >/dev/null 2>&1
 # =============================================================================
 echo "=== [4] O SELO SABE O DIA (30/09 mockado + re-semeadura por UI) ==="
 open_mocked "2026-09-30T09:00:00" "http://localhost:3000"
+# o mock às vezes não registra — recusa (o relógio do header revela a data real)
+if ! mock_ok 'Qua, 30 Set'; then
+  echo "  (mock não registrou — reabrindo a sessão…)"
+  open_mocked "2026-09-30T09:00:00" "http://localhost:3000"
+fi
+mock_ok 'Qua, 30 Set' && ok "sessão mockada em 30/09 confirmada (relógio: 'Qua, 30 Set')" || bad "mock 30/09 não registrou"
 seed_exercicios || bad "re-semeadura no 30/09 falhou"
 sleep 3 # settle
-agent-browser open http://localhost:3000/caderno-papel >/dev/null 2>&1
+agent-browser open --init-script "$MOCKJS" "http://localhost:3000/caderno-papel" >/dev/null 2>&1
 sleep 5
 STAMP=$(stamp_info)
 case "$STAMP" in
@@ -214,7 +270,7 @@ agent-browser screenshot scripts/qa125-caderno-papel-vespera.png >/dev/null 2>&1
 
 # =============================================================================
 echo "=== [5] A FAIXA DA VÉSPERA: o CTA que FAZ o papel ==="
-agent-browser open http://localhost:3000 >/dev/null 2>&1
+agent-browser open --init-script "$MOCKJS" "http://localhost:3000" >/dev/null 2>&1
 sleep 6
 go_progress || bad "Progresso (30/09) falhou"
 sleep 2
@@ -234,6 +290,11 @@ esac
 # =============================================================================
 echo "=== [6] DIA DA PROVA (01/10): o CTA da faixa CALA — papel não é missão do dia ==="
 open_mocked "2026-10-01T09:00:00" "http://localhost:3000"
+if ! mock_ok 'Qui, 1 Out'; then
+  echo "  (mock não registrou — reabrindo a sessão…)"
+  open_mocked "2026-10-01T09:00:00" "http://localhost:3000"
+fi
+mock_ok 'Qui, 1 Out' && ok "sessão mockada em 01/10 confirmada (relógio: 'Qui, 1 Out')" || bad "mock 01/10 não registrou"
 seed_exercicios || bad "re-semeadura no 01/10 falhou"
 sleep 3 # settle
 go_progress || bad "Progresso (01/10) falhou"
@@ -246,14 +307,17 @@ PB=$(paper_btn)
 # =============================================================================
 echo "=== [7] HIGIENE por UI: resolver tudo + remover o cartão ==="
 agent-browser close >/dev/null 2>&1
-sleep 1
+sleep 3
 agent-browser open http://localhost:3000 >/dev/null 2>&1
 sleep 6
 seed_exercicios || bad "semeadura para a higiene falhou"
 seed_cartao
-# resolve os DOIS (Consegui resolver) — saem das pendências
+# resolve os DOIS (Consegui resolver) — saem das pendências; a tab atual é
+# Flashcards (o seed_cartao termina lá) — volta à Exercícios antes de resolver
+go_tab_exercicios
 state_click 'Considere a matriz A' 'Consegui resolver' >/dev/null; sleep 1
 state_click 'Sejam A = [[2, 1]' 'Consegui resolver' >/dev/null; sleep 1
+sleep 3 # settle
 # remove o cartão (Trash no Flashcards)
 REF=$(agent-browser snapshot 2>/dev/null | grep -o 'tab "Flashcards" \[ref=e[0-9]*\]' | grep -oE 'e[0-9]+' | tail -1)
 [ -n "$REF" ] && agent-browser click "$REF" >/dev/null 2>&1
