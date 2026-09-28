@@ -83,6 +83,13 @@ export interface OpenTutorDetail {
   disciplineCode?: string;
   /** Material para abrir junto — o tutor lê o conteúdo real (resumo + trechos). */
   materialId?: string;
+  /**
+   * Imagem pré-anexada (data URL JPEG) — o canal do PRINT DE PÁGINA do visualizador
+   * de PDF (139): a captura de página inteira a 2× entra DIRETO no chatImage, sem
+   * o aluno tocar em arquivo algum. Vive só na memória do chat — enviado o turno,
+   * o anexo some (a mesma vida do print colado com Ctrl+V; nada toca o disco).
+   */
+  image?: string;
 }
 
 /** Dispara a troca para a aba Estudar com o tutor recebendo a pergunta pronta. */

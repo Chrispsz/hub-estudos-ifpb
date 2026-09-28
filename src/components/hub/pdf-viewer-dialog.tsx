@@ -3,6 +3,7 @@
 import * as React from 'react';
 import {
   BotMessageSquare,
+  Camera,
   CheckCircle2,
   Circle,
   Download,
@@ -27,6 +28,7 @@ import { downloadPdf } from '@/lib/download-utils';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { TutorQuickPanel } from './tutor-quick-panel';
+import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 
 interface Props {
   material: Material | null;
@@ -54,6 +56,8 @@ const TYPE_LABEL: Record<Material['type'], string> = {
 export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const sp = useStudyProgress();
   const [tutorOpen, setTutorOpen] = React.useState(false);
+  /** Print de página (139): seletor pdf.js → página exata → tutor, sem arquivo. */
+  const [captureOpen, setCaptureOpen] = React.useState(false);
 
   // Ao trocar de material, o painel do tutor volta ao estado inicial.
   React.useEffect(() => {
@@ -138,6 +142,17 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
           </Button>
           <Button
             size="sm"
+            variant="outline"
+            className={cn(touchBtn, 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300')}
+            onClick={() => setCaptureOpen(true)}
+            disabled={!material.pdfPath || material.type === 'web_page'}
+            aria-label="Print de página para o tutor"
+            title="Print de página — escolha a página e anexe ao tutor (nada é salvo no seu computador)"
+          >
+            <Camera className="size-3.5" /> Print de página
+          </Button>
+          <Button
+            size="sm"
             variant={tutorOpen ? 'default' : 'outline'}
             className={cn(touchBtn, tutorOpen && 'bg-emerald-600 text-white hover:bg-emerald-700')}
             aria-pressed={tutorOpen}
@@ -209,6 +224,11 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
             </div>
           )}
         </div>
+
+        {/* Print de página (139): pdf.js renderiza a página EXATA em 2× e o jpeg
+            entra direto no chat do tutor — sem seletor de tela, sem recorte,
+            sem arquivo no disco (o canvas morre com o diálogo). */}
+        <PdfPageCaptureDialog material={material} open={captureOpen} onOpenChange={setCaptureOpen} />
       </DialogContent>
     </Dialog>
   );
