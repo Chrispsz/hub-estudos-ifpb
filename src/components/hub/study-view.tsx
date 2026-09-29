@@ -31,6 +31,7 @@ import {
   Pause,
   PenLine,
   Play,
+  PlayCircle,
   RotateCcw,
   Search,
   SearchX,
@@ -143,7 +144,10 @@ import {
   readerDoorVisible,
   shouldAutoOpenReader,
 } from '@/lib/study-reader-door';
+import { materialDoorsFor } from '@/lib/study-material-doors';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
+import { MaterialSummaryDialog } from './material-summary-dialog';
+import { VideoPlayerDialog, parseVideoUrl } from './video-player-dialog';
 import { TutorMarkdown } from './tutor-markdown';
 
 // t180 — ÚLTIMO nonce de porta JÁ consumido por esta sessão do navegador.
@@ -709,6 +713,23 @@ export function StudyView({
    *  que dizer pág. 12, não a de antes). */
   const [readerPosEpoch, setReaderPosEpoch] = React.useState(0);
   const readerMaterial = selectedMaterial ?? null;
+  // ----- t185 — AS PORTAS DO MATERIAL (resumo · vídeo · página) -----
+  // A linha sob o cronômetro deixa de ser gesto único do PDF: o resumo IA
+  // (com o print do resumo da t146 dentro), o vídeo (player da Biblioteca)
+  // e a página externa (âncora real) ganham a MESMA porta honesta. A decisão
+  // de QUEM tem porta é da lib pura study-material-doors; a verdade do embed
+  // do vídeo vem do parseVideoUrl (a lib não duplica parse de URL).
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
+  const [videoOpen, setVideoOpen] = React.useState(false);
+  const materialDoors = React.useMemo(
+    () =>
+      materialDoorsFor(selectedMaterial, {
+        videoCanEmbed: selectedMaterial?.externalUrl
+          ? parseVideoUrl(selectedMaterial.externalUrl).canEmbed
+          : null,
+      }),
+    [selectedMaterial],
+  );
   const readerResumePage = React.useMemo(() => {
     if (!readerMaterial?.pdfPath) return null;
     return recallPdfPage(readerMaterial.id, readerMaterial.pages);
@@ -1920,34 +1941,92 @@ export function StudyView({
                     : 'Sem material específico'
                   : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}`}
               </p>
-              {/* t180 — A PORTA DO LEITOR: o material selecionado no Pomodoro
-                  deixa de ser texto morto — com PDF, UM clique abre o mesmo
-                  leitor da Biblioteca (print de 1 clique da t175 incluído).
-                  Sem PDF, a linha segue texto honesto: a casa não inventa
-                  porta. Na fase de break o foco é levantar — a porta some. */}
-              {live.phase === 'focus' && readerDoorVisible(selectedMaterial) && (
-                <button
-                  type="button"
-                  data-testid="study-reader-door"
-                  onClick={() => {
-                    setReaderInitialPage(readerResumePage ?? undefined);
-                    setReaderOpen(true);
-                  }}
-                  className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
-                  aria-label={`Abrir ${selectedMaterial?.title} no leitor — ${readerDoorLabel(readerResumePage)}`}
-                  title={readerDoorTitle(
-                    selectedMaterial?.title ?? '',
-                    readerResumePage,
-                    selectedMaterial?.pages,
-                  )}
+              {/* t180 + t185 — A LINHA DAS PORTAS DO MATERIAL: o material
+                  selecionado no Pomodoro deixa de ser texto morto — UM clique
+                  abre o gesto que ele TEM: leitor (PDF, t180), resumo IA
+                  (com o print do resumo da t146 dentro), vídeo (player da
+                  Biblioteca) ou página externa (âncora real, nova aba).
+                  Sem porta nenhuma, a linha segue texto honesto: a casa não
+                  inventa porta. Na fase de break o foco é levantar — a linha
+                  inteira some. A decisão de quem tem porta é das libs puras
+                  (study-reader-door + study-material-doors). */}
+              {live.phase === 'focus' &&
+                selectedMaterial &&
+                (readerDoorVisible(selectedMaterial) || materialDoors.length > 0) && (
+                <div
+                  data-testid="study-material-doors"
+                  className="flex flex-wrap items-center justify-center gap-2"
                 >
-                  <BookOpen className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">{readerDoorLabel(readerResumePage)}</span>
-                  <ArrowUpRight
-                    className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                    aria-hidden
-                  />
-                </button>
+                  {readerDoorVisible(selectedMaterial) && (
+                    <button
+                      type="button"
+                      data-testid="study-reader-door"
+                      onClick={() => {
+                        setReaderInitialPage(readerResumePage ?? undefined);
+                        setReaderOpen(true);
+                      }}
+                      className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                      aria-label={`Abrir ${selectedMaterial?.title} no leitor — ${readerDoorLabel(readerResumePage)}`}
+                      title={readerDoorTitle(
+                        selectedMaterial?.title ?? '',
+                        readerResumePage,
+                        selectedMaterial?.pages,
+                      )}
+                    >
+                      <BookOpen className="size-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">{readerDoorLabel(readerResumePage)}</span>
+                      <ArrowUpRight
+                        className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                  {materialDoors.map((door) =>
+                    door.href ? (
+                      // t185 — A PORTA DE PÁGINA EXTERNA é âncora REAL: o gesto
+                      // é do navegador (nova aba), não do Hub (a doutrina da
+                      // t180 confessa: "outra porta, outro gesto").
+                      <a
+                        key={door.kind}
+                        data-testid="study-web-door"
+                        href={door.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                        aria-label={door.ariaLabel}
+                        title={door.title}
+                      >
+                        <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
+                        <span className="truncate">{door.label}</span>
+                        <ArrowUpRight
+                          className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </a>
+                    ) : (
+                      <button
+                        key={door.kind}
+                        type="button"
+                        data-testid={door.kind === 'video' ? 'study-video-door' : 'study-summary-door'}
+                        onClick={() => (door.kind === 'video' ? setVideoOpen(true) : setSummaryOpen(true))}
+                        className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                        aria-label={door.ariaLabel}
+                        title={door.title}
+                      >
+                        {door.kind === 'video' ? (
+                          <PlayCircle className="size-3.5 shrink-0" aria-hidden />
+                        ) : (
+                          <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                        )}
+                        <span className="truncate">{door.label}</span>
+                        <ArrowUpRight
+                          className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </button>
+                    ),
+                  )}
+                </div>
               )}
             </div>
 
@@ -3343,6 +3422,25 @@ export function StudyView({
         }}
         initialPage={readerInitialPage}
         pendingAttachLabel={chatImageLabel}
+      />
+
+      {/* ===== t185 — AS PORTAS DO RESUMO E DO VÍDEO =====
+          O MESMO diálogo da Biblioteca (resumo IA + print do resumo da t146;
+          player com embed honesto + fallback), abertos pela linha de portas
+          sob o cronômetro. O markAccessed é do próprio diálogo — abrir por
+          aqui conta atividade como lá. UMA tela por vez com o leitor: os
+          diálogos são irmãos, nunca empilhados (a doutrina do drill-down). */}
+      <MaterialSummaryDialog
+        material={selectedMaterial ?? null}
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+      />
+      <VideoPlayerDialog
+        material={selectedMaterial ?? null}
+        open={videoOpen}
+        onOpenChange={(o) => {
+          if (!o) setVideoOpen(false);
+        }}
       />
     </div>
   );
