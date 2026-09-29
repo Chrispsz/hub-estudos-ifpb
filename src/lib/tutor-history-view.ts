@@ -185,6 +185,28 @@ export function searchMatchSegments(content: string, needle: string): SearchSegm
 }
 
 /**
+ * A BUSCA QUE CAMINHA (t155) — a aritmética do navegar entre casamentos.
+ * `focus` é a posição ATUAL dentro da lista de resultados (null = parado em
+ * nenhum), `delta` é o passo (+1 próximo, −1 anterior). Regras:
+ *  - sem resultados (total ≤ 0) → null (não há para onde ir);
+ *  - parado + próximo → o PRIMEIRO (é o Enter da primeira vez);
+ *  - parado + anterior → o ÚLTIMO (Shift+Enter de primeira entra pela cauda);
+ *  - no fim, dá a VOLTA (o Ctrl+F do navegador: nunca trava numa borda).
+ * A posição devolvida é SEMPRE um índice válido de 0..total−1 — o chamador
+ * só precisa rolar até a bolha correspondente.
+ */
+export function searchNavStep(
+  focus: number | null,
+  total: number,
+  delta: number,
+): number | null {
+  if (total <= 0) return null;
+  const step = delta >= 0 ? 1 : -1;
+  if (focus === null || focus < 0) return step > 0 ? 0 : total - 1;
+  return (((focus + step) % total) + total) % total;
+}
+
+/**
  * O TRECHO da resposta (t154) — janela curta em volta do 1º casamento, com
  * reticências honestas quando o texto foi cortado dos dois lados. É o chip
  * que nasce sob a bolha do tutor durante a busca: mostrar ONDE a agulha

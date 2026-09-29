@@ -7,6 +7,8 @@ import {
   BookOpen,
   CalendarCheck,
   Camera,
+  ChevronDown,
+  ChevronUp,
   Check,
   CheckCircle2,
   ClipboardList,
@@ -93,6 +95,7 @@ import {
   hhmmOf,
   searchFoldLoose,
   searchMatchSegments,
+  searchNavStep,
   searchSnippetSegments,
   type SearchSegment,
 } from '@/lib/tutor-history-view';
@@ -1175,6 +1178,51 @@ export function StudyView({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, chatLoading, chatOpen, streamText]);
 
+  // t155: A BUSCA QUE CAMINHA — achar não basta, é preciso CHEGAR. pos é a
+  // posição na lista de resultados (null = parado), flash é a bolha acesa e
+  // o timer a apaga. A aritmética da volta (Ctrl+F) é pura na lib
+  // (searchNavStep) — aqui só rola até a bolha e reacende a luz. Vive depois
+  // do messagesRef (a closure o lê — ordem limpa de declaração).
+  const [chatSearchPos, setChatSearchPos] = React.useState<number | null>(null);
+  const [chatFlashMsg, setChatFlashMsg] = React.useState<number | null>(null);
+  const chatFlashTimer = React.useRef<number | null>(null);
+  const goToMatch = React.useCallback(
+    (pos: number | null) => {
+      if (pos === null || !chatSearchResults?.length) return;
+      setChatSearchPos(pos);
+      setChatFlashMsg(null);
+      // rAF separa os commits: a animação renasce mesmo voltando à MESMA
+      // bolha (volta do fim ao começo num resultado único).
+      requestAnimationFrame(() => {
+        setChatFlashMsg(chatSearchResults[pos].i);
+        const el = messagesRef.current?.querySelector<HTMLElement>(
+          `[data-msg-index="${chatSearchResults[pos].i}"]`,
+        );
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      if (chatFlashTimer.current !== null) window.clearTimeout(chatFlashTimer.current);
+      chatFlashTimer.current = window.setTimeout(() => setChatFlashMsg(null), 1600);
+    },
+    [chatSearchResults],
+  );
+  const stepMatch = React.useCallback(
+    (delta: number) => {
+      goToMatch(searchNavStep(chatSearchPos, chatSearchResults?.length ?? 0, delta));
+    },
+    [chatSearchPos, chatSearchResults, goToMatch],
+  );
+  // Texto novo ou busca fechada = resultados re-nascem: pos e flash zeram.
+  React.useEffect(() => {
+    setChatSearchPos(null);
+    setChatFlashMsg(null);
+  }, [chatSearch, chatSearchActive]);
+  React.useEffect(
+    () => () => {
+      if (chatFlashTimer.current !== null) window.clearTimeout(chatFlashTimer.current);
+    },
+    [],
+  );
+
   /** Anexa print/foto da questão — reduzido antes de virar data URL. */
   const attachChatImage = async (file: File | null | undefined) => {
     if (!file) return;
@@ -1958,6 +2006,19 @@ export function StudyView({
                   value={chatSearch}
                   onChange={(e) => setChatSearch(e.target.value)}
                   onKeyDown={(e) => {
+                    if (
+                      e.key === 'Enter' &&
+                      !e.nativeEvent.isComposing &&
+                      chatSearchActive
+                    ) {
+                      // t155: Enter salta ao próximo casamento, Shift+Enter
+                      // volta — a busca não recarrega nada, só CAMINHA pelo
+                      // que já está na tela (parado, Enter entra no 1º;
+                      // Shift+Enter entra pela cauda).
+                      e.preventDefault();
+                      stepMatch(e.shiftKey ? -1 : 1);
+                      return;
+                    }
                     if (e.key === 'Escape') {
                       // t153: fecha SÓ a busca — o fechamento do chat em si
                       // é travado no onEscapeKeyDown do SheetContent (o
@@ -1970,7 +2031,7 @@ export function StudyView({
                   }}
                   placeholder="Buscar nesta conversa…"
                   aria-label="Buscar na conversa"
-                  title="A busca ignora acentos, maiúsculas e pontuação — 'logica' acha 'Lógica', 'nao caem' acha 'não caem.'"
+                  title="A busca ignora acentos, maiúsculas e pontuação — 'logica' acha 'Lógica', 'nao caem' acha 'não caem.' Enter salta ao próximo trecho, Shift+Enter volta."
                   className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-8 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                   autoFocus
                 />
@@ -2003,9 +2064,51 @@ export function StudyView({
                 {chatSearchResults && chatSearchResults.length > 0 ? (
                   <>
                     <Search className="size-3 shrink-0" aria-hidden />
-                    {chatSearchResults.length}{' '}
-                    {chatSearchResults.length === 1 ? 'mensagem' : 'mensagens'}{' '}
-                    com “{chatSearch.trim()}”
+                    {/* t155: o contador que CAMINHA — anterior/próximo com
+                    volta, posição honesta (1/6 quando andando, N parado). */}
+                    <span
+                      className="flex items-center rounded-md border border-amber-500/30 bg-amber-500/10"
+                      data-testid="chat-search-nav"
+                      role="group"
+                      aria-label="Navegar entre os trechos encontrados"
+                    >
+                      <button
+                        type="button"
+                        data-testid="chat-search-prev"
+                        onClick={() => stepMatch(-1)}
+                        aria-label="Trecho anterior"
+                        title="Trecho anterior (Shift+Enter)"
+                        className="flex size-6 items-center justify-center rounded-l-md text-amber-700 transition-colors hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-amber-500 dark:text-amber-400"
+                      >
+                        <ChevronUp className="size-3.5" />
+                      </button>
+                      <span
+                        className="min-w-[2.75rem] text-center text-[11px] font-medium tabular-nums text-foreground"
+                        title={
+                          chatSearchPos === null
+                            ? `${chatSearchResults.length} ${chatSearchResults.length === 1 ? 'mensagem encontrada' : 'mensagens encontradas'} — Enter salta ao primeiro`
+                            : `Trecho ${chatSearchPos + 1} de ${chatSearchResults.length}`
+                        }
+                      >
+                        {chatSearchPos === null
+                          ? chatSearchResults.length
+                          : `${chatSearchPos + 1}/${chatSearchResults.length}`}
+                      </span>
+                      <button
+                        type="button"
+                        data-testid="chat-search-next"
+                        onClick={() => stepMatch(1)}
+                        aria-label="Próximo trecho"
+                        title="Próximo trecho (Enter)"
+                        className="flex size-6 items-center justify-center rounded-r-md text-amber-700 transition-colors hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-amber-500 dark:text-amber-400"
+                      >
+                        <ChevronDown className="size-3.5" />
+                      </button>
+                    </span>
+                    <span className="min-w-0 truncate">
+                      {chatSearchResults.length === 1 ? 'mensagem' : 'mensagens'} com “
+                      {chatSearch.trim()}”
+                    </span>
                   </>
                 ) : (
                   <>
@@ -2025,6 +2128,7 @@ export function StudyView({
                   <MemoryChip count={restoredCount} />
                 )}
                 <div
+                  data-msg-index={i}
                   className={cn(
                     'animate-msg-in flex gap-2',
                     m.role === 'user' ? 'justify-end' : 'justify-start',
@@ -2043,6 +2147,9 @@ export function StudyView({
                       : m.error
                         ? 'rounded-tl-sm border border-rose-500/30 bg-rose-500/5 text-foreground'
                         : 'rounded-tl-sm border border-border/60 bg-muted text-foreground',
+                    // t155: a bolha encontrada PULSA âmbar quando a busca
+                    // chega nela — e apaga sozinha (globals, msg-flash).
+                    chatFlashMsg === i && 'animate-msg-flash',
                   )}
                 >
                   {m.role === 'user' ? (
