@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDown,
+  ArrowUpRight,
   Bot,
   BookOpen,
   CalendarCheck,
@@ -126,7 +127,23 @@ import {
 } from '@/lib/composer-draft';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
+import { recallPdfPage } from '@/lib/pdf-position';
+import {
+  readerDoorLabel,
+  readerDoorTitle,
+  readerDoorVisible,
+  shouldAutoOpenReader,
+} from '@/lib/study-reader-door';
+import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { TutorMarkdown } from './tutor-markdown';
+
+// t180 — ÚLTIMO nonce de porta JÁ consumido por esta sessão do navegador.
+// Fora do componente de propósito: o StudyView REMONTA a cada troca de aba,
+// e o nonce da porta persiste no page.tsx — dentro do componente, a volta
+// à aba Estudar reabriria o diálogo (diálogo que volta sozinho é popup,
+// não porta). Módulo sobrevive à remontagem: o MESMO clique não reabre,
+// um NOVO clique (nonce maior) abre de novo.
+let lastReaderNonceConsumed = 0;
 import { CodeLab } from './code-lab';
 
 // ---------- Tipos locais ----------
@@ -408,10 +425,15 @@ function ThinkingBubble() {
 export function StudyView({
   initialDiscipline,
   initialMaterial,
+  initialOpenNonce,
   tutorReq,
 }: {
   initialDiscipline?: string;
   initialMaterial?: string;
+  /** t180 — nonce da porta (page.tsx bumpa a cada clique goStudy COM material):
+   *  presente e inédito → o leitor auto-abre UMA vez (a porta da S3 promete
+   *  "Abrir" — promessa cumprida). Porta sem material nunca bumpa. */
+  initialOpenNonce?: number;
   /** Pedido externo (evento hub:open-tutor — Caderno de Erros) → abre o chat
    *  com a pergunta pronta no campo e a disciplina certa selecionada. */
   tutorReq?: { detail: OpenTutorDetail; nonce: number };
@@ -660,6 +682,48 @@ export function StudyView({
     [disciplineCode],
   );
   const selectedMaterial = materials.find((m) => m.id === materialId);
+
+  // ----- t180 — A PORTA DO LEITOR NA ABA ESTUDAR -----
+  // O leitor que antes só existia na Biblioteca agora vive aqui também: o
+  // mesmo PdfViewerDialog (print de 1 clique da t175 incluído), aberto pela
+  // porta da S3 (auto, com guarda de nonce) ou pela porta manual sob o
+  // cronômetro (o material selecionado no Pomodoro deixa de ser texto morto).
+  const [readerOpen, setReaderOpen] = React.useState(false);
+  /** Página do convite aceito (retomada) — morre ao fechar, como na Biblioteca. */
+  const [readerInitialPage, setReaderInitialPage] = React.useState<number | undefined>(
+    undefined,
+  );
+  /** t180 — A LEITURA MUDA A PORTA: cada sessão de leitura fechada bumpa o
+   *  epoch e a porta RELÊ a memória. Sem isso, o rótulo congelava no valor
+   *  de quando o material foi selecionado — a porta mentia sobre a retomada
+   *  que ACABOU de acontecer (abri, saltei à pág. 12, fechei → a porta tem
+   *  que dizer pág. 12, não a de antes). */
+  const [readerPosEpoch, setReaderPosEpoch] = React.useState(0);
+  const readerMaterial = selectedMaterial ?? null;
+  const readerResumePage = React.useMemo(() => {
+    if (!readerMaterial?.pdfPath) return null;
+    return recallPdfPage(readerMaterial.id, readerMaterial.pages);
+    // readerPosEpoch nas deps de propósito: o fechar do leitor relê o storage.
+  }, [readerMaterial?.id, readerMaterial?.pdfPath, readerMaterial?.pages, readerPosEpoch]);
+  // AUTO-ABRIR DA PORTA: nonce inédito (> o consumido) + material com PDF.
+  // O ref-guard de módulo impede a remontagem de reabrir o mesmo clique —
+  // e um clique NOVO da porta (nonce maior) abre de novo, como deve.
+  React.useEffect(() => {
+    if (!initialOpenNonce || initialOpenNonce <= lastReaderNonceConsumed) return;
+    if (!shouldAutoOpenReader(initialOpenNonce, !!selectedMaterial, readerDoorVisible(selectedMaterial))) {
+      // Porta sem par (material sem PDF ou sem material): o nonce é
+      // consumido mesmo assim — o clique aconteceu, não volta a abrir.
+      lastReaderNonceConsumed = initialOpenNonce;
+      return;
+    }
+    lastReaderNonceConsumed = initialOpenNonce;
+    setReaderInitialPage(recallPdfPage(selectedMaterial!.id, selectedMaterial!.pages) ?? undefined);
+    setReaderOpen(true);
+    // Deps mínimos de propósito: o nonce é o GATILHO; o material no clique
+    // é o que o lazy init já resolveu (initialMaterial → materialId).
+    // (o exhaustive-deps não reclama aqui: initialOpenNonce está na lista)
+  }, [initialOpenNonce]);
+
   const topicsSummary = React.useMemo(
     () => getDisciplineTopics(disciplineCode, sp.progress.topicProgress),
     [disciplineCode, sp.progress.topicProgress],
@@ -1813,6 +1877,35 @@ export function StudyView({
                     : 'Sem material específico'
                   : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}`}
               </p>
+              {/* t180 — A PORTA DO LEITOR: o material selecionado no Pomodoro
+                  deixa de ser texto morto — com PDF, UM clique abre o mesmo
+                  leitor da Biblioteca (print de 1 clique da t175 incluído).
+                  Sem PDF, a linha segue texto honesto: a casa não inventa
+                  porta. Na fase de break o foco é levantar — a porta some. */}
+              {live.phase === 'focus' && readerDoorVisible(selectedMaterial) && (
+                <button
+                  type="button"
+                  data-testid="study-reader-door"
+                  onClick={() => {
+                    setReaderInitialPage(readerResumePage ?? undefined);
+                    setReaderOpen(true);
+                  }}
+                  className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                  aria-label={`Abrir ${selectedMaterial?.title} no leitor — ${readerDoorLabel(readerResumePage)}`}
+                  title={readerDoorTitle(
+                    selectedMaterial?.title ?? '',
+                    readerResumePage,
+                    selectedMaterial?.pages,
+                  )}
+                >
+                  <BookOpen className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{readerDoorLabel(readerResumePage)}</span>
+                  <ArrowUpRight
+                    className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </button>
+              )}
             </div>
 
             {/* Controles: só 3 botões */}
@@ -3114,6 +3207,24 @@ export function StudyView({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ===== t180 — O LEITOR DA ABA ESTUDAR =====
+          O MESMO diálogo da Biblioteca (modo dividido, print instantâneo da
+          t175, pill de retomada): aberto pela porta da S3 (auto), pela porta
+          manual sob o cronômetro ou pelo chip do print. O markAccessed é do
+          próprio diálogo — abrir por aqui conta atividade como lá. */}
+      <PdfViewerDialog
+        material={readerMaterial}
+        open={readerOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReaderOpen(false);
+            setReaderInitialPage(undefined); // o convite morre com a abertura (t162)
+            setReaderPosEpoch((e) => e + 1); // a leitura mudou a memória — a porta relê (t180)
+          }
+        }}
+        initialPage={readerInitialPage}
+      />
     </div>
   );
 }

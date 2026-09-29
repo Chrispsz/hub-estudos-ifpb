@@ -70,6 +70,12 @@ export default function Page() {
   // Parâmetros para a aba "Estudar" (dashboard → "iniciar estudo de hoje")
   const [studyDiscipline, setStudyDiscipline] = React.useState<string | undefined>(undefined);
   const [studyMaterial, setStudyMaterial] = React.useState<string | undefined>(undefined);
+  // t180 — O NONCE DA PORTA: cada clique numa porta que leva ao Estudar com
+  // material (chip da S3 no card da prova, apoios do dia) bumpa o nonce. O
+  // StudyView usa para AUTO-ABRIR o leitor UMA vez por clique — sem ele, a
+  // remontagem de aba reabriria o diálogo a cada volta (diálogo que volta
+  // sozinho é popup, não porta). 0 = nenhuma porta clicada ainda.
+  const [studyNonce, setStudyNonce] = React.useState(0);
 
   // Parâmetros para a aba "Método" (evento hub:open-method — CTAs em resumos,
   // "estudar hoje", simulados). Nonce força remount para re-aplicar a pré-config.
@@ -324,6 +330,10 @@ export default function Page() {
   function goStudy(disciplineCode?: string, materialId?: string) {
     setStudyDiscipline(disciplineCode);
     setStudyMaterial(materialId);
+    // t180: porta com material = clique que pede ABERTURA — bumpa o nonce
+    // para o leitor auto-abrir UMA vez no Estudar. Porta sem material (só
+    // disciplina) segue seleção silenciosa: nada salta na cara.
+    if (materialId) setStudyNonce((n) => n + 1);
     setActive('study');
   }
 
@@ -340,7 +350,14 @@ export default function Page() {
           />
         );
       case 'study':
-        return <StudyView initialDiscipline={studyDiscipline} initialMaterial={studyMaterial} tutorReq={tutorReq} />;
+        return (
+          <StudyView
+            initialDiscipline={studyDiscipline}
+            initialMaterial={studyMaterial}
+            initialOpenNonce={studyNonce}
+            tutorReq={tutorReq}
+          />
+        );
       case 'library':
         return <LibraryView />;
       case 'practice':
