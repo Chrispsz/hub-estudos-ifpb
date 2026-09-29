@@ -7,6 +7,7 @@ import {
   AppWindow,
   BellRing,
   CircleCheck,
+  ShieldAlert,
   DatabaseBackup,
   Download,
   ExternalLink,
@@ -54,11 +55,24 @@ import {
 } from '@/components/ui/alert-dialog';
 import { defaultProgress, exportProgressJSON, importProgressJSON, useStudyProgress } from '@/lib/study-progress';
 import { useFocusMode } from '@/lib/focus-mode';
+import { BACKUP_STAMP_KEY, backupStatus, progressWorthOf } from '@/lib/backup-guard';
+import { useLocalStorage } from '@/lib/use-local-storage';
 
 export function SettingsView() {
   const sp = useStudyProgress();
   const { theme, setTheme } = useTheme();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  // O SELO DO BACKUP (172): a data do último export mora numa chave PRÓPRIA (não
+  // dentro do progresso de propósito — importar um backup antigo não pode
+  // fingir que o backup é novo). O useLocalStorage é a régua da casa: default
+  // no primeiro render (sem mismatch), leitura pós-mount.
+  const [lastExport, setLastExport] = useLocalStorage<string | null>(BACKUP_STAMP_KEY, null);
+  // Confirmação de importação (172): substituir o progresso é destrutivo quando
+  // há algo a perder — o diálogo diz O QUÊ em números antes do ato.
+  const [pendingImport, setPendingImport] = React.useState<string | null>(null);
+
+  const backup = backupStatus(lastExport);
+  const worth = React.useMemo(() => progressWorthOf(sp.progress), [sp.progress]);
 
   const cfg = sp.progress.preferences;
 
@@ -74,6 +88,8 @@ export function SettingsView() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      // O selo é o gesto inteiro: o download concluiu, o medidor recomeça.
+      setLastExport(new Date().toISOString());
       toast.success('Backup exportado com sucesso!');
     } catch (e) {
       toast.error('Erro ao exportar: ' + (e as Error).message);
@@ -88,11 +104,30 @@ export function SettingsView() {
         toast.error('Arquivo inválido — não parece um backup do Hub de Estudos.');
         return;
       }
-      sp.replaceProgress(imported);
-      toast.success('Progresso restaurado com sucesso!');
+      // NADA A PERDER = sem cerimônia (o estado vazio não tem o que destruir).
+      if (worth.total === 0) {
+        sp.replaceProgress(imported);
+        toast.success('Progresso restaurado com sucesso!');
+        return;
+      }
+      // HÁ ALGO A PERDER = o ato destrutivo passa pelo diálogo (o mesmo padrão
+      // da Zona de risco: ação destrói, diálogo confessa em números).
+      setPendingImport(String(reader.result));
     };
     reader.onerror = () => toast.error('Não foi possível ler o arquivo.');
     reader.readAsText(file);
+  }
+
+  function confirmImport() {
+    if (!pendingImport) return;
+    const imported = importProgressJSON(pendingImport);
+    setPendingImport(null);
+    if (!imported) {
+      toast.error('Arquivo inválido — não parece um backup do Hub de Estudos.');
+      return;
+    }
+    sp.replaceProgress(imported);
+    toast.success('Progresso restaurado com sucesso!');
   }
 
   const pomodoroStats = React.useMemo(
@@ -369,18 +404,52 @@ export function SettingsView() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            {pomodoroStats.sessions} sessões de Pomodoro ({pomodoroStats.minutes} min de foco
-            acumulados) salvos no navegador. Exporte um JSON para não perder nada ao limpar o
-            cache.
+            {pomodoroStats.sessions}{' '}
+            {pomodoroStats.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro (
+            {pomodoroStats.minutes} min de foco acumulados) salvos no navegador. Exporte um JSON
+            para não perder nada ao limpar o cache — um hábito semanal cobre o semestre inteiro.
           </p>
+          {/* O MEDIDOR DO SEGURO (172): o export já existia; o que faltava era o
+              hábito ter um medidor. Cor = significado (a gramática da casa):
+              esmeralda em dia, âmbar semanal vencido, rosa mensal vencido, zinc
+              nunca exportou. O selo mora numa chave própria — importar um backup
+              antigo não finge que o backup é novo. */}
+          <div
+            className={cn(
+              'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium',
+              backup.tone === 'ok' && 'border-emerald-500/40 bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-300',
+              backup.tone === 'warn' && 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 dark:text-amber-300',
+              backup.tone === 'danger' && 'border-rose-500/40 bg-rose-500/[0.07] text-rose-700 dark:text-rose-300',
+              backup.tone === 'never' && 'border-border bg-muted/40 text-muted-foreground',
+            )}
+            data-testid="backup-status"
+          >
+            {backup.tone === 'ok' ? (
+              <CircleCheck className="size-4 shrink-0" aria-hidden />
+            ) : backup.tone === 'danger' ? (
+              <ShieldAlert className="size-4 shrink-0" aria-hidden />
+            ) : (
+              <DatabaseBackup className="size-4 shrink-0" aria-hidden />
+            )}
+            <span className="min-w-0 flex-1">{backup.label}</span>
+            {worth.total > 0 && (
+              <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
+                {worth.total === 1 ? '1 registro' : `${worth.total} registros`} no seguro
+              </span>
+            )}
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button variant="outline" className="justify-start" onClick={handleExport}>
+            <Button
+              variant="outline"
+              className="justify-start focus-visible:ring-emerald-500/60"
+              onClick={handleExport}
+            >
               <Download className="size-4 text-emerald-500" />
               Exportar progresso (JSON)
             </Button>
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start focus-visible:ring-amber-500/60"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="size-4 text-amber-500" />
@@ -399,6 +468,52 @@ export function SettingsView() {
               }}
             />
           </div>
+          {/* A CONFIRMAÇÃO DA IMPORTAÇÃO (172): substituir o progresso é o mesmo
+              tipo de ato da Zona de risco — destrutivo e sem desfazer. Com algo
+              a perder, o diálogo confessa EM NÚMEROS o que vai embora; com o
+              estado vazio, a importação entra sem cerimônia (não há o que
+              destruir — pedir confirmação seria cerimônia disfarçada). */}
+          <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Substituir o progresso atual pelo backup?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>
+                      O progresso atual deste navegador será totalmente substituído pelo arquivo
+                      escolhido. Nesta hora existem:
+                    </p>
+                    <ul className="space-y-1 text-xs">
+                      <li className="tabular-nums">
+                        • {worth.sessions} {worth.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro
+                      </li>
+                      <li className="tabular-nums">
+                        • {worth.materials}{' '}
+                        {worth.materials === 1 ? 'material concluído' : 'materiais concluídos'}
+                      </li>
+                      <li className="tabular-nums">
+                        • {worth.flashcards} {worth.flashcards === 1 ? 'cartão' : 'cartões'} de
+                        flashcards
+                      </li>
+                      <li className="tabular-nums">
+                        • {worth.runs} {worth.runs === 1 ? 'corrida' : 'corridas'} de simulado
+                      </li>
+                    </ul>
+                    <p>Esta ação não pode ser desfeita — exporte o atual antes, se precisar.</p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmImport}
+                  className="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500/60"
+                >
+                  Substituir tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
 
