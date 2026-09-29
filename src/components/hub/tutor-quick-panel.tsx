@@ -21,6 +21,7 @@ import {
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
+import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
@@ -145,6 +146,8 @@ export function TutorQuickPanel({
   const [streamText, setStreamText] = React.useState<string | null>(null);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [pendingImage, setPendingImage] = React.useState<string | null>(null);
+  // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
+  const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   /** Captura de tela em recorte (o frame bruto vive aqui até o diálogo fechar). */
   const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
   const [captureOpen, setCaptureOpen] = React.useState(false);
@@ -487,11 +490,21 @@ export function TutorQuickPanel({
                     <UserBubbleContent content={m.content} />
                   </div>
                   {m.image && (
-                    <img
-                      src={m.image}
-                      alt="Print anexado à dúvida"
-                      className="mt-2 max-h-40 rounded-lg border border-white/20"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (m.image) setLightboxSrc(m.image);
+                      }}
+                      aria-label="Ver o print em tamanho grande"
+                      title="Ver o print em tamanho grande — o clique na imagem alterna o zoom"
+                      className="group mt-2 block w-fit cursor-zoom-in overflow-hidden rounded-lg ring-offset-0 transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 hover:ring-2 hover:ring-emerald-500/40"
+                    >
+                      <img
+                        src={m.image}
+                        alt="Print anexado à dúvida"
+                        className="max-h-40 rounded-lg border border-white/20 transition-transform duration-150 group-hover:scale-[1.02]"
+                      />
+                    </button>
                   )}
                   {m.time && <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>}
                 </>
@@ -593,11 +606,19 @@ export function TutorQuickPanel({
       >
         {pendingImage && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
-            <img
-              src={pendingImage}
-              alt="Prévia do print anexado"
-              className="size-10 rounded-md object-cover"
-            />
+            <button
+              type="button"
+              onClick={() => setLightboxSrc(pendingImage)}
+              aria-label="Ver o print em tamanho grande"
+              title="Conferir o print antes de enviar — o clique na imagem alterna o zoom"
+              className="cursor-zoom-in overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 hover:ring-2 hover:ring-emerald-500/40"
+            >
+              <img
+                src={pendingImage}
+                alt="Prévia do print anexado"
+                className="size-10 rounded-md object-cover"
+              />
+            </button>
             <span className="min-w-0 flex-1 text-xs text-muted-foreground">
               print anexado — o tutor lê a imagem antes de responder
             </span>
@@ -768,6 +789,9 @@ export function TutorQuickPanel({
           </Button>
         </div>
       </form>
+
+      {/* t160: o print que se lê de novo — o MESMO data URL, só visão. */}
+      <PrintLightboxDialog src={lightboxSrc} onOpenChange={(o) => !o && setLightboxSrc(null)} />
 
       {/* Recorte da captura de tela — anexa no MESMO pendingImage dos prints. */}
       <CaptureCropDialog

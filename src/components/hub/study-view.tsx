@@ -109,6 +109,7 @@ import {
   useScreenCapture,
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
+import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { openTutor } from '@/lib/hub-events';
@@ -457,6 +458,8 @@ export function StudyView({
   const [chatLoading, setChatLoading] = React.useState(false);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [chatImage, setChatImage] = React.useState<string | null>(null);
+  // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
+  const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   const chatFileRef = React.useRef<HTMLInputElement>(null);
   /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
   const camFileRef = React.useRef<HTMLInputElement>(null);
@@ -2175,11 +2178,21 @@ export function StudyView({
                         <UserBubbleContent content={m.content} />
                       )}
                       {m.image && (
-                        <img
-                          src={m.image}
-                          alt="Print anexado à dúvida"
-                          className="mt-2 max-h-44 rounded-lg border border-white/20"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (m.image) setLightboxSrc(m.image);
+                          }}
+                          aria-label="Ver o print em tamanho grande"
+                          title="Ver o print em tamanho grande — o clique na imagem alterna o zoom"
+                          className="group mt-2 block w-fit cursor-zoom-in overflow-hidden rounded-lg ring-offset-0 transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 hover:ring-2 hover:ring-emerald-500/40"
+                        >
+                          <img
+                            src={m.image}
+                            alt="Print anexado à dúvida"
+                            className="max-h-44 rounded-lg border border-white/20 transition-transform duration-150 group-hover:scale-[1.02]"
+                          />
+                        </button>
                       )}
                       {m.time && (
                         <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>
@@ -2339,11 +2352,19 @@ export function StudyView({
           <div className="border-t border-white/10 p-4">
             {chatImage && (
               <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
-                <img
-                  src={chatImage}
-                  alt="Prévia do print anexado"
-                  className="size-12 rounded-md object-cover"
-                />
+                <button
+                  type="button"
+                  onClick={() => setLightboxSrc(chatImage)}
+                  aria-label="Ver o print em tamanho grande"
+                  title="Conferir o print antes de enviar — o clique na imagem alterna o zoom"
+                  className="cursor-zoom-in overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 hover:ring-2 hover:ring-emerald-500/40"
+                >
+                  <img
+                    src={chatImage}
+                    alt="Prévia do print anexado"
+                    className="size-12 rounded-md object-cover"
+                  />
+                </button>
                 <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                   print anexado — o tutor lê a imagem antes de responder
                 </span>
@@ -2567,6 +2588,9 @@ export function StudyView({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* t160: o print que se lê de novo — o MESMO data URL, só visão. */}
+      <PrintLightboxDialog src={lightboxSrc} onOpenChange={(o) => !o && setLightboxSrc(null)} />
 
       {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints. */}
       <CaptureCropDialog
