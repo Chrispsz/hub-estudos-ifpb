@@ -102,6 +102,10 @@ import {
   examWeekMilestoneFor,
   findMathSimuladoRunOficial,
   formatTravadas,
+  folhaDoorLabel,
+  folhaDoorTitle,
+  folhaDoorVisible,
+  FOLHA_REVISAO_PATH,
   isVesperaWindow,
   mathDrillFeedbackFor,
   normalizeTravadas,
@@ -768,6 +772,28 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                 </span>
               );
             })()}
+            {/* t182 — A PORTA DA FOLHA no dia DELA: a régua da t179 (a porta
+                existe SÓ no dia do compromisso) aplicada à folha — na véspera
+                e na manhã da prova, o chip esmeralda (a cor do PRINT do Hub,
+                t178/t181) abre a folha em nova aba (folha é PAPEL em potência:
+                a paleta e o diálogo de travadas já abrem assim). O title
+                confessa a fronteira: o Hub abre, o gesto de imprimir é do
+                dono. Fora do dia, nenhum chip — o link profundo no diálogo
+                das travadas segue servindo. */}
+            {folhaDoorVisible(daysLeft) && (
+              <a
+                href={FOLHA_REVISAO_PATH}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="prova-folha-door"
+                aria-label={`Abrir a ${folhaDoorLabel(daysLeft)} de revisão para imprimir`}
+                title={folhaDoorTitle(daysLeft)}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 transition-colors hover:border-emerald-500/60 hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-400"
+              >
+                <Printer className="size-3" aria-hidden />
+                {folhaDoorLabel(daysLeft)}
+              </a>
+            )}
           </div>
         </div>
 
@@ -1411,11 +1437,11 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                   </Badge>
                 )}
                 <a
-                  href="/folha-revisao"
+                  href={FOLHA_REVISAO_PATH}
                   target="_blank"
                   rel="noreferrer"
-                  title="Na folha impressa, as travadas aparecem listadas para refazer na véspera"
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                  title="Abre a folha de revisão para imprimir (A4) — as travadas das listas saem listadas no papel para refazer. O Hub abre a folha; o gesto de imprimir é seu."
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-700 transition-colors hover:border-emerald-500/60 hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-400"
                 >
                   <Printer className="size-3" aria-hidden />
                   Folha para imprimir

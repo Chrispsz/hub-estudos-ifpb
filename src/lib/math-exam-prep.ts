@@ -81,6 +81,49 @@ export const MATH_VESPERA_DATE = (() => {
   return localDateKey(d);
 })();
 
+// ---------- A PORTA DA FOLHA (t182) ----------
+
+/**
+ * A rota da folha de revisão — FONTE ÚNICA do endereço: a porta do card,
+ * o atalho do comando rápido e o link do diálogo de travadas abrem a MESMA
+ * folha pelo MESMO caminho (mudou a rota, muda em um lugar).
+ */
+export const FOLHA_REVISAO_PATH = '/folha-revisao';
+
+/**
+ * A PORTA DA FOLHA existe SÓ no dia do compromisso dela — a mesma régua da
+ * porta da S3 (t179): porta fora do dia é ruído de véspera eterna. A folha
+ * é a ferramenta da VÉSPERA (D-1: imprimir, refazer as travadas, reler o
+ * checklist) e da MANHÃ DA PROVA (D-0: o kit do dia em papel, última
+ * olhada). Nos outros dias o card segue limpo — o link profundo no diálogo
+ * das travadas continua servindo para quem caça fora de hora.
+ */
+export function folhaDoorVisible(daysLeft: number): boolean {
+  return daysLeft === 1 || daysLeft === 0;
+}
+
+/**
+ * O rótulo honesto da porta: o dia muda, o nome da folha na boca da casa
+ * muda junto — "Folha da véspera" no D-1, "Folha do dia" na manhã da
+ * prova. Nunca "Folha de revisão" genérica: a porta diz PARA QUE serve
+ * HOJE.
+ */
+export function folhaDoorLabel(daysLeft: number): string {
+  return daysLeft === 0 ? 'Folha do dia' : 'Folha da véspera';
+}
+
+/**
+ * O title que confessa a fronteira (a doutrina das portas da casa): o Hub
+ * ABRE a folha — o papel, a impressora e o gesto de imprimir são do dono.
+ * O checklist continua sincronizado (mesma chave do card) e as travadas
+ * das listas saem na tinta; nada é enviado para lugar nenhum.
+ */
+export function folhaDoorTitle(daysLeft: number): string {
+  return daysLeft === 0
+    ? `Abre a folha de revisão para imprimir (A4) — o kit do dia da prova e o checklist em papel. O Hub abre a folha; o gesto de imprimir é seu.`
+    : `Abre a folha de revisão para imprimir (A4) — fórmulas, checklist sincronizado com este card e as travadas das listas para refazer hoje. O Hub abre a folha; o gesto de imprimir é seu.`;
+}
+
 // ---------- Marcos da semana da Av1 (agenda) ----------
 
 /**
