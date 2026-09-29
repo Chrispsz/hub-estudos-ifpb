@@ -161,7 +161,8 @@ export function flashcardPaletteEntries(
 }
 
 /**
- * O FILTRO DA BUSCA (173) — palavra inteira, não subsequência solta.
+ * O FILTRO DA BUSCA (173, relaxado na 179) — palavra inteira, não subsequência
+ * solta, com a higiene da FRASE NATURAL.
  *
  * O filtro padrão da cmdk casa por SUBSEQUÊNCIA: as letras da busca têm que
  * aparecer EM ORDEM no valor — com enunciados longos, quase qualquer busca
@@ -174,15 +175,57 @@ export function flashcardPaletteEntries(
  * "logica" e acha "Lógica"; digita "matriz" e acha "Matrizes". A busca que
  * exige acento é busca que falha no aperto da véspera.
  *
+ * A LIÇÃO DA FRASE INTEIRA (179 — a dívida P2 da 173): o aluno digita a
+ * frase como fala — "lista de matrizes bloco 1" — e o E-e DE PALAVRAS
+ * engolia a busca inteira por causa de palavras de LIGAÇÃO: o "de" não
+ * mora no título "Matrizes — Aula 01 (Lista)" e uma só palavra ausente
+ * apagava TODOS os resultados ("Nada encontrado" para uma frase legítima).
+ * A régua v2 separa o que é CONTEÚDO do que é LIGAÇÃO:
+ *  - STOPWORDS (artigos, preposições, pronomes de busca): nunca BLOQUEIAM —
+ *    um resultado não precisa conter "de" para ser a lista de matrizes;
+ *  - palavras SIGNIFICATIVAS: e-e como antes (a precisão da 173 intacta
+ *    para buscas curtas: "matriz inversa" exige as duas);
+ *  - TOLERÂNCIA DE UM ERRO: a partir de 3 significativas, UMA pode faltar —
+ *    "bloco" não mora no título, mas a frase tem 4 palavras de conteúdo e
+ *    3 delas apontam para a MESMA lista; quem digitou 3+ pistas merece o
+ *    melhor candidato, não o silêncio. Com 2 palavras continua estrito:
+ *    a tolerância cedo é ruído disfarçado de generosidade.
+ *  - SÓ stopword na busca ("de", "a o e"): nada de conteúdo foi pedido —
+ *    cai no e-e bruto (o que digitou é o que exige).
+ *
  * Retorna 0 (esconde) ou 1 (mostra) — o contrato da cmdk. Busca vazia = 1
  * (a paleta inteira, como sempre foi antes de digitar).
  */
+
+/**
+ * Palavras de ligação do português que NUNCA bloqueiam um resultado. Só
+ * palavras minúsculas dobradas (a comparação é pós-fold) — "DE" em caixa
+ * alta cai aqui junto, e "delivery" não (e-e é por PALAVRA, não substring).
+ */
+const PALETTE_STOPWORDS = new Set([
+  'de', 'da', 'do', 'das', 'dos',
+  'a', 'o', 'as', 'os', 'e', 'ou', 'em', 'um', 'uma',
+  'no', 'na', 'nos', 'nas', 'ao', 'aos', 'à', 'às',
+  'para', 'por', 'com', 'sem', 'que', 'se',
+  'qual', 'quais', 'onde', 'como', 'sobre', 'entre',
+]);
+
+/** A partir de quantas palavras significativas a tolerância de 1 erro liga. */
+export const PALETTE_RELAX_MIN_WORDS = 3;
+
 export function paletteWordFilter(value: string, search: string): number {
   const query = foldAccents(search).toLowerCase().trim();
   if (query.length === 0) return 1;
   const haystack = foldAccents(value).toLowerCase();
   const words = query.split(/\s+/).filter(Boolean);
-  return words.every((w) => haystack.includes(w)) ? 1 : 0;
+  const significant = words.filter((w) => !PALETTE_STOPWORDS.has(w));
+  // Só ligação na busca: o e-e bruto manda (o usuário pediu exatamente isso).
+  if (significant.length === 0) {
+    return words.every((w) => haystack.includes(w)) ? 1 : 0;
+  }
+  const misses = significant.filter((w) => !haystack.includes(w)).length;
+  const allowed = significant.length >= PALETTE_RELAX_MIN_WORDS ? 1 : 0;
+  return misses <= allowed ? 1 : 0;
 }
 
 function foldAccents(text: string): string {

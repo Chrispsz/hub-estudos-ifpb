@@ -104,6 +104,15 @@ export interface ExamWeekMilestone {
   subtitulo?: string;
   /** O que fazer no dia (dica honesta, 1 linha). */
   detalhe: string;
+  /**
+   * t179 — A PORTA DO MARCO (material-first): o marco que MENCIONA uma
+   * entrega carrega o id do material que a entrega exige — a menção que
+   * abre o conteúdo, não a que só nomeia. Hoje só o simulado tem (a S3
+   * de Algoritmos é entregue NO dia do ensaio — fonte: dono, linha do
+   * marcos no card da prova); a prova e as vésperas não mencionam
+   * material nenhum, então não têm porta.
+   */
+  materialId?: string;
 }
 
 export function examWeekMilestoneFor(date: Date): ExamWeekMilestone | null {
@@ -126,6 +135,10 @@ export function examWeekMilestoneFor(date: Date): ExamWeekMilestone | null {
       titulo: 'Simulado da Av1',
       subtitulo: '+ S3 de Algoritmos',
       detalhe: 'prova completa no Praticar — o ensaio real da Av1',
+      // A PORTA DA S3 (t179): a menção “+ S3 de Algoritmos” abre o material
+      // real (Questões da Semana 3, Classroom) — a entrega é DE programas,
+      // e programas se conferem no PDF da lista, não na memória.
+      materialId: 'alg-questoes-semana3',
     };
   }
   if (key === MATH_VESPERA_DATE) {

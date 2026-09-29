@@ -50,6 +50,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
+import { materials } from '@/data/course-data';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildRunDebriefQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import {
@@ -194,6 +195,11 @@ interface ExamPrepCardProps {
    * o medidor completo e a importação. Opcional: sem o callback, o atalho
    * some (o card continua inteiro — a casa não promete o que não tem). */
   onOpenSettings?: () => void;
+  /** t179 — A PORTA DO MARCO: o mesmo canal do apoio do dia — assinatura
+   * (disciplina, materialId) abre a aba Estudar com o material aberto no
+   * leitor. Opcional: sem o callback, a porta da S3 não existe (a menção
+   * segue de texto; o card não promete gesto que não consegue dar). */
+  onStartStudy?: (disciplineCode?: string, materialId?: string) => void;
 }
 
 // A REGUA DA RODADA (t177): só caixas com fórmula real são recitáveis — a
@@ -201,7 +207,7 @@ interface ExamPrepCardProps {
 // nunca a conta otimista do DOM — lição 105).
 const RECITE_TOTAL = recitableCount(MATH_FORMULAS);
 
-export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
+export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps) {
   const daysLeft = daysUntilDate(MATH_EXAM.date);
   const [open, setOpen] = React.useState(false);
   const [checked, setChecked] = useLocalStorage<CheckedMap>(MATH_PLAN_KEY, {});
@@ -616,18 +622,30 @@ export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
               // próximo passo real do plano D-2 (refazer no papel o que
               // errou → a correção ajuda).
               const isSimuladoDone = isSimuladoDay && simuladoDoneOnPlanDate;
+              // t179 — A PORTA DA S3: a FONTE ÚNICA do marco (examWeekMilestoneFor)
+              // carrega o materialId da entrega do dia. A porta existe só no dia
+              // do compromisso (a menção “amanhã” não abre nada — a entrega é
+              // DO dia), só com o canal de abertura (onStartStudy) e só com
+              // material real — sem par no acervo, fica de texto (a casa não
+              // inventa porta).
+              const milestone = examWeekMilestoneFor(new Date());
+              const s3Material =
+                onStartStudy && isSimuladoDay && milestone?.materialId
+                  ? materials.find((m) => m.id === milestone.materialId)
+                  : undefined;
               return (
-                <button
-                  type="button"
-                  onClick={
-                    isSimuladoDone && simuladoRunOnPlanDate
-                      ? () =>
-                          openTutor({
-                            question: buildRunDebriefQuestion(simuladoRunOnPlanDate),
-                            disciplineCode: MATH_EXAM.disciplineCode,
-                          })
-                      : () => openSimulado({ preset: 'math_exam' })
-                  }
+                <>
+                  <button
+                    type="button"
+                    onClick={
+                      isSimuladoDone && simuladoRunOnPlanDate
+                        ? () =>
+                            openTutor({
+                              question: buildRunDebriefQuestion(simuladoRunOnPlanDate),
+                              disciplineCode: MATH_EXAM.disciplineCode,
+                            })
+                        : () => openSimulado({ preset: 'math_exam' })
+                    }
                   className={cn(
                     'group flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                     isSimuladoDone
@@ -678,7 +696,34 @@ export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
                     )}
                   </span>
                   <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </button>
+                  </button>
+                  {s3Material ? (
+                    /* A porta ao lado do compromisso: mesmo dia, segunda ação —
+                       o simulado é o ensaio da Matemática e a S3 é a entrega de
+                       Algoritmos; o verde esmeralda é a cor da DISCIPLINA (a
+                       gramatura cor = significado da casa), não do print. */
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onStartStudy?.(s3Material.disciplineCode, s3Material.id)
+                      }
+                      className={cn(
+                        'group flex min-w-0 items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 transition-colors',
+                        'hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50',
+                        'dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/20',
+                      )}
+                      aria-label={`Abrir o material da entrega S3 de Algoritmos — ${s3Material.title}`}
+                      title={`Abre “${s3Material.title}” no Estudar — a entrega dos programas é no Classroom`}
+                    >
+                      <BookOpen className="size-3 shrink-0 opacity-80" aria-hidden />
+                      <span className="truncate">
+                        Abrir a S3 ·{' '}
+                        <span className="font-semibold">Questões da Semana 3</span>
+                      </span>
+                      <ArrowUpRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </button>
+                  ) : null}
+                </>
               );
             })()}
             <span

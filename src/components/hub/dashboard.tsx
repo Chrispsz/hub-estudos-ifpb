@@ -356,7 +356,9 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
       </motion.section>
 
       {/* FOCO: Prova de Matemática (Av1, 01/10) — plano 12 dias material-first */}
-      <ExamPrepCard onOpenSettings={onOpenSettings} />
+      {/* t179: o mesmo canal do apoio do dia serve a PORTA DO MARCO — o chip
+          da S3 (entrega de hoje) abre o material real no Estudar. */}
+      <ExamPrepCard onOpenSettings={onOpenSettings} onStartStudy={onStartStudy} />
 
       {/* PLANO DE RECUPERAÇÃO — semana atual + fila de prioridades (sem S1 feita, resto pendente) */}
       <RecoveryCard />

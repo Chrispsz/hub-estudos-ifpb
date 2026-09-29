@@ -309,6 +309,13 @@ export function CommandPalette({ onNavigate }: Props) {
             <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
               <Search className="size-5 opacity-60" aria-hidden="true" />
               Nada encontrado. Tente outro termo.
+              {/* A régua da 179 já ignora palavras de ligação e perdoa 1 erro
+                  entre 3+ termos — o vazio que sobrou é de CONTEÚDO mesmo. A
+                  dica aponta o próximo gesto sem prometer milagre. */}
+              <span className="px-6 text-center text-[11px] leading-snug text-muted-foreground/70">
+                Frases longas: palavras como “de” e “da” são ignoradas e uma
+                pista pode faltar — tente os termos principais.
+              </span>
             </span>
           </CommandEmpty>
 
