@@ -147,6 +147,15 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
   /** t175 — O PRINT RÁPIDO: o render da página aberta em curso (spinner no
    * botão da barra, segundo clique recusado). */
   const [instantPrinting, setInstantPrinting] = React.useState(false);
+  /** t178 — O CHIP NO LEITOR: o recibo do instantâneo ANCORADO na barra (o
+   * chat não abre mais por cima do PDF no modo cheio — o anexo fica no
+   * composer e o chip confessa o destino). Morre ao fechar o diálogo, ao
+   * abrir o chat pelo chip (o composer passa a mostrar o chip real) e no
+   * próximo anexo (que o substitui — o composer guarda UM anexo). */
+  const [instantAttached, setInstantAttached] = React.useState<{
+    page: number;
+    label: string;
+  } | null>(null);
   /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
   const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
   /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
@@ -367,6 +376,13 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
    * cheio. Sem seletor de tela, sem recorte, sem arquivo no disco. A página
    * é a HONESTA: o último salto despachado — sem salto, a 1ª que o leitor
    * mostra (instantPrintPage).
+   *
+   * t178 — E O CHAT NÃO ABRE POR CIMA: no modo cheio o anexo viaja com
+   * silent=true (fica no composer esperando) e o recibo fica AQUI na barra
+   * (o chip esmeralda, a cor do print do Hub) — o dono continua lendo a
+   * página que pediu o print e abre o chat QUANDO quiser, pelo chip. O
+   * toast sumiu de propósito: recibo que some sozinho mentia sobre um
+   * anexo pendente; o chip fica até a intenção virar ação.
    */
   const instantPrint = React.useCallback(async () => {
     if (!material?.pdfPath || instantPrinting) return;
@@ -384,10 +400,9 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
           imageLabel: label,
           disciplineCode: material.disciplineCode,
           materialId: material.id,
+          silent: true, // o leitor é o dono do momento — o chat espera o clique
         });
-        toast.success(
-          `Página ${page} anexada ao tutor — nada foi salvo no seu computador.`,
-        );
+        setInstantAttached({ page, label });
       }
     } catch {
       toast.error('Não consegui renderizar a página. Use o print de página.');
@@ -620,6 +635,38 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
               )}{' '}
               Print rápido
             </Button>
+          )}
+          {/* t178 — O CHIP QUE FICA NO LEITOR: o recibo do instantâneo mora
+              AQUI, na barra — não numa janela por cima da página. A cor é a
+              do print do Hub (esmeralda), a contagem é tabular-nums e o
+              "abrir" é o ÚNICO gesto que traz o chat: o anexo já está no
+              composer (silent), abrir de novo não duplica. some no clique
+              (a intenção virou ação) e no próximo anexo (que substitui). */}
+          {!isSplit && instantAttached && (
+            <span
+              data-testid="instant-attach-chip"
+              title="A página anexada espera no campo de envio do tutor — o chat só abre quando você pedir"
+              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300"
+            >
+              <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+              <span className="tabular-nums">pág. {instantAttached.page} no tutor</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!material) return;
+                  openTutor({
+                    disciplineCode: material.disciplineCode,
+                    materialId: material.id,
+                  });
+                  setInstantAttached(null);
+                }}
+                title="Abrir o tutor — a página anexada já está no campo de envio"
+                aria-label={`Abrir o tutor com a página ${instantAttached.page} anexada`}
+                className="rounded-sm font-semibold underline-offset-2 transition-colors hover:text-emerald-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:hover:text-emerald-200"
+              >
+                abrir
+              </button>
+            </span>
           )}
           <Button
             size="sm"

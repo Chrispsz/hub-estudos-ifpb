@@ -14,6 +14,11 @@
  *   + FOCO DO SIMULADO (useSimuladoFoco): o tópico mais fraco da tentativa
  *      mais recente da Av1 (escopo TEC.1984) — a promessa "o bloco com mais
  *      erros vira a revisão de amanhã" impressa.
+ *   + O RECIBO DA RECITAÇÃO NO PAPEL (t178): a folha lê o recibo diário da
+ *      rodada do kit (MESMA chave hub:math-exam:v1:recite, leitura
+ *      só-leitura — NUNCA persistir por cima) e marca as caixas onde o dono
+ *      travou na noite anterior — "é só ela que você relê antes de dormir"
+ *      finalmente sai da boca da noite e vira TINTA na folha da manhã.
  * NOTA DE FUSÃO (119): as fontes MATH_EXAM_KIT/travadas/MATH_SIMULADO_DATE
  * não sobreviveram à fusão das duas linhas de desenvolvimento; o que é
  * CONTEÚDO de papel mora aqui (kit), o que é REGRA vive derivada do
@@ -38,6 +43,13 @@ import {
   MATH_META,
   examWeekMilestoneFor,
 } from '@/lib/math-exam-prep';
+import {
+  MATH_RECITE_KEY,
+  normalizeReciteReceipt,
+  receiptLegendLine,
+  receiptStuckSet,
+  type ReciteReceipt,
+} from '@/lib/formula-recite';
 import type { SimuladoRun } from '@/lib/study-progress';
 
 type CheckedMap = Record<string, boolean>;
@@ -169,6 +181,31 @@ export function FolhaRevisaoSheet() {
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
   const simuladoFoco = useSimuladoFoco();
 
+  // O RECIBO DA RECITAÇÃO (t178) — leitura SÓ-LEITURA da chave do kit (a
+  // MESMA doutrina do useSimuladoFoco: NUNCA useLocalStorage numa chave
+  // estrangeira — o hook persistiria o valor derivado POR CIMA do objeto
+  // do kit). Lixo/corrompido → null (a lib normaliza; folha calma, sem
+  // recibo inventado). storage listener: a rodada terminando em OUTRA aba
+  // (o kit aberto ao lado) chega na folha sem recarregar.
+  const [reciteReceipt, setReciteReceipt] = React.useState<ReciteReceipt | null>(null);
+  React.useEffect(() => {
+    function read() {
+      try {
+        setReciteReceipt(
+          normalizeReciteReceipt(JSON.parse(window.localStorage.getItem(MATH_RECITE_KEY) ?? 'null')),
+        );
+      } catch {
+        setReciteReceipt(null);
+      }
+    }
+    function onStorage(e: StorageEvent) {
+      if (e.key === MATH_RECITE_KEY) read();
+    }
+    read();
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   // MODO RECITAÇÃO — o cabeçalho das fórmulas promete "recite de memória,
   // confira aqui"; o toggle cumpre a promessa: oculta a fórmula (o aluno
   // recita) e cada caixa revela no toque. Estado de TELA: no papel a folha
@@ -207,6 +244,15 @@ export function FolhaRevisaoSheet() {
   React.useEffect(() => {
     setTodayKey(todayKeyLocal());
   }, []);
+
+  // O CONJUNTO dos travos (O(1) por caixa) e a VOZ DO DIA — só com todayKey
+  // montado (mesmo contrato honesto do selo: o servidor não sabe a hora do
+  // aluno, a legenda nasce no cliente).
+  const stuckSet = React.useMemo(() => receiptStuckSet(reciteReceipt), [reciteReceipt]);
+  const reciboLegend = React.useMemo(
+    () => receiptLegendLine(reciteReceipt, todayKey),
+    [reciteReceipt, todayKey],
+  );
 
   function toggleCheck(key: string) {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -345,6 +391,19 @@ export function FolhaRevisaoSheet() {
             <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900">
               Fórmulas essenciais <span className="font-medium normal-case tracking-normal text-zinc-500">— recite de memória, confira aqui</span>
             </h2>
+            {/* A LEGENDA DO RECIBO (t178): a noite anterior fala no papel —
+                quais caixas estão marcadas e de que noite é o travo. Só nasce
+                com travo REAL (recibo sem travo é silêncio no papel; lixo é
+                null na lib). A marca é TEXTO + borda (não só cor): impressora
+                P&B lê a diferença — a mesma gramatura honesta da folha. */}
+            {reciboLegend && (
+              <p
+                data-testid="folha-recibo-legend"
+                className="mt-1.5 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-[10px] leading-relaxed text-rose-700 print:bg-rose-50"
+              >
+                {reciboLegend}
+              </p>
+            )}
             <div className="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-2.5 sm:grid-cols-2">
               {matrizes.map((f, i) => (
                 <FormulaBox
@@ -356,6 +415,7 @@ export function FolhaRevisaoSheet() {
                   grupo={f.grupo}
                   hiddenMath={recite && !revealed[f.titulo]}
                   onReveal={() => reveal(f.titulo)}
+                  stuck={stuckSet.has(f.titulo)}
                 />
               ))}
               {logica.map((f, i) => (
@@ -368,6 +428,7 @@ export function FolhaRevisaoSheet() {
                   grupo={f.grupo}
                   hiddenMath={recite && !revealed[f.titulo]}
                   onReveal={() => reveal(f.titulo)}
+                  stuck={stuckSet.has(f.titulo)}
                 />
               ))}
             </div>
@@ -528,7 +589,11 @@ export function FolhaRevisaoSheet() {
 /** Caixa de fórmula compacta — numeração contínua, acento por grupo.
  * RECITAÇÃO: hiddenMath troca a fórmula por um botão tracejado de conferir
  * (o aluno recita antes). No papel a caixa sai SEMPRE completa — o botão é
- * print:hidden e a fórmula oculta é hidden print:block. */
+ * print:hidden e a fórmula oculta é hidden print:block.
+ * O TRAVO NO PAPEL (t178): stuck=true vira o recibo da noite em tinta —
+ * acento esquerdo ROSE (a família do travado no kit e no drill) + a tag
+ * 'travei' (texto, não só cor — P&B lê). Na tela a tag também aparece:
+ * WYSIWYG é a doutrina da folha. */
 function FormulaBox({
   n,
   titulo,
@@ -537,6 +602,7 @@ function FormulaBox({
   grupo,
   hiddenMath = false,
   onReveal,
+  stuck = false,
 }: {
   n: number;
   titulo: string;
@@ -545,13 +611,17 @@ function FormulaBox({
   grupo: string;
   hiddenMath?: boolean;
   onReveal?: () => void;
+  /** O recibo da recitação marcou esta fórmula como travada. */
+  stuck?: boolean;
 }) {
   const isMat = grupo === 'Matrizes';
   return (
     <div
       className={cn(
-        'break-inside-avoid rounded-md border-l-[3px] border border-zinc-200 py-2 pl-2.5 pr-3',
-        isMat ? 'border-l-rose-400' : 'border-l-sky-400',
+        'break-inside-avoid rounded-md border-l-[3px] border py-2 pl-2.5 pr-3',
+        stuck
+          ? 'border-rose-300 border-l-rose-500 ring-1 ring-rose-200'
+          : cn('border-zinc-200', isMat ? 'border-l-rose-400' : 'border-l-sky-400'),
       )}
     >
       <p className="flex items-baseline gap-1.5">
@@ -559,6 +629,15 @@ function FormulaBox({
           {String(n).padStart(2, '0')}
         </span>
         <span className="text-[10.5px] font-bold text-zinc-900">{titulo}</span>
+        {stuck && (
+          <span
+            data-testid="folha-formula-stuck"
+            title="Você marcou 'travei nesta' na recitação — reler primeiro"
+            className="ml-auto shrink-0 rounded-full border border-rose-400/70 bg-rose-100 px-1.5 py-px text-[8.5px] font-semibold uppercase tracking-[0.08em] text-rose-700 print:bg-rose-100"
+          >
+            travei
+          </span>
+        )}
       </p>
       {math && hiddenMath ? (
         <>

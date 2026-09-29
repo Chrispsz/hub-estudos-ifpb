@@ -164,3 +164,83 @@ export function receiptBadgeText(receipt: ReciteReceipt): string {
   const n = receipt.stuck.length;
   return n === 0 ? 'recitou hoje' : `recitou hoje · ${n} ${n === 1 ? 'travou' : 'travaram'}`;
 }
+
+// ---------------------------------------------------------------------------
+// t178 — A FOLHA QUE LÊ A NOITE: o recibo chega ao papel.
+//
+// A promessa da linha do kit ("é só ela que você relê antes de dormir")
+// fechava na TELA (badge + subNode nomeado) — mas a folha impressa da
+// véspera, que é o papel que vai na mochila, não sabia em QUE fórmula o
+// dono travou na noite anterior. Os helpers abaixo são a mesma regra pura
+// da rodada, agora a serviço do papel: qual recibo, de que dia, quais
+// caixas marcar. NADA aqui inventa recibo — folha sem dado é folha calma.
+// ---------------------------------------------------------------------------
+
+/**
+ * Chave de dia deslocada — hoje menos N dias, no MESMO contrato da
+ * localDateKey (getters locais; a data é a do navegador do aluno). O parse
+ * é ancorado no MEIO-DIA local (lição 108 no papel): date-only parseado
+ * direto é meia-noite UTC e, em fuso negativo, vira o dia ANTERIOR —
+ * 'ontem' diria 'anteontem' à noite. Dia do mês nasce por SUBTRAÇÃO de
+ * Date (atravessa mês e ano sem aritmética de string).
+ */
+export function dayKeyMinus(todayKey: string, days: number): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(todayKey)) return '';
+  const anchor = new Date(`${todayKey}T12:00:00`);
+  if (Number.isNaN(anchor.getTime())) return '';
+  anchor.setDate(anchor.getDate() - days);
+  return localDateKey(anchor);
+}
+
+/**
+ * O CONJUNTO dos travos do recibo — Set para a folha marcar caixa a caixa
+ * em O(1) (a folha não percorre o array por fórmula). Recibo null → Set
+ * vazio: sem recibo, nenhuma caixa nasce marcada (nada inventado).
+ */
+export function receiptStuckSet(receipt: ReciteReceipt | null): Set<string> {
+  return new Set(receipt?.stuck ?? []);
+}
+
+/**
+ * A VOZ DO DIA NO PAPEL: o recibo diz quando a recitação aconteceu —
+ * 'hoje à noite' (recibo de hoje: a rodada foi antes de imprimir),
+ * 'ontem à noite' (o caso clássico da véspera: recitou, dormiu, imprime
+ * de manhã) ou 'recitação de dd/mm' (o dia virou várias vezes — o papel
+ * mostra a data e o leitor julga). Entrada inválida → '' (a folha cala;
+ * sem legenda mentirosa).
+ */
+export function receiptDayLabel(receipt: ReciteReceipt | null, todayKey: string): string {
+  if (!receipt || !todayKey) return '';
+  if (receipt.date === todayKey) return 'hoje à noite';
+  if (receipt.date === dayKeyMinus(todayKey, 1)) return 'ontem à noite';
+  const d = new Date(`${receipt.date}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  return `recitação de ${new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+  }).format(d)}`;
+}
+
+/**
+ * A LEGENDA DA FOLHA — uma linha, a voz do recibo no papel. Só existe com
+ * travo REAL nomeado: recibo sem travo não entra na folha (o papel não
+ * celebra silêncio — ele aponta o que reler); recibo de lixo também não.
+ * A PREPOSIÇÃO acompanha o dia (a gramática não é opcional): "Hoje à
+ * noite, …" / "Ontem à noite, …" / "Na recitação de 29/09, …". A numeração
+ * (N) é a contagem dos travos.
+ */
+export function receiptLegendLine(receipt: ReciteReceipt | null, todayKey: string): string | null {
+  if (!receipt || receipt.stuck.length === 0) return null;
+  const n = receipt.stuck.length;
+  const conta = `${n} ${n === 1 ? 'fórmula travou' : 'fórmulas travaram'}`;
+  const cauda = ' — são as caixas marcadas; reler elas primeiro.';
+  if (todayKey && receipt.date === todayKey) {
+    return `Hoje à noite, ${conta}${cauda}`;
+  }
+  if (todayKey && receipt.date === dayKeyMinus(todayKey, 1)) {
+    return `Ontem à noite, ${conta}${cauda}`;
+  }
+  const dia = receiptDayLabel(receipt, todayKey);
+  if (!dia) return null;
+  return `Na ${dia}, ${conta}${cauda}`;
+}

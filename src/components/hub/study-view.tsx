@@ -518,15 +518,39 @@ export function StudyView({
   // memória da conversa (a pergunta de Matemática não vaza para o chat de
   // RHT). Pedido externo (tutorReq) vence rascunho: intenção nova é intenção
   // nova — o efeito dele roda depois deste na montagem e sobrescreve.
+  // t178 — O DIA EM QUE A ORDEM TRAIU: a promessa "o request sobrescreve"
+  // só valia na MONTAGEM. Quando o pedido externo É quem TROCA a disciplina
+  // (print da Lista de Matrizes anexado com o chat parado em Algoritmos), a
+  // troca de disciplina cai num commit DEPOIS do nonce — este restore rodava
+  // por ÚLTIMO e APAGAVA o anexo/pergunta que o request acabou de aplicar
+  // (o rascunho da disciplina nova nasce vazio e por cima). A ordem de
+  // declaração não é dona da ordem dos commits: quem manda é a INTENÇÃO —
+  // o nonce que o efeito do request aplicou fica no appliedReqNonceRef e o
+  // restore, vendo o MESMO nonce vivo, recoloca OS CAMPOS DO PEDIDO por
+  // cima do rascunho (o que o pedido não trouxe segue vindo do rascunho).
+  const tutorReqRef = React.useRef(tutorReq);
+  React.useEffect(() => {
+    tutorReqRef.current = tutorReq;
+  }, [tutorReq]);
+  const appliedReqNonceRef = React.useRef(0);
   React.useEffect(() => {
     if (prevDiscRef.current === disciplineCode) return;
     prevDiscRef.current = disciplineCode;
     const key = composerDraftKey('main', disciplineCode);
     const d = loadComposerDraft(key);
-    setChatInput(d?.input ?? '');
+    // O pedido externo aplicado NESTE nonce é a intenção mais nova — ele
+    // causou a troca; o rascunho não pode apagar o que ele trouxe.
+    const req = tutorReqRef.current;
+    const reqWins = !!req && appliedReqNonceRef.current === req.nonce;
+    setChatInput(reqWins && req.detail.question !== undefined ? req.detail.question : (d?.input ?? ''));
     setChatCode(d?.code ?? '');
-    setChatImage(d?.image ?? null);
-    setChatImageLabel(d?.imageLabel ?? null);
+    if (reqWins && req.detail.image) {
+      setChatImage(req.detail.image);
+      setChatImageLabel(req.detail.imageLabel ?? 'print do material');
+    } else {
+      setChatImage(d?.image ?? null);
+      setChatImageLabel(d?.imageLabel ?? null);
+    }
     setDraftRestored(hasComposerDraft(key));
   }, [disciplineCode]);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
@@ -1185,6 +1209,10 @@ export function StudyView({
   // chat e pré-preenche a pergunta — o aluno revisa e envia.
   React.useEffect(() => {
     if (!tutorReq || tutorReq.nonce === 0) return;
+    // t178: o nonce aplicado fica registrado — se ESTE pedido for quem trocar
+    // a disciplina, o restore do rascunho (commit seguinte) vê o nonce vivo
+    // e recoloca os campos do pedido por cima do rascunho (nada apagado).
+    appliedReqNonceRef.current = tutorReq.nonce;
     const code = tutorReq.detail.disciplineCode;
     if (code && getDisciplineByCode(code) && code !== disciplineCode) {
       setDisciplineCode(code);
@@ -1209,7 +1237,14 @@ export function StudyView({
       setChatImage(tutorReq.detail.image);
       setChatImageLabel(tutorReq.detail.imageLabel ?? 'print do material');
     }
-    setChatOpen(true);
+    // O SILÊNCIO (t178): pedido silent com o chat fechado anexa e NÃO abre —
+    // o dono continua lendo o PDF; o chip na barra do leitor confessa o
+    // destino e a abertura vira clique DELE (o próximo openTutor normal, ou
+    // o próprio botão do chat, mostra o chip no composer). Chat já aberto:
+    // nada muda — a entrega é a mesma e a janela já está na frente.
+    if (!(tutorReq.detail.silent && !chatOpen)) {
+      setChatOpen(true);
+    }
   }, [tutorReq?.nonce]);
 
   // Memória: restaura a conversa salva da disciplina ao abrir o chat.

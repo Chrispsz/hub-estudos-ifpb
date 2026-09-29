@@ -97,6 +97,17 @@ export interface OpenTutorDetail {
    * morre junto com o anexo no envio.
    */
   imageLabel?: string;
+  /**
+   * t178 — O SILÊNCIO QUE RESPEITA A LEITURA: pedido com silent=true anexa
+   * pergunta/imagem no composer do chat SEM ABRIR o Sheet POR CIMA do que o
+   * aluno está lendo (o caso real: o instantâneo da barra do PDF em modo
+   * cheio — o chat abrindo sozinho escondia a página que o dono estava
+   * lendo). O anexo fica no composer esperando; o chip na BARRA do leitor
+   * confessa o destino e o "abrir" é um clique do dono, não uma decisão do
+   * app. Se o chat já estiver aberto, o flag é irrelevante (abrir um chat
+   * aberto é barulho sem efeito — a fiação trata os dois casos iguais).
+   */
+  silent?: boolean;
 }
 
 /** Dispara a troca para a aba Estudar com o tutor recebendo a pergunta pronta. */
