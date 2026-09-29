@@ -19,6 +19,7 @@
 
 import * as React from 'react';
 import {
+  BookMarked,
   BotMessageSquare,
   Camera,
   CheckCircle2,
@@ -30,6 +31,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Search,
+  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -49,6 +51,7 @@ import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { pdfJumpSrc, clampPdfPage } from '@/lib/pdf-search';
+import { rememberPdfPage, recallPdfPage } from '@/lib/pdf-position';
 import { TutorQuickPanel } from './tutor-quick-panel';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PdfSearchDialog } from './pdf-search-dialog';
@@ -114,6 +117,9 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const [captureInitialPage, setCaptureInitialPage] = React.useState<number | undefined>(undefined);
   /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
   const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
+  /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
+   * ao fechar, ao aceitar e ao dispensar (efêmero, como tudo neste diálogo). */
+  const [resumePage, setResumePage] = React.useState<number | null>(null);
 
   const rowRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef(false);
@@ -155,6 +161,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
       setJumpInput('');
       setCaptureInitialPage(undefined);
       setPanelQuestion(null);
+      setResumePage(null);
     }
   }, [open]);
 
@@ -286,6 +293,9 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
       if (max && max >= 1 && n > max) {
         toast.info(`Este PDF tem ${max} páginas — abrindo a ${p}.`);
       }
+      // t161 — O LEITOR LEMBRA: o salto despachado é a posição mais honesta
+      // que o Hub conhece (o leitor nativo não reporta rolagem ao pai).
+      rememberPdfPage(material.id, p, max);
       setJumpPage((cur) => {
         if (cur === p) {
           requestAnimationFrame(() => setJumpPage(p)); // mesmo destino: força o salto de novo
@@ -343,6 +353,18 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
       markAccessed(material.id);
     }
   }, [open, material, markAccessed]);
+
+  // ===== O LEITOR LEMBRA (t161): ao abrir um PDF buscável, o Hub lê a
+  // posição do último salto e oferece o CONVITE de retomada — nunca um
+  // auto-salto escondido. Material sem busca/página ou diálogo fechado:
+  // o convite morre (efêmero como tudo neste diálogo).
+  React.useEffect(() => {
+    if (!open) {
+      setResumePage(null);
+      return;
+    }
+    setResumePage(material && pdfSearchable ? recallPdfPage(material.id, material.pages) : null);
+  }, [open, material, pdfSearchable]);
 
   if (!material) return null;
 
@@ -580,7 +602,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
             <div
               data-split-pane="material"
               className={cn(
-                'flex min-h-0 min-w-0 flex-col bg-muted',
+                'relative flex min-h-0 min-w-0 flex-col bg-muted',
                 isSplit
                   ? cn(
                       // mobile: tela cheia na própria aba · desktop: coluna com a % lembrada
@@ -604,6 +626,43 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                   title={material.title}
                   className="min-h-0 w-full flex-1 bg-muted"
                 />
+              )}
+
+              {/* t161 — O CONVITE DE RETOMADA: pill flutuante sobre o PDF,
+                  centrada no rodapé (onde a leitura acontece, longe da barra
+                  do leitor nativo). pointer-events-none no casulo: rolar e
+                  ler NUNCA é bloqueado; só a pill captura o clique. */}
+              {pdfSearchable && resumePage !== null && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
+                  <div
+                    data-testid="pdf-resume-pill"
+                    className="pointer-events-auto flex animate-msg-in items-center gap-1 rounded-full border border-emerald-500/40 bg-background/95 py-1 pl-3 pr-1 shadow-lg backdrop-blur"
+                  >
+                    <BookMarked className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        doJump(resumePage);
+                        setResumePage(null); // aceito = o convite cumpriu o papel
+                      }}
+                      className="rounded-full px-1.5 py-0.5 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-300 dark:hover:text-emerald-200"
+                      title={`O Hub lembra do seu último salto nesta leitura — voltar à página ${resumePage}`}
+                      data-testid="pdf-resume-jump"
+                    >
+                      Continuar da página {resumePage}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResumePage(null)}
+                      aria-label="Dispensar o convite de retomada"
+                      title="Dispensar — a leitura recomeça da página 1 desta sessão"
+                      className="mr-0.5 grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                      data-testid="pdf-resume-dismiss"
+                    >
+                      <X className="size-3" aria-hidden />
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
