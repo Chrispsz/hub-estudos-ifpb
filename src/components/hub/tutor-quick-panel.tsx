@@ -46,6 +46,9 @@ interface ChatMessage {
   model?: string;
   /** Miniatura do print anexado (só na conversa viva — painel é efêmero). */
   image?: string;
+  /** t170 — A ASSINATURA DO PRINT: de onde ele nasceu. Vive EXATAMENTE com
+   * a imagem (o cache de sessão guarda os dois, o resto do mundo, nenhum). */
+  imageLabel?: string;
   /** Hora local (HH:MM) — referência discreta na conversa. */
   time?: string;
   /** true → mensagem de erro (falha do provedor/sem key) — estilo rosa + sem ações. */
@@ -257,12 +260,16 @@ export function TutorQuickPanel({
 
   /** Anexo vindo de FORA do painel (print de página no modo dividido):
    * entra no MESMO pendingImage dos prints — vida efêmera igual. t163: o
-   * rótulo de procedência vem junto (o pai sabe de onde o print veio). */
+   * rótulo de procedência vem junto (o pai sabe de onde o print veio).
+   * t170 — PERGUNTAR JÁ RECORTADO: o anexo já é a intenção de perguntar —
+   * o foco pousa no composer (paridade do externalQuestion da t158: o
+   * print chega, a mão vai para o campo; nada é despachado sem a mão). */
   React.useEffect(() => {
     if (externalImage) {
       setPendingImage(externalImage);
       setPendingLabel(externalImageLabel ?? 'print do material');
       onExternalImageConsumed?.();
+      textareaRef.current?.focus();
     }
   }, [externalImage, externalImageLabel, onExternalImageConsumed]);
 
@@ -368,9 +375,15 @@ export function TutorQuickPanel({
     question: string,
     image: string | null = null,
     keepComposer = false,
+    labelOverride?: string | null,
   ) {
     const q = question.trim();
     if ((!q && !image) || loading) return;
+    // t170 — A ASSINATURA: o labelOverride é quem distingue retry de envio
+    // normal (mesma régua do chat principal) — o turno reenviado carrega o
+    // rótulo da bolha ORIGINAL; o envio normal usa o rótulo do chip pendente.
+    const isRetry = labelOverride !== undefined;
+    const label = isRetry ? (labelOverride ?? null) : pendingLabel;
     // t165: quem pergunta quer a resposta — o envio devolve o follow (e solta
     // o lock do voo da pill, se ele ainda estivesse em voo).
     setFollowing(true);
@@ -396,6 +409,8 @@ export function TutorQuickPanel({
       role: 'user',
       content: q || '📷 print anexado',
       image: image ?? undefined,
+      // t170: a assinatura entra JUNTO da imagem — sem imagem, sem rótulo.
+      imageLabel: image ? (label ?? undefined) : undefined,
       time: hhmm(),
     });
     setLoading(true);
@@ -608,7 +623,10 @@ export function TutorQuickPanel({
                       onClick={() => {
                         if (m.image) {
                           setLightboxSrc(m.image);
-                          setLightboxLabel(null); // bolha enviada não carrega rótulo (doutrina t163) — o título cai no fallback
+                          // t170: a bolha enviada CARREGA a assinatura — o
+                          // lightbox diz de onde o print veio (paridade do
+                          // chat principal; sem rótulo, o fallback honesto).
+                          setLightboxLabel(m.imageLabel ?? null);
                         }
                       }}
                       aria-label="Ver o print em tamanho grande"
@@ -621,6 +639,19 @@ export function TutorQuickPanel({
                         className="max-h-40 rounded-lg border border-white/20 transition-transform duration-150 group-hover:scale-[1.02]"
                       />
                     </button>
+                  )}
+                  {m.image && m.imageLabel && (
+                    // t170 — A LEGENDA DA ASSINATURA (paridade do chat):
+                    // embaixo da imagem, lado da bolha do aluno, a mesma voz
+                    // esmeralda-clara; truncate com title cheio.
+                    <p
+                      data-testid="panel-image-label"
+                      className="mt-1 flex items-center justify-end gap-1 text-[10px] font-medium text-emerald-100"
+                      title={`Print anexado: ${m.imageLabel}`}
+                    >
+                      <Camera className="size-2.5 shrink-0" aria-hidden />
+                      <span className="truncate">{m.imageLabel}</span>
+                    </p>
                   )}
                   {m.time && <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>}
                 </>
@@ -654,7 +685,7 @@ export function TutorQuickPanel({
                         type="button"
                         onClick={() => {
                           const target = resolveRetryTarget(messages, idx);
-                          if (target) void ask(target.content, target.image ?? null, true);
+                          if (target) void ask(target.content, target.image ?? null, true, target.imageLabel ?? null);
                         }}
                         disabled={loading}
                         aria-label="Tentar de novo — reenvia a pergunta que falhou"

@@ -1,0 +1,412 @@
+FUNDAMENTOS DA COMPUTAÇÃO — NOTAÇÕES NUMÉRICAS (Representação da Informação)
+Curso ADS — IFPB Campus Cajazeiras
+Prof. MSc. André Lira Rolim — 46 slides
+
+--- Slide 1 ---
+ADS — Fundamentos da Computação
+SOFTWARE: Evolução e Conceitos
+Msc. André Lira Rolim — Professor
+
+--- Slide 2 ---
+Representação da Informação
+Sistemas de Numeração
+
+--- Slide 3 ---
+Representação
+- O computador, sendo um equipamento eletrônico, armazena e movimenta as informações internamente sob forma eletrônica.
+- Tudo o que faz é reconhecer dois estados físicos distintos, produzidos pela eletricidade, pela polaridade magnética ou pela luz refletida — em essência, eles sabem dizer se um "interruptor" está LIGADO ou DESLIGADO.
+
+--- Slide 4 ---
+Representação
+- Atualmente, o computador, por ser uma máquina eletrônica, só consegue processar duas informações: a PRESENÇA ou AUSÊNCIA de energia.
+- Para que a máquina pudesse representar eletricamente todos os símbolos utilizados na linguagem humana, seriam necessários mais de 100 diferentes valores de tensão (ou de corrente).
+
+--- Slide 5 ---
+Sistema de Numeração
+- É uma maneira de representar graficamente informações quantitativas, ou seja, é um conjunto de regras para representação dos números.
+- Cada sistema de numeração é apenas um método diferente de representar quantidades. As quantidades em si não mudam, mudam apenas os símbolos usados para representá-las.
+- A quantidade de algarismos disponíveis em um dado sistema de numeração é chamada de BASE.
+
+--- Slide 6 ---
+Sistema de Numeração — Bases Numéricas
+- Sistema Decimal (base 10)
+- Sistema Binário (base 2)
+- Sistema Octal (base 8)
+- Sistema Hexadecimal (base 16)
+
+--- Slide 7 ---
+Sistemas de Numeração — Tabela de conversão (0 a 15)
+BINÁRIO | OCTAL | DECIMAL | HEXADECIMAL
+0 | 0 | 0 | 0
+1 | 1 | 1 | 1
+10 | 2 | 2 | 2
+11 | 3 | 3 | 3
+100 | 4 | 4 | 4
+101 | 5 | 5 | 5
+110 | 6 | 6 | 6
+111 | 7 | 7 | 7
+1000 | 10 | 8 | 8
+1001 | 11 | 9 | 9
+1010 | 12 | 10 | A
+1011 | 13 | 11 | B
+1100 | 14 | 12 | C
+1101 | 15 | 13 | D
+1110 | 16 | 14 | E
+1111 | 17 | 15 | F
+
+--- Slide 8 ---
+Sistema de Numeração — BASE DECIMAL 10
+Símbolos: 0, 1, 2, 3, 4, 5, 6, 7, 8 e 9.
+Representação: combinação dos dez símbolos, associado com sua posição.
+Expressão Polinomial: Número = a_n·b^n + a_(n-1)·b^(n-1) + ... + a_1·b^1 + a_0·b^0
+(onde b é a base e a_i são os algarismos)
+
+--- Slide 9 ---
+Sistema de Numeração/Decimal
+Representação: Número = 2.534
+Número = a_n·10^n + a_(n-1)·10^(n-1) + ... + a_1·10^1 + a_0·10^0
+Tabela (2 | 5 | 3 | 4):
+Multiplica por: 10³ | 10² | 10¹ | 10⁰
+Ou seja: 1000 | 100 | 10 | 1
+Resultado: 2 x 1000 | 5 x 100 | 3 x 10 | 4 x 1
+Igual a: 2000 | 500 | 30 | 4
+Somando tudo: 2000 + 500 + 30 + 4
+Igual a: 2534
+
+--- Slide 10 ---
+Sistema de Numeração/Decimal
+Exemplo: Represente o número decimal 10648.
+Número = 1x10⁴ + 0x10³ + 6x10² + 4x10¹ + 8x10⁰
+Tabela (1 | 0 | 6 | 4 | 8):
+Multiplica por: 10⁴ | 10³ | 10² | 10¹ | 10⁰
+Ou seja: 10000 | 1000 | 100 | 10 | 1
+Resultado: 1 x 10000 | 0 x 1000 | 6 x 100 | 4 x 10 | 8 x 1
+Igual a: 10000 | 0 | 600 | 40 | 8
+Somando tudo: 10000 + 0 + 600 + 40 + 8
+Igual a: 10648
+
+--- Slide 11 ---
+Sistema de Numeração — Podemos observar que:
+- Cada dígito é sempre menor que a base (10);
+- O dígito mais significativo está à esquerda, e o menos significativo à direita;
+- Toma-se a base 10 (decimal) como referência.
+
+--- Slide 12 ---
+Sistema de Numeração/Decimal — EXERCÍCIO
+Represente os seguintes números decimais na forma polinomial:
+a. 20
+b. 6325
+c. 10001
+d. 123.456
+e. 54
+f. 12
+g. 4.568.456.123
+
+--- Slide 13 ---
+Sistema de Numeração
+- Código mais comum => BINÁRIO.
+Por que é utilizado o sistema binário?
+- Computadores são dotados de componentes eletrônicos;
+- Representar a informação através da combinação de 10 tipos de voltagens é bastante complicado.
+
+--- Slide 14 ---
+Sistema de Numeração — BASE BINÁRIA 2
+Símbolos: 0 e 1.
+Representação: combinação dos dois símbolos, associado com sua posição.
+Expressão Polinomial: Número = a_n·2^n + a_(n-1)·2^(n-1) + ... + a_1·2^1 + a_0·2^0
+
+--- Slide 15 ---
+Sistema de Numeração/Binário
+Representação: Número na base binária: 1011
+Número = 1x2³ + 0x2² + 1x2¹ + 1x2⁰
+Tabela (1 | 0 | 1 | 1):
+Multiplica por: 2³ | 2² | 2¹ | 2⁰
+Ou seja: 8 | 4 | 2 | 1
+Resultado: 1 x 8 | 0 x 4 | 1 x 2 | 1 x 1
+Igual a: 8 | 0 | 2 | 1
+Somando tudo: 8 + 0 + 2 + 1
+Igual a: 11
+
+--- Slide 16 ---
+Sistema de Numeração/Binário
+Exemplo: Represente o número binário 11001 na base decimal.
+Número = 1x2⁴ + 1x2³ + 0x2² + 0x2¹ + 1x2⁰
+Tabela (1 | 1 | 0 | 0 | 1):
+Multiplica por: 2⁴ | 2³ | 2² | 2¹ | 2⁰
+Ou seja: 16 | 8 | 4 | 2 | 1
+Resultado: 1 x 16 | 1 x 8 | 0 x 4 | 0 x 2 | 1 x 1
+Igual a: 16 | 8 | 0 | 0 | 1
+Somando tudo: 16 + 8 + 0 + 0 + 1
+Igual a: 25
+
+--- Slide 17 ---
+Sistema de Numeração/Binário — EXERCÍCIO
+Represente os seguintes números binários na forma polinomial e diga seu valor correspondente no sistema de numeração decimal:
+a. 11
+b. 101100
+c. 1101001
+d. 1
+e. 0
+f. 01
+
+--- Slide 18 ---
+Sistema de Numeração/Binário
+Exemplo: Represente o número binário _______ na base decimal.
+Tabela para preencher (linhas): Multiplica por | Ou seja | Resultado | Igual a | Somando tudo | Igual a
+
+--- Slide 19 ---
+Sistema de Numeração — BASE OCTAL 8
+Símbolos: 0, 1, 2, 3, 4, 5, 6 e 7.
+Representação: combinação dos oito símbolos, associado com sua posição.
+Expressão Polinomial: Número = a_n·8^n + a_(n-1)·8^(n-1) + ... + a_1·8^1 + a_0·8^0
+
+--- Slide 20 ---
+Sistema de Numeração/Octal
+Representação: Número octal = 2534
+Número = 2x8³ + 5x8² + 3x8¹ + 4x8⁰
+Tabela (2 | 5 | 3 | 4):
+Multiplica por: 8³ | 8² | 8¹ | 8⁰
+Ou seja: 512 | 64 | 8 | 1
+Resultado: 2 x 512 | 5 x 64 | 3 x 8 | 4 x 1
+Igual a: 1024 | 320 | 24 | 4
+Somando tudo: 1024 + 320 + 24 + 4
+Igual a: 1372
+
+--- Slide 21 ---
+Sistema de Numeração/Octal
+Exemplo: Represente o número octal 42536 em uma base decimal.
+Número = 4x8⁴ + 2x8³ + 5x8² + 3x8¹ + 6x8⁰
+Tabela (4 | 2 | 5 | 3 | 6):
+Multiplica por: 8⁴ | 8³ | 8² | 8¹ | 8⁰
+Ou seja: 4096 | 512 | 64 | 8 | 1
+Resultado: 4 x 4096 | 2 x 512 | 5 x 64 | 3 x 8 | 6 x 1
+Igual a: 16384 | 1024 | 320 | 24 | 6
+Somando tudo: 16384 + 1024 + 320 + 24 + 6
+Igual a: 17758
+
+--- Slide 22 ---
+Sistema de Numeração/Octal — EXERCÍCIO
+Represente os seguintes números octais na forma polinomial e diga seu valor correspondente no sistema de numeração decimal:
+a. 11
+b. 235
+c. 00001
+d. 2037
+e. 121
+f. 10
+
+--- Slide 23 ---
+Sistema de Numeração/Octal
+Exemplo: Represente o número binário _______ na base decimal.
+Tabela para preencher (linhas): Multiplica por | Ou seja | Resultado | Igual a | Somando tudo | Igual a
+
+--- Slide 24 ---
+Sistema de Numeração — BASE HEXADECIMAL 16
+Símbolos: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 e A(10), B(11), C(12), D(13), E(14) e F(15).
+Representação: combinação dos dezesseis símbolos, associado com sua posição.
+Expressão Polinomial: Número = a_n·16^n + a_(n-1)·16^(n-1) + ... + a_1·16^1 + a_0·16^0
+
+--- Slide 25 ---
+Sistema de Numeração/Hexadecimal
+Representação: Número = 7D40
+Número = 7x16³ + 13x16² + 4x16¹ + 0x16⁰
+Tabela (7 | D | 4 | 0):
+Multiplica por: 16³ | 16² | 16¹ | 16⁰
+Ou seja: 4096 | 256 | 16 | 1
+Resultado: 7 x 4096 | 13 x 256 | 4 x 16 | 0 x 1
+Igual a: 28672 | 3328 | 64 | 0
+Somando tudo: 28672 + 3328 + 64 + 0
+Igual a: 32064
+
+--- Slide 26 ---
+Sistema de Numeração/Hexadecimal
+Exemplo: Represente o número hexadecimal 1122F, na base decimal.
+Número = 1x16⁴ + 1x16³ + 2x16² + 2x16¹ + 15x16⁰
+Tabela (1 | 1 | 2 | 2 | F):
+Multiplica por: 16⁴ | 16³ | 16² | 16¹ | 16⁰
+Ou seja: 65536 | 4096 | 256 | 16 | 1
+Resultado: 1 x 65536 | 1 x 4096 | 2 x 256 | 2 x 16 | 15 x 1
+Igual a: 65536 | 4096 | 512 | 32 | 15
+Somando tudo: 65536 + 4096 + 512 + 32 + 15
+Igual a: 70191
+
+--- Slide 27 ---
+Sistema de Numeração/Hexadecimal — EXERCÍCIO
+Represente os seguintes números hexadecimais na forma polinomial e diga seu valor correspondente no sistema de numeração decimal:
+a. 11
+b. FF
+c. 1F2A
+d. 1121
+e. FACA
+f. EEE
+
+--- Slide 28 ---
+Sistema de Numeração/Hexadecimal
+Exemplo: Represente o número hexadecimal _______ na base decimal.
+Tabela para preencher (linhas): Multiplica por | Ou seja | Resultado | Igual a | Somando tudo | Igual a
+
+--- Slide 29 ---
+Tabela de Equivalência (Decimal, Binário, Octal, Hexadecimal — 0 a 15)
+DECIMAL | BINÁRIO | OCTAL | HEXADECIMAL
+0 | 0000 | 0 | 0
+1 | 0001 | 1 | 1
+2 | 0010 | 2 | 2
+3 | 0011 | 3 | 3
+4 | 0100 | 4 | 4
+5 | 0101 | 5 | 5
+6 | 0110 | 6 | 6
+7 | 0111 | 7 | 7
+8 | 1000 | 10 | 8
+9 | 1001 | 11 | 9
+10 | 1010 | 12 | A
+11 | 1011 | 13 | B
+12 | 1100 | 14 | C
+13 | 1101 | 15 | D
+14 | 1110 | 16 | E
+15 | 1111 | 17 | F
+
+--- Slide 30 ---
+Pergunta!
+Como funciona a conversão entre as diferentes bases?!
+...
+
+--- Slide 31 ---
+Decimal para Binário
+- Técnica das divisões sucessivas.
+Exemplo: converter 150 para binário.
+150 ÷ 2 = 75, resto 0
+75 ÷ 2 = 37, resto 1
+37 ÷ 2 = 18, resto 1
+18 ÷ 2 = 9, resto 0
+9 ÷ 2 = 4, resto 1
+4 ÷ 2 = 2, resto 0
+2 ÷ 2 = 1, resto 0
+1 ÷ 2 = 0, resto 1
+Lendo os restos de baixo para cima: 150 = 10010110 (binário)
+
+--- Slide 32 ---
+Dica — Potências de 2 (tabela de apoio para conversões)
+2⁹ = 512
+2⁸ = 256
+2⁷ = 128
+2⁶ = 64
+2⁵ = 32
+2⁴ = 16
+2³ = 8
+2² = 4
+2¹ = 2
+2⁰ = 1
+
+--- Slide 33 ---
+Binário para Hexadecimal
+Técnica: converter cada grupo de 4 dígitos.
+Exemplos:
+100111111010 (2) = 1001.1111.1010 = 9FA (16)
+110100100101 (2) = 1101.0010.0101 = D25 (16)
+
+--- Slide 34 ---
+Hexadecimal para Binário
+Técnica: converter cada algarismo com 4 dígitos.
+Exemplos:
+ABCD (16) = 1010.1011.1100.1101
+8F1E (16) = 1000.1111.0001.1110
+
+--- Slide 35 ---
+Decimal para Octal
+Exemplo: 266 (10) = ? (8)
+Divisões sucessivas por 8:
+266 ÷ 8 = 33, resto 2
+33 ÷ 8 = 4, resto 1
+4 ÷ 8 = 0, resto 4
+Lendo de baixo para cima: 266 (10) = 412 (8)
+
+--- Slide 36 ---
+Octal para Binário
+Técnica: converter cada algarismo octal com 3 dígitos binários.
+Ex 1: 472 (8) = [100][111][010] = 100111010 (2)
+Ex 2: 5431 (8) = [101][100][011][001] = 101100011001 (2)
+Tabela de apoio:
+OCTAL 0 = BINÁRIO 000
+OCTAL 1 = BINÁRIO 001
+OCTAL 2 = BINÁRIO 010
+OCTAL 3 = BINÁRIO 011
+OCTAL 4 = BINÁRIO 100
+OCTAL 5 = BINÁRIO 101
+OCTAL 6 = BINÁRIO 110
+OCTAL 7 = BINÁRIO 111
+
+--- Slide 37 ---
+Binário para Octal
+Técnica: separar o binário em grupos de 3 dígitos (da direita para a esquerda).
+Ex 1: 100111010 (2) = [100][111][010] = 472 (8)
+Ex 2: 11010110 (2) = [011][010][110] = 326 (8)
+
+--- Slide 38 ---
+Exercício
+1) 1990 (10) -> X (2)
+2) 10101010 (2) -> X (10), X (8), X (16)
+3) AB2C (16) -> X (2), X (8)
+4) 0011 (2) -> X (8)
+5) 547 (8) -> X (10)
+
+--- Slide 39 ---
+Exercício (continuação)
+6) F8A (16) -> X (8)
+7) 110111 (2) + 728 (10) -> X (8)
+8) AF4 (16) - 26 (8) -> X (10)
+10) 2701 (10) - 110 (2) -> X (16)
+11) 100 (2) x 14 (16) -> X (10)
+
+--- Slide 40 ---
+Aritmética Binária — Adição Binária
+Regras:
+0 + 0 = 0
+0 + 1 = 1
+1 + 0 = 1
+1 + 1 = 0 (e "vai 1" para o dígito de ordem superior)
+1 + 1 + 1 = 1 (e "vai 1" para o dígito de ordem superior)
+
+--- Slide 41 ---
+Adição Binária — Exemplos
+Ex: 101 + 011 = 1000 (binário)
+1101 (2) + 1011 (2) = 11000 (binário)
+11101 (2) + 1001 (2) = 100110 (binário)
+(com os "vai um" anotados acima das colunas)
+
+--- Slide 42 ---
+Multiplicação Binária
+Regras:
+0 x 0 = 0
+0 x 1 = 0
+1 x 0 = 0
+1 x 1 = 1
+Mesmo método que o decimal: deslocamentos e adições. Número maior deve ser colocado acima do menor.
+
+--- Slide 43 ---
+Multiplicação Binária — Exemplos
+Ex: 101 x 011: produtos parciais 101, 101, 000 → Produto = 01111 (binário)
+Exercícios:
+1100 x 0011 = ?
+1101 x 11 = ?
+11100 x 1100 = ?
+1010 x 1010 = ?
+
+--- Slide 44 ---
+Subtração Binária
+Regras:
+0 - 0 = 0
+0 - 1 = 1 (e "pede emprestado 1" para o dígito de ordem superior)
+1 - 0 = 1
+1 - 1 = 0
+
+--- Slide 45 ---
+Subtração Binária — Exemplos
+Ex: 101 - 011 = 010 (binário)
+1110 (2) - 1001 (2) = 0101 (binário)
+11000 (2) - 101 (2) = 10011 (binário)
+(com os empréstimos anotados)
+
+--- Slide 46 ---
+Divisão binária
+Exemplo: 25 ÷ 2 = 12,5 (decimal)
+11001 (2) ÷ 10 (2) = 1100,1 (binário)
+(divisão em binário passo a passo, com resto em vírgula)

@@ -1,27 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  BookOpen,
-  BookX,
-  CalendarClock,
-  CalendarDays,
-  CircleCheck,
-  Dumbbell,
-  FileText,
-  LayoutDashboard,
-  ListChecks,
-  Moon,
-  Printer,
-  Search,
-  Settings,
-  Sparkles,
-  Sun,
-  TrendingUp,
-  Zap,
-  Download,
-  Target,
-} from 'lucide-react';
+import { BookOpen, Dumbbell, FileText, Moon, Search, Sparkles, Sun, Download } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
   CommandDialog,
@@ -46,21 +26,7 @@ import { DisciplineDetailDialog } from './discipline-detail-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { DownloadsDialog } from './downloads-dialog';
 import { cn } from '@/lib/utils';
-import {
-  MATH_EXAM,
-  findMathSimuladoRunOficial,
-  paletteExamBriefFor,
-  type PaletteExamAction,
-} from '@/lib/math-exam-prep';
-import { daysUntilDate } from '@/lib/semester';
-import { openProgress, openSimulado, openTutor } from '@/lib/hub-events';
-import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
-import { useStudyProgress } from '@/lib/study-progress';
-import {
-  collectMistakes,
-  paperNotebookFor,
-  pendingMistakes,
-} from '@/lib/mistake-notebook';
+import { openTutor } from '@/lib/hub-events';
 
 interface Props {
   onNavigate: (k: TabKey) => void;
@@ -75,86 +41,15 @@ const PAGES: {
   icon: React.ReactNode;
   shortcut: string;
 }[] = [
-  { value: 'dashboard', label: 'Visão Geral', icon: <LayoutDashboard />, shortcut: '1' },
-  { value: 'study', label: 'Estudar (Pomodoro + IA)', icon: <Zap />, shortcut: '2' },
-  { value: 'library', label: 'Biblioteca', icon: <BookOpen />, shortcut: '3' },
-  { value: 'practice', label: 'Praticar', icon: <Dumbbell />, shortcut: '4' },
-  { value: 'method', label: 'Método (Sessão Guiada)', icon: <Target />, shortcut: '7' },
-  { value: 'schedule', label: 'Cronograma', icon: <CalendarDays />, shortcut: '5' },
-  { value: 'progress', label: 'Progresso', icon: <TrendingUp />, shortcut: '6' },
-  { value: 'settings', label: 'Configurações', icon: <Settings />, shortcut: '8' },
+  { value: 'library', label: 'Conteúdos (materiais e resumos)', icon: <BookOpen />, shortcut: '1' },
+  { value: 'study', label: 'Tutor IA', icon: <Sparkles />, shortcut: '2' },
+  { value: 'practice', label: 'Praticar', icon: <Dumbbell />, shortcut: '3' },
 ];
 
 export function CommandPalette({ onNavigate }: Props) {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
-
-  // A semana da Av1 na paleta — o relógio é lido NO render (lição 79/100:
-  // abrir a paleta re-renderiza → data fresca) e o run vem do hook (storage
-  // event → re-render → o grupo flipa 'ensaio' → 'correção' ao vivo).
-  const sp = useStudyProgress();
-  const examRun = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
-  const examBrief = paletteExamBriefFor(daysUntilDate(MATH_EXAM.date), Boolean(examRun));
-
-  // O ATALHO DO CADERNO (132): o caderno é o recibo do método inteiro — erros
-  // de simulado, exercício e cartão caem aqui sozinhos — mas a paleta, a
-  // navegação universal do app, não tinha NENHUM caminho até ele (Ctrl+K +
-  // 'caderno' = 'Nada encontrado'; a 131 entregou o recibo no resultado do
-  // simulado, a paleta é o outro lado da MESMA lição: anunciar é metade,
-  // levar é a outra — 127). Os números vêm da MESMA fonte do caderno
-  // (collectMistakes + paperNotebookFor — zero segunda derivação, a
-  // gramática da 125) e a porta é a MESMA do card da prova e do recibo do
-  // simulado (openProgress, a door da 118/131). O botão do papel segue a
-  // regra 88: só existe quando há enunciado confirmado pelo acervo — papel
-  // vazio é promessa disfarçada.
-  const notebookItems = React.useMemo(() => collectMistakes(sp.progress), [sp.progress]);
-  const notebookPendentes = React.useMemo(
-    () => pendingMistakes(notebookItems, sp.progress.notebookRevised).length,
-    [notebookItems, sp.progress.notebookRevised],
-  );
-  const notebookPaper = React.useMemo(
-    () => paperNotebookFor(notebookItems, sp.progress.notebookRevised),
-    [notebookItems, sp.progress.notebookRevised],
-  );
-  const cadernoHint: React.ReactNode =
-    notebookPendentes > 0 ? (
-      <>
-        <span className="tabular-nums">{notebookPendentes}</span>{' '}
-        {notebookPendentes === 1 ? 'pendente' : 'pendentes'} — errados de simulados,
-        exercícios e cartões
-      </>
-    ) : notebookItems.length > 0 ? (
-      <>tudo revisado — errar de novo reabre o item sozinho</>
-    ) : (
-      <>os erros dos simulados e exercícios caem aqui sozinhos</>
-    );
-  const paperCount = notebookPaper.printable.length;
-
-  /** Ação da semana — cada kind tem a porta que JÁ existe no app. */
-  function runExamAction(a: PaletteExamAction) {
-    switch (a.kind) {
-      case 'simulado':
-        run(() => openSimulado({ preset: 'math_exam' }));
-        break;
-      case 'correcao':
-        if (!examRun) return; // a ação só existe quando o run existe (brief)
-        run(() =>
-          openTutor({
-            question: buildRunDebriefQuestion(examRun),
-            disciplineCode: MATH_EXAM.disciplineCode,
-          }),
-        );
-        break;
-      case 'kit':
-      case 'plano':
-        go('dashboard');
-        break;
-      case 'folha':
-        run(() => window.open('/folha-revisao', '_blank', 'noopener,noreferrer'));
-        break;
-    }
-  }
 
   // Dialogs gerenciados pela paleta
   const [selectedDiscipline, setSelectedDiscipline] = React.useState<Discipline | null>(null);
@@ -167,7 +62,7 @@ export function CommandPalette({ onNavigate }: Props) {
     setMounted(true);
   }, []);
 
-  // Ctrl+K / Cmd+K abre a paleta; atalhos 1–8 trocam de aba fora de inputs
+  // Ctrl+K / Cmd+K abre a paleta; atalhos 1–3 trocam de aba fora de inputs
   React.useEffect(() => {
     function isTypingTarget(el: EventTarget | null): boolean {
       if (!(el instanceof HTMLElement)) return false;
@@ -238,81 +133,6 @@ export function CommandPalette({ onNavigate }: Props) {
             </span>
           </CommandEmpty>
 
-          {/* SEMANA DA AV1 — primeiro grupo na reta final (janela D-7→D-0,
-              regra da 88): a paleta se reordena para o momento. Tons = a
-              gramática da semana: âmbar nos dias de semana/ensaio (pulso só
-              no é-hoje, 93), emerald quando o run chegou, indigo no kit e
-              rose reservado ao dia da prova. */}
-          {examBrief && (
-            <>
-              <CommandGroup
-                heading={
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 font-semibold',
-                      examBrief.kind === 'prova'
-                        ? 'text-rose-600 dark:text-rose-400'
-                        : 'text-amber-600 dark:text-amber-400',
-                    )}
-                  >
-                    <CalendarClock
-                      className={cn(
-                        'size-3.5',
-                        examBrief.kind === 'simulado' || examBrief.kind === 'prova'
-                          ? 'animate-pulse'
-                          : '',
-                      )}
-                      aria-hidden="true"
-                    />
-                    {examBrief.heading}
-                    <span className="ml-1 rounded border border-current/30 px-1 font-mono text-[10px] tabular-nums opacity-80">
-                      D-{examBrief.daysLeft}
-                    </span>
-                  </span>
-                }
-              >
-                {examBrief.actions.map((a) => {
-                  const icon = {
-                    simulado: (
-                      <CalendarClock
-                        className={cn('size-4', a.pulsar && 'animate-pulse')}
-                        aria-hidden="true"
-                      />
-                    ),
-                    correcao: <CircleCheck className="size-4" aria-hidden="true" />,
-                    kit: <Moon className="size-4" aria-hidden="true" />,
-                    folha: <Printer className="size-4" aria-hidden="true" />,
-                    plano: <ListChecks className="size-4" aria-hidden="true" />,
-                  }[a.kind];
-                  const tone = {
-                    simulado: 'text-amber-500',
-                    correcao: 'text-emerald-500',
-                    kit: 'text-indigo-500',
-                    folha: 'text-zinc-500',
-                    plano: 'text-rose-500',
-                  }[a.kind];
-                  return (
-                    <CommandItem
-                      key={a.kind}
-                      value={`av1 semana da prova ${a.kind} ${a.label}`}
-                      onSelect={() => runExamAction(a)}
-                      className="gap-2.5"
-                    >
-                      <span className={cn('shrink-0 [&_svg]:size-4', tone)}>{icon}</span>
-                      <span className="min-w-0">
-                        <span className="block truncate">{a.label}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
-                          {a.hint}
-                        </span>
-                      </span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-              <CommandSeparator />
-            </>
-          )}
-
           <CommandGroup heading="Ir para">
             {PAGES.map((p) => (
               <CommandItem
@@ -332,12 +152,9 @@ export function CommandPalette({ onNavigate }: Props) {
 
           <CommandSeparator />
 
-          {/* O TUTOR NA NAVEGAÇÃO UNIVERSAL (142): o recurso CENTRO do site era
-              o único inalcançável pela busca — 'tutor' devolvia 'Nada
-              encontrado'. Cada disciplina vira uma porta direta do chat (o
-              MESMO openTutor da Biblioteca/Praticar/Agenda — a disciplina já
-              chega selecionada e a memória da conversa é a certa). Atalho
-              fiscaliza a regra da casa: integração real é a que a busca acha. */}
+          {/* O tutor na navegação universal: cada disciplina vira uma porta
+              direta do chat — a disciplina já chega selecionada e a memória
+              da conversa é a certa. */}
           <CommandGroup heading="Tutor IA — tirar dúvida">
             <CommandItem
               value="tutor ia duvida perguntar chat inteligencia artificial abrir estudar"
@@ -350,7 +167,7 @@ export function CommandPalette({ onNavigate }: Props) {
               <span className="min-w-0">
                 <span className="block truncate">Abrir o tutor IA</span>
                 <span className="block truncate text-[11px] text-muted-foreground">
-                  chat da disciplina atual — lê materiais, datas e seu progresso
+                  chat da disciplina atual — lê materiais e seu progresso
                 </span>
               </span>
             </CommandItem>
@@ -377,50 +194,6 @@ export function CommandPalette({ onNavigate }: Props) {
                 </CommandItem>
               );
             })}
-          </CommandGroup>
-
-          <CommandSeparator />
-
-          {/* O ATALHO DO CADERNO (132): grupo próprio, logo depois do tutor
-              — a revisão é a terceira fase do método e merece endereço na
-              navegação universal, não um enterro no submenu Mais → Progresso. */}
-          <CommandGroup heading="Caderno de erros">
-            <CommandItem
-              value="caderno de erros pendentes revisao abrir progresso"
-              onSelect={() => run(() => openProgress())}
-              className="gap-2.5"
-            >
-              <span className="shrink-0 text-amber-500 [&_svg]:size-4">
-                <BookX aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate">Abrir o Caderno de Erros</span>
-                <span className="block truncate text-[11px] text-muted-foreground">
-                  {cadernoHint}
-                </span>
-              </span>
-            </CommandItem>
-            {paperCount > 0 && (
-              <CommandItem
-                value="caderno papel imprimir folha pendencias levar questoes"
-                onSelect={() =>
-                  run(() => window.open('/caderno-papel', '_blank', 'noopener,noreferrer'))
-                }
-                className="gap-2.5"
-              >
-                <span className="shrink-0 text-zinc-500 [&_svg]:size-4">
-                  <Printer aria-hidden="true" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate">Levar as pendências ao papel</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">
-                    <span className="tabular-nums">{paperCount}</span>{' '}
-                    {paperCount === 1 ? 'questão' : 'questões'} com enunciado completo —
-                    refaça no papel, marque no caderno
-                  </span>
-                </span>
-              </CommandItem>
-            )}
           </CommandGroup>
 
           <CommandSeparator />
@@ -486,15 +259,6 @@ export function CommandPalette({ onNavigate }: Props) {
 
           <CommandGroup heading="Ações">
             <CommandItem
-              value="acao iniciar sessao de estudo pomodoro"
-              onSelect={() => go('study')}
-              className="gap-2.5"
-            >
-              <Zap className="shrink-0 text-emerald-500" />
-              <span>Iniciar sessão de estudo</span>
-              <CommandShortcut>↵ Estudar</CommandShortcut>
-            </CommandItem>
-            <CommandItem
               value="acao downloads zip pdf resumos materiais"
               onSelect={() =>
                 run(() => {
@@ -534,7 +298,7 @@ export function CommandPalette({ onNavigate }: Props) {
             abrir
           </span>
           <span className="inline-flex items-center gap-1">
-            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">1–8</kbd>
+            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">1–3</kbd>
             trocar de aba
           </span>
           <span className="inline-flex items-center gap-1">
@@ -547,7 +311,7 @@ export function CommandPalette({ onNavigate }: Props) {
         </div>
       </CommandDialog>
 
-      {/* Dialogs reutilizados (mesmos da Dashboard/Library) */}
+      {/* Dialogs reutilizados (mesmos da Biblioteca) */}
       <DisciplineDetailDialog
         discipline={selectedDiscipline}
         open={disciplineOpen}

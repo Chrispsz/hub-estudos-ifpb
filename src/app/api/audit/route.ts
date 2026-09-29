@@ -10,7 +10,6 @@ import {
 } from '@/data/course-data';
 import { exercises } from '@/lib/exercise-extractor';
 import { getAlignmentStats, getUnitsOf, disciplineCoversSubtopico } from '@/lib/curriculum-state';
-import { RECOVERY_TRACKS } from '@/lib/recovery-plan';
 import { MATH_EXAM_PLAN, MATH_FORMULAS, MATH_CHECKLIST } from '@/lib/math-exam-prep';
 
 export async function GET() {
@@ -68,15 +67,6 @@ export async function GET() {
         `exercício ${e.id}: gate "${e.requiresSubtopico}" ${aberto ? 'ABERTO' : 'fechado (aguardando aula)'}`,
       );
     }
-  }
-
-  // --- trilhas de recuperação ---
-  for (const t of RECOVERY_TRACKS) {
-    if (t.disciplineCode && !getDisciplineByCode(t.disciplineCode))
-      erros.push(`trilha ${t.id}: disciplineCode inexistente ${t.disciplineCode}`);
-    for (const a of t.acoes)
-      if (a.materialId && !matIds.has(a.materialId))
-        erros.push(`trilha ${t.id}: materialId inexistente ${a.materialId}`);
   }
 
   // --- plano da prova de matemática ---

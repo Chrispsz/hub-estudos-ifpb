@@ -755,6 +755,13 @@ export const materials: Material[] = [
     // Unidade 2 está sendo dada (exatamente o escopo da Prova 1, 30/10).
     topicosCobertos: ['Unidade 2: Desvios condicionais'],
   },
+  { id: 'alg-questoes-semana4', disciplineCode: 'TEC.1687', title: 'Questões da Semana 4 (Classroom)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana4.pdf',
+    summaryFile: 'alg-questoes-semana4.summary.json', pages: 2, source: 'user_upload',
+    // Material-first: mais 8 questões de desvios condicionais (nível acima da
+    // S3: switch, recorte de dígitos, fuso) — reforça o escopo da Prova 1, 30/10.
+    topicosCobertos: ['Unidade 2: Desvios condicionais'],
+  },
   { id: 'alg-programas-c-autorais', disciplineCode: 'TEC.1687', title: 'Programas C do autor — aula + Questões da Semana 1 (19 resolvidos)',
     type: 'exemplo', summaryFile: 'alg-programas-c-autorais.summary.json', source: 'user_upload',
     // Material-first: as soluções autorais comprovam DOMÍNIO da Unidade 1 (lidas/compiladas/rodadas)
@@ -908,6 +915,19 @@ export const materials: Material[] = [
   { id: 'fund-ementa', disciplineCode: '53647', title: 'Plano de Disciplina - Fundamentos',
     type: 'ementa', pdfPath: '/data/ementas/ementa-fundamentos.pdf',
     summaryFile: 'fundamentos-ementa.summary.json', source: 'ifpb_site' },
+  // NOVOS MATERIAIS — Fundamentos (slides do Prof. André, enviados 06/10)
+  { id: 'fund-02-historia-computacao', disciplineCode: '53647', title: 'História da Computação — Hardware: Evolução e Conceitos (127 slides)',
+    type: 'slides', pdfPath: '/pdfs/fund-02-historia-computacao.pdf',
+    summaryFile: 'fund-02-historia-computacao.summary.json', pages: 127, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Hardware e Software'],
+  },
+  { id: 'fund-01-notacoes-numericas', disciplineCode: '53647', title: 'Notações Numéricas — Representação da Informação (46 slides)',
+    type: 'slides', pdfPath: '/pdfs/fund-01-notacoes-numericas.pdf',
+    summaryFile: 'fund-01-notacoes-numericas.summary.json', pages: 46, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['Representação de Dados'],
+  },
   { id: 'ing-ementa', disciplineCode: 'ING.001', title: 'Plano de Disciplina - Inglês',
     type: 'ementa', pdfPath: '/data/ementas/ementa-ingles.pdf',
     summaryFile: 'ingles-ementa.summary.json', source: 'ifpb_site' },

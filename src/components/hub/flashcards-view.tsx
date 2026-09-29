@@ -66,14 +66,8 @@ import {
   type FlashcardGrade,
   type StudyProgressHook,
 } from '@/lib/study-progress';
-import { useNow } from './clock-widget';
-import { openProgress, openTutor } from '@/lib/hub-events';
-import {
-  MATH_EXAM,
-  findMathSimuladoRunOficial,
-  flashcardExamBriefFor,
-  type FlashcardExamBrief,
-} from '@/lib/math-exam-prep';
+import { useNow } from '@/lib/use-now';
+import { openTutor } from '@/lib/hub-events';
 import {
   mistakeCardSeedsFor,
   type MistakeCardSeed,
@@ -199,140 +193,6 @@ function parseDeckFile(raw: string): DeckFile['cards'] | null {
 
 // ---------- View principal ----------
 
-/**
- * Gramática visual do brief da semana da Av1 — A MESMA de todo o Hub:
- *   sólido + pulso nos "é hoje" (tratamento D-0 da 76, chips da 85/86),
- *   emerald sólido SEM pulso quando o registro diz feito (85/86/89),
- *   tinta translúcida da família no estado de espera (strips da 89).
- * âmbar = simulado/véspera · rose = prova · emerald = feito.
- */
-const EXAM_BRIEF_VISUAL: Record<
-  FlashcardExamBrief['kind'],
-  {
-    shell: string;
-    text: string;
-    sub: string;
-    iconBox: string;
-    icon: React.ReactNode;
-    btn: string;
-  }
-> = {
-  'simulado-hoje': {
-    shell:
-      'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400',
-    text: 'text-white dark:text-zinc-900',
-    sub: 'text-white/90 dark:text-zinc-900/80',
-    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
-    icon: <CalendarCheck className="size-4 animate-pulse" aria-hidden />,
-    btn: 'bg-white text-amber-600 hover:bg-amber-50 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-zinc-800',
-  },
-  'simulado-feito': {
-    shell: 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500',
-    text: 'text-white dark:text-zinc-900',
-    sub: 'text-white/90 dark:text-zinc-900/80',
-    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
-    icon: <CheckCircle2 className="size-4" aria-hidden />,
-    btn: 'bg-white text-emerald-600 hover:bg-emerald-50 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-zinc-800',
-  },
-  vespera: {
-    shell:
-      'border-amber-500/40 bg-amber-500/[0.07] dark:border-amber-400/40 dark:bg-amber-400/[0.06]',
-    text: 'text-amber-600 dark:text-amber-300',
-    sub: 'text-amber-700/80 dark:text-amber-300/75',
-    iconBox: 'bg-amber-500/15 dark:bg-amber-400/15',
-    icon: <Zap className="size-4" aria-hidden />,
-    btn: 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300',
-  },
-  'prova-hoje': {
-    shell:
-      'border-rose-500 bg-rose-500 shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400',
-    text: 'text-white dark:text-zinc-900',
-    sub: 'text-white/90 dark:text-zinc-900/80',
-    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
-    icon: <GraduationCap className="size-4 animate-pulse" aria-hidden />,
-    btn: 'bg-white text-rose-600 hover:bg-rose-50 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-zinc-800',
-  },
-};
-
-/** Faixa da semana da Av1 no topo dos Flashcards — o cram escopado a 1 clique. */
-function ExamBriefStrip({
-  brief,
-  mathCards,
-  onStart,
-  mistakeSeeds,
-  onFromMistake,
-}: {
-  brief: FlashcardExamBrief;
-  mathCards: number;
-  onStart: () => void;
-  /** Sementes da Av1 esperando virar cartão — a porta só existe com estoque
-   * real (regra 88: sem registro não há linha; aqui, sem erro não há porta). */
-  mistakeSeeds: number;
-  onFromMistake: () => void;
-}) {
-  const v = EXAM_BRIEF_VISUAL[brief.kind];
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
-        v.shell,
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        <span
-          className={cn(
-            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
-            v.iconBox,
-          )}
-        >
-          {v.icon}
-        </span>
-        <div className="min-w-0">
-          <p className={cn('text-sm font-semibold leading-tight', v.text)}>{brief.titulo}</p>
-          <p className={cn('mt-1 text-xs leading-snug', v.sub)}>{brief.chamada}</p>
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-        {/* A PORTA DA PROMESSA (134): a chamada diz 'os erros de hoje viram
-            cartões' e o caminho era copiar o enunciado à mão — a semente leva
-            o material do acervo ao diálogo de criação (a lição da 127: anunciar
-            é metade, levar é a outra). Família amber = o caderno (a espera da
-            casa, gramática da 131/132); o cram continua sendo o CTA principal. */}
-        {mistakeSeeds > 0 && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onFromMistake}
-            className={cn(
-              'shrink-0 gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800',
-              'dark:text-amber-400 dark:hover:text-amber-300',
-              'focus-visible:ring-2 focus-visible:ring-amber-500/40',
-            )}
-            aria-label={`Transformar um erro em cartão (${mistakeSeeds} prontos)`}
-          >
-            <BookX className="size-3.5" aria-hidden="true" />
-            Do erro ao cartão (<span className="tabular-nums">{mistakeSeeds}</span>)
-          </Button>
-        )}
-        <Button
-          size="sm"
-          onClick={onStart}
-          disabled={mathCards === 0}
-          title={
-            mathCards === 0
-              ? 'Nenhum cartão de Matemática no baralho — adicione o baralho de fórmulas no card da prova (Visão Geral)'
-              : undefined
-          }
-          className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
-          aria-label={brief.cta}
-        >
-          <Zap className="size-3.5" /> {brief.cta}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 /** Cartão gerado pela IA na prévia editável (id estável p/ keys em lista removível). */
 interface GeneratedCard {
   id: string;
@@ -432,28 +292,6 @@ export function FlashcardsView() {
     return [...list].sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
   }, [allCards, filterDiscipline]);
 
-  /** Cartões de Matemática no baralho — o alvo do cram da Av1. */
-  const mathCardCount = React.useMemo(
-    () => allCards.filter((c) => c.disciplineCode === MATH_EXAM.disciplineCode).length,
-    [allCards],
-  );
-
-  // Brief da semana da Av1 — RENDER-TIME (lição 79): calculado no frame,
-  // reage a mock de relógio no remount, sem estado nem interval. O run
-  // oficial vem da FONTE ÚNICA findMathSimuladoRunOficial (85/86/88/89).
-  // A porta é o próprio now (contrato null-até-mount da 113): o tick de
-  // 30s faz o brief flipar sozinho quando a janela da semana vira.
-  const simuladoRunOficial = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
-  const examBrief = now
-    ? flashcardExamBriefFor(
-        now,
-        mathCardCount,
-        simuladoRunOficial
-          ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
-          : null,
-      )
-    : null;
-
   // A SEMENTE DO ERRO (134): pendências do caderno com material completo no
   // acervo e ainda sem cartão nascido delas. A fonte é a MESMA do caderno
   // (collectMistakes + pendingMistakes — zero segunda derivação, a gramática
@@ -463,11 +301,6 @@ export function FlashcardsView() {
     () => mistakeCardSeedsFor(sp.progress, sp.progress.flashcards ?? []),
     [sp.progress],
   );
-  const mathMistakeSeeds = React.useMemo(
-    () => mistakeSeeds.filter((s) => s.disciplineCode === MATH_EXAM.disciplineCode).length,
-    [mistakeSeeds],
-  );
-
   if (mode === 'review' || mode === 'cram') {
     return (
       <ReviewSession
@@ -613,21 +446,6 @@ export function FlashcardsView() {
           />
         </div>
       </div>
-
-      {/* Semana da Av1 nos flashcards — silêncio honesto fora da janela.
-          Render-time: aparece/desaparece no mesmo frame do mock de relógio. */}
-      {examBrief && (
-        <ExamBriefStrip
-          brief={examBrief}
-          mathCards={mathCardCount}
-          mistakeSeeds={mathMistakeSeeds}
-          onFromMistake={() => setAddOpen(true)}
-          onStart={() => {
-            setCramScope(MATH_EXAM.disciplineCode);
-            setMode('cram');
-          }}
-        />
-      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
@@ -1144,16 +962,6 @@ function ReviewSession({
                   caderno — a pendência de origem segue lá, esperando a revisão que fecha o ciclo.
                 </span>
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  onExit();
-                  openProgress();
-                }}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-1 dark:text-amber-400"
-              >
-                Abrir o caderno
-              </button>
             </div>
           )}
           <Button onClick={onExit} className="bg-emerald-600 text-white hover:bg-emerald-700">

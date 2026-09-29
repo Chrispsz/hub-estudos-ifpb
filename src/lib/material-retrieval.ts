@@ -72,13 +72,17 @@ export function questionNumberHint(question: string): number | null {
 /** O chunk é o ENUNCIADO da questão N? (numeração literal das listas do curso)
  *  Tolerante à decoração de markdown da transcrição por visão (**9-**, >2-) —
  *  o `**` antes do número enganava o `(^|\n)\s*` e a questão desaparecia
- *  do retrieval EXATAMENTE na lista que o aluno estava fazendo. */
+ *  do retrieval EXATAMENTE na lista que o aluno estava fazendo.
+ *  Também aceita o prefixo "Q" usado nas listas curadas do curso
+ *  ("Q5."/"Q5:" nas Questões da Semana) — sem isso, "questão 5 da semana 4"
+ *  empataba por keywords com outra lista e o enunciado certo perdia. */
 function chunkHasQuestionNumber(chunk: string, n: number): boolean {
   const c = normalize(chunk);
   const heads = [
     new RegExp(`(^|\\n)[*_>#\\s]*${n}\\s*[-).:]`), // "3-" "3)" "3." no início de linha
     new RegExp(`(^|\\n)[*_>#\\s]*questao\\s*${n}\\b`),
     new RegExp(`(^|\\n)[*_>#\\s]*exercicio\\s*${n}\\b`),
+    new RegExp(`(^|\\n)[*_>#\\s]*-?\\s*q\\s*${n}\\b`), // "Q3."/"Q3:" (listas curadas)
   ];
   return heads.some((re) => re.test(c));
 }
@@ -257,10 +261,12 @@ export async function findBestMaterialForQuestion(
         if (qNum !== null) {
           if (chunkHasQuestionNumber(c, qNum)) {
             // enunciado de LISTA: "N-"/"N)" seguido de letra (não é "2 - 3"
-            // de subtração, não é "N. TÍTULO" de seção de teoria)
-            const enunciado = new RegExp(
-              `(^|\\n)[*_>#\\s]*${qNum}\\s*[-)]\\s*[^\\d\\s]`,
-            ).test(normalize(c));
+            // de subtração, não é "N. TÍTULO" de seção de teoria). O formato
+            // "Q5." das listas curadas conta como enunciado (o "q" exige o
+            // período + letra — "5. TÍTULO" de teoria continua fora do tier).
+            const enunciado =
+              new RegExp(`(^|\\n)[*_>#\\s]*${qNum}\\s*[-)]\\s*[^\\d\\s]`).test(c) ||
+              new RegExp(`(^|\\n)[*_>#\\s]*-?\\s*q\\s*${qNum}\\s*\\.\\s*[^\\d\\s]`).test(c);
             s += enunciado ? 120 : 60;
             if (enunciado) hasEnunciado = true;
           }
@@ -285,6 +291,19 @@ export async function findBestMaterialForQuestion(
     // tem a questão. +400 domina qualquer soma de keywords sem apagar o ranking
     // entre dois materiais que ambos têm enunciado (aí decide o keyword score).
     if (hasEnunciado) materialScore += 400;
+
+    // BÔNUS DE TÍTULO (a lição da "lista de lógica"): quando o aluno cita o
+    // TIPO/TEMA do material no nome ("lista de lógica", "slides da semana 4",
+    // "questões da semana"), o material cujo TÍTULO contém essas palavras é o
+    // âncora natural — o corpo do PDF quase nunca pronuncia a palavra "lista"
+    // (o título sim). Empata o tier sujo: teoria que tem "1) ..." decorativo
+    // perde para a lista que o aluno pediu explicitamente.
+    if (kws.length) {
+      const titleNorm = normalize(m.title);
+      let titleHits = 0;
+      for (const kw of kws) if (titleNorm.includes(kw)) titleHits++;
+      materialScore += Math.min(titleHits * 25, 75);
+    }
 
     if (!best || materialScore > best.score) best = { material: m, score: materialScore };
   }

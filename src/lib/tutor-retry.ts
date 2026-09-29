@@ -19,6 +19,9 @@ export interface RetryableTurn {
   content: string;
   /** Print que entrou junto — se ainda vive na conversa, o retry o leva. */
   image?: string;
+  /** t170: a procedência do print viaja COM ele — o retry reenvia o turno
+   * original inteiro, e a bolha nova nasce com a mesma assinatura. */
+  imageLabel?: string;
   error?: boolean;
 }
 

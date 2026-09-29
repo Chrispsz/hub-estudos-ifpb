@@ -1,0 +1,76 @@
+QUESTÕES DA SEMANA 4 — Algoritmos (Classroom)
+Fonte: PDF real "Questões Semana 4.pdf" enviado pelo dono do Hub (2 páginas, 8 questões).
+8 questões — 100% DESVIOS CONDICIONAIS (Unidade 2), agora com o nível da Prova 1:
+comparações encadeadas, switch/estado civil, decisão com manipulação de dígitos
+(palíndromo), sequência de decisões (saque de cédulas), strings + condições
+(conjugação) e conversão de horário com fuso (aritmética + cadeia de if).
+
+================================================================================
+Q1. Escreva um programa que leia três números distintos e identifique o número
+    que não é nem o menor e nem o maior número.
+
+Q2. Escreva um programa que leia as coordenadas x e y de um ponto e verifique
+    a qual quadrante esse ponto pertence. Você pode supor que o ponto informado
+    pelo usuário pertence a apenas um quadrante.
+
+Q3. Escreva um programa que leia as coordenadas x e y de um ponto e verifique
+    se esse ponto pertence à reta y = 2x + 1.
+
+Q4. Escreva um programa que leia um caractere correspondente ao estado civil de
+    uma pessoa e imprima o estado civil informado por extenso. As opções para o
+    estado civil são: S (solteiro), C (casado), D (divorciado) e V (viúvo).
+
+Q5. Escreva um programa em que leia um número inteiro entre 1000 e 9999 e
+    verifique se o número informado é ou não um palíndromo.
+
+Q6. Escreva um programa que leia um valor inteiro a ser sacado pelo usuário e
+    identifique quantas cédulas de cada tipo devem ser usadas para que o saque
+    seja efetuado. Você pode supor que o caixa tem cédulas de R$ 10,00,
+    R$ 20,00, R$ 50,00 e R$ 100,00. O valor máximo de um saque é R$ 1000,00 e,
+    para cada saque, deve-se priorizar o uso das cédulas maiores.
+
+Q7. Escreva um programa que leia um verbo regular no infinitivo (da 1ª, 2ª ou
+    3ª conjugação) e imprima a sua conjugação no presente do modo indicativo.
+
+Q8. Escreva um programa que leia as horas, os minutos e o fuso horário e
+    converta o horário lido para o fuso horário informado. O fuso horário deve
+    ser informado como um número inteiro. Caso o valor seja positivo, o
+    programa deve considerar que o fuso horário digitado é maior do que o
+    atual. Caso o valor seja negativo, o programa deve considerar que o fuso
+    horário é menor do que o atual. Caso o valor seja 0, o programa deve
+    considerar que o fuso horário é o mesmo do atual. A resposta do programa
+    deve ser dada no formato hh:mm hs. Por exemplo, se o horário lido foi 10 h
+    e 30 min e o fuso horário for 4, a resposta do programa deve ser 14:30 hs.
+    Por outro lado, se o horário lido foi 10 h e 30 min e o fuso horário for -4,
+    a resposta do programa deve ser 06:30 hs. Se o horário lido for 22 h e
+    30 min e o fuso-horário for 3, a resposta deve ser 01:30 hs. Se o horário
+    lido for 2 h e 30 min e o fuso horário for -3, a resposta deve ser 23:30 hs.
+    O horário referente à meia-noite deve ser representado da forma 00:00 hs.
+================================================================================
+
+MAPA DAS QUESTÕES (o que cada uma treina):
+- Q1: "meio" de três distintos — depois de achar maior e menor (ou comparar em
+  cadeia), o que sobra é o do meio. Nada de laço: só if/else encadeados.
+- Q2: quadrante clássico AGORA garantido de um quadrante só (a Semana 3 Q5
+  pedia a QUANTIDADE; aqui é "qual"): x>0,y>0 → 1º; x<0,y>0 → 2º;
+  x<0,y<0 → 3º; x>0,y<0 → 4º.
+- Q3: teste de pertencimento à reta — y == 2x + 1 com valores lidos. Cuidado
+  com a ordem: o y é comparado com 2 vezes o x mais 1.
+- Q4: o caso clássico de SWITCH (ou cadeia if/else if) com char: 'S','C','D','V'
+  — e o else final/default para caractere inválido.
+- Q5: palíndromo de 4 dígitos SEM laço: milhares = n/1000; centenas = (n/100)%10;
+  dezenas = (n/10)%10; unidades = n%10. Palíndromo se primeiro==último e
+  segundo==terceiro. Validar faixa 1000-9999.
+- Q6: caixa eletrônico com prioridade de cédulas: 100 → 50 → 20 → 10 usando
+  divisão inteira (qtd = valor/100; valor = valor % 100; ...) — cadeia de
+  decisões, NÃO é laço ainda.
+- Q7: verbo regular no infinitivo: termina em "ar" (1ª conj.: eu -o, tu -as,
+  ele -a, nós -amos, vós -ais, eles -am), "er" (2ª: -o, -es, -e, -emos, -eis,
+  -em) ou "ir" (3ª: -o, -es, -e, -imos, -is, -em). Decisão pelo sufixo + recorte
+  da raiz.
+- Q8: conversão de fuso: total = horas*60 + minutos + fuso*60; ajustar com
+  módulo 24h (e 1440 = 24*60 minutos); meia-noite = 00:00. Os 4 exemplos do
+  enunciado são os CASOS DE TESTE oficiais (10:30+4=14:30; 10:30-4=06:30;
+  22:30+3=01:30; 02:30-3=23:30).
+
+FIM — 8 questões. Continuação direta do treino da Prova 1 (30/10).

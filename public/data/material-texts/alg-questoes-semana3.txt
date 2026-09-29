@@ -1,9 +1,9 @@
 QUESTÕES DA SEMANA 3 — Algoritmos (Classroom, 23/09/2026)
-Fonte: PDF "Questões Semana 3.pdf" enviado pelo dono do Hub.
+Fonte: PDF REAL "Questões Semana 3.pdf" enviado pelo dono do Hub (1 página,
+8 questões) — agora o arquivo oficial do professor está em
+public/pdfs/alg-questoes-semana3.pdf e esta transcrição foi conferida contra ele.
 8 questões — 100% DESVIOS CONDICIONAIS (Unidade 2). É o treino exato da
 Prova 1 (30/10: entrada/saída, if e estruturas de decisão).
-Transcrição integral do material original (o PDF em si não chegou ao
-servidor; conteúdo completo veio na mensagem — recriado fielmente).
 
 ================================================================================
 Q1. Escreva um programa que leia um número inteiro e determine o seu valor

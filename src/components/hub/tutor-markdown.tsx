@@ -32,6 +32,47 @@ function nodeText(node: React.ReactNode): string {
   return '';
 }
 
+/**
+ * Emojis (🚀 🎯 ✅ …) que o modelo às vezes insere apesar da regra do prompt —
+ * removidos no render. setas (→) e símbolos matemáticos (π × ÷ ≥ ²) ficam:
+ * não são emoji, são conteúdo.
+ */
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}]/gu;
+
+/**
+ * O modelo às vezes HTML-escapa o LaTeX (& → &amp;) e o KaTeX não sabe ler
+ * &amp; como separador de colunas de \begin{pmatrix} — era o ParseError
+ * "Expected 'EOF', got '&amp;'" no console. Corrige DENTRO dos trechos math
+ * ($$…$$ e $…$), sem tocar no texto normal nem nos blocos de código.
+ */
+function unescapeMathEntities(s: string): string {
+  return s.replace(/(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$|(?<!\\)\$[^$\n]+(?<!\\)\$/g, (m) =>
+    m
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'"),
+  );
+}
+
+/**
+ * Sanitização defensiva do texto do tutor ANTES do markdown:
+ * 1. desescapa entidades HTML dentro de math (fix do KaTeX);
+ * 2. remove emojis (regra do tutor forçada no render — o prompt sozinho
+ *    não bastou em produção);
+ * 3. remove réguas horizontais (---/___/***) e excesso de linhas vazias —
+ *    o muro com separador decorativo some da tela.
+ */
+function sanitizeTutorContent(raw: string): string {
+  let s = raw.replace(/R\$/g, 'R\\$');
+  s = unescapeMathEntities(s);
+  s = s.replace(EMOJI_RE, '');
+  s = s.replace(/^[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*$/gm, '');
+  s = s.replace(/\n{3,}/g, '\n\n');
+  return s.trim();
+}
+
 interface TutorMarkdownProps {
   content: string;
   /** Cor de destaque (tailwind text class). Padrão: esmeralda do tutor. */
@@ -55,9 +96,10 @@ function TutorMarkdownImpl({
   enableCards = false,
   disciplineCode,
 }: TutorMarkdownProps) {
-  // Protege o cifrão do "R$" do pareamento de math ($...$): vira escape markdown
-  // (R\$) que o remark-math ignora e o CommonMark renderiza como "$" literal.
-  const prepared = React.useMemo(() => content.replace(/R\$/g, 'R\\$'), [content]);
+  // Sanitização (KaTeX/emojis/réguas) + protege o cifrão do "R$" do pareamento
+  // de math ($...$): vira escape markdown (R\$) que o remark-math ignora e o
+  // CommonMark renderiza como "$" literal.
+  const prepared = React.useMemo(() => sanitizeTutorContent(content), [content]);
 
   const remarkPlugins = React.useMemo<PluggableList>(() => [remarkGfm, remarkMath], []);
   // Opções do plugin em TUPLA aninhada ([plugin, options]) — no formato plano o

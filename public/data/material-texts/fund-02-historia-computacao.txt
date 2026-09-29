@@ -1,0 +1,743 @@
+FUNDAMENTOS DA COMPUTAÇÃO — HISTÓRIA DA COMPUTAÇÃO (Hardware: Evolução e Conceitos)
+Curso ADS — IFPB Campus Cajazeiras
+Prof. André Lira Rolim — 127 slides
+
+--- Slide 1 ---
+ADS — Fundamentos da Computação
+HARDWARE: Evolução e Conceitos
+André Lira Rolim — Professor
+
+--- Slide 2 ---
+Computador: Definição
+"Máquina capaz de receber, armazenar e enviar dados, e de efetuar, sobre estes, seqüências previamente programadas de operações aritméticas (como cálculos) e lógicas (como comparações), com o objetivo de resolver problemas."
+(Dicionário Aurélio Eletrônico — Século XXI)
+
+--- Slide 3 ---
+Computador: Componentes
+O computador é organizado por dois "itens" básicos:
+- Hardware: é a parte física do computador.
+- Software: é a parte lógica do computador.
+
+--- Slide 4 ---
+Computador: História
+Para melhor compreender o presente e estimar melhor o futuro, é necessário CONHECER O PASSADO.
+Como chegamos aqui? Produzir informação, com eficiência, é uma necessidade muito antiga, mais do que imagina!!
+
+--- Slide 5 ---
+História — Como Tudo Começou...
+
+--- Slide 6 ---
+Evolução da Contagem
+- O pastor foi INOVADOR na arte da contagem;
+- Tudo surgiu da necessidade de melhor controlar o seu rebanho;
+- Para cada ovelha deveria existir uma pedra.
+
+--- Slide 7 ---
+Evolução da Contagem
+- Por ser um objeto que sempre está "por perto" e o homem possui, foram utilizados os dedos para auxiliar na contagem;
+- Fica fácil concluir a definição do sistema DECIMAL.
+
+--- Slide 8 ---
+Dactilonomia Sexagesimal
+- Método de Contagem dos Babilônios
+(contagem nas falanges dos dedos, alcançando 12 por mão e 60 no total)
+
+--- Slide 9 ---
+Vara de Contagem
+- Ossos de Ishago
+Pode ser feita em madeira, pedra, osso etc.
+Vara de contar dividida com protonumerais romanos: I I IIV I IIIIX ....
+
+--- Slide 10 ---
+Vara de Contar Dividida
+- Usada para Registrar dívidas.
+- Uma Parte para o Credor e a outra para o Devedor.
+
+--- Slide 11 ---
+Evolução da Contagem
+- Chegou um determinado momento (2500 a.C.), que os dedos eram INSUFICIENTES na execução de cálculos mais complexos (valores maiores);
+- Surgiu a necessidade criar dispositivos que pudessem auxiliar nessa contagem, ou seja, realizando com MAIOR VELOCIDADE;
+- A seguir serão apresentados, em ordem CRONOLÓGICA, alguns desses dispositivos (inteligentes) que foram criados.
+
+--- Slide 12 ---
+Evolução da Contagem
+Dispositivo: ÁBACO.
+- Versões primitivas, já eram usadas no Oriente Médio desde 2500 a.C.;
+- Ainda utilizado nos dias atuais.
+- Constituídos de fios paralelos com pedras deslizantes, sua posição determinava o valor a ser representado (pedras localizadas próximas à barra).
+(Ábaco Romano)
+
+--- Slide 13 ---
+Evolução da Contagem
+Dispositivo: ÁBACO.
+(Ábaco Chinês — exemplo mostrando o número 029651)
+
+--- Slide 14 ---
+Hieróglifos egípcios (3.000 a.C)
+Símbolo egípcio | descrição | nosso número:
+| (bastão) = 1
+∩ (calcanhar) = 10
+9 (rolo de corda) = 100
+(flor de lótus) = 1000
+(dedo apontando) = 10000
+(peixe) = 100000
+(homem) = 1000000
+
+--- Slide 15 ---
+Algarismos romanos (750 a.C)
+Número romano | Nome | Valor:
+I | unus | 1 (um)
+V | quinque | 5 (cinco)
+X | decem | 10 (dez)
+L | quinquaginta | 50 (cinquenta)
+C | centum | 100 (cem)
+D | quingenti | 500 (quinhentos)
+M | mille | 1.000 (mil)
+
+--- Slide 16 ---
+Algarismos arábicos (976 d.C)
+- Sistema em uma base de dez, usando um símbolo para o zero.
+- 0, 1, 2, 3, 4, 5, 6, 7, 8 e 9
+- Só foi colocado em uso após o século XIII
+
+--- Slide 17 ---
+(Manuscrito espanhol datado de 976 com os nove algarismos "indo-árabes": trata-se da mais antiga menção conhecida do uso desses algarismos na Europa.)
+[Imagem: manuscrito com os dígitos 9 8 7 6 5 4 3 2 1]
+
+--- Slide 18 ---
+Evolução da Contagem
+Dispositivo: BASTÕES DE NAPIER (ossos de Napier).
+- John Napier foi um teólogo e matemático;
+- Os bastões foram criados para auxiliar na multiplicação;
+- Surgiu no final do século XVI (documentado em 1614);
+- Consiste de nove peças (dígitos de 1 a 9), cada haste representa uma coluna na tabela de multiplicação;
+- Método: Dígitos da diagonal são somados da direita para a esquerda ("vai um").
+
+--- Slide 19 ---
+Máquina de Anticítera
+- Datado de 87 a.C.
+Achado em 1901, junto com outros artefatos e estátuas na ilha Grega de Antícítera, não teve a devida atenção por estar com muito material marinho encrustados, tendo uma aparência irrelevante.
+A partir da década de 70 cientistas passaram a analisar a peça com mais detalhes e foi descoberto que a peça marca eventos astronômicos, e atualmente juntaram evidencias que o próprio Galileu Galilei utilizou dela para formalizar suas leis físicas.
+
+--- Slide 20 ---
+Evolução da Contagem
+Dispositivo: BASTÕES DE NAPIER.
+(John Napier — Pai do logaritmo)
+
+--- Slide 21 ---
+Evolução da Contagem
+(Bastões de Napier em uso: 7x1=7, 7x2=14, 7x3=21, 7x4=28, 7x5=35, 7x6=42, 7x7=49, 7x8=56, 7x9=63 — hastes com diagonais somadas; BOARD e SET OF RODS)
+
+--- Slide 22 ---
+Evolução da Contagem
+Dispositivo: BASTÕES DE NAPIER.
+Qual o resultado? 6 x 384 = ?
+(142 + 884 = 2304)
+Resultado: 2.304
+
+--- Slide 23 ---
+Evolução da Contagem
+A criação da RÉGUA DE CÁLCULO pelo matemático inglês William Oughtred, em 1622 na Inglaterra, foi diretamente influenciada pelos Ossos de Napier.
+É uma régua com propriedades logarítmicas.
+Esta régua chegou a ser utilizada pelos engenheiros da NASA, na década de 1960, nos programas que levaram o homem à Lua.
+
+--- Slide 24 ---
+Hardware — Primeira Geração
+
+--- Slide 25 ---
+Primeira Geração: Mecânica
+Dispositivo: MÁQUINA DE CALCULAR DE WILHELM SCHICKARD (Alemanha — 1623)
+Wilhelm Schickard construiu a primeira calculadora mecânica, capaz de realizar as quatro operações básicas com números de seis dígitos em 1623.
+Ela funcionava por meio de um mecanismo de rodas dentadas e também era chamada de "relógio calculador". Foi utilizada por Johannes Kepler, que revolucionou a Astronomia.
+Essa máquina foi perdida na guerra dos 30 anos; os docs foram achados recentemente.
+
+--- Slide 26 ---
+Primeira Geração: Mecânica
+Dispositivo: CALCULADORA DE DISCOS (PASCALINE).
+- Criada por Blaise Pascal (aos 18 anos na França);
+- Por muito tempo foi considerada a Primeira máquina (mecânica) capaz de realizar cálculos de soma e subtração rapidamente;
+- Pouca produção (em torno de 50) e muito cara!!
+- O mecanismo de funcionamento é o mesmo utilizado até hoje nos odômetros de carros.
+
+--- Slide 27 ---
+Primeira Geração: Mecânica
+Dispositivo: CALCULADORA DE DISCOS (PASCALINE).
+[Imagem: a Pascaline com discos de metal numerados]
+
+--- Slide 28 ---
+Primeira Geração: Mecânica
+Dispositivo: CALCULADORA DE 4 OPERAÇÕES. Leibniz
+- Em 1672, o Alemão Gottfried Wilhelm Leibniz foi o primeiro a inventar uma calculadora que realizava as 4 operações básicas (adição, subtração, multiplicação e divisão).
+- A adição utilizava um mecanismo baseado na Pascaline, mas as operações de multiplicação realizavam a sequência de somas automáticas.
+- Leibniz também foi o primeiro a defender a utilização do sistema binário, que é fundamental nos computadores digitais que utilizamos hoje.
+
+--- Slide 29 ---
+Primeira Geração: Mecânica
+Na calculadora de Leibniz uma manivela girava uma roda para acelerar as operações de multiplicação e divisão.
+
+--- Slide 30 ---
+Primeira Geração: Mecânica
+Dispositivo: MÁQUINA ANALÍTICA e MÁQUINA DIFERENCIAL.
+- Criada por Charles Babbage, em 1822;
+- Modelo para calcular e imprimir longas tabelas científicas;
+- Devido a não precisão dos equipamentos mecânicos, nunca chegou a funcionar 100%, o protótipo ficou muito ABAIXO da idéia original.
+
+--- Slide 31 ---
+Primeira Geração: Mecânica — Charles Babbage
+- O único que quase chegou a criar, efetivamente, um computador no sentido da palavra.
+- Em 1822, o matemático inglês Charles Babbage propôs a construção de uma máquina de calcular (MÁQUINA DIFERENCIAL) que ocuparia uma sala inteira, e teria o propósito de corrigir os erros das tabelas de logaritmos.
+- A construção da máquina no entanto, excedeu em orçamento e tempo na sua construção, foi inclusive o projeto mais caro que o governo britânico já havia financiado.
+
+--- Slide 32 ---
+Primeira Geração: Mecânica
+Dispositivo: MÁQUINA DIFERENCIAL (1822)
+Em 1822, Babbage descreveu, num artigo científico, uma máquina que poderia computar e imprimir extensas tabelas científicas. No mesmo ano, construiu um modelo preliminar de sua Máquina de Diferenças, com rodas dentadas fixadas em eixos que uma manivela fazia girar.
+
+--- Slide 33 ---
+Geração Mecânica Programável
+
+--- Slide 34 ---
+Lógica Booleana
+- Em 1841, mais de um século após a morte de Leibniz, um matemático inglês autodidata chamado George Boole retomou vigorosamente a procura de uma linguagem universal.
+- Seu pensamento: colocar a lógica sob o domínio da matemática.
+  - A Análise Matemática da Lógica, em 1847;
+  - Uma Investigação das Leis do Pensamento, em 1854.
+- Deu origem às três portas Lógicas que são a base para qualquer operação básica aritmética ou comparações lógicas. (AND, OR, NOT)
+
+--- Slide 35 ---
+Algoritmo
+Exemplo: Somar três números
+Algoritmo Soma   (Identificação do algoritmo)
+Var               (Declaração de variáveis)
+  a, b, c, soma: inteiro
+Inicio            (Corpo do algoritmo)
+  Ler (a, b, c)
+  soma <- a + b + c   (pode ser :=)
+  Escrever (soma)     (Ler ou Leia; Escrever ou Escreva ou Mostrar)
+Fim
+(Usar identação. Fluxograma do bolo: início -> abrir forno -> forno aceso? sim: botar lenha / não: acender fogo -> assar pão -> fim)
+
+--- Slide 36 ---
+Primeira Geração: Mecânica
+Dispositivo: MECANISMO JACQUARD.
+Em 1804, o Francês Joseph Marie Jacquard inventou uma máquina de tear que trançava o tecido de acordo com uma programação que era fornecida através de furos num cartão.
+
+--- Slide 37 ---
+Primeira Geração: Mecânica
+Para produzir um novo padrão, o operador simplesmente substituía um conjunto de cartões por outro.
+A invenção de Jacquard revolucionou a industria de tecido, e em 1806, ela foi declarada propriedade pública e ele foi recompensado com uma pensão e royalties por cada máquina que fosse construída.
+
+--- Slide 38 ---
+Primeira Geração: Mecânica
+Dispositivo: MÁQUINA ANALÍTICA (1837)
+Após a inacabada máquina diferencial, em 1837, Charles Babbage anunciou um projeto para construção da Máquina Analítica. Influenciado pelo tear de Jacquard, Babbage propôs uma máquina de propósito genérico (PROCESSADOR GENÉRICO), utilizando uma programação através de cartões perfurados.
+
+--- Slide 39 ---
+Primeira Geração: Mecânica
+- A Máquina Analítica deveria possuir uma seção denominada "moinho" e uma outra denominada "depósito", ambas compostas de rodas dentadas.
+Moinho = Processador | Depósito = Memória
+- Babbage percebeu que os cartões poderiam ser utilizados para armazenar IDEIAS ABSTRATAS, sejam elas INSTRUÇÕES ou NÚMEROS, e que poderiam ser referenciados posteriormente, adotando para sua máquina o conceito de MEMÓRIA.
+Nenhum dos dois projetos de Babbage foram concluídos; a máquina analítica se fosse construída teria o tamanho de uma locomotiva.
+
+--- Slide 40 ---
+Primeira Geração: Mecânica
+Ada Lovelace — Primeira Programadora
+"Podemos dizer mais convenientemente que a Máquina Analítica tece padrões algébricos, assim como o tear de jacquard tece flores e folhas" — Escreveu a condessa de Lovelace, uma das poucas pessoas que compreenderam o funcionamento da máquina e vislumbraram seu imenso potencial de aplicação.
+Augusta Ada Byron, condessa de Lovelace e única filha legítima do poeta Lord Byron, emprestou seus consideráveis talentos matemático e literário ao projeto de Babbage.
+
+--- Slide 41 ---
+Primeira Geração: Mecânica
+- Ada desenvolveu os algoritmos que permitiriam à máquina computar os valores de funções matemáticas, além de publicar uma coleção de notas sobre a máquina analítica. Por esse trabalho é considerada a PRIMEIRA PROGRAMADORA DE TODA A HISTÓRIA.
+- Em 1953, mais de cem anos depois de sua morte, as notas de Ada sobre a máquina analítica de Babbage foram republicadas. A máquina foi reconhecida como um primeiro modelo de computador e as notas de Ada como a descrição de um computador e um software.
+Ada descreveu o algoritmo para a máquina analítica computar a SEQUÊNCIA DE BERNOULLI. É considerado o primeiro algoritmo especificamente criado para ser implementado num computador.
+
+--- Slide 42 ---
+Primeira Geração: Mecânica
+Dispositivo: HOLLERITH (patente 1887)
+- Certamente baseado nos Teares mecânicos de Joseph-Marie Jacquard.
+Exatamente dezenove anos após a morte de Babbage, os cartões perfurados apareceram numa máquina — um tabulador estatístico construido pelo norte-americano Herman Hollerith para acelerar o processamento das estatísticas para o CENSO DOS ESTADOS UNIDOS DE 1890.
+Em 1911, quatro corporações, incluindo a firma de Hollerith, se fundiram para formar a Computing Tabulating Recording Corporation. Sob a presidência de THOMAS J. WATSON, ela foi renomeada para IBM.
+
+--- Slide 43 ---
+Primeira Geração: Mecânica
+Dispositivo: HOLLERITH.
+Antes da máquina, para contabilizar o censo com 50 milhões de habitantes durou 7 anos e meio;
+Com a máquina foi possível contabilizar o censo com 63 milhões de habitantes em menos de 3 anos.
+
+--- Slide 44 ---
+Primeira Geração: Mecânica — Linha do Tempo (Geração Mecânica)
+Ábaco (300 a.C.)
+Ossos de Napier (1614)
+Régua de Cálculo (1632)
+Pascaline (1642)
+Calculadora 4 operações (1672)
+Tear de Jacquard (1804)
+Máquina Diferencial (1822)
+Máquina Analítica (1837)
+Hollerith (1887)
+
+--- Slide 45 ---
+Teoria antes de evoluir
+Teoria: NUMERAÇÃO BINÁRIA (bit).
+- Publicada em 1948, por Claude Shannon;
+- Tese de mestrado defendia que o princípio de números binário era semelhante aos circuitos elétricos;
+- Sucesso imediato, em meses foi utilizada nos sistemas telefônicos americanos;
+- Introduziu o conceito do "BINARY DIGIT".
+
+--- Slide 46 ---
+Numeração Binária
+- "Uma Teoria Matemática da Comunicação" — descreveu o que desde então passaria a ser conhecido como TEORIA DA INFORMAÇÃO.
+Shannon propôs um método para definir e medir a informação em termos matemáticos, onde escolhas sim-não eram representadas por dígitos binários — idéia que está na base das modernas telecomunicações.
+Mais dois cientistas pesquisavam a mesma coisa em paralelo: John Atanasoff e George Stibitz.
+
+--- Slide 47 ---
+Hardware — Segunda Geração
+
+--- Slide 48 ---
+Segunda Geração: Válvulas
+VÁLVULAS:
+- Surgiu na década de 40;
+- Cada válvula é capaz de representar uma informação (dois estados);
+- Semelhante a uma lâmpada comum, queimam constantemente;
+- Começava a ERA DA ELETRÔNICA. A partir das válvulas surgiram o rádio, a televisão e os computadores.
+
+--- Slide 49 ---
+Segunda Geração: Válvulas
+[Imagem: válvula eletrônica na mão]
+
+--- Slide 50 ---
+Segunda Geração: Válvulas
+Tecnologia impulsionada pela Guerra
+1941 — IBM (Thomas J. Watson) se dispõe ao governo dos EUA para prestar seus "serviços tecnológicos".
+Logo, em 1944, Howard Aiken concebeu o MARK I. Com parcerias com a IBM, Marinha e Universidade de Harvard.
+Com cerca de 15 metros de comprimento e 2,5 metros de altura, o Mark I continha nada menos que 750.000 partes, unidas por meio de aproximadamente 80.400 metros de fios.
+Foi utilizado pela Marinha para Fins Balísticos.
+
+--- Slide 51 ---
+Zuse — Z1
+Dispositivo: Zuse Z1, Z2, Z3 — 1934
+PRIMEIRA MÁQUINA ELETROMECÂNICA BINÁRIA PROGRAMÁVEL.
+Esta máquina era constituída basicamente por um somador/subtrator de 22 bits e uma unidade lógica de controle que possibilitava a realização de tarefas mais complexas como multiplicação (por sucessivas somas) e divisão (por sucessivas subtrações).
+(Konrad Zuse)
+
+--- Slide 52 ---
+Segunda Geração: Válvulas
+SEGUNDA GUERRA MUNDIAL
+- Aconteceu entre 1939 e 1945;
+- Causou grande número de vítimas (60% civis).
+O Governo dos EUA ofereceu grande incentivo para construção de equipamentos visando cálculo de trajetórias, decifrar códigos...
+
+--- Slide 53 ---
+Segunda Geração: Válvulas
+Guerra da Informação
+A guerra ainda estava no começo, e Hitler achava-se tão convencido de uma vitória rápida que ordenou o embargo de todas as pesquisas científicas, exceto daquelas a curto prazo.
+ELES HAVIAM PRODUZIDO UMA MÁQUINA QUE CRIPTOGRAFAVA AS MENSAGENS EM CAMPO DE GUERRA, UTILIZANDO UMA CRIPTOGRAFIA ATÉ ENTÃO "INDECIFRÁVEL".
+Durante a Segunda Guerra Mundial, as versões da ENIGMA são usadas por praticamente todas as comunicações rádio alemãs, tal como para as comunicações telegráficas.
+
+--- Slide 54 ---
+Segunda Geração: Válvulas
+Quebrando Paradigmas
+Por outro lado, os aliados incentivavam fortemente as pesquisas. Em destaque, o projeto Britânico.
+O projeto britânico prosseguia sob a mais alta prioridade, como parte de um notável esforço de ruptura de códigos, conhecido como Ultra e liderado por um grupo de pesquisadores brilhantes e excêntricos, de engenheiros a professores de literatura, reunidos em BLETCHLEY PARK, perto de Londres. Entre eles havia um matemático chamado ALAN TURING.
+
+--- Slide 55 ---
+Segunda Geração: Válvulas
+Bletchley Park
+[Imagens: sede e equipe de Bletchley Park durante a guerra]
+
+--- Slide 56 ---
+Segunda Geração: Válvulas
+Quebrando Paradigmas
+AS IDÉIAS DE TURING PROPORCIONOU O AVANÇO DA QUEBRA DO ENIGMA.
+Na realidade, o Colossus foi construído com base em máquinas mecânicas polonesas, chamadas "bombas", as quais foram as primeiras a "quebrar" o enigma.
+(Colossus)
+Alan Turing: É considerado o "PAI" DA COMPUTAÇÃO MODERNA pelo seu trabalho em busca da máquina universal, criando várias teorias na área.
+
+--- Slide 57 ---
+Segunda Geração: Válvulas
+ENIAC (Projeto Inovador!)
+- Iniciado em 1943 (durante a segunda guerra mundial) e concluído em 1946 (depois da segunda guerra mundial);
+- Dispositivo que realizava 5.000 operações por segundo;
+- Possibilitou realizar cálculos balísticos em 30 segundos, o que antes acontecia em 12 horas!!
+- Projetistas: John Presper Eckert e John W. Mauchly;
+- Possuía funcionamento parecido com uma calculadora simples.
+
+--- Slide 58 ---
+Segunda Geração: Válvulas
+- PRIMEIRO computador eletrônico digital criado, em 1946;
+- ENIAC (Electronic Numeric Integrator Analyser and Calculator);
+- DIMENSÕES MONSTRUOSAS:
+Ocupava área de aprox. 1.400 m² → 1/3 campo de futebol;
+Pesava 30 toneladas;
+Utilizava quase 18.000 válvulas;
+Utilizava 10.000 capacitores;
+Consumia cerca de 150 quilowatts de potência;
+Utilizava milhares de relés e resistores.
+Representação dos dados em decimal.
+
+--- Slide 59 ---
+Segunda Geração: Válvulas — ENIAC
+[Imagem: salão do ENIAC com seus gabinetes e operador]
+
+--- Slide 60 ---
+Segunda Geração: Válvulas — ENIAC
+O ENIAC teve vida ativa curta e foi aposentado em 1952.
+
+--- Slide 61 ---
+Segunda Geração: Válvulas — ENIAC
+Capacidade de memória e confiabilidade foram os primeiros problemas.
+
+--- Slide 62 ---
+Segunda Geração: Válvulas — ENIAC
+PROGRAMAÇÃO:
+Exigia conhecimento completo dos detalhes operacionais da máquina, engenhosidade e MUITA PACIÊNCIA;
+Gravação e/ou modificação, era feita através de alterações das LIGAÇÕES ELÉTRICAS entre os componentes (usando fios);
+A programação durava de 1 a 2 semanas.
+LIMITAÇÕES:
+Capacidade de armazenamento;
+Não dava para esperar semana(s) para programar uma máquina que levaria minutos para chegar ao resultado!
+
+--- Slide 63 ---
+Segunda Geração: Válvulas — ENIAC
+O ENIAC tinha condições de armazenar apenas vinte números de dez dígitos e toda programação precisava ser feita reordenando-se a rede elétrica.
+
+--- Slide 64 ---
+Segunda Geração: Válvulas
+ARQUITETURA DE VON NEUMANN (1946)
+É uma arquitetura de computador que se caracteriza pela possibilidade de uma máquina digital armazenar seus programas no mesmo espaço de memória que os dados, podendo assim manipular tais programas.
+Diagrama: Memória conectada à Unidade de Controle e à Unidade Aritmética e Lógica (com Acumulador); Entrada e Saída ligadas à UAL.
+(John von Neumann)
+
+--- Slide 65 ---
+Segunda Geração: Válvulas
+EDVAC (Electronic Discrete Variable and Automatic Computer);
+- Construção INICIOU em 1946, por John Von Neumann (consultor do projeto ENIAC);
+- Primeiro computador com o conceito de programa armazenado (Cartão Perfurado);
+- Projeto basicamente para uso militar.
+- Codificação Binária.
+As instruções eram armazenadas eletronicamente num meio material que Eckert descobriu por acaso, quando trabalhava com radar: um tubo cheio de mercúrio, conhecido como linha de retardo.
+
+--- Slide 66 ---
+Cartão Perfurado
+[Imagem: cartão perfurado de máquina]
+
+--- Slide 67 ---
+Segunda Geração: Válvulas — EDVAC
+[Imagens: painel e corredor de gabinetes do EDVAC]
+
+--- Slide 68 ---
+Segunda Geração: Válvulas
+EDSAC (Electronic Delay Storage Automatic Calculator);
+- Criado, em 1949, o primeiro computador com o conceito de programa armazenado;
+- No mesmo ano que foi criado, o EDSAC completou com sucesso seu primeiro trabalho (tabela de números primos).
+
+--- Slide 69 ---
+Segunda Geração: Válvulas — EDSAC
+[Imagem: gabinetes do EDSAC com dois operadores]
+
+--- Slide 70 ---
+Segunda Geração: Válvulas
+UNIVAC 1, criado em 1951;
+- Primeiro computador lançado em ESCALA COMERCIAL, utilizava os conceitos de Von Neumann;
+- O UNIVAC era uma máquina eletrônica de programa armazenado que recebia instruções de uma FITA MAGNÉTICA de alta velocidade ao invés dos cartões perfurados.
+
+--- Slide 71 ---
+Segunda Geração: Válvulas — UNIVAC 1
+- Pesava 5 toneladas;
+- Ocupava 20 m².
+
+--- Slide 72 ---
+Segunda Geração: Válvulas
+1953:
+- Lançado o computador IBM 701;
+- Primeiro computador de marca comercializado;
+- 19 máquinas vendidas em 3 anos;
+- Utilizava fita plástica, mais rápida que a metálica do UNIVAC.
+1954:
+- Lançado o maior sucessor de vendas da década, o IBM 650;
+- CPU (1,5 m x 0,9 m x 1,8 m);
+- Massa da CPU: 892 kg;
+- Alimentação: 1.384 kg;
+- Era de tamanho médio.
+
+--- Slide 73 ---
+Hardware — Terceira Geração
+
+--- Slide 74 ---
+Terceira Geração: Transistor
+TRANSISTOR:
+- Foi inventado em 1947 e veio substituir as válvulas, que eram maiores e gastavam mais energia, além de serem menos confiáveis;
+- Menor volume, menor aquecimento, menor perda de energia e maior confiabilidade e durabilidade.
+
+--- Slide 75 ---
+Terceira Geração: Transistor
+[Imagens: transistores de vários formatos e tamanhos]
+
+--- Slide 76 ---
+Terceira Geração: Transistor
+TRANSISTOR:
+- Os primeiros eram constituídos por um bloco de germânio e três filamentos de ouro. Um filamento era o pólo positivo, outro o pólo negativo e outro tinha a função de controle;
+- Outra grande evolução foi a troca do germânio pelo silício;
+- O SILÍCIO é um SEMICONDUTOR abundantemente encontrado na natureza.
+
+--- Slide 77 ---
+Terceira Geração: Transistor
+[Imagem: transistores pequenos na mão]
+
+--- Slide 78 ---
+Terceira Geração: Transistor
+IBM 1401:
+- Surgiu em 1959 o MAINFRAME IBM 1401;
+- Utilizava cartões perfurados;
+- Tornou-se um computador de propósito geral popular;
+- Foram vendidos 12.000 exemplares;
+- Tinha uma memória principal magnética de 4.000 caracteres (depois expandida para 16.000).
+
+--- Slide 79 ---
+Terceira Geração: Transistor — IBM 1401
+[Imagens: conjunto do IBM 1401 e console]
+
+--- Slide 80 ---
+Terceira Geração: Transistor
+IBM 1130:
+- Primeiro computador da UNICAMP;
+- Chegou em 1968;
+- Utilizava cartões perfurados;
+- 16 Kb de Memória e 1 Mb em disco;
+- Foi um acontecimento!
+
+--- Slide 81 ---
+Terceira Geração: Transistor — IBM 1130
+[Imagens: console do IBM 1130 e impressora em operação]
+
+--- Slide 82 ---
+Hardware — Quarta Geração
+
+--- Slide 83 ---
+Quarta Geração: Circuitos
+- Criado em 1958, pela TEXAS INSTRUMENTS;
+- Circuito constituído de componentes miniaturizados, montados em uma pequena placa;
+- Aqui COMEÇOU A EXPLOSÃO no uso de computadores;
+- Deu origem à invenção do microprocessador, Intel;
+- Pastilha de silício de 1 cm², contendo milhares de transistores.
+
+--- Slide 84 ---
+Quarta Geração: Circuitos
+[Imagem: três gerações de componentes de computador lado a lado — válvulas, transistores e circuitos integrados]
+
+--- Slide 85 ---
+Quarta Geração: Circuitos
+- A miniaturização eletrônica, nessa época, estava mais que evidente;
+- Possibilitou a fabricação e a comercialização de computadores em LARGA ESCALA, mais velozes e com maior capacidade de processamento!!
+- A IBM (02/1924) foi a PRIMEIRA EMPRESA a fabricar computadores com uso do transistor, série 700.
+
+--- Slide 86 ---
+Quarta Geração: Circuitos
+[Imagem: mão segurando válvula ao lado de transistores e circuito integrado]
+
+--- Slide 87 ---
+Quarta Geração: Circuitos
+IBM 7030 — "Top" de linha.
+
+--- Slide 88 ---
+Quarta Geração: Circuitos
+- Em 1966, a HP INICIOU a fabricação de computadores;
+- Modelo HP-2115.
+
+--- Slide 89 ---
+Hardware — Quinta Geração
+
+--- Slide 90 ---
+Quinta Geração: Processadores
+- Processador miniaturizado, cujos circuitos são fabricados numa única pastilha de silício;
+- Possibilitou criar computadores ainda mais velozes e menores;
+- Em 1971 foi criado o primeiro processador, pela Intel, o 4004. Características:
+2.300 transistores em uma área de 3x4 milímetros.
+
+--- Slide 91 ---
+Quinta Geração: Processadores
+[Imagens: chip C4004 e Ted Hoff, idealizador.]
+
+--- Slide 92 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel 8086 — Criado em 1978.
+
+--- Slide 93 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel 8088 — Criado em 1979.
+
+--- Slide 94 ---
+Quinta Geração: Processadores — Alguns processadores
+NEC V20 e V30 — Criado em 1981.
+
+--- Slide 95 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel 80186 — Criado em 1982.
+
+--- Slide 96 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel 80286 — Criado em 1982.
+
+--- Slide 97 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel 80386 — Criado em 1988.
+
+--- Slide 98 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel 80486 — Criado em 1991.
+
+--- Slide 99 ---
+Quinta Geração: Processadores — Alguns processadores
+Intel Pentium — Criado em 1993.
+
+--- Slide 100 ---
+Quinta Geração: Processadores
+[Imagem: logotipos de processadores Intel — Viiv, Centrino Duo, Core 2 Extreme, Core Duo, Pentium Extreme, Core i7, e um "??"]
+
+--- Slide 101 ---
+Quinta Geração: Processadores
+- Em 1971, foi desenvolvido o primeiro computador pessoal, o KENBAK-1. Valor ?! 750 dólares.
+
+--- Slide 102 ---
+Quinta Geração: Processadores
+- Em 1976 foi criado o Apple I;
+- Era ligado diretamente na TV, dispensava o terminal de vídeo;
+- Vendeu quase 200 unidades;
+- Valor: 666 dólares (5.000 dólares, valores corrigidos);
+- Atualmente um Apple I, em bom estado, chega a custar 50.000,00 dólares!!
+
+--- Slide 103 ---
+Quinta Geração: Processadores
+Apple I — Principal Característica: PROJETO DE GARAGEM!!
+- CPU: 1 MHz
+- RAM: 8 Kb (32 Kb)
+- Vídeo: 40x24 char
+- Fonte: 58 watts
+
+--- Slide 104 ---
+Quinta Geração: Processadores
+[Imagem: placa do Apple I montada em madeira com teclado]
+
+--- Slide 105 ---
+Quinta Geração: Processadores
+Apple II — Criado em: 1977.
+
+--- Slide 106 ---
+Quinta Geração: Processadores
+Fundadores da Apple
+- Steven Paul Jobs — estudante, 21 anos
+- Steve Wozniak — estudante, 26 anos
+
+--- Slide 107 ---
+Quinta Geração: Processadores
+[Imagem: IBM PC (Model 5150) com monitor, teclado e impressora]
+
+--- Slide 108 ---
+Quinta Geração: Processadores
+- Em 1981 foi criado o primeiro COMPUTADOR PORTÁTIL, Osborne I;
+- Memória: 64 Kb (10 mil transistores);
+- Monitor: 05 polegadas; Obs.: XP, mínimo, 256 Mb e 320 milhões de transistores.
+- Teclado: Podia ser acoplado em uma mala;
+- Peso: 11 kg!!
+
+--- Slide 109 ---
+Quinta Geração: Processadores
+[Imagens: Osborne I aberto, com mala e disquetes]
+
+--- Slide 110 ---
+Quinta Geração: Processadores
+- Em 1984, a Apple lança o Lisa;
+- CARACTERÍSTICAS:
+Memória: 1 Mb;
+Disquetes: dois drivers;
+HD: 5 Mb;
+Monitor: 12 polegadas (720 x 360).
+Valor: 10.000 dólares.
+
+--- Slide 111 ---
+Quinta Geração: Processadores
+[Imagem: computador Lisa da Apple com mouse]
+
+--- Slide 112 ---
+Quinta Geração: Processadores
+- Ainda em 1984, a Apple lança o Macintosh;
+- Computador com mouse e interface gráfica;
+- CARACTERÍSTICAS:
+CPU: Motorola 8 MHz;
+RAM: 128 Kb;
+SO: MacOS 1.0;
+Vendeu 50.000 unidades em 74 dias!!
+
+--- Slide 113 ---
+Quinta Geração: Processadores
+[Imagem: Macintosh original com a tela "hello."]
+
+--- Slide 114 ---
+Quinta Geração: Processadores
+- A partir de então, teve início a grande explosão de novos computadores;
+- Mais potentes; Mais velozes; Menores; Mais fáceis; Mais baratos; Mais acessíveis!!
+
+--- Slide 115 ---
+Hardware — CURIOSIDADES!
+
+--- Slide 116 ---
+Cartão Perfurado
+- Criado em 1802, por Jacquard.
+[Imagem: pormenor de um cartão perfurado, por intermédio do qual o computador recebia ou fornecia informações]
+
+--- Slide 117 ---
+Princípio da Programação
+- Primeira pessoa a programar: Ada Byron King.
+- Por volta de 1842.
+
+--- Slide 118 ---
+Primeiro Erro Relatado
+- Grace Murray Hopper, em 1945;
+- "bug";
+- Em 1952, criou o primeiro compilador;
+- Ajudou a desenvolver duas linguagens de programação.
+[Imagens: registro "First actual case of bug being found" e mariposa no relé #70]
+
+--- Slide 119 ---
+Algumas Datas
+- Teclado foi idealizado em 1956, MIT.
+- Em 1961, alguns estudantes escreveram o SPACEWAR, primeiro jogo com uso de gráficos, inspirou os vídeos games;
+- Em 1963, o mouse foi patenteadado por Douglas Engelbart.
+
+--- Slide 120 ---
+Disquete
+- Em 1967, foi criado o primeiro FLOPPY DISK.
+
+--- Slide 121 ---
+HD
+- Em 1980 foi criado o primeiro Hard Disk Drive para computador, capacidade de 5 Mb.
+[Imagem: anúncio "10 Megabyte Hard Disk — $3,495"]
+
+--- Slide 122 ---
+Hardware — Classificação dos Computadores
+
+--- Slide 123 ---
+Classificação
+PRINCÍPIO DE CONSTRUÇÃO:
+- Analógicos: Processamento realizado através de analogias físicas. Exemplo: Primeira geração de computadores.
+- Digitais: Processamento seqüencial de operações lógicas e aritméticas, na forma discreta. Exemplo: Computadores atuais.
+
+--- Slide 124 ---
+Classificação
+ÂMBITO DE AÇÃO:
+- Específico: Realiza um conjunto reduzido e específico de tarefas. Exemplo: Calculadora eletrônica.
+- Geral: Desempenha um grande número de tarefas, através de um variado número de programas. Exemplo: Computador pessoal.
+
+--- Slide 125 ---
+Classificação
+UTILIZAÇÃO:
+- Científico: Utilização para realização de cálculos e pesquisa científica, onde existe um pequeno número de entradas e saída de dados e resultados mais precisos.
+- Comercial: Situações que requerem um tratamento rápido e seguro, onde existe um grande número de entradas e saída de dados.
+
+--- Slide 126 ---
+Futuro: iMac
+[Imagens: conceitos do iMac]
+
+--- Slide 127 ---
+Super Máquina!!
+[Imagens humorísticas: laptop com ovo amarrado na webcam e pássaros: "Ele está no Wi-Fi"]

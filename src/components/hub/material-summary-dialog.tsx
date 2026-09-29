@@ -39,7 +39,7 @@ import type { Material, Discipline } from '@/data/course-data';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { useStudyProgress } from '@/lib/study-progress';
-import { openMethod, openPractice, openTutor } from '@/lib/hub-events';
+import { openPractice, openTutor } from '@/lib/hub-events';
 import { exercises } from '@/lib/exercise-extractor';
 import {
   MATH_EXAM,
@@ -449,22 +449,6 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 </a>
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="secondary"
-              className={cn(touchBtn, 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60')}
-              onClick={() => {
-                onOpenChange(false);
-                openMethod({
-                  disciplineCode: material.disciplineCode,
-                  materialId: material.id,
-                  topic: summary?.titulo || material.title,
-                });
-              }}
-              aria-label="Estudar este material com o Protocolo HUB (sessão guiada)"
-            >
-              <Target className="size-3.5" aria-hidden /> Sessão guiada (método)
-            </Button>
             <Button
               size="sm"
               variant="secondary"

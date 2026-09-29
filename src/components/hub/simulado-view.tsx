@@ -58,7 +58,7 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails, isSimuladoDayToday } from '@/lib/simulado-debrief';
-import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
+import { openPractice, openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
@@ -1934,14 +1934,14 @@ function ResultsScreen({
               }
               const worst = [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
               onOpenChange(false);
-              openMethod({
+              openTutor({
                 disciplineCode: worst,
-                topic: `Revisão de erros do simulado: ${missedList[0].topic}`,
+                question: `Revisão de erros do simulado: ${missedList[0].topic}. Explica o que errei e me dá o método para não errar de novo.`,
               });
             }}
             className="w-full rounded-lg border border-violet-300 bg-violet-50/70 px-3 py-2.5 text-xs font-medium text-violet-800 transition-colors hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-900/40"
           >
-            🎯 Fechar o ciclo: revisar esses erros com uma Sessão guiada do Protocolo HUB →
+            Fechar o ciclo: revisar esses erros com o Tutor IA →
           </button>
           {/* A PROMESSA CUMPRIDA (131): a tela de entrega promete "o que faltou
               alimenta o Caderno de Erros automaticamente" — mas o resultado
@@ -1950,7 +1950,7 @@ function ResultsScreen({
               duas vias — exerciseProgress.tried e o run.questions — são
               escritas ANTES de setPhase('results'), o recibo nunca mente).
               A janela de 48h é a MESMA régua do caderno (frescas); a porta é
-              a MESMA do card da prova (openProgress → aba Progresso). Família
+              a MESMA do recibo do simulado (openPractice → aba Praticar). Família
               amber: revisão é "a espera" da casa (a gramática do kit/fila/
               mapa). Run perfeito cala — sem registro não há linha (regra 88). */}
           <div className="mt-2.5 flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/[0.07] px-3.5 py-3">
@@ -1970,10 +1970,10 @@ function ResultsScreen({
                 type="button"
                 onClick={() => {
                   onOpenChange(false);
-                  openProgress();
+                  openPractice({});
                 }}
-                title="Abrir o Caderno de Erros na aba Progresso"
-                aria-label="Abrir o Caderno de Erros na aba Progresso"
+                title="Abrir o Caderno de Erros na aba Praticar"
+                aria-label="Abrir o Caderno de Erros na aba Praticar"
                 className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 dark:text-amber-400"
               >
                 Abrir o caderno

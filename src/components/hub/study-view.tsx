@@ -105,8 +105,6 @@ import {
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
 import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
-import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
-import { daysUntilDate } from '@/lib/semester';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import {
@@ -146,6 +144,10 @@ interface ChatMessage {
   model?: string;
   /** Miniatura do print anexado (só na conversa viva — não persiste no banco). */
   image?: string;
+  /** t170 — A ASSINATURA DO PRINT: de onde ele nasceu ("página 2 · Noções de
+   * Lógica", "recorte da página 3 · Lista"). Vive EXATAMENTE com a imagem —
+   * mesma vida efêmera, mesmo desaparecimento no envio/restauração. */
+  imageLabel?: string;
   /** Hora local (HH:MM) da mensagem — referência discreta de quando estudou. */
   time?: string;
   /** ISO do banco (t151) — alimenta os separadores de dia e o HH:MM das
@@ -248,23 +250,6 @@ const CHAT_SUGGESTIONS = [
   'Como está meu progresso?',
 ];
 
-/** Sugestões da SEMANA DE PROVA (148): os chips do chat sabem do momento —
- * na janela da Av1 de Matemática, o 1º gesto do aluno é o da prova (escopo,
- * plano, estado), não o genérico. Fora da janela (passou/não é a disciplina)
- * voltam os de sempre — depois da prova, é ruído (regra da casa). */
-const EXAM_CHAT_SUGGESTIONS = [
-  `O que cai na Av1 de ${MATH_EXAM_DATE_SHORT}?`,
-  'Monta meu plano de revisão até a prova',
-  'Como está meu progresso?',
-];
-
-/** Janela de prova viva (148): só Matemática, só ATÉ o dia — fonte única
- * para welcome + chips + escopo do "Me testa" (mesma conta da casa). */
-function mathExamBriefFor(code: string): { daysLeft: number; dateShort: string } | null {
-  if (code !== MATH_EXAM.disciplineCode) return null;
-  const d = daysUntilDate(MATH_EXAM.date);
-  return d >= 0 ? { daysLeft: d, dateShort: MATH_EXAM_DATE_SHORT } : null;
-}
 /** Segundos restantes reais a partir do epoch do fim da fase. */
 function remainingFromEndsAt(endsAt: number): number {
   return Math.max(0, Math.round((endsAt - Date.now()) / 1000));
@@ -348,23 +333,8 @@ function playBeep(silent: boolean) {
   }
 }
 
-function buildWelcome(
-  shortName: string,
-  examBrief?: { daysLeft: number; dateShort: string } | null,
-): string {
-  const base = `Olá! Sou o tutor IA de ${shortName}. 🤖\n\nConheço **seu progresso**, o **calendário do semestre** e os **materiais do Hub** — posso explicar o tópico atual, dar exemplos com código, lembrar as datas das provas ou responder o que você precisar. Toque em uma sugestão ou digite sua dúvida.`;
-  // A semana de prova fala primeiro (148): o welcome carrega a data e o
-  // escopo REAL — o aluno não precisa perguntar o que já é o momento dele.
-  if (examBrief) {
-    const quando =
-      examBrief.daysLeft === 0
-        ? 'É HOJE'
-        : examBrief.daysLeft === 1
-          ? 'é AMANHÃ'
-          : `faltam ${examBrief.daysLeft} dias`;
-    return `${base}\n\n🎯 Av1 de Matemática ${quando} (${examBrief.dateShort}) — escopo: **Matrizes + Lógica**. Posso montar seu plano de revisão ou te testar no escopo.`;
-  }
-  return base;
+function buildWelcome(shortName: string): string {
+  return `Olá! Sou o tutor IA de ${shortName}.\n\nConheço **seu progresso** e os **materiais do Hub** — posso explicar o tópico atual, dar exemplos com código, resolver exercícios passo a passo ou responder o que você precisar. Toque em uma sugestão ou digite sua dúvida.`;
 }
 
 /** Indicador "Pensando" com cronômetro — modelos grátis podem levar até ~30s. */
@@ -452,7 +422,6 @@ export function StudyView({
       role: 'assistant',
       content: buildWelcome(
         getDisciplineByCode(disciplineCode)?.shortName ?? disciplines[0].shortName,
-        mathExamBriefFor(disciplineCode),
       ),
     },
   ]);
@@ -568,9 +537,6 @@ export function StudyView({
   // ----- Derivados -----
   const discipline = getDisciplineByCode(disciplineCode) ?? disciplines[0];
   const disciplineShortName = discipline.shortName;
-  // A janela de prova viva do momento (148) — alimenta welcome, chips e o
-  // escopo do "Me testa" numa fonte única (a mesma conta em todos).
-  const examBrief = mathExamBriefFor(discipline.code);
   const materials = React.useMemo(
     () => getMaterialsByDiscipline(disciplineCode),
     [disciplineCode],
@@ -1112,7 +1078,7 @@ export function StudyView({
     setMessages([
       {
         role: 'assistant',
-        content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
+        content: buildWelcome(disciplineShortName),
       },
     ]);
     setChatLoading(false);
@@ -1183,7 +1149,7 @@ export function StudyView({
             return [
               {
                 role: 'assistant' as const,
-                content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
+                content: buildWelcome(disciplineShortName),
               },
               // t151: cada restaurada carrega QUANDO foi dita (savedAt ISO
               // → HH:MM) — o fio restaurado ganha o mesmo carimbo da viva.
@@ -1320,14 +1286,22 @@ export function StudyView({
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
   }, [chatInput]);
 
-  const sendQuestion = async (question: string, imageOverride?: string | null) => {
+  const sendQuestion = async (
+    question: string,
+    imageOverride?: string | null,
+    labelOverride?: string | null,
+  ) => {
     // t164 — A SEGUNDA CHANCE: o "tentar de novo" da bolha de erro passa
     // imageOverride DEFINIDO (string ou null explícito) e reenvia o turno
     // ORIGINAL inteiro — sem colar o bloco de código do composer (a pergunta
     // original já o carrega, a bolha mostrou os dois blocos) e sem limpar o
     // que o aluno estiver digitando agora (o composer é do presente). Envio
     // normal: sem 2º argumento — comportamento idêntico ao de sempre.
+    // t170 — A ASSINATURA VIAJA NO RETRY TAMBÉM: o labelOverride é quem
+    // distingue retry de envio normal (o turno reenviado carrega o rótulo
+    // da bolha ORIGINAL — a assinatura não morre na segunda chance).
     const isRetry = imageOverride !== undefined;
+    const imageLabelLive = isRetry ? (labelOverride ?? null) : chatImageLabel;
     const code = isRetry ? '' : chatCode.replace(/\s+$/, '');
     const q = [
       question.trim(),
@@ -1366,6 +1340,9 @@ export function StudyView({
         role: 'user',
         content: q || '📷 print anexado',
         image: image ?? undefined,
+        // t170: a assinatura entra JUNTO da imagem — sem imagem, sem rótulo
+        // (o mesmo ciclo de vida, a bolha conta de onde o print veio).
+        imageLabel: image ? (imageLabelLive ?? undefined) : undefined,
         time: hhmm(),
         savedAt: new Date().toISOString(),
       },
@@ -1450,7 +1427,7 @@ export function StudyView({
     setMessages([
       {
         role: 'assistant',
-        content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
+        content: buildWelcome(disciplineShortName),
       },
     ]);
     setChatInput('');
@@ -1960,6 +1937,15 @@ export function StudyView({
         <SheetContent
           side="right"
           className="w-full gap-0 p-0 sm:max-w-lg lg:max-w-xl"
+          onOpenAutoFocus={(e) => {
+            // t170 — PERGUNTAR JÁ RECORTADO: o chat aberto COM print pendente
+            // (ou pergunta pré-preenchida) pousa o cursor no composer — o
+            // anexo já é a intenção de perguntar, o próximo gesto é digitar.
+            // O foco default do Radix (1º focável = X do header) não serve
+            // para quem acabou de anexar; preventDefault evita o pouso duplo.
+            e.preventDefault();
+            chatTaRef.current?.focus();
+          }}
           onEscapeKeyDown={(e) => {
             // t153: com a busca aberta, o Esc é DA BUSCA (fecha e limpa o
             // campo — handler do input) e NÃO da conversa: o preventDefault
@@ -2276,7 +2262,10 @@ export function StudyView({
                           onClick={() => {
                             if (m.image) {
                               setLightboxSrc(m.image);
-                              setLightboxLabel(null); // bolha enviada não carrega rótulo (doutrina t163) — o título cai no fallback
+                              // t170: a bolha enviada CARREGA a assinatura — o
+                              // lightbox diz de onde o print veio (a mesma voz
+                              // do chip; sem rótulo, o fallback honesto fica).
+                              setLightboxLabel(m.imageLabel ?? null);
                             }
                           }}
                           aria-label="Ver o print em tamanho grande"
@@ -2289,6 +2278,21 @@ export function StudyView({
                             className="max-h-44 rounded-lg border border-white/20 transition-transform duration-150 group-hover:scale-[1.02]"
                           />
                         </button>
+                      )}
+                      {m.image && m.imageLabel && (
+                        // t170 — A LEGENDA DA ASSINATURA: a bolha diz de onde o
+                        // print nasceu (a mesma voz esmeralda do chip t163, em
+                        // versão clara dentro da bolha esmeralda). Legendagem
+                        // de figura: fica embaixo da imagem, alinhada à direita
+                        // (o lado da bolha do aluno); truncate com title cheio.
+                        <p
+                          data-testid="chat-image-label"
+                          className="mt-1 flex items-center justify-end gap-1 text-[10px] font-medium text-emerald-100"
+                          title={`Print anexado: ${m.imageLabel}`}
+                        >
+                          <Camera className="size-2.5 shrink-0" aria-hidden />
+                          <span className="truncate">{m.imageLabel}</span>
+                        </p>
                       )}
                       {m.time && (
                         <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>
@@ -2351,7 +2355,7 @@ export function StudyView({
                             type="button"
                             onClick={() => {
                               const target = resolveRetryTarget(messages, i);
-                              if (target) void sendQuestion(target.content, target.image ?? null);
+                              if (target) void sendQuestion(target.content, target.image ?? null, target.imageLabel ?? null);
                             }}
                             disabled={chatLoading}
                             aria-label="Tentar de novo — reenvia a pergunta que falhou"
@@ -2435,29 +2439,19 @@ export function StudyView({
 
             {!chatSearchActive && messages.length <= 1 && !chatLoading && (
               <div className="flex flex-wrap gap-2 pt-2">
-                {/* Chip de INVERSÃO DE PAPEL: o tutor passa a perguntar (recall ativo).
-                    Na janela da Av1 (148) o teste nasce COM O ESCOPO REAL da prova —
-                    o mesmo programa que o simulado usa (fonte única). */}
+                {/* Chip de INVERSÃO DE PAPEL: o tutor passa a perguntar (recall ativo). */}
                 <Button
                   variant="outline"
                   size="sm"
                   className="rounded-full border-violet-400/50 bg-violet-500/10 text-xs text-violet-600 transition-colors hover:bg-violet-500/20 hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
                   onClick={() =>
-                    sendQuestion(
-                      examBrief
-                        ? buildQuizPrompt({
-                            disciplineName: discipline.shortName,
-                            scope: MATH_EXAM.programa,
-                            count: 5,
-                          })
-                        : buildQuizPrompt({ disciplineName: discipline.shortName }),
-                    )
+                    sendQuestion(buildQuizPrompt({ disciplineName: discipline.shortName }))
                   }
                 >
                   <Target className="size-3.5 text-violet-500" />{' '}
-                  {examBrief ? 'Me testa — escopo da Av1' : 'Me testa — recall ativo'}
+                  Me testa — recall ativo
                 </Button>
-                {(examBrief ? EXAM_CHAT_SUGGESTIONS : CHAT_SUGGESTIONS).map((s) => (
+                {CHAT_SUGGESTIONS.map((s) => (
                   <Button
                     key={s}
                     variant="outline"
