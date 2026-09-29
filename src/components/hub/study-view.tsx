@@ -458,6 +458,10 @@ export function StudyView({
   const [chatLoading, setChatLoading] = React.useState(false);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [chatImage, setChatImage] = React.useState<string | null>(null);
+  /** Procedência do print pendente (t163): o chip diz ONDE ele nasceu —
+   * "print de tela", "página 3 · Lista de Matrizes", "print do resumo"…
+   * Só memória: morre no envio (ou no X do chip), nada toca o disco. */
+  const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(null);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   const chatFileRef = React.useRef<HTMLInputElement>(null);
@@ -1122,6 +1126,7 @@ export function StudyView({
     // entra no MESMO chatImage dos prints colados — vida efêmera, nada no disco.
     if (tutorReq.detail.image) {
       setChatImage(tutorReq.detail.image);
+      setChatImageLabel(tutorReq.detail.imageLabel ?? 'print do material');
     }
     setChatOpen(true);
   }, [tutorReq?.nonce]);
@@ -1227,7 +1232,10 @@ export function StudyView({
   );
 
   /** Anexa print/foto da questão — reduzido antes de virar data URL. */
-  const attachChatImage = async (file: File | null | undefined) => {
+  const attachChatImage = async (
+    file: File | null | undefined,
+    label = 'imagem do arquivo',
+  ) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Só dá para anexar imagem (print/foto).');
@@ -1235,6 +1243,7 @@ export function StudyView({
     }
     try {
       setChatImage(await downscaleImageFile(file));
+      setChatImageLabel(label);
     } catch {
       toast.error('Não consegui processar a imagem. Tente outra.');
     }
@@ -1291,6 +1300,7 @@ export function StudyView({
       },
     ]);
     setChatImage(null);
+    setChatImageLabel(null);
     setChatInput('');
     setChatCode('');
     setChatLoading(true);
@@ -2365,12 +2375,18 @@ export function StudyView({
                     className="size-12 rounded-md object-cover"
                   />
                 </button>
-                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                  print anexado — o tutor lê a imagem antes de responder
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                    {chatImageLabel ?? 'print anexado'}
+                  </span>{' '}
+                  — o tutor lê a imagem antes de responder
                 </span>
                 <button
                   type="button"
-                  onClick={() => setChatImage(null)}
+                  onClick={() => {
+                    setChatImage(null);
+                    setChatImageLabel(null);
+                  }}
                   aria-label="Remover imagem anexada"
                   className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
                 >
@@ -2398,7 +2414,7 @@ export function StudyView({
               capture="environment"
               className="hidden"
               onChange={(e) => {
-                void attachChatImage(e.target.files?.[0]);
+                void attachChatImage(e.target.files?.[0], 'foto da câmera');
                 e.target.value = '';
               }}
             />
@@ -2548,7 +2564,7 @@ export function StudyView({
                   const f = imageFromClipboard(e);
                   if (f) {
                     e.preventDefault();
-                    void attachChatImage(f);
+                    void attachChatImage(f, 'print colado');
                     return;
                   }
                   // Colagem de PDF rasgada (a dor do dono: "copiar e colar
@@ -2600,7 +2616,10 @@ export function StudyView({
           setCaptureOpen(v);
           if (!v) setCaptureCanvas(null); // auto-apagar: o frame bruto some com o diálogo
         }}
-        onAttach={setChatImage}
+        onAttach={(image) => {
+          setChatImage(image);
+          setChatImageLabel('print de tela');
+        }}
         onRetry={() => void startCapture()}
       />
 

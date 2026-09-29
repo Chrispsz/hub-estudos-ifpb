@@ -138,6 +138,7 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
       onOpenChange(false);
       openTutor({
         image,
+        imageLabel: 'print do resumo',
         disciplineCode: material.disciplineCode,
         materialId: material.id,
       });

@@ -193,7 +193,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
     setCapturing(true);
     try {
       const image = await captureElementToDataUrl(el);
-      openTutor({ image, disciplineCode: disc.code });
+      openTutor({ image, imageLabel: 'print da disciplina', disciplineCode: disc.code });
       toast.success('Print da tela anexado ao tutor — nada foi salvo no seu computador.');
     } catch {
       toast.error('Não consegui capturar esta tela. Tente de novo.');

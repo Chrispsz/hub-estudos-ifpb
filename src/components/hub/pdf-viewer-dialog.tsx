@@ -108,6 +108,8 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
   const [unseen, setUnseen] = React.useState(0);
   /** Print de página ancorado no painel AO LADO (modo dividido). */
   const [panelImage, setPanelImage] = React.useState<string | null>(null);
+  /** Procedência do anexo pendente (t163): o chip do painel diz de onde veio. */
+  const [panelImageLabel, setPanelImageLabel] = React.useState<string | null>(null);
   /** Drag do divisor em curso (para o grip acender e o texto não selecionar). */
   const [dragging, setDragging] = React.useState(false);
   /** Dica de arraste (1ª vez no modo dividido — some ao interagir ou em 6s). */
@@ -166,6 +168,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
       setMobileTab('material');
       setUnseen(0);
       setPanelImage(null);
+      setPanelImageLabel(null);
       setSearchOpen(false);
       setJumpPage(null);
       setJumpInput('');
@@ -256,9 +259,13 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
 
   // ===== Anexo do print de página DENTRO do modo dividido: a imagem nasce
   // no painel ao lado (no mobile, a aba Tutor abre sozinha — o anexo está lá).
-  const consumePanelImage = React.useCallback(() => setPanelImage(null), []);
-  const handleCaptureAttach = React.useCallback((image: string) => {
+  const consumePanelImage = React.useCallback(() => {
+    setPanelImage(null);
+    setPanelImageLabel(null);
+  }, []);
+  const handleCaptureAttach = React.useCallback((image: string, label: string) => {
     setPanelImage(image);
+    setPanelImageLabel(label);
     if (window.innerWidth < 1024) setMobileTab('tutor');
   }, []);
   const handleAssistantReply = React.useCallback(() => setUnseen((u) => u + 1), []);
@@ -330,7 +337,10 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
    * que envia. Sem o painel ao lado, o mapa usa openTutor (chat principal). */
   const handleQuestionAttach = React.useCallback((question: string, image?: string) => {
     setPanelQuestion(question);
-    if (image) setPanelImage(image);
+    if (image) {
+      setPanelImage(image);
+      setPanelImageLabel('print do trecho');
+    }
     if (window.innerWidth < 1024) setMobileTab('tutor');
   }, []);
   const askMainChat = React.useCallback(
@@ -339,6 +349,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
       openTutor({
         question,
         image,
+        imageLabel: image ? 'print do trecho' : undefined,
         disciplineCode: material.disciplineCode,
         materialId: material.id,
       });
@@ -773,6 +784,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
                 material={material}
                 showHeader={isSplit}
                 externalImage={panelImage}
+                externalImageLabel={panelImageLabel}
                 onExternalImageConsumed={consumePanelImage}
                 externalQuestion={panelQuestion}
                 onExternalQuestionConsumed={() => setPanelQuestion(null)}

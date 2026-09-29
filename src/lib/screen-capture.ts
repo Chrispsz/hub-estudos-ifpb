@@ -32,6 +32,64 @@ export function screenCaptureSupported(): boolean {
   );
 }
 
+// ===== Assentamento medido (t163; a régua fixa da t152 cresceu) =====
+const SETTLE_MIN_MS = 380; // a régua da t152 continua sendo o MÍNIMO
+const SETTLE_STEP_MS = 140; // intervalo entre amostras de comparação
+const SETTLE_MAX_SAMPLES = 8; // teto ~1.4s: superfície viva não prende a captura
+
+/**
+ * Duas amostras da superfície são IGUAIS? (comparação inteira de 32 bits —
+ * um único pixel diferente já diz que a tela ainda se move).
+ */
+export function framesEqual(a: Uint32Array, b: Uint32Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Espera a superfície capturada ASSENTAR antes de congelar o frame. O seletor
+ * do navegador ("Choose what to share") morre DEPOIS que o stream começa —
+ * nos primeiros frames ele ainda está assado na superfície capturada (a
+ * reclamação do dono com print, t152). Em vez de confiar num tempo fixo,
+ * amostra uma miniatura da transmissão a cada 140ms e devolve o controle
+ * quando DUAS amostras seguidas são idênticas — a tela provou que parou de
+ * mudar. Nunca antes de 380ms (a régua da t152); nunca depois de ~1.4s
+ * (conteúdo vivo — vídeo/animação — não prende a captura: colhe o último).
+ * Leitura de pixels indisponível (canvas taint etc.) = régua fixa cobre.
+ */
+async function settleScreenSurface(video: HTMLVideoElement): Promise<void> {
+  let sampled = false;
+  try {
+    const cw = 96;
+    const ch = Math.max(
+      1,
+      Math.round((96 * video.videoHeight) / Math.max(1, video.videoWidth)),
+    );
+    const cmp = document.createElement('canvas');
+    cmp.width = cw;
+    cmp.height = ch;
+    const cctx = cmp.getContext('2d', { willReadFrequently: true });
+    if (!cctx) throw new Error('sem contexto de comparação');
+    let prev: Uint32Array | null = null;
+    for (let i = 0; i < SETTLE_MAX_SAMPLES; i++) {
+      await new Promise<void>((r) =>
+        setTimeout(r, i === 0 ? SETTLE_MIN_MS : SETTLE_STEP_MS),
+      );
+      cctx.drawImage(video, 0, 0, cw, ch);
+      const cur = new Uint32Array(cctx.getImageData(0, 0, cw, ch).data.buffer);
+      if (prev && framesEqual(prev, cur)) return; // parou de mudar — assentou
+      prev = cur;
+      sampled = true;
+    }
+  } catch {
+    // Sem leitura de pixels: a régua fixa da t152 cobre o caso.
+    if (!sampled) {
+      await new Promise<void>((r) => setTimeout(r, SETTLE_MIN_MS));
+    }
+  }
+}
+
 /**
  * Hook compartilhado das duas superfícies do tutor (chat da aba Estudar +
  * painel rápido dos diálogos). Cuida do ciclo de vida da captura COM a
@@ -148,13 +206,14 @@ export async function captureScreenFrame(): Promise<HTMLCanvasElement> {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('canvas indisponível');
 
-    // Assentamento (t152, reclamação do dono com print): o SELETOR do
+    // Assentamento (t152 → t163, reclamação do dono com print): o SELETOR do
     // navegador morre DEPOIS que o stream começa — nos primeiros frames a
     // superfície capturada ainda carrega o próprio seletor ("Choose what to
     // share") congelado na imagem. Um 1º draw só aquece o decode; o frame
-    // VERDADEIRO é colhido depois do assentamento, com a tela já limpa.
+    // VERDADEIRO é colhido quando a superfície PROVA que parou de mudar
+    // (settleScreenSurface: duas amostras seguidas idênticas, mínimo 380ms).
     ctx.drawImage(video, 0, 0, w, h);
-    await new Promise<void>((r) => setTimeout(r, 380));
+    await settleScreenSurface(video);
     ctx.drawImage(video, 0, 0, w, h);
     return canvas;
   } catch {

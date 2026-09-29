@@ -90,6 +90,13 @@ export interface OpenTutorDetail {
    * o anexo some (a mesma vida do print colado com Ctrl+V; nada toca o disco).
    */
   image?: string;
+  /**
+   * Procedência do print (t163): o chip do composer diz ONDE ele nasceu —
+   * "página 3 · Lista de Matrizes", "print do resumo", "print da questão"…
+   * Sem o rótulo, o chip usa o genérico "print do material". Só memória —
+   * morre junto com o anexo no envio.
+   */
+  imageLabel?: string;
 }
 
 /** Dispara a troca para a aba Estudar com o tutor recebendo a pergunta pronta. */

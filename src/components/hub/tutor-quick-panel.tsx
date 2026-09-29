@@ -88,6 +88,8 @@ interface TutorQuickPanelProps {
    * O dono do estado chama onExternalImageConsumed para zerar a fonte.
    */
   externalImage?: string | null;
+  /** Procedência do externalImage (t163): o chip diz de onde o print veio. */
+  externalImageLabel?: string | null;
   onExternalImageConsumed?: () => void;
   /**
    * Pergunta nascida de FORA do painel (t158 — "Perguntar" na busca do PDF):
@@ -102,8 +104,9 @@ interface TutorQuickPanelProps {
   onAssistantReply?: () => void;
   /** Destino do print de página (t152): quando fornecido, o anexo passa pelo
    * MESMO tubo do externalImage (chip no composer + aba Tutor abre no mobile).
-   * Sem o callback, o print fica no composer do próprio painel. */
-  onPdfCaptureAttach?: (image: string) => void;
+   * Sem o callback, o print fica no composer do próprio painel. t163: leva
+   * também o rótulo de procedência fabricado pelo diálogo de captura. */
+  onPdfCaptureAttach?: (image: string, label: string) => void;
   className?: string;
 }
 
@@ -117,6 +120,7 @@ export function TutorQuickPanel({
   material,
   showHeader,
   externalImage,
+  externalImageLabel,
   onExternalImageConsumed,
   externalQuestion,
   onExternalQuestionConsumed,
@@ -146,6 +150,10 @@ export function TutorQuickPanel({
   const [streamText, setStreamText] = React.useState<string | null>(null);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [pendingImage, setPendingImage] = React.useState<string | null>(null);
+  /** Procedência do print pendente (t163): o chip diz ONDE ele nasceu —
+   * "print de tela", "página 3 · Lista de Matrizes", "print colado"… Só
+   * memória: morre junto com o anexo no envio (ou no X do chip). */
+  const [pendingLabel, setPendingLabel] = React.useState<string | null>(null);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   /** Captura de tela em recorte (o frame bruto vive aqui até o diálogo fechar). */
@@ -202,13 +210,15 @@ export function TutorQuickPanel({
   };
 
   /** Anexo vindo de FORA do painel (print de página no modo dividido):
-   * entra no MESMO pendingImage dos prints — vida efêmera igual. */
+   * entra no MESMO pendingImage dos prints — vida efêmera igual. t163: o
+   * rótulo de procedência vem junto (o pai sabe de onde o print veio). */
   React.useEffect(() => {
     if (externalImage) {
       setPendingImage(externalImage);
+      setPendingLabel(externalImageLabel ?? 'print do material');
       onExternalImageConsumed?.();
     }
-  }, [externalImage, onExternalImageConsumed]);
+  }, [externalImage, externalImageLabel, onExternalImageConsumed]);
 
   /** Pergunta vinda de FORA (t158 — a busca do PDF): pré-preenche o campo,
    * traz o foco para o composer e morre na fonte. O aluno revisa e envia —
@@ -261,8 +271,9 @@ export function TutorQuickPanel({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, loading, streamText]);
 
-  /** Anexa print/foto da questão — reduzido antes de virar data URL. */
-  const attachImage = async (file: File | null | undefined) => {
+  /** Anexa print/foto da questão — reduzido antes de virar data URL. t163:
+   * a origem vem junto — o chip do composer conta de onde o print nasceu. */
+  const attachImage = async (file: File | null | undefined, label = 'imagem do arquivo') => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Só dá para anexar imagem (print/foto).');
@@ -270,6 +281,7 @@ export function TutorQuickPanel({
     }
     try {
       setPendingImage(await downscaleImageFile(file));
+      setPendingLabel(label);
     } catch {
       toast.error('Não consegui processar a imagem. Tente outra.');
     }
@@ -285,6 +297,7 @@ export function TutorQuickPanel({
     if ((!q && !image) || loading) return;
     setInput('');
     setPendingImage(null);
+    setPendingLabel(null);
     notifiedRef.current = false;
     // Memória da conversa: últimas 12 mensagens sem bolhas de erro — o tutor
     // continua o raciocínio anterior em vez de responder algo desconexo.
@@ -619,12 +632,18 @@ export function TutorQuickPanel({
                 className="size-10 rounded-md object-cover"
               />
             </button>
-            <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-              print anexado — o tutor lê a imagem antes de responder
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                {pendingLabel ?? 'print anexado'}
+              </span>{' '}
+              — o tutor lê a imagem antes de responder
             </span>
             <button
               type="button"
-              onClick={() => setPendingImage(null)}
+              onClick={() => {
+                setPendingImage(null);
+                setPendingLabel(null);
+              }}
               aria-label="Remover imagem anexada"
               className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
             >
@@ -653,7 +672,7 @@ export function TutorQuickPanel({
             capture="environment"
             className="hidden"
             onChange={(e) => {
-              void attachImage(e.target.files?.[0]);
+              void attachImage(e.target.files?.[0], 'foto da câmera');
               e.target.value = '';
             }}
           />
@@ -753,7 +772,7 @@ export function TutorQuickPanel({
               const f = imageFromClipboard(e);
               if (f) {
                 e.preventDefault();
-                void attachImage(f);
+                void attachImage(f, 'print colado');
                 return;
               }
               // MESMA régua do chat principal (141): PDF colado rasgado é
@@ -801,7 +820,10 @@ export function TutorQuickPanel({
           setCaptureOpen(v);
           if (!v) setCaptureCanvas(null); // auto-apagar: o frame bruto some com o diálogo
         }}
-        onAttach={setPendingImage}
+        onAttach={(image) => {
+          setPendingImage(image);
+          setPendingLabel('print de tela');
+        }}
         onRetry={() => void startCapture()}
       />
 
@@ -814,9 +836,12 @@ export function TutorQuickPanel({
           material={material}
           open={pdfCaptureOpen}
           onOpenChange={setPdfCaptureOpen}
-          onAttach={(image) => {
-            if (onPdfCaptureAttach) onPdfCaptureAttach(image);
-            else setPendingImage(image);
+          onAttach={(image, label) => {
+            if (onPdfCaptureAttach) onPdfCaptureAttach(image, label);
+            else {
+              setPendingImage(image);
+              setPendingLabel(label);
+            }
           }}
         />
       )}

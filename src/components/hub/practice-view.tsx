@@ -973,7 +973,7 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
     setCapturing(true);
     try {
       const image = await captureElementToDataUrl(el);
-      openTutor({ image, disciplineCode: exercise.disciplineCode, materialId: exercise.linkedMaterials?.[0] });
+      openTutor({ image, imageLabel: 'print da questão', disciplineCode: exercise.disciplineCode, materialId: exercise.linkedMaterials?.[0] });
       toast.success('Print da questão anexado ao tutor — nada foi salvo no seu computador.');
     } catch {
       toast.error('Não consegui capturar esta questão. Tente de novo.');

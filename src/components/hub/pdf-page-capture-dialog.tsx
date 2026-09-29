@@ -32,9 +32,10 @@ interface Props {
    * Destino do print: quando fornecido (modo tela dividida), a página entra
    * no painel do tutor que está AO LADO do PDF — sem abrir o chat principal
    * por cima. Sem o prop, mantém o comportamento histórico (openTutor →
-   * chat da aba Estudar).
+   * chat da aba Estudar). t163: leva TAMBÉM o rótulo de procedência — o
+   * diálogo é quem SABE a página e o material onde o print nasceu.
    */
-  onAttach?: (image: string) => void;
+  onAttach?: (image: string, label: string) => void;
   /**
    * Página pedida pela BUSCA do PDF (t157): o diálogo abre JÁ parado nela,
    * sem re-folhear as miniaturas. Vale UMA vez por abertura — o visualizador
@@ -315,13 +316,22 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
         ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
       }
       const image = downscaleCanvas(out);
+      // Procedência do print (t163): o chip do tutor diz ONDE ele nasceu.
+      // O título curto é a parte antes do primeiro travessão OU hífen do
+      // título ("Lista de Matrizes — Bloco 1 (Q1–16)" → "Lista de Matrizes";
+      // "Plano de Disciplina - Matemática" → "Plano de Disciplina").
+      const shortTitle = material.title.split(' — ')[0].split(' - ')[0];
+      const label = whole
+        ? `página ${selected} · ${shortTitle}`
+        : `recorte da página ${selected} · ${shortTitle}`;
       if (onAttach) {
         // Modo dividido: o painel do tutor mora AO LADO — o anexo nem sai
         // do diálogo (o print já nasce do lado de quem vai ler).
-        onAttach(image);
+        onAttach(image, label);
       } else {
         openTutor({
           image,
+          imageLabel: label,
           disciplineCode: material.disciplineCode,
           materialId: material.id,
         });
