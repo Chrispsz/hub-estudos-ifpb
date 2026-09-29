@@ -45,6 +45,7 @@ import type { Material, Discipline } from '@/data/course-data';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { downloadPdf } from '@/lib/download-utils';
+import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { pdfJumpSrc, clampPdfPage } from '@/lib/pdf-search';
@@ -111,6 +112,8 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const [jumpInput, setJumpInput] = React.useState('');
   /** Página pedida pela BUSCA ao print de página (o prop morre ao fechar). */
   const [captureInitialPage, setCaptureInitialPage] = React.useState<number | undefined>(undefined);
+  /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
+  const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
 
   const rowRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef(false);
@@ -151,6 +154,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
       setJumpPage(null);
       setJumpInput('');
       setCaptureInitialPage(undefined);
+      setPanelQuestion(null);
     }
   }, [open]);
 
@@ -298,6 +302,25 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
     setCaptureInitialPage(page);
     setCaptureOpen(true);
   }, []);
+
+  /** Pergunta vinda da BUSCA no MODO DIVIDIDO (t158): o texto entra no campo
+   * do painel AO LADO — no mobile a aba Tutor abre sozinha (a pergunta está
+   * lá). Sem o painel ao lado, o mapa usa openTutor (chat principal). */
+  const handleQuestionAttach = React.useCallback((question: string) => {
+    setPanelQuestion(question);
+    if (window.innerWidth < 1024) setMobileTab('tutor');
+  }, []);
+  const askMainChat = React.useCallback(
+    (question: string) => {
+      if (!material) return;
+      openTutor({
+        question,
+        disciplineCode: material.disciplineCode,
+        materialId: material.id,
+      });
+    },
+    [material],
+  );
 
   /** src do iframe — caminho puro, ou com o #page=N do salto. */
   const iframeSrc = pdfJumpSrc(material?.pdfPath ?? '', jumpPage);
@@ -665,6 +688,8 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 showHeader={isSplit}
                 externalImage={panelImage}
                 onExternalImageConsumed={consumePanelImage}
+                externalQuestion={panelQuestion}
+                onExternalQuestionConsumed={() => setPanelQuestion(null)}
                 onAssistantReply={handleAssistantReply}
                 onPdfCaptureAttach={handleCaptureAttach}
                 className="min-h-0 flex-1"
@@ -690,13 +715,16 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
         />
 
         {/* t157 — O MAPA DO PDF: busca em todas as páginas (pdf.js), com salto
-            (#page=N no leitor nativo) e ponte direta para o print de página. */}
+            (#page=N no leitor nativo) e ponte direta para o print de página.
+            t158: "Perguntar" completa a cadeia — no dividido a pergunta nasce
+            no campo do painel AO LADO; fora dele, vai ao chat principal. */}
         <PdfSearchDialog
           material={material}
           open={searchOpen}
           onOpenChange={setSearchOpen}
           onJump={doJump}
           onPrint={openCaptureAt}
+          onAsk={isSplit ? handleQuestionAttach : askMainChat}
         />
       </DialogContent>
     </Dialog>

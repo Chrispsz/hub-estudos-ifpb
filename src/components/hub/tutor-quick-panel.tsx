@@ -88,6 +88,14 @@ interface TutorQuickPanelProps {
    */
   externalImage?: string | null;
   onExternalImageConsumed?: () => void;
+  /**
+   * Pergunta nascida de FORA do painel (t158 — "Perguntar" na busca do PDF):
+   * pré-preenche o CAMPO do composer (o aluno revisa e envia — a pergunta é
+   * dele). O dono do estado chama onExternalQuestionConsumed para zerar a
+   * fonte. Irmão do externalImage: o tubo é o mesmo, o que viaja é texto.
+   */
+  externalQuestion?: string | null;
+  onExternalQuestionConsumed?: () => void;
   /** Aviso de resposta: a 1ª parte da resposta chegou — o diálogo marca o
    * ponto não lido na aba Tutor quando o aluno está vendo o PDF no mobile. */
   onAssistantReply?: () => void;
@@ -109,6 +117,8 @@ export function TutorQuickPanel({
   showHeader,
   externalImage,
   onExternalImageConsumed,
+  externalQuestion,
+  onExternalQuestionConsumed,
   onAssistantReply,
   onPdfCaptureAttach,
   className,
@@ -148,6 +158,8 @@ export function TutorQuickPanel({
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  /** t158: foco do composer quando a pergunta nasce na busca do PDF. */
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
   const camFileRef = React.useRef<HTMLInputElement>(null);
   /** getDisplayMedia existe aqui? (SSR renderiza true; o effect corrige no
@@ -194,6 +206,17 @@ export function TutorQuickPanel({
       onExternalImageConsumed?.();
     }
   }, [externalImage, onExternalImageConsumed]);
+
+  /** Pergunta vinda de FORA (t158 — a busca do PDF): pré-preenche o campo,
+   * traz o foco para o composer e morre na fonte. O aluno revisa e envia —
+   * nada é despachado sem a mão dele (o campo é do dono). */
+  React.useEffect(() => {
+    if (externalQuestion) {
+      setInput(externalQuestion);
+      onExternalQuestionConsumed?.();
+      textareaRef.current?.focus();
+    }
+  }, [externalQuestion, onExternalQuestionConsumed]);
 
   /** Notifica "resposta chegou" UMA vez por turno — o ponto da aba Tutor. */
   const notifiedRef = React.useRef(false);
@@ -695,6 +718,7 @@ export function TutorQuickPanel({
             <Camera className={cn('size-4', capturing && 'animate-pulse')} />
           </Button>
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

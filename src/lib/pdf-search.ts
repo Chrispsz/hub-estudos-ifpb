@@ -135,6 +135,12 @@ export function pdfJumpSrc(path: string, page: number | null | undefined): strin
 export interface PdfSearchHit {
   page: number;
   segments: SearchSegment[];
+  /**
+   * TODAS as ocorrências da agulha NESSA página (o cap de exibição não
+   * mente no rótulo: a página pode ter 5 casamentos e mostrar 2 trechos —
+   * o badge diz "· 5×" e o title explica).
+   */
+  count: number;
 }
 
 /** Limites honestos: 2 trechos por página e 80 no total — a lista nunca vira o PDF. */
@@ -181,6 +187,7 @@ export function searchPdfPages(
     }
     let lastEnd = -1;
     let taken = 0;
+    const count = starts.length; // TODAS as ocorrências — o cap é de EXIBIÇÃO
     for (const start of starts) {
       if (taken >= perPage || hits.length >= total) break;
       if (start <= lastEnd) continue; // já dentro da janela anterior — sem trecho repetido
@@ -188,11 +195,27 @@ export function searchPdfPages(
       const segs = searchSnippetSegments(text.slice(a), q, radius);
       if (!segs.length) continue;
       if (a > 0) segs[0] = { ...segs[0], text: '…' + segs[0].text };
-      hits.push({ page: i + 1, segments: segs });
+      hits.push({ page: i + 1, segments: segs, count });
       const winLen = segs.reduce((n, s) => n + s.text.length, 0);
       lastEnd = a + winLen;
       taken++;
     }
   }
   return hits;
+}
+
+/**
+ * A PERGUNTA QUE NASCE DO TRECHO (t158) — o último gesto da cadeia do mapa:
+ * achar → saltar → printar → PERGUNTAR. Monta a pergunta que pré-preenche o
+ * tutor (o aluno revisa e envia — o campo é dele): o contexto do material, a
+ * página e o PRÓPRIO trecho (texto de nascença, com as reticências da
+ * janela). O recorte tem teto de 220 caracteres — a pergunta cabe no campo e
+ * a IA lê o essencial; espaços da extração não vazam para o rótulo.
+ */
+export function pdfSnippetQuestion(materialTitle: string, page: number, snippet: string): string {
+  const t = (materialTitle || '').trim() || 'o material';
+  const flat = (snippet || '').replace(/\s+/g, ' ').trim();
+  const MAX = 220;
+  const s = flat.length > MAX ? flat.slice(0, MAX) + '…' : flat;
+  return `Estou estudando "${t}" e na página ${page} encontrei este trecho: "${s}". Me explica o que ele quer dizer?`;
 }

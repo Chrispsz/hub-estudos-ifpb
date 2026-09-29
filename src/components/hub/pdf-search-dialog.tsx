@@ -13,13 +13,22 @@
 // com o diálogo (doc pdf.js destruído, nada fica em disco).
 
 import * as React from 'react';
-import { Camera, CornerDownLeft, FileSearch, Loader2, Search, SearchX, X } from 'lucide-react';
+import {
+  Camera,
+  CornerDownLeft,
+  FileSearch,
+  Loader2,
+  MessageCircleQuestion,
+  Search,
+  SearchX,
+  X,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { pdfPageText, searchPdfPages, type PdfSearchHit, type PdfTextItem } from '@/lib/pdf-search';
+import { pdfPageText, searchPdfPages, pdfSnippetQuestion, type PdfSearchHit, type PdfTextItem } from '@/lib/pdf-search';
 import type { Material } from '@/data/course-data';
 
 interface Props {
@@ -30,11 +39,14 @@ interface Props {
   onJump: (page: number) => void;
   /** Abre o print de página (t152) JÁ parado na página do trecho. */
   onPrint: (page: number) => void;
+  /** Pergunta pronta sobre o trecho (t158) — destino decide o chamador
+   * (painel AO LADO no dividido; chat principal via openTutor fora dele). */
+  onAsk: (question: string) => void;
 }
 
 type Phase = 'indexing' | 'ready' | 'error';
 
-export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint }: Props) {
+export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint, onAsk }: Props) {
   /** Fase da indexação — a UI conta o que acontece com o PDF. */
   const [phase, setPhase] = React.useState<Phase>('indexing');
   /** Progresso honesto: "lendo… página 12 de 47". */
@@ -141,7 +153,7 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint 
           <DialogDescription className="mt-1 text-xs">
             Acha o trecho em TODAS as páginas — ignora acentos e pontuação ("logica"
             acha "Lógica"). Ir salta o visualizador até a página; print abre a captura
-            já parada nela.{" "}
+            já parada nela; Perguntar leva o trecho ao tutor pronto para revisar.{" "}
             <span className="text-emerald-500">Nada sai do seu navegador.</span>
           </DialogDescription>
         </DialogHeader>
@@ -226,16 +238,25 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint 
                 <ul role="list" aria-label="Trechos encontrados">
                   {hits.map((h, i) => (
                     <li
-                      key={`${h.page}-${i}`}
+                      /* a agulha VIVE na chave: nova busca = novos nós = a
+                         fila de trechos NASCE de novo (o stagger re-anima) */
+                      key={`${q}-${h.page}-${i}`}
                       data-testid="pdf-search-hit"
-                      className="group border-b last:border-b-0 hover:bg-muted/50"
+                      className="group border-b last:border-b-0 animate-msg-in hover:bg-muted/50"
+                      style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
                     >
                       <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center">
                         <Badge
                           variant="outline"
                           className="shrink-0 self-start border-emerald-500/40 bg-emerald-500/5 font-medium tabular-nums text-emerald-700 dark:text-emerald-400"
+                          title={
+                            h.count > 1
+                              ? `${h.count} ocorrência${h.count === 1 ? '' : 's'} nesta página (mostrando os primeiros trechos)`
+                              : `Página ${h.page}`
+                          }
                         >
                           pág. {h.page}
+                          {h.count > 1 && <span className="text-emerald-600/70 dark:text-emerald-400/70"> · {h.count}×</span>}
                         </Badge>
                         {/* Trecho ORIGINAL com o casamento aceso (doutrina t154) */}
                         <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground/90">
@@ -252,7 +273,7 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint 
                             ),
                           )}
                         </p>
-                        <div className="flex shrink-0 gap-1.5">
+                        <div className="flex flex-wrap shrink-0 gap-1.5">
                           <Button
                             size="sm"
                             variant="outline"
@@ -276,6 +297,27 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint 
                             title={`Abrir o print da página ${h.page} já recortável para o tutor`}
                           >
                             <Camera className="size-3" aria-hidden /> Print
+                          </Button>
+                          {/* t158 — A PERGUNTA QUE NASCE DO TRECHO: o último
+                              gesto da cadeia (achar → saltar → printar →
+                              PERGUNTAR). A pergunta vai PRÉ-PREENCHIDA — o
+                              aluno revisa e envia; nada sai sem a mão dele. */}
+                          <Button
+                            size="sm"
+                            className="h-8 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"
+                            onClick={() => {
+                              onAsk(
+                                pdfSnippetQuestion(
+                                  material.title,
+                                  h.page,
+                                  h.segments.map((s) => s.text).join(''),
+                                ),
+                              );
+                              onOpenChange(false);
+                            }}
+                            title={`Perguntar ao tutor sobre este trecho da página ${h.page} (a pergunta entra no campo para você revisar e enviar)`}
+                          >
+                            <MessageCircleQuestion className="size-3" aria-hidden /> Perguntar
                           </Button>
                         </div>
                       </div>
