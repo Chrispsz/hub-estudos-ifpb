@@ -14,12 +14,17 @@ export interface ExportableTurn {
   model?: string;
   /** Hora local HH:MM carimbada na mensagem. */
   time?: string;
+  /** t164: bolha de erro (flag da conversa viva) — fica de fora do material. */
+  error?: boolean;
 }
 
 /**
  * Monta o markdown da conversa: cabeçalho com título + data de exportação
- * e turnos separados por `---`. Mensagens de erro (⚠️) ficam de fora —
- * o arquivo é material de estudo, não log de falhas.
+ * e turnos separados por `---`. Mensagens de erro ficam de fora — o arquivo
+ * é material de estudo, não log de falhas. t164: o filtro olha a FLAG
+ * `error` (o farejo do ⚠️ era morto — erros reais nunca começaram com ⚠️
+ * e vazavam para o .md); o farejo segue como cinto e suspensa, na mesma
+ * forma do tutor-thread-cache.
  */
 export function buildChatMarkdown(
   title: string,
@@ -27,7 +32,7 @@ export function buildChatMarkdown(
   exportedAt: Date = new Date(),
 ): string {
   const lines = messages
-    .filter((m) => !m.content.startsWith('⚠️'))
+    .filter((m) => !m.error && !m.content.startsWith('⚠️'))
     .map((m) => {
       const who = m.role === 'user' ? '**Você**' : `**Tutor**${m.model ? ` (${m.model})` : ''}`;
       const when = m.time ? ` — ${m.time}` : '';

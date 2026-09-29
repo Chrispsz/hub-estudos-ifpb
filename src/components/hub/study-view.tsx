@@ -100,6 +100,7 @@ import {
   type SearchSegment,
 } from '@/lib/tutor-history-view';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
+import { resolveRetryTarget } from '@/lib/tutor-retry';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
@@ -1262,10 +1263,15 @@ export function StudyView({
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
   }, [chatInput]);
 
-  const sendQuestion = async (question: string) => {
-    // Monta a pergunta: texto da mensagem + bloco de código (se houver) — o código
-    // chega na IA FORMATADO (```lang), e a bolha do usuário mostra os dois blocos.
-    const code = chatCode.replace(/\s+$/, '');
+  const sendQuestion = async (question: string, imageOverride?: string | null) => {
+    // t164 — A SEGUNDA CHANCE: o "tentar de novo" da bolha de erro passa
+    // imageOverride DEFINIDO (string ou null explícito) e reenvia o turno
+    // ORIGINAL inteiro — sem colar o bloco de código do composer (a pergunta
+    // original já o carrega, a bolha mostrou os dois blocos) e sem limpar o
+    // que o aluno estiver digitando agora (o composer é do presente). Envio
+    // normal: sem 2º argumento — comportamento idêntico ao de sempre.
+    const isRetry = imageOverride !== undefined;
+    const code = isRetry ? '' : chatCode.replace(/\s+$/, '');
     const q = [
       question.trim(),
       code ? '```' + codeLang + '\n' + code + '\n```' : '',
@@ -1274,7 +1280,7 @@ export function StudyView({
       .join('\n\n')
       .trim();
     if ((!q && !chatImage) || chatLoading) return;
-    const image = chatImage;
+    const image = isRetry ? imageOverride : chatImage;
     // O TUTOR CONTA (123, o P2 que a 118 deixou pendente): a dúvida enviada com
     // material selecionado É estudo do material — o retrieval lê o conteúdo REAL
     // dele para responder, e o registro entra na MESMA fonte (markAccessed) da
@@ -1285,8 +1291,11 @@ export function StudyView({
     if (selectedMaterial) sp.markAccessed(selectedMaterial.id);
     // Memória da conversa: últimas 12 mensagens (sem bolhas de erro) — o tutor
     // usa isso para CONTINUAR o raciocínio em vez de recomeçar o assunto.
+    // t164: o filtro agora olha a FLAG `error` (o farejo do ⚠️ era morto —
+    // mensagens de erro reais nunca começaram com ⚠️; a falha vazava no
+    // histórico e a IA lia o escombro como se fosse fala dela).
     const history = messages
-      .filter((m) => !m.content.startsWith('⚠️'))
+      .filter((m) => !m.error && !m.content.startsWith('⚠️'))
       .slice(-12)
       .map(({ role, content }) => ({ role, content }));
     setMessages((prev) => [
@@ -1299,10 +1308,14 @@ export function StudyView({
         savedAt: new Date().toISOString(),
       },
     ]);
-    setChatImage(null);
-    setChatImageLabel(null);
-    setChatInput('');
-    setChatCode('');
+    if (!isRetry) {
+      // O retry não mexe no composer: o chip pendente e o rascunho em
+      // digitação sobrevivem — só o turno antigo é reenviado.
+      setChatImage(null);
+      setChatImageLabel(null);
+      setChatInput('');
+      setChatCode('');
+    }
     setChatLoading(true);
     setStreamText(null);
     try {
@@ -2244,6 +2257,26 @@ export function StudyView({
                         </p>
                       )}
                       <div className="mt-1.5 flex items-center gap-2">
+                        {m.error && resolveRetryTarget(messages, i) && (
+                          // t164 — A SEGUNDA CHANCE: reenvia a pergunta do par
+                          // falhado, com o print se ele ainda vive na conversa.
+                          // Append-only: a tentativa falhada fica no fio — o
+                          // log é honesto, a casa não reescreve o passado.
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const target = resolveRetryTarget(messages, i);
+                              if (target) void sendQuestion(target.content, target.image ?? null);
+                            }}
+                            disabled={chatLoading}
+                            aria-label="Tentar de novo — reenvia a pergunta que falhou"
+                            title="Reenvia a sua última pergunta (com o print, se ele ainda está na conversa) — nada é apagado, a tentativa falhada continua no fio"
+                            className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 transition-colors hover:text-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-400 dark:hover:text-emerald-300"
+                          >
+                            <RotateCcw className="size-3" />
+                            tentar de novo
+                          </button>
+                        )}
                         {m.time && (
                           <span className="text-[10px] text-muted-foreground/60">{m.time}</span>
                         )}
@@ -2337,7 +2370,10 @@ export function StudyView({
             {/* Continuidade: follow-ups após a última resposta — o aluno segue
                 falando do mesmo assunto com 1 toque, sem reexplicar a dúvida. */}
             {!chatSearchActive && !chatLoading && streamText === null && messages.length > 1 &&
-              messages[messages.length - 1]?.role === 'assistant' && (
+              messages[messages.length - 1]?.role === 'assistant' &&
+              !messages[messages.length - 1]?.error && (
+                // t164: depois de erro os chips CALAM — "continuar nesse
+                // assunto" sobre uma falha é convite para lugar nenhum.
                 <div className="pt-1">
                   <p className="mb-1.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
                     <Sparkles className="size-3 text-emerald-400" />

@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, RotateCcw, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
+import { resolveRetryTarget } from '@/lib/tutor-retry';
 import {
   clearThread,
   loadThread,
@@ -292,17 +293,28 @@ export function TutorQuickPanel({
    * param no ato (lib/screen-capture — o hook cuida do seletor que não
    * é cancelável: 2º clique solta a UI). */
 
-  async function ask(question: string, image: string | null = null) {
+  async function ask(
+    question: string,
+    image: string | null = null,
+    keepComposer = false,
+  ) {
     const q = question.trim();
     if ((!q && !image) || loading) return;
-    setInput('');
-    setPendingImage(null);
-    setPendingLabel(null);
+    // t164: o retry ("tentar de novo") passa keepComposer=true — o rascunho
+    // em digitação e o print pendente do AGORA sobrevivem; só o turno antigo
+    // é reenviado. Envio normal: composer limpo como sempre.
+    if (!keepComposer) {
+      setInput('');
+      setPendingImage(null);
+      setPendingLabel(null);
+    }
     notifiedRef.current = false;
     // Memória da conversa: últimas 12 mensagens sem bolhas de erro — o tutor
     // continua o raciocínio anterior em vez de responder algo desconexo.
+    // t164: filtro pela FLAG `error` (o farejo do ⚠️ era morto — erros reais
+    // nunca começaram com ⚠️; a falha vazava no histórico da IA).
     const history = messages
-      .filter((m) => !m.content.startsWith('⚠️'))
+      .filter((m) => !m.error && !m.content.startsWith('⚠️'))
       .slice(-12)
       .map(({ role, content }) => ({ role, content }));
     appendMessage({
@@ -469,7 +481,7 @@ export function TutorQuickPanel({
           </div>
         )}
 
-        {messages.map((m) => (
+        {messages.map((m, idx) => (
           <div
             key={m.id}
             className={cn(
@@ -532,6 +544,25 @@ export function TutorQuickPanel({
                     <TutorMarkdown content={m.content} enableCards disciplineCode={disciplineCode} />
                   )}
                   <div className="mt-1.5 flex items-center gap-2">
+                    {m.error && resolveRetryTarget(messages, idx) && (
+                      // t164 — A SEGUNDA CHANCE: reenvia a pergunta do par
+                      // falhado, com o print se ele ainda vive na conversa.
+                      // Append-only: a tentativa falhada fica no fio.
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = resolveRetryTarget(messages, idx);
+                          if (target) void ask(target.content, target.image ?? null, true);
+                        }}
+                        disabled={loading}
+                        aria-label="Tentar de novo — reenvia a pergunta que falhou"
+                        title="Reenvia a sua última pergunta (com o print, se ele ainda está na conversa) — nada é apagado, a tentativa falhada continua no fio"
+                        className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 transition-colors hover:text-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-400 dark:hover:text-emerald-300"
+                      >
+                        <RotateCcw className="size-3" />
+                        tentar de novo
+                      </button>
+                    )}
                     {m.time && <span className="text-[10px] text-muted-foreground/60">{m.time}</span>}
                     {m.model && (
                       <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
@@ -588,6 +619,7 @@ export function TutorQuickPanel({
         {/* Continuidade: seguir no mesmo assunto com 1 toque. */}
         {!loading && streamText === null && messages.length > 0 &&
           messages[messages.length - 1]?.role === 'assistant' &&
+          !messages[messages.length - 1]?.error &&
           !messages[messages.length - 1]?.content.startsWith('⚠️') && (
             <div>
               <p className="mb-1.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
