@@ -153,11 +153,13 @@ ok(/reqWins && req\.detail\.question !== undefined \? req\.detail\.question/.tes
 
 ok(viewer.includes('silent: true'), 'C6. o instantâneo em modo cheio pede silêncio');
 ok(viewer.includes('data-testid="instant-attach-chip"'), 'C7. o chip do recibo é ancorado na BARRA (testável)');
-ok(viewer.includes('pág. {instantAttached.page} no tutor'), 'C8. o chip diz a página exata (a honestidade da 175 segue)');
+ok(viewer.includes('pág. {instantChip.page} no tutor'), 'C8. o chip diz a página exata (a honestidade da 175 segue — forma t183: o corpo lê o gate da verdade)');
 ok(/onClick=\{\(\) => \{\s*if \(!material\) return;\s*openTutor\(\{/.test(viewer) &&
    viewer.includes('setInstantAttached(null)'),
   'C9. o "abrir" do chip abre o tutor e LIMPA o recibo (intenção virou ação)');
-ok(viewer.includes('!isSplit && instantAttached'), 'C10. o chip é do modo CHEIO — dividido segue com o painel ao lado (t175 intacto)');
+ok(viewer.includes('!isSplit && instantChip &&') &&
+   viewer.includes('instantChipAlive(chipWired'),
+  'C10. o chip é do modo CHEIO e obedece à VERDADE do composer (t183: instantChipAlive; o dividido segue com o painel ao lado — t175 intacto)');
 ok(!viewer.includes("toast.success(\n          `Página ${page} anexada ao tutor"),
   'C11. o toast do modo cheio SAIU (recibo que some sozinho mentia sobre anexo pendente)');
 ok(viewer.includes("toast.error('Não consegui renderizar a página. Use o print de página.')"),
