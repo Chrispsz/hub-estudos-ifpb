@@ -8,9 +8,12 @@ import {
   CalendarDays,
   CircleCheck,
   Dumbbell,
+  FileQuestion,
   FileText,
+  Layers,
   LayoutDashboard,
   ListChecks,
+  Lock,
   Moon,
   Printer,
   Search,
@@ -53,7 +56,13 @@ import {
   type PaletteExamAction,
 } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
-import { openProgress, openSimulado, openTutor } from '@/lib/hub-events';
+import { openProgress, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
+import {
+  exercisePaletteEntries,
+  flashcardPaletteEntries,
+  paletteWordFilter,
+} from '@/lib/palette-search';
+import { exercises } from '@/lib/exercise-extractor';
 import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
 import { useStudyProgress } from '@/lib/study-progress';
 import {
@@ -68,6 +77,24 @@ interface Props {
 
 /** Nome do evento global disparado pelo botão de busca do Header. */
 export const OPEN_PALETTE_EVENT = 'hub:open-command-palette';
+
+/**
+ * A gramatura da dificuldade (173) — as MESMAS classes do Praticar
+ * (practice-view.tsx): cor = significado, a mesma de uma ponta à outra.
+ * Duplicar a STRING (não importar do componente) mantém a paleta livre de
+ * dependência de tela — e o contrato t173 compara as duas fontes.
+ */
+const QUEST_DIFFICULTY_BADGE: Record<
+  'facil' | 'medio' | 'dificil',
+  string
+> = {
+  facil:
+    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
+  medio:
+    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400',
+  dificil:
+    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400',
+};
 
 const PAGES: {
   value: TabKey;
@@ -130,6 +157,19 @@ export function CommandPalette({ onNavigate }: Props) {
       <>os erros dos simulados e exercícios caem aqui sozinhos</>
     );
   const paperCount = notebookPaper.printable.length;
+
+  // A BUSCA QUE ACHA A QUESTÃO (173): o acervo INTEIRO entra na paleta —
+  // enunciado confirmado, tópico, dificuldade e fonte viram linha de
+  // resultado; o Enter abre o Praticar filtrado AO SÓ o achado (o MESMO
+  // mecanismo do apoio do dia, exerciseIds — chip com X, filtro que não
+  // prende). Os cartões do aluno entram junto: o baralho que ELE criou é
+  // conteúdo de busca de primeira classe (grupo só existe com cartão —
+  // gaveta vazia não é anunciada).
+  const exerciseEntries = React.useMemo(() => exercisePaletteEntries(exercises), []);
+  const flashEntries = React.useMemo(
+    () => flashcardPaletteEntries(sp.progress.flashcards ?? [], Date.now()),
+    [sp.progress.flashcards],
+  );
 
   /** Ação da semana — cada kind tem a porta que JÁ existe no app. */
   function runExamAction(a: PaletteExamAction) {
@@ -227,9 +267,10 @@ export function CommandPalette({ onNavigate }: Props) {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
+        commandFilter={paletteWordFilter}
         className="[_[cmdk-group-heading]]:text-emerald-600 dark:[_[cmdk-group-heading]]:text-emerald-400"
       >
-        <CommandInput placeholder="Buscar páginas, disciplinas, materiais e ações..." />
+        <CommandInput placeholder="Buscar páginas, disciplinas, materiais, questões e ações..." />
         <CommandList className="max-h-[min(60vh,420px)] [scrollbar-width:thin]">
           <CommandEmpty>
             <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
@@ -483,6 +524,135 @@ export function CommandPalette({ onNavigate }: Props) {
           </CommandGroup>
 
           <CommandSeparator />
+
+          {/* A BUSCA QUE ACHA A QUESTÃO (173): o acervo como conteúdo de
+              busca de primeira classe — o mesmo direito dos materiais. A
+              dificuldade usa a MESMA gramatura de cor do Praticar (emerald/
+              amber/rose — cor = significado, não enfeite); prova real leva
+              selo próprio e gate fechado leva o cadeado (a paleta não
+              esconde o que o Praticar mostra — e não surpreende quem chega). */}
+          <CommandGroup
+            heading={
+              <span className="inline-flex items-center gap-1.5 font-semibold">
+                <FileQuestion className="size-3.5" aria-hidden="true" />
+                Questões do acervo
+                <span className="ml-1 rounded border border-current/30 px-1 font-mono text-[10px] tabular-nums opacity-80">
+                  {exerciseEntries.length}
+                </span>
+              </span>
+            }
+          >
+            {exerciseEntries.map((e) => {
+              const disc = disciplines.find((d) => d.code === e.disciplineCode);
+              const color = getColorClasses(disc?.color ?? 'slate');
+              return (
+                <CommandItem
+                  key={e.id}
+                  value={e.value}
+                  onSelect={() =>
+                    run(() =>
+                      // A MESMA fiação do apoio do dia (exam-prep-card): a
+                      // disciplina VAI JUNTO — sem ela o Praticar ignora o
+                      // exerciseIds (o efeito do pre-filtro exige code).
+                      openPractice({ disciplineCode: e.disciplineCode, exerciseIds: [e.id] }),
+                    )
+                  }
+                  className="gap-2.5"
+                >
+                  <span className={cn('shrink-0 [&_svg]:size-4', color.text)}>
+                    <DisciplineIcon name={disc?.icon ?? 'book'} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{e.preview}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {e.disciplineShort} · {e.topic}
+                    </span>
+                  </span>
+                  {e.isProvaReal && (
+                    <span className="shrink-0 rounded border border-zinc-300 px-1 text-[10px] uppercase tracking-wide text-zinc-500 dark:border-zinc-600 dark:text-zinc-400">
+                      prova real
+                    </span>
+                  )}
+                  {e.gated && (
+                    <span
+                      className="shrink-0 text-zinc-400 dark:text-zinc-500"
+                      title="aguarda a aula — o Praticar explica o gate"
+                    >
+                      <Lock className="size-3.5" aria-label="gate fechado" />
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      'shrink-0 rounded border px-1 text-[10px] tabular-nums',
+                      QUEST_DIFFICULTY_BADGE[e.difficulty],
+                    )}
+                  >
+                    {e.difficultyLabel}
+                  </span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          {/* O BARALHO NA BUSCA (173): os cartões do ALUNO (não os do acervo)
+              com a caixa e o prazo na linha — a véspera digita o assunto e o
+              cartão vem; o Enter abre o Praticar já no modo flashcards. Grupo
+              condicionado a EXISTIR cartão: a paleta não anuncia gaveta vazia
+              (a honestidade do estado vazio que a casa já pratica). */}
+          {flashEntries.length > 0 && (
+            <>
+              <CommandGroup
+                heading={
+                  <span className="inline-flex items-center gap-1.5 font-semibold">
+                    <Layers className="size-3.5" aria-hidden="true" />
+                    Seus cartões
+                    <span className="ml-1 rounded border border-current/30 px-1 font-mono text-[10px] tabular-nums opacity-80">
+                      {flashEntries.length}
+                    </span>
+                  </span>
+                }
+              >
+                {flashEntries.map((f) => {
+                  const disc = disciplines.find((d) => d.code === f.disciplineCode);
+                  const color = getColorClasses(disc?.color ?? 'slate');
+                  return (
+                    <CommandItem
+                      key={f.id}
+                      value={f.value}
+                      onSelect={() => run(() => openPractice({ mode: 'flashcards' }))}
+                      className="gap-2.5"
+                    >
+                      <span className={cn('shrink-0 [&_svg]:size-4', color.text)}>
+                        <DisciplineIcon name={disc?.icon ?? 'book'} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{f.front}</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {f.backPreview}
+                        </span>
+                      </span>
+                      {f.overdue && (
+                        <span className="shrink-0 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                          vencido
+                        </span>
+                      )}
+                      {f.lapses > 0 && (
+                        <span className="shrink-0 text-[10px] tabular-nums text-rose-600 dark:text-rose-400">
+                          {f.lapsesLabel}
+                        </span>
+                      )}
+                      <span className="shrink-0 rounded border border-border px-1 text-[10px] tabular-nums text-muted-foreground">
+                        caixa {f.box}
+                      </span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
           <CommandGroup heading="Ações">
             <CommandItem
