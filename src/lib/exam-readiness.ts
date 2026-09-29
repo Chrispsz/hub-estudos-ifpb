@@ -70,10 +70,13 @@ export function metaGapText(pct: number): string {
 /** Um tópico do escopo da prova e o seu aproveitamento mais recente. */
 export interface ReadinessTopicMastery {
   topic: string;
-  /** Último aproveitamento do tópico (0–100). */
-  pct: number;
-  /** Variação em pp entre a 1ª e a última tentativa do tópico. */
-  delta: number;
+  /** Último aproveitamento do tópico (0–100); null = o bloco foi INTEIRO
+   *  pulado na última tentativa — sem taxa (a régua única da casa: nunca
+   *  "0% falso", o pulado não veste a tinta do erro). */
+  pct: number | null;
+  /** Variação em pp entre a 1ª e a última tentativa; null quando não há
+   *  taxas dos dois lados para comparar (pulado numa das pontas). */
+  delta: number | null;
   /** Quantas tentativas com detalhe alimentaram este tópico. */
   attempts: number;
 }
@@ -144,16 +147,28 @@ export function computeReadiness(
           attempts: t.series.length,
         }))
       : undefined;
+  // A RÉGUA HONESTA POR TÓPICO (t190): tópico com bloco inteiro pulado na
+  // última tentativa não tem taxa — e a regra de honestidade dos componentes
+  // vige DENTRO do componente: a média do "simulado" é renormalizada sobre os
+  // tópicos COM taxa (o pulado não entra como 0% fingindo que foi tentado).
+  // Todo o escopo sem taxa → o componente volta à última geral, confessando
+  // os blocos pulados no detail (o número geral é a nota da prova; a ausência
+  // de taxa por tópico é confissão, não invenção).
+  const comTaxa = (topicMastery ?? []).filter(
+    (t): t is ReadinessTopicMastery & { pct: number } => t.pct !== null,
+  );
+  const semTaxa = (topicMastery ?? []).filter((t) => t.pct === null);
   if (pool.length > 0) {
     const last = [...pool].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     )[0];
     const pctRun = runPct(last.solved, last.total);
-    if (topicMastery) {
-      // Média do domínio atual dos tópicos COM evidência (renormalizado —
-      // a mesma regra de honestidade dos componentes, agora por tópico).
+    if (topicMastery && comTaxa.length > 0) {
+      // Média do domínio atual dos tópicos COM taxa (renormalizado — a mesma
+      // regra de honestidade dos componentes, agora por tópico; o bloco
+      // pulado é confissão à parte, não zero na média).
       const pct = Math.round(
-        topicMastery.reduce((a, t) => a + t.pct, 0) / topicMastery.length,
+        comTaxa.reduce((a, t) => a + t.pct, 0) / comTaxa.length,
       );
       const missing = (MATH_EXAM.topicosEscopo as readonly string[]).filter(
         (tp) => !topicMastery.some((t) => t.topic === tp),
@@ -163,7 +178,17 @@ export function computeReadiness(
         id: 'simulado',
         label: 'Simulado da prova',
         pct,
-        detail: `domínio por tópico do escopo (${attempts} tentativas c/ detalhe) · última geral: ${pctRun}% · ${metaGapText(pct)}${missing.length > 0 ? ` · falta evidência: ${missing.join(', ')}` : ''}`,
+        detail: `domínio por tópico do escopo (${attempts} tentativas c/ detalhe) · última geral: ${pctRun}% · ${metaGapText(pct)}${missing.length > 0 ? ` · falta evidência: ${missing.join(', ')}` : ''}${semTaxa.length > 0 ? ` · sem taxa (bloco pulado): ${semTaxa.map((t) => t.topic).join(', ')}` : ''}`,
+      });
+    } else if (topicMastery && comTaxa.length === 0) {
+      // O ESCOPO INTEIRO SEM TAXA: toda a última tentativa pulou os blocos —
+      // a média por tópico não existe e a última geral assume, com a
+      // confissão dos blocos no detail (nunca um 0% inventado por tópico).
+      components.push({
+        id: 'simulado',
+        label: 'Simulado da prova',
+        pct: pctRun,
+        detail: `última geral: ${pctRun}% (${fmtDDMM(last.date)}) · ${metaGapText(pctRun)} · bloco(s) inteiro(s) pulado(s): ${semTaxa.map((t) => t.topic).join(', ')}`,
       });
     } else {
       components.push({
@@ -297,14 +322,18 @@ export function buildReadinessQuestion(
     return `- ${c.label}: ${evidencia}`;
   });
 
-  // Domínio por tópico do escopo — a IA enxerga ONDE está o foco real.
+  // Domínio por tópico do escopo — a IA enxerga ONDE está o foco real. A voz
+  // do pulado é honesta (t190): bloco inteiro pulado é "pulou tudo", não "0%"
+  // — a IA não pode montar um plano de revisão sobre um erro que não houve.
   const dominioBloco = result.topicMastery
     ? [
         '',
         'Domínio ATUAL por tópico do escopo da prova (última tentativa de cada tópico; Δ = variação entre 1ª e última):',
         ...result.topicMastery.map(
           (t) =>
-            `- ${t.topic}: ${t.pct}% (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'})`,
+            t.pct === null
+              ? `- ${t.topic}: pulou tudo (sem taxa na última tentativa — o bloco inteiro foi pulado) em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`
+              : `- ${t.topic}: ${t.pct}%${t.delta !== null ? ` (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp` : ''} em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}${t.delta !== null ? ')' : ''}`,
         ),
       ]
     : [];

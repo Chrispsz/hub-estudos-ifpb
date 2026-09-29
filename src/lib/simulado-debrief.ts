@@ -13,7 +13,11 @@ import { getDisciplineByCode } from '@/data/course-data';
 import type { RunQuestionDetail, SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode, type AttemptMode } from '@/lib/simulado-resume';
 import { capQuestion } from '@/lib/tutor-stream';
-import { MATH_SIMULADO_DATE, findMathSimuladoRunOficial } from '@/lib/math-exam-prep';
+import {
+  MATH_SIMULADO_DATE,
+  findMathSimuladoRunOficial,
+  topicRowsFor,
+} from '@/lib/math-exam-prep';
 
 export function fmtClockSec(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -154,14 +158,26 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
  * `questions`, por disciplina::tópico, e devolve a sequência cronológica de
  * aproveitamento de cada tópico — quem sobe, quem desce, quem está estagnado.
  *
+ * A RÉGUA É A ÚNICA DA CASA (t190): a agregação por tentativa vem de
+ * topicRowsFor (math-exam-prep) — taxa sobre RESPONDIDAS, puladas contadas
+ * à parte, bloco inteiro pulado → pct null. A versão antiga desta função
+ * dividia solved/TOTAL e era a ÚLTIMA régua velha viva: vestia o bloco
+ * nunca tentado com o "0%" do tentou-e-errou nos chips "foco da prova" da
+ * home, na média do score de prontidão e na série que a IA do tutor lê.
+ *
  * Regras:
  *  - `runs` chega na ordem de gravação (mais recente PRIMEIRO) — aqui vira
  *    cronologia interna (reversa), então cada série é antiga → recente;
  *  - tentativas sem detalhes por questão (antigas) simplesmente não contribuem;
- *  - pior tópico ATUAL primeiro (o foco de revisão), tie-break: mais tentativas.
+ *  - first/last/delta são null quando a tentativa correspondente NÃO tem taxa
+ *    (bloco inteiro pulado — nunca inventa número);
+ *  - pior tópico ATUAL primeiro (o foco de revisão) — a MESMA regra da casa:
+ *    pulou-tudo vem ANTES de qualquer taxa (key −1, doutrina t189), depois a
+ *    menor taxa, tie-break: mais tentativas.
  */
 export interface TopicTrendPoint {
-  pct: number;
+  /** null = o tópico inteiro pulado NAQUELA tentativa (sem taxa honesta). */
+  pct: number | null;
   date: string;
 }
 
@@ -170,39 +186,45 @@ export interface TopicTrend {
   topic: string;
   /** Aproveitamento por tentativa em que o tópico apareceu (antiga → recente). */
   series: TopicTrendPoint[];
-  first: number;
-  last: number;
-  /** last − first em pontos percentuais; 0 quando só há 1 tentativa. */
-  delta: number;
+  /** Taxa da 1ª tentativa; null = a 1ª tentativa pulou o bloco inteiro. */
+  first: number | null;
+  /** Taxa da ÚLTIMA tentativa; null = a última pulou o bloco inteiro — é o
+   *  diagnóstico mais grave e a superfície que decide o foco trata null como
+   *  "pulou tudo" (nunca "0%"). */
+  last: number | null;
+  /** last − first em pontos percentuais; null quando não há taxas dos dois
+   *  lados para comparar (1 tentativa, ou pulado numa das pontas). */
+  delta: number | null;
 }
 
 export function computeTopicTrends(runs: SimuladoRun[]): TopicTrend[] {
   const chrono = [...runs].reverse().filter((r) => r.questions && r.questions.length > 0);
   const m = new Map<string, { disciplineCode: string; topic: string; series: TopicTrendPoint[] }>();
   for (const r of chrono) {
-    // Agrega por tópico DENTRO da tentativa (uma corrida pode repetir tópico).
-    const agg = new Map<string, { disc: string; topic: string; solved: number; total: number }>();
-    for (const q of r.questions!) {
-      if (!q.topic) continue;
-      const key = `${q.disciplineCode ?? ''}::${q.topic}`;
-      const rec = agg.get(key) ?? { disc: q.disciplineCode ?? '', topic: q.topic, solved: 0, total: 0 };
-      rec.total += 1;
-      if (q.status === 'solved') rec.solved += 1;
-      agg.set(key, rec);
-    }
-    for (const [key, rec] of agg) {
-      const cur = m.get(key) ?? { disciplineCode: rec.disc, topic: rec.topic, series: [] };
-      cur.series.push({ pct: Math.round((rec.solved / rec.total) * 100), date: r.date });
+    // A AGREGAÇÃO por tentativa vem da FONTE ÚNICA (t189/t190): topicRowsFor —
+    // taxa sobre respondidas, pulada sem taxa. Uma corrida pode repetir
+    // tópico; topicRowsFor já agrupa por disciplina::tópico dentro dela.
+    for (const row of topicRowsFor(r.questions!)) {
+      if (row.topic === '—') continue;
+      const key = `${row.disciplineCode}::${row.topic}`;
+      const cur = m.get(key) ?? { disciplineCode: row.disciplineCode, topic: row.topic, series: [] };
+      cur.series.push({ pct: row.pct, date: r.date });
       m.set(key, cur);
     }
   }
   return [...m.values()]
     .map((t) => {
-      const first = t.series[0]?.pct ?? 0;
-      const last = t.series[t.series.length - 1]?.pct ?? 0;
-      return { ...t, first, last, delta: t.series.length >= 2 ? last - first : 0 };
+      const first = t.series[0]?.pct ?? null;
+      const last = t.series[t.series.length - 1]?.pct ?? null;
+      const delta =
+        t.series.length >= 2 && first !== null && last !== null ? last - first : null;
+      return { ...t, first, last, delta };
     })
-    .sort((a, b) => a.last - b.last || b.series.length - a.series.length);
+    .sort(
+      (a, b) =>
+        (a.last === null ? -1 : a.last) - (b.last === null ? -1 : b.last) ||
+        b.series.length - a.series.length,
+    );
 }
 
 /**
@@ -228,11 +250,19 @@ export function buildTrendQuestion(runs: SimuladoRun[]): string {
   });
 
   // Tendência por tópico (só tentativas com detalhes por questão contribuem).
+  // A série fala a língua do pulado (t190): tentativa com bloco inteiro pulado
+  // aparece como "pulou" — nunca "0%", a IA não pode ler um erro que não houve.
   const trends = computeTopicTrends(runs).slice(0, 6);
   const topicLines = trends.map((t) => {
-    const seq = t.series.map((p) => `${p.pct}%`).join(' → ');
+    const seq = t.series.map((p) => (p.pct === null ? 'pulou' : `${p.pct}%`)).join(' → ');
     const delta =
-      t.series.length >= 2 ? ` (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp)` : ' (1ª tentativa)';
+      t.delta !== null
+        ? ` (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp)`
+        : t.last === null
+          ? t.series.length >= 2
+            ? ' (última: bloco pulado — sem taxa)'
+            : ' (bloco pulado — sem taxa)'
+          : ' (1ª tentativa)';
     return `- ${discShort(t.disciplineCode)} · ${t.topic}: ${seq}${delta}`;
   });
 

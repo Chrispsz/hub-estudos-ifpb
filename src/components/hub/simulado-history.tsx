@@ -322,7 +322,7 @@ export function SimuladoHistory() {
                 <p className="flex items-center gap-1.5 text-xs font-medium">
                   <TrendingUp className="size-3.5 text-emerald-500" /> Tendência por tópico
                 </p>
-                {topicTrends[0].last < 60 && (
+                {(topicTrends[0].last === null || topicTrends[0].last < 60) && (
                   <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
                     <Target className="mr-1 size-2.5" /> foco: {topicTrends[0].topic}
                   </Badge>
@@ -354,13 +354,20 @@ export function SimuladoHistory() {
                         {t.series.map((p, j) => (
                           <motion.span
                             key={j}
-                            title={`${fmtDate(p.date)} — ${p.pct}%`}
+                            title={`${fmtDate(p.date)} — ${p.pct === null ? 'pulou tudo (sem taxa)' : `${p.pct}%`}`}
                             initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(10, Math.round(p.pct * 0.28))}px` }}
+                            animate={{
+                              height: `${p.pct === null ? 10 : Math.max(10, Math.round(p.pct * 0.28))}px`,
+                            }}
                             transition={{ duration: 0.4, delay: 0.15 + i * 0.06 + j * 0.05, ease: 'easeOut' }}
                             className={cn(
                               'w-1.5 rounded-sm opacity-80 transition-opacity group-hover:opacity-100',
-                              trendBarTone(p.pct),
+                              // A BARRA OCA DO PULADO (t190): tentativa com o
+                              // bloco inteiro pulado não tem taxa — contorno
+                              // zinc vazio, nunca a barra cheia do erro.
+                              p.pct === null
+                                ? 'border border-dashed border-zinc-400/70 bg-transparent dark:border-zinc-500/70'
+                                : trendBarTone(p.pct),
                             )}
                           />
                         ))}
@@ -373,10 +380,24 @@ export function SimuladoHistory() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      <span className="text-xs font-bold tabular-nums">{t.last}%</span>
-                      {/* Gap até a meta de aprovação da Av1 — só nos tópicos do escopo */}
+                      <span
+                        className={cn(
+                          'text-xs font-bold tabular-nums',
+                          t.last === null && 'text-zinc-500 dark:text-zinc-400',
+                        )}
+                      >
+                        {t.last === null ? 'pulou tudo' : `${t.last}%`}
+                      </span>
+                      {/* Gap até a meta de aprovação da Av1 — só nos tópicos do escopo COM taxa */}
                       {isAv1Topic(t.disciplineCode, t.topic) &&
-                        (t.last >= MATH_META ? (
+                        (t.last === null ? (
+                          <span
+                            title={`O bloco inteiro foi pulado na última tentativa — sem taxa para comparar com a meta (${MATH_META}%)`}
+                            className="rounded-full border border-zinc-400/60 bg-zinc-500/10 px-1.5 py-px text-[9px] font-medium text-zinc-600 dark:text-zinc-300"
+                          >
+                            sem taxa
+                          </span>
+                        ) : t.last >= MATH_META ? (
                           <span
                             title={`Meta de aprovação da Av1 (${MATH_META}%) batida — folga de ${t.last - MATH_META}pp`}
                             className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-px text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"
@@ -392,7 +413,17 @@ export function SimuladoHistory() {
                           </span>
                         ))}
                       {t.series.length >= 2 ? (
-                        t.delta > 0 ? (
+                        t.delta === null ? (
+                          // Sem taxas dos DOIS lados para comparar (pulou numa
+                          // das pontas) — o Δ honesto não existe.
+                          <Badge
+                            variant="outline"
+                            title="Sem variação comparável: o bloco foi pulado em uma das pontas (sem taxa)"
+                            className="gap-0.5 border-zinc-400/60 bg-zinc-500/10 px-1.5 text-[10px] text-zinc-600 dark:text-zinc-300"
+                          >
+                            <Minus className="size-2.5" /> sem Δ
+                          </Badge>
+                        ) : t.delta > 0 ? (
                           <Badge
                             variant="outline"
                             title={`Subiu ${t.delta} ponto(s) percentual(is) da 1ª para a última tentativa`}
@@ -450,7 +481,7 @@ export function SimuladoHistory() {
               )}
               <p className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
                 <Sparkles className="size-2.5 shrink-0" />
-                Barras = aproveitamento em cada tentativa (antiga → recente); linha tracejada = meta de aprovação da Av1 (≥ {MATH_META}). A IA recebe esta série no botão abaixo.
+                Barras = aproveitamento em cada tentativa (antiga → recente); barra OCA = bloco inteiro pulado (sem taxa); linha tracejada = meta de aprovação da Av1 (≥ {MATH_META}). A IA recebe esta série no botão abaixo.
               </p>
             </div>
           )}

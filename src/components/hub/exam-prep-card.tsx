@@ -411,7 +411,13 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
         (MATH_EXAM.topicosEscopo as readonly string[]).includes(t.topic),
     );
     if (trends.length === 0) return null;
-    return { worst: trends[0], allGood: trends.every((t) => t.last >= 80), trends };
+    // allGood COM TAXA REAL (t190): tópico pulado na última tentativa não tem
+    // taxa — "em dia" exige número de verdade (≥ 80), não a ausência de erro.
+    return {
+      worst: trends[0],
+      allGood: trends.every((t) => t.last !== null && t.last >= 80),
+      trends,
+    };
   }, [sp.progress.simuladoRuns]);
 
   // O DIA DO SIMULADO SABE QUANDO ELE JÁ ACONTECEU: uma prova de Matemática
@@ -894,19 +900,34 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                 </span>
                 {examFocus.trends.map((t) => {
                   const isWorst = t === examFocus.worst;
-                  const worstTone =
-                    t.last < 40
+                  // A VOZ DO PULADO NA RÉGUA ÚNICA (t190): bloco inteiro pulado
+                  // na última tentativa NÃO VESTE A TINTA DO ERRO — zinc, o
+                  // neutro honesto da casa (a mesma gramática da linha "pulou
+                  // tudo" da tabela do debrief, t189). É o foco de verdade
+                  // (a ordenação da lib põe o pulado primeiro), mas sem taxa
+                  // inventada: "pulou tudo" no lugar do "0%" falso.
+                  const pulouTudo = t.last === null;
+                  const worstTone = pulouTudo
+                    ? 'border-zinc-400/60 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300'
+                    : t.last! < 40
                       ? 'border-rose-500/50 bg-rose-500/10 text-rose-700 dark:text-rose-400'
                       : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400';
                   const pctTone =
-                    t.last >= 80
+                    t.last !== null && t.last >= 80
                       ? 'text-emerald-600 dark:text-emerald-400'
-                      : t.last >= 40
+                      : t.last !== null && t.last >= 40
                         ? 'text-amber-600 dark:text-amber-400'
                         : 'text-rose-600 dark:text-rose-400';
+                  // O title confessa a SÉRIE inteira (antiga → recente): o
+                  // dono vê a evolução sem sair do chip — e o pulado é dito
+                  // como pulado, nunca como 0%.
+                  const serieTxt = t.series
+                    .map((p) => (p.pct === null ? 'pulou tudo' : `${p.pct}%`))
+                    .join(' → ');
                   return (
                     <span
                       key={t.topic}
+                      title={`${t.topic}: ${serieTxt} · ${t.series.length} tentativa${t.series.length === 1 ? '' : 's'}${pulouTudo ? ' — o bloco inteiro foi pulado (sem taxa)' : ''}`}
                       className={cn(
                         'inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-1 font-medium',
                         isWorst ? worstTone : 'border-border bg-muted/30 text-muted-foreground',
@@ -929,10 +950,19 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                         </button>
                       )}
                       <span className="max-w-[13rem] truncate">{t.topic}</span>
-                      <span className={cn('font-bold tabular-nums', isWorst ? '' : pctTone)}>
-                        {t.last}%
+                      <span
+                        className={cn(
+                          'font-bold tabular-nums',
+                          pulouTudo
+                            ? 'text-zinc-500 dark:text-zinc-400'
+                            : isWorst
+                              ? ''
+                              : pctTone,
+                        )}
+                      >
+                        {pulouTudo ? 'pulou tudo' : `${t.last}%`}
                       </span>
-                      {t.series.length >= 2 && t.delta !== 0 && (
+                      {t.series.length >= 2 && t.delta !== null && t.delta !== 0 && (
                         <span
                           title={
                             t.delta > 0
@@ -2746,21 +2776,39 @@ function ReadinessSection({
                       aria-label="Domínio atual por tópico do escopo da prova"
                     >
                       {readiness.topicMastery.map((t, ti) => {
-                        const DeltaIcon = t.delta > 0 ? TrendingUp : t.delta < 0 ? TrendingDown : Minus;
+                        // A VOZ DO PULADO NA MÉDIA DO SCORE (t190): bloco
+                        // inteiro pulado na última tentativa não tem taxa — a
+                        // barra fica VAZIA e NEUTRA (zinc, a gramática da
+                        // tabela do debrief), o texto confessa "pulou tudo" e
+                        // a mira acende (o pulado É o foco de verdade).
+                        const pulouTudo = t.pct === null;
+                        const DeltaIcon =
+                          t.delta === null || pulouTudo
+                            ? null
+                            : t.delta > 0
+                              ? TrendingUp
+                              : t.delta < 0
+                                ? TrendingDown
+                                : Minus;
                         const deltaCls =
-                          t.delta > 0
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : t.delta < 0
-                              ? 'text-rose-500'
-                              : 'text-muted-foreground/60';
-                        const deltaTxt = `Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`;
+                          t.delta === null || pulouTudo
+                            ? ''
+                            : t.delta > 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : t.delta < 0
+                                ? 'text-rose-500'
+                                : 'text-muted-foreground/60';
+                        const deltaTxt =
+                          t.delta === null || pulouTudo
+                            ? `sem Δ (taxa só de um lado) em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`
+                            : `Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`;
                         return (
                           <div
                             key={t.topic}
                             className="flex items-center gap-1.5"
-                            title={`${t.topic}: ${t.pct}% na última tentativa · ${deltaTxt}`}
+                            title={`${t.topic}: ${pulouTudo ? 'bloco inteiro pulado na última tentativa (sem taxa)' : `${t.pct}% na última tentativa`} · ${deltaTxt}`}
                           >
-                            {t.pct < 60 ? (
+                            {t.pct !== null && t.pct < 60 ? (
                               <Crosshair
                                 className="size-3 shrink-0 text-rose-500"
                                 role="img"
@@ -2773,22 +2821,34 @@ function ReadinessSection({
                               {t.topic}
                             </span>
                             <span className="h-1 flex-[3] overflow-hidden rounded-full bg-muted" aria-hidden>
-                              <motion.span
-                                className={cn('block h-full rounded-full', masteryBarCls(t.pct))}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${t.pct}%` }}
-                                transition={{ duration: 0.6, delay: 0.4 + ti * 0.08, ease: 'easeOut' }}
-                              />
+                              {pulouTudo ? (
+                                // A BARRA VAZIA DO PULADO: neutra, sem tinta
+                                // de erro — nunca tentou ≠ tentou e errou.
+                                <span className="block h-full w-0 rounded-full" aria-hidden />
+                              ) : (
+                                <motion.span
+                                  className={cn('block h-full rounded-full', masteryBarCls(t.pct!))}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${t.pct}%` }}
+                                  transition={{ duration: 0.6, delay: 0.4 + ti * 0.08, ease: 'easeOut' }}
+                                />
+                              )}
                             </span>
                             <span
                               className={cn(
-                                'w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums',
-                                masteryTextCls(t.pct),
+                                'shrink-0 text-right text-[10px] font-semibold tabular-nums',
+                                pulouTudo
+                                  ? 'w-auto text-zinc-500 dark:text-zinc-400'
+                                  : cn('w-8', masteryTextCls(t.pct!)),
                               )}
                             >
-                              {t.pct}%
+                              {pulouTudo ? 'pulou tudo' : `${t.pct}%`}
                             </span>
-                            <DeltaIcon className={cn('size-3 shrink-0', deltaCls)} aria-hidden />
+                            {DeltaIcon ? (
+                              <DeltaIcon className={cn('size-3 shrink-0', deltaCls)} aria-hidden />
+                            ) : (
+                              <span className="size-3 shrink-0" aria-hidden />
+                            )}
                           </div>
                         );
                       })}
