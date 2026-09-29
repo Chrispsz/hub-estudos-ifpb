@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Award, Dumbbell, History, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { AlarmClock, Award, Dumbbell, History, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -575,6 +575,19 @@ export function SimuladoHistory() {
                   <span className="text-muted-foreground">
                     {fmtDate(r.date)} · {fmtDur(r.durationSec)}
                   </span>
+                  {/* O SINO NO ACERVO (t192): a tentativa que o relógio encerrou
+                      carrega a marca — no dia da prova, a diferença entre "acabou
+                      o tempo" e "desisti" é o diagnóstico do pacing (estratégia ×
+                      conteúdo). Runs que terminaram antes calam (sem chip). */}
+                  {r.endedByClock && (
+                    <Badge
+                      variant="outline"
+                      title="O relógio chegou a 00:00 e encerrou a prova — o que ficou em branco ficou em branco"
+                      className="gap-0.5 border-amber-300/60 bg-amber-500/[0.07] px-1.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                    >
+                      <AlarmClock className="size-2.5" aria-hidden /> pelo relógio
+                    </Badge>
+                  )}
                   {r.filters?.difficulty && (
                     <Badge variant="outline" className="border-border text-[10px] capitalize text-muted-foreground">
                       {r.filters.difficulty}

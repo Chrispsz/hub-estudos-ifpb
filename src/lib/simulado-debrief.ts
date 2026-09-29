@@ -39,6 +39,45 @@ function discShort(code?: string): string {
 }
 
 /**
+ * ONDE O TEMPO FOI (t192) — o resumo de pacing de uma tentativa.
+ *
+ * A Av1 real tem relógio: saber que a q3 comeu 18 dos 60 minutos muda a
+ * estratégia da prova (pular e voltar). A função lê os tempos por questão
+ * (segundos) e devolve o que o strip do debrief e a IA precisam:
+ *  - totalSec: a soma do tempo que passou EM questões (a pausa não entra —
+ *    o cronômetro congela fechado);
+ *  - slowestIdx: a questão mais lenta (0-based; −1 quando nada foi medido);
+ *  - measured: existe ao menos uma questão com tempo > 0 (runs antigos,
+ *    pré-t192, não têm o campo — e a superfície CALA: sem registro não há
+ *    linha, regra 88).
+ *
+ * PURA e honesta com lixo: undefined/null/NaN/negativo viram 0 — um tempo
+ * corrompido nunca inventa um "mais lento" falso. Empate no máximo fica com
+ * a PRIMEIRA (a mais antiga — a que travou primeiro merece o olhar).
+ */
+export interface PacingSummary {
+  totalSec: number;
+  slowestIdx: number;
+  measured: boolean;
+}
+
+export function pacingFor(times: ReadonlyArray<number | null | undefined>): PacingSummary {
+  const safe = times.map((t) =>
+    typeof t === 'number' && Number.isFinite(t) && t > 0 ? t : 0,
+  );
+  const totalSec = safe.reduce((acc, t) => acc + t, 0);
+  let slowestIdx = -1;
+  let slowest = 0;
+  safe.forEach((t, i) => {
+    if (t > slowest) {
+      slowest = t;
+      slowestIdx = i;
+    }
+  });
+  return { totalSec, slowestIdx, measured: totalSec > 0 };
+}
+
+/**
  * O run é o SIMULADO OFICIAL da Av1 (o ensaio real do dia marcado, prova de
  * Matemática)? MESMOS critérios do findMathSimuladoRunOficial — fonte única,
  * sem critério paralelo para divergir. Serve para o debrief declarar a
@@ -90,11 +129,26 @@ export function buildDebriefFromDetails(input: {
         : isOficial
           ? 'Acabei de terminar o SIMULADO OFICIAL da Av1 no Hub — o ensaio REAL da prova de Matemática, com meta de aprovação (≥ 70). Analisa meu desempenho como um professor faria na correção de um ensaio oficial e monta o plano de revisão CURTO e organizado para os dias que faltam até a prova.'
           : 'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.';
+  // O PACING na linha (t192): corridas novas gravam timeSec; antigas não —
+  // a linha velha permanece idêntica (compatibilidade silenciosa, sem
+  // "— 00:00" inventado para quem não mediu).
   const lines = details.map((q, i) => {
     const status =
       q.status === 'solved' ? 'CONSEGUI' : q.status === 'missed' ? 'NÃO CONSEGUI' : 'PULADA';
-    return `- Q${i + 1} [${discShort(q.disciplineCode)} · ${q.topic || '—'} · ${difficultyLabel(q.difficulty)}] ${status} — ${(q.statement || '').slice(0, 110)}`;
+    const tempo =
+      typeof q.timeSec === 'number' && Number.isFinite(q.timeSec) && q.timeSec > 0
+        ? ` · ${fmtClockSec(Math.round(q.timeSec))}`
+        : '';
+    return `- Q${i + 1} [${discShort(q.disciplineCode)} · ${q.topic || '—'} · ${difficultyLabel(q.difficulty)}] ${status}${tempo} — ${(q.statement || '').slice(0, 110)}`;
   });
+  // O pedido de ritmo SÓ nasce quando há tempo medido — pedir análise de
+  // pacing sobre dados que não existem seria ensaiar adivinhação.
+  const temPacing = details.some(
+    (q) => typeof q.timeSec === 'number' && Number.isFinite(q.timeSec) && q.timeSec > 0,
+  );
+  const pedidos = temPacing
+    ? 'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão, (3) um exercício de treino por tópico fraco e (4) o RITMO — alguma questão comeu tempo demais para uma prova cronometrada (onde eu deveria ter pulado e voltado depois)?'
+    : 'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.';
   return capQuestion(
     [
       abertura,
@@ -102,7 +156,7 @@ export function buildDebriefFromDetails(input: {
       'Resultado por questão:',
       ...lines,
       '',
-      'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.',
+      pedidos,
     ].join('\n'),
   );
 }
@@ -119,13 +173,19 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
   // precisa saber com o que está lidando sem ninguém lembrar de avisar.
   const oficial = isSimuladoRunOficial(run);
   if (run.questions && run.questions.length > 0) {
-    return buildDebriefFromDetails({
+    const pergunta = buildDebriefFromDetails({
       mode,
       pct: run.total > 0 ? Math.round((run.solved / run.total) * 100) : 0,
       elapsedSec: run.durationSec,
       details: run.questions,
       isOficial: oficial,
     });
+    // O SINO CONFESSA (t192): a tentativa que o relógio encerrou diz isso à
+    // IA — "acabou o tempo" e "desisti" são diagnósticos DIFERENTES (o
+    // primeiro pede estratégia de pacing, o segundo pede conteúdo).
+    return run.endedByClock
+      ? `${pergunta}\n\nObservação: a prova foi encerrada PELO RELÓGIO (00:00) — o que ficou em branco ficou em branco. Considere isso no diagnóstico de ritmo.`
+      : pergunta;
   }
   const natureza =
     mode === 'treino'
@@ -141,6 +201,7 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
     `${run.missed} que não consegui`,
     `${run.skipped} puladas`,
     `tempo ${fmtClockSec(run.durationSec)}`,
+    ...(run.endedByClock ? ['encerrada PELO RELÓGIO (00:00)'] : []),
   ];
   const filtros: string[] = [];
   if (run.filters?.discipline) filtros.push(discShort(run.filters.discipline));
