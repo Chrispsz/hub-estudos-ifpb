@@ -48,6 +48,7 @@ import {
 } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { captureElementToDataUrl } from '@/lib/dom-capture';
+import { normalizeAiSummary } from '@/lib/ai-summary-schema';
 import { cn } from '@/lib/utils';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 
@@ -186,7 +187,11 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
           setSummary(null);
           return;
         }
-        const data = (await res.json()) as AiSummary;
+        // t186 — A PORTA DE ENTRADA NORMALIZA: os dados do acervo já foram
+        // consertados na fonte (a chave acentuada virou canônica em 13
+        // arquivos), e a lib defende o futuro — resumo regenerado que volte
+        // a trazer "perguntas_autoavaliação" continua renderizando.
+        const data = normalizeAiSummary(await res.json()) as AiSummary;
         summaryCache.set(mat.summaryFile, data);
         setAvailable(true);
         setSummary(data);
@@ -702,7 +707,20 @@ const SummaryBody = React.memo(function SummaryBody({
           <ul className="grid gap-1.5">
             {perguntas.map((p, i) => (
               <li key={i} className="flex items-start gap-2">
-                <label className="flex flex-1 cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/30 p-3 text-sm hover:bg-muted/50 sm:p-2.5">
+                <label
+                  className={cn(
+                    // t186 (④) — a pergunta RESPONDIDA veste a família do
+                    // acerto (esmeralda): o check marca, a borda confirma —
+                    // mesmo verniz das portas de material (t185) e dos chips
+                    // IA desta seção. focus-within ring: navegar por teclado
+                    // acende a linha inteira, não só o quadradinho.
+                    'flex flex-1 cursor-pointer items-start gap-3 rounded-md border bg-muted/30 p-3 text-sm transition-colors hover:bg-muted/50 sm:p-2.5',
+                    'focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-500/40 focus-within:ring-offset-1',
+                    checks[i]
+                      ? 'border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15'
+                      : 'border-border',
+                  )}
+                >
                   <Checkbox
                     checked={!!checks[i]}
                     onCheckedChange={() => onToggle(i)}
@@ -734,11 +752,22 @@ const SummaryBody = React.memo(function SummaryBody({
 
       <Separator />
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <ClipboardList className="size-3.5" />
-          {answeredCount} / {totalQuestions} perguntas respondidas
-        </span>
+      {/* t186 — O RODAPÉ HONESTO: o contador "N / M perguntas respondidas"
+          só existe quando há perguntas (M > 0) — material sem perguntas não
+          mostra "0 / 0" (contagem sem pergunta é ruído, não confissão). O
+          Recarregar fica FORA do guard: recarregar resumo é gesto de sempre. */}
+      <div
+        className={cn(
+          'flex items-center text-xs text-muted-foreground',
+          totalQuestions > 0 ? 'justify-between' : 'justify-end',
+        )}
+      >
+        {totalQuestions > 0 && (
+          <span className="inline-flex items-center gap-1.5">
+            <ClipboardList className="size-3.5" />
+            {answeredCount} / {totalQuestions} perguntas respondidas
+          </span>
+        )}
         <Button size="sm" variant="ghost" onClick={onReload} className="h-11 text-xs sm:h-7">
           <RefreshCw className="size-3" aria-hidden /> Recarregar
         </Button>

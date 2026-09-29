@@ -68,5 +68,15 @@
     "Matriz transposta: (A^t)_{ij} = A_{ji}",
     "Matriz inversa: AA^{-1} = A^{-1}A = I_n",
     "Propriedade da transposta do produto: (AB)^t = B^tA^t"
+  ],
+  "perguntas_autoavaliacao": [
+    "Numa matriz m × n, o que m e n significam? E no elemento a_{ij}, qual índice é a linha e qual é a coluna?",
+    "Qual a diferença entre matriz diagonal e matriz identidade? A identidade é um caso particular de qual?",
+    "Como se monta a transposta de A? O que acontece com a ordem (m × n) dela?",
+    "Quando o produto A·B existe? O que tem que bater entre as duas ordens?",
+    "Por que AB ≠ BA em geral? Que propriedade dos números reais a multiplicação de matrizes NÃO herda?",
+    "Se AB = 0 (matriz nula), posso concluir que A = 0 ou B = 0? Justifique com um contraexemplo mental.",
+    "O que a igualdade AA⁻¹ = A⁻¹A = I_n define? Que tipo de matriz é que pode ter inversa?",
+    "Quanto vale (AB)^t? A ordem das matrizes na resposta é a mesma do produto original?"
   ]
 }
