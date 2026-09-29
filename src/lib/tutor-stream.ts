@@ -12,6 +12,21 @@
 export interface TutorStreamResult {
   answer: string;
   model?: string;
+  /**
+   * t167 — O FREIO DO ALUNO: true → o aluno PAROU a geração no meio; o que
+   * chegou (parcial) é a resposta honesta. Parcial é conteúdo real (doutrina
+   * t164) — a UI carimba a bolha, o histórico da IA segue lendo o que veio.
+   */
+  interrupted?: boolean;
+}
+
+/** A palavra do freio — usada no throw do abort SEM conteúdo e no toast. */
+export const TUTOR_STOP_MESSAGE = 'Geração interrompida a pedido do aluno.';
+
+/** O erro é de aborto? (fetch/read rejeitam com AbortError; o sinal é a verdade final) */
+function isAbort(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted) return true;
+  return err instanceof Error && err.name === 'AbortError';
 }
 
 /**
@@ -74,22 +89,37 @@ interface SSEEvent {
 export async function streamTutorAnswer(
   body: Record<string, unknown>,
   onDelta?: (piece: string, full: string) => void,
+  /** t167: o freio do aluno — abortar devolve o parcial (nunca perde tudo). */
+  signal?: AbortSignal,
 ): Promise<TutorStreamResult> {
-  const res = await fetch('/api/tutor', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, stream: true }),
-  });
+  let res: Response;
+  try {
+    res = await fetch('/api/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, stream: true }),
+      signal,
+    });
+  } catch (err) {
+    if (isAbort(err, signal)) throw new TutorStreamError(TUTOR_STOP_MESSAGE, '');
+    throw err;
+  }
 
   const contentType = res.headers.get('content-type') ?? '';
 
   // ----- caminho JSON (erro HTTP ou servidor sem suporte a stream) -----
   if (!contentType.includes('text/event-stream')) {
-    const data = (await res.json().catch(() => null)) as {
-      answer?: string;
-      model?: string;
-      error?: string;
-    } | null;
+    type TutorJsonPayload = { answer?: string; model?: string; error?: string };
+    let data: TutorJsonPayload | null = null;
+    try {
+      data = (await res.json()) as TutorJsonPayload | null;
+    } catch (err) {
+      if (isAbort(err, signal)) throw new TutorStreamError(TUTOR_STOP_MESSAGE, '');
+      throw new TutorStreamError(
+        `Erro ${res.status} ao consultar o tutor`,
+        '',
+      );
+    }
     if (!res.ok || !data?.answer) {
       throw new TutorStreamError(
         data?.error || `Erro ${res.status} ao consultar o tutor`,
@@ -125,21 +155,31 @@ export async function streamTutorAnswer(
     }
   };
 
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buf.indexOf('\n')) !== -1) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line.startsWith('data:')) continue;
-      try {
-        handleEvent(JSON.parse(line.slice(5).trim()) as SSEEvent);
-      } catch {
-        // evento parcial entre chunks — ignora
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        try {
+          handleEvent(JSON.parse(line.slice(5).trim()) as SSEEvent);
+        } catch {
+          // evento parcial entre chunks — ignora
+        }
       }
     }
+  } catch (err) {
+    // t167 — O FREIO DO ALUNO: abortar no meio da leitura devolve o que já
+    // chegou (o parcial é a resposta honesta); sem nada, a palavra do freio.
+    if (isAbort(err, signal)) {
+      if (full.trim()) return { answer: full, interrupted: true };
+      throw new TutorStreamError(TUTOR_STOP_MESSAGE, '');
+    }
+    throw err;
   }
 
   if (finalAnswer !== null) {

@@ -16,6 +16,8 @@ export interface ExportableTurn {
   time?: string;
   /** t164: bolha de erro (flag da conversa viva) — fica de fora do material. */
   error?: boolean;
+  /** t167: resposta interrompida a pedido do aluno — o .md confessa o freio. */
+  interrupted?: boolean;
 }
 
 /**
@@ -36,7 +38,10 @@ export function buildChatMarkdown(
     .map((m) => {
       const who = m.role === 'user' ? '**Você**' : `**Tutor**${m.model ? ` (${m.model})` : ''}`;
       const when = m.time ? ` — ${m.time}` : '';
-      return `${who}${when}\n\n${m.content}\n`;
+      // t167: o freio é parte da história honesta da conversa — o .md diz onde
+      // a resposta acabou porque o aluno cortou (o parcial é material de estudo).
+      const stop = m.interrupted ? '\n\n*(interrompida a seu pedido — o que chegou, ficou)*' : '';
+      return `${who}${when}\n\n${m.content}${stop}\n`;
     });
   const header = `# ${title}\n\nExportado do Hub de Estudos em ${exportedAt.toLocaleDateString('pt-BR')}\n\n---\n\n`;
   return header + lines.join('\n---\n\n');

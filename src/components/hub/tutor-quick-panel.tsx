@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, RotateCcw, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,8 @@ interface ChatMessage {
   time?: string;
   /** true → mensagem de erro (falha do provedor/sem key) — estilo rosa + sem ações. */
   error?: boolean;
+  /** t167: true → o aluno PAROU a geração; o parcial que chegou é a resposta. */
+  interrupted?: boolean;
 }
 
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
@@ -150,6 +152,11 @@ export function TutorQuickPanel({
    * (thread-cache de sessão); o banco guarda a memória longa da disciplina.
    */
   const [streamText, setStreamText] = React.useState<string | null>(null);
+  /** t167 — O FREIO DO ALUNO: o controlador do turno em curso (paridade do chat). */
+  const panelAbortRef = React.useRef<AbortController | null>(null);
+  const stopPanel = React.useCallback(() => {
+    panelAbortRef.current?.abort();
+  }, []);
   /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
   const [pendingImage, setPendingImage] = React.useState<string | null>(null);
   /** Procedência do print pendente (t163): o chip diz ONDE ele nasceu —
@@ -365,6 +372,10 @@ export function TutorQuickPanel({
     });
     setLoading(true);
     setStreamText(null);
+    // t167 — O FREIO DO ALUNO: turno no AbortController próprio — paridade
+    // com o chat principal (o parcial devolvido é a resposta honesta).
+    const ac = new AbortController();
+    panelAbortRef.current = ac;
     try {
       const result = await streamTutorAnswer(
         {
@@ -387,8 +398,15 @@ export function TutorQuickPanel({
             onAssistantReply?.();
           }
         },
+        ac.signal,
       );
-      appendMessage({ role: 'assistant', content: result.answer, model: result.model, time: hhmm() });
+      appendMessage({
+        role: 'assistant',
+        content: result.answer,
+        model: result.model,
+        time: hhmm(),
+        interrupted: result.interrupted || undefined,
+      });
     } catch (err) {
       if (!notifiedRef.current) {
         notifiedRef.current = true;
@@ -408,6 +426,7 @@ export function TutorQuickPanel({
         });
       }
     } finally {
+      panelAbortRef.current = null; // t167: o freio vive SÓ durante o turno
       setLoading(false);
       setStreamText(null);
     }
@@ -586,6 +605,17 @@ export function TutorQuickPanel({
                     </div>
                   ) : (
                     <TutorMarkdown content={m.content} enableCards disciplineCode={disciplineCode} />
+                  )}
+                  {m.interrupted && (
+                    // t167 — O FREIO DO ALUNO: carimbo honesto do parcial (paridade).
+                    <p
+                      data-testid="panel-interrupted-stamp"
+                      className="mt-1 flex items-center gap-1.5 text-[11px] italic text-muted-foreground/80"
+                      title="Você parou a geração — o que tinha chegado ficou na conversa"
+                    >
+                      <Square className="size-2.5 fill-current" aria-hidden />
+                      interrompida a seu pedido — o que chegou, ficou
+                    </p>
                   )}
                   <div className="mt-1.5 flex items-center gap-2">
                     {m.error && resolveRetryTarget(messages, idx) && (
@@ -898,14 +928,29 @@ export function TutorQuickPanel({
             maxLength={2000}
             aria-label="Pergunta ao tutor"
           />
-          <Button
-            type="submit"
-            size="sm"
-            className="h-11 shrink-0 sm:h-9"
-            disabled={loading || (!input.trim() && !pendingImage)}
-          >
-            Enviar <CornerDownLeft className="size-3.5" aria-hidden />
-          </Button>
+          {loading || streamText !== null ? (
+            // t167 — O FREIO DO ALUNO (paridade do painel): o enviar vira o freio.
+            <Button
+              type="button"
+              size="sm"
+              data-testid="panel-stop"
+              onClick={stopPanel}
+              className="h-11 shrink-0 border border-rose-500/40 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 sm:h-9 dark:text-rose-400"
+              aria-label="Parar a geração da resposta"
+              title="Parar agora — o que chegou fica na conversa"
+            >
+              Parar <Square className="size-3 fill-current" aria-hidden />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              size="sm"
+              className="h-11 shrink-0 sm:h-9"
+              disabled={!input.trim() && !pendingImage}
+            >
+              Enviar <CornerDownLeft className="size-3.5" aria-hidden />
+            </Button>
+          )}
         </div>
       </form>
 

@@ -34,6 +34,7 @@ import {
   Send,
   SkipForward,
   Sparkles,
+  Square,
   Target,
   Timer,
   Trash2,
@@ -113,7 +114,7 @@ import {
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
-import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
+import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
@@ -151,6 +152,8 @@ interface ChatMessage {
   savedAt?: string;
   /** true → mensagem de erro (falha do provedor/sem key) — estilo rosa + sem ações. */
   error?: boolean;
+  /** t167: true → o aluno PAROU a geração; o parcial que chegou é a resposta. */
+  interrupted?: boolean;
 }
 
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
@@ -544,6 +547,11 @@ export function StudyView({
   );
   /** Texto da resposta em streaming (bubble viva). null = nada em transmissão. */
   const [streamText, setStreamText] = React.useState<string | null>(null);
+  /** t167 — O FREIO DO ALUNO: o controlador do turno em curso; parar é um direito. */
+  const chatAbortRef = React.useRef<AbortController | null>(null);
+  const stopChat = React.useCallback(() => {
+    chatAbortRef.current?.abort();
+  }, []);
   // t149: feedback visual do "copiar" — a resposta copiada vira ✓ copiado por 2s.
   const [copiedMsg, setCopiedMsg] = React.useState<number | null>(null);
   const copyTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1371,6 +1379,10 @@ export function StudyView({
     }
     setChatLoading(true);
     setStreamText(null);
+    // t167 — O FREIO DO ALUNO: o turno vive num AbortController próprio;
+    // parar devolve o parcial (nunca perde tudo) e o que chegou fica no fio.
+    const ac = new AbortController();
+    chatAbortRef.current = ac;
     try {
       const result = await streamTutorAnswer(
         {
@@ -1389,6 +1401,7 @@ export function StudyView({
           setChatLoading(false); // 1º delta chegou — troca o "Pensando..." pela resposta viva
           setStreamText(full);
         },
+        ac.signal,
       );
       setMessages((prev) => [
         ...prev,
@@ -1398,6 +1411,7 @@ export function StudyView({
           model: result.model,
           time: hhmm(),
           savedAt: new Date().toISOString(),
+          interrupted: result.interrupted || undefined,
         },
       ]);
     } catch (err) {
@@ -1425,6 +1439,7 @@ export function StudyView({
       }
       toast.error(err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.');
     } finally {
+      chatAbortRef.current = null; // t167: o freio vive SÓ durante o turno
       setChatLoading(false);
       setStreamText(null);
     }
@@ -2288,6 +2303,18 @@ export function StudyView({
                       ) : (
                         <TutorMarkdown content={m.content} enableCards disciplineCode={discipline.code} />
                       )}
+                      {m.interrupted && (
+                        // t167 — O FREIO DO ALUNO: o carimbo honesto do parcial —
+                        // o aluno sabe que ESTA resposta acabou porque ELE cortou.
+                        <p
+                          data-testid="interrupted-stamp"
+                          className="mt-1 flex items-center gap-1.5 text-[11px] italic text-muted-foreground/80"
+                          title="Você parou a geração — o que tinha chegado ficou na conversa"
+                        >
+                          <Square className="size-2.5 fill-current" aria-hidden />
+                          interrompida a seu pedido — o que chegou, ficou
+                        </p>
+                      )}
                       {chatSearchSnippets.has(i) && (
                         // t154: onde a agulha caiu — janela com o trecho aceso
                         // (âmbar translúcido sobre o muted), reticências
@@ -2712,15 +2739,31 @@ export function StudyView({
                 aria-label="Sua pergunta para o tutor"
                 className="min-h-[36px] flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-emerald-500/60 focus-visible:ring-2 focus-visible:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <Button
-                type="submit"
-                size="icon"
-                className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
-                disabled={chatLoading || (!chatInput.trim() && !chatImage && !chatCode.trim())}
-                aria-label="Enviar mensagem"
-              >
-                <Send className="size-4" />
-              </Button>
+              {chatLoading || streamText !== null ? (
+                // t167 — O FREIO DO ALUNO: enquanto a resposta vive, o botão do
+                // envio vira o freio — a mesma posição do dedo, agora para PARAR.
+                <Button
+                  type="button"
+                  size="icon"
+                  data-testid="chat-stop"
+                  onClick={stopChat}
+                  className="shrink-0 border border-rose-500/40 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
+                  aria-label="Parar a geração da resposta"
+                  title="Parar agora — o que chegou fica na conversa"
+                >
+                  <Square className="size-3.5 fill-current" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
+                  disabled={!chatInput.trim() && !chatImage && !chatCode.trim()}
+                  aria-label="Enviar mensagem"
+                >
+                  <Send className="size-4" />
+                </Button>
+              )}
             </form>
           </div>
         </SheetContent>
