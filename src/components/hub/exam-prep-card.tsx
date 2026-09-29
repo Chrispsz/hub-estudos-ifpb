@@ -87,6 +87,7 @@ import {
   MATH_CHECKLIST,
   MATH_DECK_FLAG,
   MATH_EXAM,
+  MATH_EXAM_DATE_SHORT,
   MATH_EXAM_KIT,
   MATH_EXAM_PLAN,
   MATH_FLASHCARDS,
@@ -952,8 +953,15 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                     }
                     if (todayMilestone?.kind === 'vespera') {
                       // Véspera = revisão leve (folha + só as travadas): o
-                      // catch-up já não cabe, e o banner não mente dizendo que cabe.
-                      return `${pend}. O conteúdo CONTINUA na prova, mas hoje é revisão leve — folha e só as travadas; o catch-up já não cabe nesta semana. ${fila}`;
+                      // catch-up já não cabe, e o banner não mente dizendo que
+                      // cabe. t183 — a LISTA das pendências também sai: no dia
+                      // em que ação de catch-up já não existe, enumerar cinco
+                      // títulos é ruído em cima de um dia que pede calma — a
+                      // contagem segue no título ("N dia(s) pendentes") e a
+                      // fila inteira mora no card "Plano de Recuperação", que
+                      // a própria frase aponta. Verdade completa, respiração
+                      // nova (④: o bloco era o maior do card na véspera).
+                      return `O conteúdo CONTINUA na prova, mas hoje é revisão leve — folha e só as travadas; o catch-up já não cabe nesta semana. ${fila}`;
                     }
                     if (todayMilestone?.kind === 'preparo') {
                       // ENSAIO DA VÉSPERA (122): a véspera DO SIMULADO era o único
@@ -968,7 +976,7 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                     }
                     // Dia comum: o catch-up ainda é ação real —
                     // e o prazo existe: a PROVA.
-                    return `${pend}. O conteúdo CONTINUA na prova (01/10) — faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da Lista 01) até lá. ${fila}`;
+                    return `${pend}. O conteúdo CONTINUA na prova (${MATH_EXAM_DATE_SHORT}) — faça um catch-up condensado (≈90 min: slides da Aula 00 + 3 exercícios da Lista 01) até lá. ${fila}`;
                   })()}
                 </p>
               </div>

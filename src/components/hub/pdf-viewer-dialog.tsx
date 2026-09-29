@@ -60,6 +60,7 @@ import {
   renderPdfPageToCanvas,
 } from '@/lib/pdf-print';
 import { downscaleCanvas } from '@/lib/tutor-image';
+import { instantChipAlive } from '@/lib/study-reader-door';
 import { TutorQuickPanel } from './tutor-quick-panel';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PdfSearchDialog } from './pdf-search-dialog';
@@ -75,6 +76,16 @@ interface Props {
    * prop morre ao fechar — quem chama zera no onOpenChange.
    */
   initialPage?: number;
+  /**
+   * t183 — O ESPELHO DO ANEXO PENDENTE: o rótulo do que hoje espera no
+   * composer do tutor (chatImageLabel do StudyView — o dono do composer).
+   * É a fiação que ensina o chip do print rápido ("pág. N no tutor · abrir")
+   * a morrer quando a verdade sai de baixo dele: anexo enviado, descartado
+   * ou substituído por outra porta. undefined (montagens sem fiação) mantém
+   * a forma da t178; string | null é a verdade viva — instantChipAlive
+   * (study-reader-door) decide.
+   */
+  pendingAttachLabel?: string | null;
 }
 
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
@@ -112,7 +123,13 @@ const CAPTURE_HINT_JUMP = 'página do seu último salto';
 /** A pré-seleção vinda da BUSCA (t157 → t169): a página do trecho achado. */
 const CAPTURE_HINT_SEARCH = 'página do trecho buscado';
 
-export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: Props) {
+export function PdfViewerDialog({
+  material,
+  open,
+  onOpenChange,
+  initialPage,
+  pendingAttachLabel,
+}: Props) {
   const sp = useStudyProgress();
   /** Modo do workspace — 'split' é lembrado no localStorage (hidrata no mount). */
   const [mode, setMode] = React.useState<'pdf' | 'split'>('pdf');
@@ -156,6 +173,12 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
     page: number;
     label: string;
   } | null>(null);
+  /** t183 — A VERDADE DO CHIP: o recibo do instantâneo vive SÓ enquanto o
+   * anexo pendente no composer É o dele (instantChipAlive). O prop
+   * pendingAttachLabel é o espelho do composer; montagens sem fiação
+   * (undefined) mantêm a forma da t178. A computação (instantChip) fica no
+   * isSplit abaixo — a ordem das declarações é lei (TDZ). */
+  const chipWired = pendingAttachLabel !== undefined;
   /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
   const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
   /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
@@ -319,6 +342,15 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
   // Arquivos de exemplo (.html) não são PDF — rótulo do botão de download honesto.
   const isHtmlFile = material?.pdfPath?.endsWith('.html') ?? false;
   const isSplit = mode === 'split';
+  // t183 — o gate do chip do print rápido: só de pé quando o anexo pendente
+  // no composer É o que ELE despachou (modo cheio; no dividido o anexo vai
+  // direto ao painel, sem chip).
+  const instantChip =
+    !isSplit &&
+    instantAttached !== null &&
+    instantChipAlive(chipWired, pendingAttachLabel ?? null, instantAttached.label)
+      ? instantAttached
+      : null;
   /**
    * O PDF é BUSCÁVEL/SALTÁVEL (t157): arquivo real de PDF — imagem, página
    * web e exemplo .html não têm texto pdf.js para indexar nem página para
@@ -641,15 +673,18 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
               do print do Hub (esmeralda), a contagem é tabular-nums e o
               "abrir" é o ÚNICO gesto que traz o chat: o anexo já está no
               composer (silent), abrir de novo não duplica. some no clique
-              (a intenção virou ação) e no próximo anexo (que substitui). */}
-          {!isSplit && instantAttached && (
+              (a intenção virou ação) e no próximo anexo (que substitui).
+              t183 — e AGORA ele fala a verdade do composer: enviado,
+              descartado ou substituído por outra porta, o chip morre junto
+              (instantChipAlive) — recibo que sobrevive à verdade é mentira. */}
+          {!isSplit && instantChip && (
             <span
               data-testid="instant-attach-chip"
               title="A página anexada espera no campo de envio do tutor — o chat só abre quando você pedir"
               className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300"
             >
               <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
-              <span className="tabular-nums">pág. {instantAttached.page} no tutor</span>
+              <span className="tabular-nums">pág. {instantChip.page} no tutor</span>
               <button
                 type="button"
                 onClick={() => {
@@ -661,7 +696,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
                   setInstantAttached(null);
                 }}
                 title="Abrir o tutor — a página anexada já está no campo de envio"
-                aria-label={`Abrir o tutor com a página ${instantAttached.page} anexada`}
+                aria-label={`Abrir o tutor com a página ${instantChip.page} anexada`}
                 className="rounded-sm font-semibold underline-offset-2 transition-colors hover:text-emerald-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:hover:text-emerald-200"
               >
                 abrir

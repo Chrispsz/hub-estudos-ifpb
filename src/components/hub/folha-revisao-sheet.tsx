@@ -38,11 +38,15 @@ import { cn } from '@/lib/utils';
 import {
   MATH_CHECKLIST,
   MATH_EXAM,
+  MATH_EXAM_DATE_SHORT,
   MATH_EXAM_PLAN,
   MATH_FORMULAS,
   MATH_META,
+  MATH_VESPERA_DATE,
   examWeekMilestoneFor,
+  folhaDayLine,
 } from '@/lib/math-exam-prep';
+import { daysUntilDate } from '@/lib/semester';
 import {
   MATH_RECITE_KEY,
   normalizeReciteReceipt,
@@ -254,6 +258,15 @@ export function FolhaRevisaoSheet() {
     [reciteReceipt, todayKey],
   );
 
+  // A FOLHA LÊ O DIA (t183): a linha confessiva do cabeçalho — só com
+  // todayKey montado (mesmo contrato honesto do selo/legenda: a distância
+  // da prova é pergunta do CLIENTE, âncora local). Nos dias que não são
+  // véspera nem dia da prova, a linha NÃO existe (a folha não inventa dia).
+  const dayLine = React.useMemo(
+    () => (todayKey ? folhaDayLine(daysUntilDate(MATH_EXAM.date)) : null),
+    [todayKey],
+  );
+
   function toggleCheck(key: string) {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   }
@@ -357,10 +370,18 @@ export function FolhaRevisaoSheet() {
                 Av1 · Matemática Aplicada à Computação
               </h1>
               <p className="mt-0.5 text-[11px] text-zinc-600">
-                Prova <strong className="tabular-nums">01/10/2026</strong> · aprovação ≥{' '}
-                <strong className="tabular-nums">{MATH_META}</strong> · vale{' '}
+                Prova{' '}
+                <strong className="tabular-nums">
+                  {fmtDayBR(MATH_EXAM.date)}/{MATH_EXAM.date.slice(0, 4)}
+                </strong>{' '}
+                · aprovação ≥ <strong className="tabular-nums">{MATH_META}</strong> · vale{' '}
                 <strong>33,3%</strong> da média final
               </p>
+              {dayLine && (
+                <p data-testid="folha-day-line" className="mt-0.5 text-[11px] font-medium text-zinc-700">
+                  {dayLine}
+                </p>
+              )}
               {todayKey && (
                 <p
                   data-testid="folha-print-stamp"
@@ -541,7 +562,7 @@ export function FolhaRevisaoSheet() {
               {vespera && (
                 <div className="break-inside-avoid">
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900">
-                    Véspera · 30/09 <span className="font-medium normal-case tracking-normal text-zinc-500">— {vespera.minutos} min</span>
+                    Véspera · {fmtDayBR(MATH_VESPERA_DATE)} <span className="font-medium normal-case tracking-normal text-zinc-500">— {vespera.minutos} min</span>
                   </h3>
                   <ol className="mt-1.5 space-y-1">
                     {vespera.tarefas.map((t, i) => (

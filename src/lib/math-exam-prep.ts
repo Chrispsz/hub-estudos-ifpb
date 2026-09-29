@@ -30,6 +30,15 @@ export const MATH_EXAM = {
 } as const;
 
 /**
+ * Data da prova em 'dd/mm' — a voz da casa cita o dia sem hardcode (t183:
+ * movida para logo após a fonte MATH_EXAM para que o PLANO e os FLASHCARDS
+ * também deriven — o título 'DIA DA PROVA — 01/10' virou fóssil quando a
+ * doutrina da data única foi escrita; mudou a prova, a cópia derivada muda
+ * junto em vez de mentir na tinta).
+ */
+export const MATH_EXAM_DATE_SHORT = `${MATH_EXAM.date.slice(8, 10)}/${MATH_EXAM.date.slice(5, 7)}`;
+
+/**
  * META DA AV1 — nota de aprovação (≥ 70 na escala 0-100). Fonte única do
  * número: notaPeso acima. Aparece no veredito do resultado do simulado,
  * nas linhas de meta dos gráficos do Histórico e no score de prontidão —
@@ -122,6 +131,26 @@ export function folhaDoorTitle(daysLeft: number): string {
   return daysLeft === 0
     ? `Abre a folha de revisão para imprimir (A4) — o kit do dia da prova e o checklist em papel. O Hub abre a folha; o gesto de imprimir é seu.`
     : `Abre a folha de revisão para imprimir (A4) — fórmulas, checklist sincronizado com este card e as travadas das listas para refazer hoje. O Hub abre a folha; o gesto de imprimir é seu.`;
+}
+
+/**
+ * A FOLHA LÊ O DIA (t183) — a linha que a folha CONFESSA sobre si mesma
+ * conforme o dia da impressão. A folha era cega ao próprio dia: impressa na
+ * véspera ou na manhã da prova, o papel dizia sempre a mesma coisa — e o
+ * dono tinha de lembrar para que dia ela serve. A mesma língua da porta
+ * (folhaDoorLabel): "Folha da véspera" no D-1, "Folha do dia" no D-0 — o
+ * papel agora diz PARA QUÊ serve HOJE. Fora dos dois dias, null: a folha
+ * não mente sobre o dia que não é (o carimbo "Impresso em" já confessa a
+ * data; a linha do dia é só para os dias que têm promessa).
+ */
+export function folhaDayLine(daysLeft: number): string | null {
+  if (daysLeft === 1) {
+    return 'Folha da véspera — a prova é amanhã: revisão leve, as travadas refazidas no papel e o checklist do kit em dia.';
+  }
+  if (daysLeft === 0) {
+    return 'Folha do dia — a prova é HOJE: o kit da manhã em papel, última olhada nas fórmulas. Boa prova!';
+  }
+  return null;
 }
 
 // ---------- Marcos da semana da Av1 (agenda) ----------
@@ -1290,7 +1319,7 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
   {
     offset: 0, // 01/10
     kind: 'prova',
-    titulo: 'DIA DA PROVA — 01/10',
+    titulo: `DIA DA PROVA — ${MATH_EXAM_DATE_SHORT}`,
     minutos: 20,
     tarefas: [
       { texto: 'Manhã: reler só os cards de fórmulas e a tabela da implicação (15 min, sem exercício novo)', },
@@ -1532,7 +1561,7 @@ export const MATH_FLASHCARDS: { front: string; back: string }[] = [
     back: 'Ponens: $p \\rightarrow q,\\; p \\vdash q$\nTollens: $p \\rightarrow q,\\; \\neg q \\vdash \\neg p$\nSilogismo: $p \\rightarrow q,\\; q \\rightarrow r \\vdash p \\rightarrow r$',
   },
   {
-    front: 'O que NÃO cai na Av1 de Matemática (01/10)?',
+    front: `O que NÃO cai na Av1 de Matemática (${MATH_EXAM_DATE_SHORT})?`,
     back: 'Determinantes como TÓPICO (1.3) e Sistemas Lineares (1.4) — o professor ainda não deu (confirmado 24/09).\nO $ad - bc$ aparece só por dentro da fórmula da inversa 2×2.',
   },
 ];
@@ -1651,8 +1680,6 @@ export interface RealGradeRecordLike {
 /** Chave do registro da nota real da Av1 — a MESMA gramática da Calculadora. */
 export const MATH_NOTA_REAL_KEY = `${MATH_EXAM.disciplineCode}-${MATH_EXAM.evaluationName}`;
 
-/** Data da prova em 'dd/mm' — a voz da calculadora cita o dia sem hardcode. */
-export const MATH_EXAM_DATE_SHORT = `${MATH_EXAM.date.slice(8, 10)}/${MATH_EXAM.date.slice(5, 7)}`;
 
 /** Dias até a prova a partir de now (âncora local 00:00, mesma regra do daysUntilDate). */
 function daysToExamFrom(now: Date): number {

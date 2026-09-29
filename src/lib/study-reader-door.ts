@@ -84,3 +84,35 @@ export function shouldAutoOpenReader(
 ): boolean {
   return Boolean(nonce && nonce > 0 && hasMaterial && hasPdf);
 }
+
+/**
+ * t183 — O CHIP DO PRINT RÁPIDO FALA A VERDADE DO COMPOSER: o chip da barra
+ * ("pág. N no tutor · abrir", t178) só fica de pé enquanto o anexo pendente
+ * no composer É o que ELE despachou. Antes, o chip era estado LOCAL do
+ * diálogo — enviado/descartado/substituído por OUTRA porta (print de tela,
+ * via de precisão, X do chip) e o leitor seguia acenando "pág. N no tutor"
+ * para um composer vazio ou alheio: recibo que não morre com a verdade
+ * termina virando mentira educada.
+ *
+ * A verdade chega por PROP (o rótulo do anexo pendente, que mora no
+ * StudyView — o dono do composer); esta regra só decide a vida do chip:
+ *   - sem anexo próprio (ownLabel vazio) → NÃO há chip (nada nasceu aqui);
+ *   - SEM fiação (wired=false — montagens que não passam o prop, como a
+ *     Biblioteca, cujo diálogo morre na troca de aba e o cenário de troca
+ *     não existe lá) → a forma da t178 fica de pé (o chip não pode morrer
+ *     por falta de espelho);
+ *   - composer limpo (pendingLabel null COM fiação) → o anexo foi consumido
+ *     (enviado ou descartado) — o chip mente se ficar;
+ *   - rótulo diferente → o composer agora guarda OUTRO anexo — o nosso saiu,
+ *     o chip sai junto (o próximo print rápido recria o dele).
+ */
+export function instantChipAlive(
+  wired: boolean,
+  pendingLabel: string | null | undefined,
+  ownLabel: string | null | undefined,
+): boolean {
+  if (!ownLabel) return false;
+  if (!wired) return true;
+  if (!pendingLabel) return false;
+  return pendingLabel === ownLabel;
+}

@@ -3342,6 +3342,7 @@ export function StudyView({
           }
         }}
         initialPage={readerInitialPage}
+        pendingAttachLabel={chatImageLabel}
       />
     </div>
   );
