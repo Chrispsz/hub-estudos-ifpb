@@ -59,7 +59,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails, isSimuladoDayToday } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_SIMULADO_REGRA_REVISAO, simuladoRegraPlanoChip } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
@@ -866,8 +866,7 @@ function SetupScreen({
                   </p>
                   <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                     Se esta for a tentativa oficial, condições de prova: sem
-                    consultar nada antes de responder — o bloco com mais erros
-                    vira a revisão de amanhã.
+                    consultar nada antes de responder — {MATH_SIMULADO_REGRA_REVISAO}.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {['Sem consulta', 'Meta ≥ 70%', 'Erro vira revisão de amanhã'].map((c) => (
@@ -1693,11 +1692,18 @@ function ResultsScreen({
       .sort((a, b) => a.pct - b.pct || b.total - a.total);
   }, [questions, results]);
   const multiTopic = topicStats.length > 1;
+  // O ENDEREÇO DA REGRA (t188): o chip do dia do simulado lido do PRÓPRIO
+  // plano — 'pelo plano D-7' era rótulo de memória que o PLANO REFEITO
+  // deixou velho (a regra vive no D-2). Plano sem dia de simulado → chip
+  // cala e a frase segue honesta ('pelo plano, ...').
+  const regraChip = simuladoRegraPlanoChip();
 
   // VEREDITO DA META: corrida 100% Matemática = corrida do escopo da Av1 —
   // compara direto com a nota de aprovação (≥ 70, MATH_META). Abaixo da meta,
-  // aplica a regra do PRÓPRIO plano D-7 ("o bloco com mais erros vira a
-  // revisão de amanhã") e oferece o drill do pior tópico a 1 clique.
+  // aplica a regra do plano (MATH_SIMULADO_REGRA_REVISAO, a tarefa do dia do
+  // simulado — t188: o ENDEREÇO do plano é derivado via simuladoRegraPlanoChip,
+  // o rótulo velho 'D-7' do plano antigo morreu) e oferece o drill do pior
+  // tópico a 1 clique.
   const isAv1Run =
     questions.length > 0 &&
     questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode);
@@ -1757,7 +1763,8 @@ function ResultsScreen({
         </div>
       </div>
 
-      {/* VEREDITO DA META — a regra do plano D-7 ("Meta: ≥ 70%") aplicada na hora */}
+      {/* VEREDITO DA META — a regra do plano (a tarefa do dia do simulado,
+          "Meta: ≥ 70%") aplicada na hora; o endereço do dia lê o plano */}
       {isAv1Run && (
         <div className="px-6 pb-1">
           {pct >= MATH_META ? (
@@ -1790,7 +1797,12 @@ function ResultsScreen({
                   </span>
                   {multiTopic && (
                     <span className="text-muted-foreground">
-                      {' '}— pelo plano D-7, o bloco com mais erros vira a revisão de amanhã.
+                      {' '}— pelo plano
+                      {regraChip && (
+                        <span className="font-semibold tabular-nums"> {regraChip}</span>
+                      )}
+                      {', '}
+                      {MATH_SIMULADO_REGRA_REVISAO}.
                     </span>
                   )}
                 </p>

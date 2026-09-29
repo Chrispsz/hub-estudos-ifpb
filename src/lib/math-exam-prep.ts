@@ -47,6 +47,20 @@ export const MATH_EXAM_DATE_SHORT = `${MATH_EXAM.date.slice(8, 10)}/${MATH_EXAM.
 export const MATH_META = 70;
 
 /**
+ * A REGRA DO SIMULADO — a promessa que o plano faz na tarefa 2 do dia do
+ * simulado e que o debrief, o setup e o prompt do tutor CITAM. Fonte única
+ * da frase (t188): antes, a frase vivia copiada em quatro lugares e o
+ * endereço do plano no debrief era um rótulo HARDCODED ('plano D-7') que o
+ * PLANO REFEITO (24/09) deixou velho — a regra mora no D-2, o dia do
+ * simulado, e a citação apontava o dono para o dia errado na noite dele.
+ * Voz na FONTE: o plano compõe a tarefa com esta constante; superfícies
+ * que falam noutro dia (o kit na véspera, o slot da folha antes do run)
+ * mantêm a voz ADAPTADA ao dia delas — a regra é citada inteira só onde
+ * 'amanhã' é a véspera de verdade.
+ */
+export const MATH_SIMULADO_REGRA_REVISAO = 'o bloco com mais erros vira a revisão de amanhã';
+
+/**
  * DATA DO SIMULADO OFICIAL — o dia offset 2 do plano (29/09), derivado da
  * data da prova para nunca divergir: mudou a prova, muda o simulado junto.
  * O marco "é hoje" do card da prova usa esta data (render-time — sem
@@ -467,7 +481,10 @@ type VerdictRunLike = {
  * TEXTO: o run guarda questões com tópico e status, mas o kit da véspera
  * não lia. Esta função transforma o run oficial em números por tópico do
  * escopo (MATH_EXAM.topicosEscopo) — fonte única para o badge do kit, a
- * linha do bloco fraco e a ordem da recitação. Puladas contam no total mas
+ * linha do bloco fraco, a ordem da recitação e o FOCO DO PAPEL (a folha
+ * /folha-revisao consumia uma derivação PRÓPRIA com régua diferente —
+ * pct sobre o total, puladas no denominador — e o papel divergia do kit
+ * na mesma corrida; t188 trouxe o papel para esta fonte). Puladas contam no total mas
  * não na taxa (aluno que pulou não acertou — e não errou no papel: sem
  * taxa inventada). Run antigo sem detalhes → porTopico vazio, worst null —
  * o badge do % geral ainda fala, a linha do bloco não inventa. Módulo
@@ -1356,7 +1373,7 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
     minutos: 75,
     tarefas: [
       { texto: 'Simulado Pro: 10 questões de Matemática, 60 min, sem consultar nada antes de responder', },
-      { texto: 'Meta: ≥ 70% (nota de aprovação). Abaixo disso → o bloco com mais erros vira a revisão de amanhã', },
+      { texto: `Meta: ≥ 70% (nota de aprovação). Abaixo disso → ${MATH_SIMULADO_REGRA_REVISAO}`, },
       { texto: 'Refazer no papel as que erraram, com o card de fórmulas fechado ao lado', },
     ],
   },
@@ -1411,6 +1428,23 @@ export function folhaPlanForPaper(daysLeft: number | null): {
     label: offset === 0 ? 'Dia da prova' : 'Véspera',
     dateISO: offset === 0 ? MATH_EXAM.date : MATH_VESPERA_DATE,
   };
+}
+
+/**
+ * O ENDEREÇO DA REGRA (t188) — o chip do dia do simulado LIDO DO PRÓPRIO
+ * PLANO: o debrief citava 'plano D-7' de memória e o PLANO REFEITO (24/09)
+ * moveu o simulado para o D-2 — a citação envelheceu e ninguém viu. Agora o
+ * endereço é DERIVADO: acha o dia de kind 'simulado' no plano e devolve
+ * 'D-{offset}' — o plano mudou de dia, a citação muda junto (nunca mais um
+ * rótulo velho). null = o plano não tem dia de simulado (não deveria — e a
+ * superfície que compõe cala o chip em vez de inventar endereço). O parâmetro
+ * plan existe para o contrato executar o fallback sem tocar no acervo real
+ * (PUREZA testável — padrão da casa). Vive DEPOIS do MATH_EXAM_PLAN (lição
+ * 183/TDZ), ao lado de folhaPlanForPaper.
+ */
+export function simuladoRegraPlanoChip(plan?: PlanDay[]): string | null {
+  const dia = (plan ?? MATH_EXAM_PLAN).find((d) => d.kind === 'simulado');
+  return dia ? `D-${dia.offset}` : null;
 }
 
 export interface FormulaCard {

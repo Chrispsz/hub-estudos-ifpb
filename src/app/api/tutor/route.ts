@@ -36,6 +36,7 @@ import { db } from '@/lib/db';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
 import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
+import { MATH_SIMULADO_REGRA_REVISAO } from '@/lib/math-exam-prep';
 import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER, tutorCourseContext } from '@/lib/curriculum';
 
 interface ChatMessage {
@@ -354,7 +355,7 @@ function buildHubBlock(hub?: HubContext): string {
     lines.push(
       `- SEMANA DA AV1 (estado ao vivo, dados do app):\n    • ${parts.join(
         '\n    • ',
-      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "o bloco com mais erros vira a revisão de amanhã" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado. Se o treino do foco JÁ aconteceu e subiu, reconheça o progresso e mantenha o ritmo; se não subiu, proponha outro ângulo (refazer no papel, reler a fórmula daquele bloco antes de dormir) — nunca cobre duas vezes o que o registro já mostrou.`,
+      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "${MATH_SIMULADO_REGRA_REVISAO}" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado. Se o treino do foco JÁ aconteceu e subiu, reconheça o progresso e mantenha o ritmo; se não subiu, proponha outro ângulo (refazer no papel, reler a fórmula daquele bloco antes de dormir) — nunca cobre duas vezes o que o registro já mostrou.`,
     );
   }
 

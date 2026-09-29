@@ -46,6 +46,7 @@ import {
   examWeekMilestoneFor,
   folhaDayLine,
   folhaPlanForPaper,
+  simuladoVerdictFor,
 } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import {
@@ -99,7 +100,8 @@ const FOLHA_KIT = [
  */
 function useSimuladoFoco(): {
   date: string;
-  worst: { topic: string; solved: number; total: number; pct: number };
+  foco: { topic: string; solved: number; total: number; skipped: number; pct: number | null };
+  focoPulou: boolean;
   topics: { topic: string; pct: number }[];
   allGood: boolean;
 } | null {
@@ -134,27 +136,27 @@ function useSimuladoFoco(): {
         : false;
     });
     if (!run?.questions?.length) return null; // run antiga sem detalhes → não dá para saber o bloco
-    const m = new Map<string, { solved: number; total: number }>();
-    for (const q of run.questions) {
-      if (!q.topic || !(MATH_EXAM.topicosEscopo as readonly string[]).includes(q.topic)) continue;
-      const rec = m.get(q.topic) ?? { solved: 0, total: 0 };
-      rec.total += 1;
-      if (q.status === 'solved') rec.solved += 1;
-      m.set(q.topic, rec);
-    }
-    if (m.size === 0) return null;
-    const topics = [...m.entries()].map(([topic, v]) => ({
-      topic,
-      solved: v.solved,
-      total: v.total,
-      pct: Math.round((v.solved / v.total) * 100),
-    }));
-    const worst = [...topics].sort((a, b) => a.pct - b.pct || b.total - a.total)[0];
+    // FONTE ÚNICA (t188): o veredito vem da MESMA lib que o kit e o debrief
+    // usam (simuladoVerdictFor) — o papel falava outra língua: pct próprio
+    // com puladas no denominador fazia o mesmo run valer 50% na folha e
+    // 100% no kit, e o bloco INTEIRO pulado aparecia como "0%" (falso
+    // "tentou e errou") em vez do diagnóstico verdadeiro ("sem tentativa").
+    const verdict = simuladoVerdictFor(run);
+    if (!verdict || verdict.porTopico.length === 0) return null;
+    // A MESMA régua do kit (a promessa se cumpre no sentido que importa):
+    // bloco todo pulado É o bloco com mais erros — pulouTudo vence worst.
+    const foco = verdict.pulouTudo ?? verdict.worst;
+    if (!foco) return null;
     return {
       date: run.date,
-      worst,
-      topics: topics.map(({ topic, pct }) => ({ topic, pct })),
-      allGood: topics.every((t) => t.pct >= 80),
+      foco,
+      focoPulou: foco.pct == null,
+      topics: verdict.porTopico
+        .filter((t) => t.pct !== null)
+        .map((t) => ({ topic: t.topic, pct: t.pct as number })),
+      allGood:
+        verdict.porTopico.length > 0 &&
+        verdict.porTopico.every((t) => t.pct !== null && t.pct >= 80),
     };
   }, [runs]);
 }
@@ -550,8 +552,14 @@ export function FolhaRevisaoSheet() {
               <div className="mb-3 break-inside-avoid rounded-md border border-zinc-300 border-l-4 border-l-zinc-900 bg-zinc-100 px-3 py-2">
                 <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900">
                   Foco do simulado · {fmtDayBR(simuladoFoco.date)}
+                  {/* O CHIP É O DIAGNÓSTICO (t188): taxa quando houve resposta;
+                      bloco inteiro pulado não vira "0%" (falso "tentou e errou") —
+                      o chip confessa o que aconteceu: "N puladas". Impressora
+                      P&B lê os dois. */}
                   <span className="rounded-full bg-zinc-900 px-1.5 py-px text-[9px] font-bold tabular-nums text-white">
-                    {simuladoFoco.worst.pct}%
+                    {simuladoFoco.focoPulou
+                      ? `${simuladoFoco.foco.total} puladas`
+                      : `${simuladoFoco.foco.pct}%`}
                   </span>
                 </p>
                 {simuladoFoco.allGood ? (
@@ -560,12 +568,24 @@ export function FolhaRevisaoSheet() {
                     {simuladoFoco.topics.map((t) => `${t.topic} ${t.pct}%`).join(' · ')}). Manter o
                     ritmo com os flashcards e a revisão leve da véspera.
                   </p>
+                ) : simuladoFoco.focoPulou ? (
+                  <p className="mt-1 text-[11px] leading-snug text-zinc-800">
+                    <strong>{simuladoFoco.foco.topic}</strong> — bloco inteiro sem tentativa (
+                    {simuladoFoco.foco.skipped} de {simuladoFoco.foco.total} puladas). A véspera
+                    começa por onde nem chegou: com os cards de fórmulas fechados, resolva no
+                    papel as que pulou.
+                  </p>
                 ) : (
                   <p className="mt-1 text-[11px] leading-snug text-zinc-800">
-                    <strong>{simuladoFoco.worst.topic}</strong> — {simuladoFoco.worst.solved} de{' '}
-                    {simuladoFoco.worst.total} resolvidas ({simuladoFoco.worst.pct}%). Comece a
-                    véspera por ele: refaça no papel as que errou, com os cards de fórmulas
-                    fechados.
+                    <strong>{simuladoFoco.foco.topic}</strong> — {simuladoFoco.foco.solved} de{' '}
+                    {simuladoFoco.foco.total - simuladoFoco.foco.skipped} resolvidas
+                    {simuladoFoco.foco.skipped > 0
+                      ? ` e ${simuladoFoco.foco.skipped} pulada${
+                          simuladoFoco.foco.skipped === 1 ? '' : 's'
+                        }`
+                      : ''}{' '}
+                    ({simuladoFoco.foco.pct}%). Comece a véspera por ele: refaça no papel as que
+                    errou, com os cards de fórmulas fechados.
                   </p>
                 )}
               </div>
