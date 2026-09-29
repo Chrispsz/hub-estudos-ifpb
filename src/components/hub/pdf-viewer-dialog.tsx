@@ -29,6 +29,7 @@ import {
   FileText,
   GripVertical,
   Image as ImageIcon,
+  Search,
 } from 'lucide-react';
 import {
   Dialog,
@@ -46,8 +47,10 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { downloadPdf } from '@/lib/download-utils';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
+import { pdfJumpSrc, clampPdfPage } from '@/lib/pdf-search';
 import { TutorQuickPanel } from './tutor-quick-panel';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
+import { PdfSearchDialog } from './pdf-search-dialog';
 
 interface Props {
   material: Material | null;
@@ -100,6 +103,14 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   const [dragHint, setDragHint] = React.useState(false);
   /** Print de página (139): seletor pdf.js → página exata → tutor, sem arquivo. */
   const [captureOpen, setCaptureOpen] = React.useState(false);
+  /** Busca no PDF (157): o MAPA — achar o trecho antes de folhear. */
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  /** Página do salto (157): src do iframe com #page=N — o leitor NATIVO entende. */
+  const [jumpPage, setJumpPage] = React.useState<number | null>(null);
+  /** Campo "ir para página" — número cru enquanto o dono digita. */
+  const [jumpInput, setJumpInput] = React.useState('');
+  /** Página pedida pela BUSCA ao print de página (o prop morre ao fechar). */
+  const [captureInitialPage, setCaptureInitialPage] = React.useState<number | undefined>(undefined);
 
   const rowRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef(false);
@@ -128,13 +139,18 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   }, []);
 
   // Ao fechar: o EFÊMERO morre (anexo pendente, ponto de resposta, aba do
-  // mobile). Modo e largura PERMANECEM — é a preferência do dono. A conversa
-  // agora vive no cache de sessão (tutor-thread-cache) — morre só no reload.
+  // mobile, salto e busca). Modo e largura PERMANECEM — é a preferência do
+  // dono. A conversa agora vive no cache de sessão (tutor-thread-cache) —
+  // morre só no reload.
   React.useEffect(() => {
     if (!open) {
       setMobileTab('material');
       setUnseen(0);
       setPanelImage(null);
+      setSearchOpen(false);
+      setJumpPage(null);
+      setJumpInput('');
+      setCaptureInitialPage(undefined);
     }
   }, [open]);
 
@@ -242,6 +258,49 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   // Arquivos de exemplo (.html) não são PDF — rótulo do botão de download honesto.
   const isHtmlFile = material?.pdfPath?.endsWith('.html') ?? false;
   const isSplit = mode === 'split';
+  /**
+   * O PDF é BUSCÁVEL/SALTÁVEL (t157): arquivo real de PDF — imagem, página
+   * web e exemplo .html não têm texto pdf.js para indexar nem página para
+   * saltar (o gate do print de página ganhou a imagem e o html).
+   */
+  const pdfSearchable =
+    !!material?.pdfPath && material.type !== 'web_page' && !isImage && !isHtmlFile;
+
+  // ===== O MAPA DO PDF (157) — achar, saltar e printar são o mesmo gesto.
+  // O salto fala o ÚNICO idioma que o leitor nativo entende: #page=N no src
+  // do iframe. Re-saltar para a MESMA página recomeça o src (o leitor não
+  // avisaria nada se o src não mudasse).
+  const doJump = React.useCallback(
+    (n: number) => {
+      if (!material?.pdfPath) return;
+      const max = material.pages;
+      const p = clampPdfPage(n, max);
+      if (!p) {
+        toast.error('Digite um número de página (1 ou mais).');
+        return;
+      }
+      if (max && max >= 1 && n > max) {
+        toast.info(`Este PDF tem ${max} páginas — abrindo a ${p}.`);
+      }
+      setJumpPage((cur) => {
+        if (cur === p) {
+          requestAnimationFrame(() => setJumpPage(p)); // mesmo destino: força o salto de novo
+          return null;
+        }
+        return p;
+      });
+    },
+    [material],
+  );
+
+  /** Print vindo da BUSCA: fecha o mapa, abre a captura já parada na página. */
+  const openCaptureAt = React.useCallback((page?: number) => {
+    setCaptureInitialPage(page);
+    setCaptureOpen(true);
+  }, []);
+
+  /** src do iframe — caminho puro, ou com o #page=N do salto. */
+  const iframeSrc = pdfJumpSrc(material?.pdfPath ?? '', jumpPage);
 
   // A dica se retira sozinha — mas o relógio é do DIVISOR, não do diálogo:
   // 6s de dividido aberto para ser vista sem virar ruído (alternar de modo
@@ -326,6 +385,61 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
             <Download className="size-3.5" />{' '}
             {isImage ? 'Baixar imagem' : isHtmlFile ? 'Baixar HTML' : 'Baixar PDF'}
           </Button>
+          {pdfSearchable && (
+            <>
+              {/* t157 — BUSCAR NO PDF: a agulha em TODAS as páginas sem
+                  folhear; achar → ir (salta) → print (captura já parada). */}
+              <Button
+                size="sm"
+                variant="outline"
+                className={touchBtn}
+                onClick={() => setSearchOpen(true)}
+                aria-label="Buscar texto no PDF"
+                title="Buscar em todas as páginas do PDF — ignora acentos e pontuação (logica acha Lógica)"
+              >
+                <Search className="size-3.5" /> Buscar no PDF
+              </Button>
+              {/* t157 — IR PARA PÁGINA: o único idioma de salto do leitor
+                  nativo é #page=N; o campo é pequeno e o Enter despacha. */}
+              <div
+                role="group"
+                aria-label="Ir para página"
+                className={cn(
+                  'flex items-stretch overflow-hidden rounded-md border border-input bg-transparent',
+                  'focus-within:ring-2 focus-within:ring-emerald-500/50',
+                )}
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={material.pages ?? undefined}
+                  value={jumpInput}
+                  onChange={(e) => setJumpInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      doJump(Number(jumpInput));
+                    }
+                  }}
+                  placeholder="pág."
+                  aria-label="Número da página para saltar"
+                  className={cn(
+                    'w-14 bg-transparent px-2 text-xs tabular-nums outline-none',
+                    'placeholder:text-muted-foreground/60',
+                    '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => doJump(Number(jumpInput))}
+                  className="border-l border-input px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
+                  title="Saltar o visualizador para a página"
+                >
+                  ir
+                </button>
+              </div>
+            </>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -459,7 +573,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 </div>
               ) : (
                 <iframe
-                  src={material.pdfPath}
+                  src={iframeSrc}
                   title={material.title}
                   className="min-h-0 w-full flex-1 bg-muted"
                 />
@@ -562,12 +676,27 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
         {/* Print de página (139): pdf.js renderiza a página EXATA em 2× e o jpeg
             entra direto no chat do tutor — sem seletor de tela, sem recorte,
             sem arquivo no disco (o canvas morre com o diálogo). No modo
-            dividido o anexo vai para o painel AO LADO (onAttach). */}
+            dividido o anexo vai para o painel AO LADO (onAttach). t157: a
+            BUSCA pede a página inicial (initialPage) — achar → print é 1 gesto. */}
         <PdfPageCaptureDialog
           material={material}
           open={captureOpen}
-          onOpenChange={setCaptureOpen}
+          onOpenChange={(o) => {
+            setCaptureOpen(o);
+            if (!o) setCaptureInitialPage(undefined); // a próxima abertura não herda página velha
+          }}
           onAttach={isSplit ? handleCaptureAttach : undefined}
+          initialPage={captureInitialPage}
+        />
+
+        {/* t157 — O MAPA DO PDF: busca em todas as páginas (pdf.js), com salto
+            (#page=N no leitor nativo) e ponte direta para o print de página. */}
+        <PdfSearchDialog
+          material={material}
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          onJump={doJump}
+          onPrint={openCaptureAt}
         />
       </DialogContent>
     </Dialog>

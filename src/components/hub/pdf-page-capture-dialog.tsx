@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { downscaleCanvas } from '@/lib/tutor-image';
 import { openTutor } from '@/lib/hub-events';
+import { clampPdfPage } from '@/lib/pdf-search';
 import type { Material } from '@/data/course-data';
 
 interface Props {
@@ -34,6 +35,13 @@ interface Props {
    * chat da aba Estudar).
    */
   onAttach?: (image: string) => void;
+  /**
+   * Página pedida pela BUSCA do PDF (t157): o diálogo abre JÁ parado nela,
+   * sem re-folhear as miniaturas. Vale UMA vez por abertura — o visualizador
+   * zera o prop ao fechar, então abrir pela BARRA depois não herda página
+   * velha.
+   */
+  initialPage?: number;
 }
 
 /** Estado de carregamento do documento/página — a UI mostra o que acontece. */
@@ -49,7 +57,7 @@ interface Rect {
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
-export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }: Props) {
+export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, initialPage }: Props) {
   const [state, setState] = React.useState<LoadState>('idle');
   const [pageCount, setPageCount] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
@@ -61,6 +69,8 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
   const cropBoxRef = React.useRef<HTMLDivElement>(null);
   /** Espelho de selected para os listeners de teclado lerem o valor vivo. */
   const selectedRef = React.useState({ current: null as number | null })[0];
+  /** t157: a página inicial pedida pela busca já foi aplicada nesta abertura? */
+  const presetRef = React.useRef(false);
 
   const thumbsRef = React.useRef<HTMLDivElement>(null);
   const previewRef = React.useRef<HTMLCanvasElement>(null);
@@ -102,6 +112,7 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
       selectedRef.current = null;
       setAttached(false);
       setRect(null);
+      presetRef.current = false; // t157: nova abertura pode receber nova página inicial
       return;
     }
     let alive = true;
@@ -212,6 +223,18 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
     );
     thumb?.scrollIntoView({ block: 'nearest' });
   };
+
+  // t157 — O MAPA APONTA A PÁGINA: quando a busca (pdf-search-dialog) acha o
+  // trecho e o dono clica em "print", este diálogo abre JÁ parado na página
+  // do trecho — achar, saltar e printar são o mesmo gesto. Uma vez por
+  // abertura (presetRef): sem isso o pick re-dispararia a cada render.
+  React.useEffect(() => {
+    if (!open || state !== 'ready' || presetRef.current) return;
+    const p = clampPdfPage(Number(initialPage ?? 0), pageCount);
+    if (!p) return;
+    presetRef.current = true;
+    pick(p);
+  }, [open, state, pageCount, initialPage]);
 
   // NAVEGAÇÃO POR TECLADO (140): ←/→ folheiam a lista com o teclado — a mão
   // esquerda vira a página, a direita pergunta. Vive só com o diálogo aberto.
