@@ -59,7 +59,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import { buildDebriefFromDetails, isSimuladoDayToday } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_SIMULADO_REGRA_REVISAO, simuladoRegraPlanoChip } from '@/lib/math-exam-prep';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_SIMULADO_REGRA_REVISAO, simuladoRegraPlanoChip, sortWorstFirst, topicRowsFor } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
@@ -1672,24 +1672,29 @@ function ResultsScreen({
           ? { label: 'Continue praticando', tone: 'text-amber-500', icon: Target }
           : { label: 'Hora de revisar', tone: 'text-rose-500', icon: RotateCcw };
 
-  // Desempenho por tópico: onde o foco deve estar antes da prova (pior primeiro).
+  // Desempenho por tópico: onde o foco deve estar antes da prova (pior
+  // primeiro). A AGREGAÇÃO é a FONTE ÚNICA da casa (t189): topicRowsFor —
+  // a MESMA régua do veredito/kit/folha (taxa sobre RESPONDIDAS; bloco
+  // inteiro pulado → pct null, sem taxa inventada) + sortWorstFirst (a
+  // MESMA regra do foco: pulouTudo vem primeiro). A régua local antiga
+  // (resolvidas/total — puladas no denominador) fazia a tabela divergir do
+  // veredito no MESMO diálogo (2S+1M+1P = 50% na tabela, 67% no veredito)
+  // e pintava o bloco nunca visto como "0%" (falso "tentou e errou").
   const topicStats = React.useMemo(() => {
-    const m = new Map<
-      string,
-      { disciplineCode: string; topic: string; solved: number; total: number }
-    >();
-    questions.forEach((q, i) => {
-      const key = `${q.disciplineCode}::${q.topic}`;
-      const rec =
-        m.get(key) ??
-        { disciplineCode: q.disciplineCode, topic: q.topic, solved: 0, total: 0 };
-      rec.total += 1;
-      if (results[i].solved === true) rec.solved += 1;
-      m.set(key, rec);
-    });
-    return [...m.values()]
-      .map((v) => ({ ...v, pct: Math.round((v.solved / v.total) * 100) }))
-      .sort((a, b) => a.pct - b.pct || b.total - a.total);
+    const rows = topicRowsFor(
+      questions.map((q, i) => ({
+        disciplineCode: q.disciplineCode,
+        topic: q.topic,
+        // QuestionResult: true=consegui, false=não consegui, null=pulado/não vista
+        status:
+          results[i]?.solved === true
+            ? ('solved' as const)
+            : results[i]?.solved === false
+              ? ('missed' as const)
+              : ('skipped' as const),
+      })),
+    );
+    return sortWorstFirst(rows);
   }, [questions, results]);
   const multiTopic = topicStats.length > 1;
   // O ENDEREÇO DA REGRA (t188): o chip do dia do simulado lido do PRÓPRIO
@@ -1836,7 +1841,7 @@ function ResultsScreen({
             <p className="text-xs font-medium text-muted-foreground">
               Desempenho por tópico
             </p>
-            {topicStats[0].pct < 60 && (
+            {(topicStats[0].pct === null || topicStats[0].pct < 60) && (
               <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
                 <Target className="mr-1 size-2.5" /> foco: {topicStats[0].topic}
               </Badge>
@@ -1853,15 +1858,27 @@ function ResultsScreen({
                       <span
                         className={cn(
                           'font-semibold',
-                          t.pct >= 60
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : t.pct >= 40
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-rose-600 dark:text-rose-400',
+                          // COR = SIGNIFICADO (t189): bloco inteiro pulado não
+                          // veste a tinta do erro (nunca tentou ≠ tentou e
+                          // errou) — zinc, a cor do neutro honesto.
+                          t.pct === null
+                            ? 'text-zinc-500 dark:text-zinc-400'
+                            : t.pct >= 60
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : t.pct >= 40
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-rose-600 dark:text-rose-400',
                         )}
                       >
-                        {t.pct}%
+                        {t.pct === null ? 'pulou tudo' : `${t.pct}%`}
                       </span>
+                      {/* A voz honesta do MISTO: puladas à parte (a taxa não
+                          pune o pulado — o número confessa as duas verdades). */}
+                      {t.pct !== null && t.skipped > 0 && (
+                        <span className="ml-1 text-[10px] text-muted-foreground/80">
+                          {t.skipped} pulada{t.skipped === 1 ? '' : 's'}
+                        </span>
+                      )}
                     </span>
                     {/* Micro-ações do tópico: aparecem no hover, sempre acessíveis por teclado.
                         1º Refazer as erradas DESTE tópico (só quando existe erro nele). */}
@@ -1870,7 +1887,7 @@ function ResultsScreen({
                         <button
                           type="button"
                           onClick={() => onRetryMissed(t.topic)}
-                          title={`Refazer agora as ${t.total - t.solved} que não consegui em ${t.topic}`}
+                          title={`Refazer agora as ${t.total - t.solved} que não consegui ou pulei em ${t.topic}`}
                           aria-label={`Refazer as questões erradas de ${t.topic}`}
                           className="inline-flex size-6 items-center justify-center rounded-full border border-violet-200 bg-violet-50 text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 dark:border-violet-800/70 dark:bg-violet-950/50 dark:text-violet-300 dark:hover:bg-violet-900/50"
                         >
@@ -1917,14 +1934,19 @@ function ResultsScreen({
                   <motion.div
                     className={cn(
                       'h-full rounded-full',
-                      t.pct >= 60
-                        ? 'bg-emerald-500'
-                        : t.pct >= 40
-                          ? 'bg-amber-500'
-                          : 'bg-rose-500',
+                      // A barra LÊ O DIAGNÓSTICO (t189): bloco inteiro pulado
+                      // fica vazia e neutra (nada tentado — nada pintado de
+                      // erro); respondido segue na família da taxa.
+                      t.pct === null
+                        ? 'bg-zinc-400/60 dark:bg-zinc-600'
+                        : t.pct >= 60
+                          ? 'bg-emerald-500'
+                          : t.pct >= 40
+                            ? 'bg-amber-500'
+                            : 'bg-rose-500',
                     )}
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.max(t.pct, 4)}%` }}
+                    animate={{ width: t.pct === null ? '0%' : `${Math.max(t.pct, 4)}%` }}
                     transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 + i * 0.1 }}
                   />
                 </div>

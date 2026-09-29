@@ -475,6 +475,88 @@ type VerdictRunLike = {
   questions?: { status?: 'solved' | 'missed' | 'skipped'; topic?: string }[];
 };
 
+// ---------- A AGREGAÇÃO POR TÓPICO (fonte única da régua) ----------
+
+export interface TopicRow {
+  disciplineCode: string;
+  topic: string;
+  solved: number;
+  /** Não-puladas — o denominador HONESTO da taxa (pulada não pune a taxa). */
+  answered: number;
+  total: number;
+  skipped: number;
+  /** null = bloco inteiro pulado (sem taxa inventada — nunca "0% falso"). */
+  pct: number | null;
+}
+
+export type TopicStatusLike = {
+  disciplineCode?: string;
+  topic?: string;
+  status?: 'solved' | 'missed' | 'skipped';
+};
+
+/**
+ * A AGREGAÇÃO ÚNICA (t189) — transforma as questões de qualquer corrida nas
+ * linhas por tópico com a RÉGUA ÚNICA da casa: taxa = resolvidas/RESPONDIDAS
+ * (pulada não pune a taxa — o aluno que pulou não acertou, mas também não
+ * errou no papel); bloco inteiro pulado → pct null (sem taxa, o diagnóstico
+ * verdadeiro). Nasceu da divisão honesta do trabalho: o debrief precisa das
+ * linhas para QUALQUER disciplina (o Simulado Pro não é só da Av1), mas a
+ * régua era do veredito da Av1 — a duplicação fez a tabela do debrief e o
+ * veredito divergirem no MESMO diálogo (2 solved + 1 missed + 1 skipped =
+ * 50% na tabela, 67% no veredito). Agora simuladoVerdictFor também agrega
+ * AQUI (o filtro do escopo Av1 fica na camada dele). Pura — sem React, sem
+ * storage, sem fetch.
+ */
+export function topicRowsFor(items: TopicStatusLike[]): TopicRow[] {
+  const m = new Map<string, TopicRow>();
+  for (const it of items) {
+    const disc = it.disciplineCode ?? '—';
+    const topic = it.topic ?? '—';
+    const key = `${disc}::${topic}`;
+    const rec =
+      m.get(key) ??
+      {
+        disciplineCode: disc,
+        topic,
+        solved: 0,
+        answered: 0,
+        total: 0,
+        skipped: 0,
+        pct: null as number | null,
+      };
+    rec.total += 1;
+    if (it.status === 'skipped') rec.skipped += 1;
+    else {
+      rec.answered += 1;
+      if (it.status === 'solved') rec.solved += 1;
+    }
+    m.set(key, rec);
+  }
+  return [...m.values()].map((r) => ({
+    ...r,
+    pct: r.answered > 0 ? Math.round((r.solved / r.answered) * 100) : null,
+  }));
+}
+
+/**
+ * A ORDENAÇÃO "pior primeiro" (t189) — a MESMA régua do foco
+ * (pulouTudo ?? worst): bloco inteiro pulado É o pior diagnóstico e vem
+ * PRIMEIRO (sem taxa — key -1); depois a menor taxa; empate → o tópico
+ * maior (mais questões no run manda mais atenção). Estável: tópicos na
+ * mesma chave mantêm a ordem de chegada. O debrief usa para a tabela e
+ * para o CTA do drill — topicStats[0] vira o foco DE VERDADE (antes, o
+ * bloco inteiro pulado podia ficar de fora do CTA enquanto o tópico
+ * RESPONDIDO pior levava o treino).
+ */
+export function sortWorstFirst(rows: TopicRow[]): TopicRow[] {
+  return [...rows].sort((a, b) => {
+    const ka = a.pct === null ? -1 : a.pct;
+    const kb = b.pct === null ? -1 : b.pct;
+    return ka - kb || b.total - a.total;
+  });
+}
+
 /**
  * O VEREDITO DO SIMULADO OFICIAL — o plano promete (offset 2, tarefa 2):
  * "o bloco com mais erros vira a revisão de amanhã". A promessa era só
@@ -493,21 +575,25 @@ type VerdictRunLike = {
 export function simuladoVerdictFor(run?: VerdictRunLike | null): SimuladoVerdict | null {
   if (!run || run.total <= 0) return null;
   const pct = Math.round((run.solved / run.total) * 100);
-  const porTopico = (MATH_EXAM.topicosEscopo as readonly string[])
-    .map((topic) => {
-      const qs = (run.questions ?? []).filter((q) => q.topic === topic);
-      const solved = qs.filter((q) => q.status === 'solved').length;
-      const skipped = qs.filter((q) => q.status === 'skipped').length;
-      const answered = qs.filter((q) => q.status !== 'skipped').length;
-      return {
-        topic,
-        solved,
-        total: qs.length,
-        pct: answered > 0 ? Math.round((solved / answered) * 100) : null,
-        skipped,
-      };
-    })
-    .filter((t) => t.total > 0);
+  // A AGREGAÇÃO vem da FONTE ÚNICA (t189): topicRowsFor — a MESMA régua que
+  // a tabela do debrief usa (taxa sobre respondidas, pulada sem taxa). O
+  // filtro do ESCOPO da Av1 é a camada desta função: só os tópicos do
+  // topicosEscopo entram, na ordem do escopo.
+  const escopo = MATH_EXAM.topicosEscopo as readonly string[];
+  const porTopico = topicRowsFor(
+    (run.questions ?? []).map((q) => ({ topic: q.topic, status: q.status })),
+  )
+    .filter((r) => escopo.includes(r.topic))
+    .sort(
+      (a, b) => escopo.indexOf(a.topic) - escopo.indexOf(b.topic),
+    )
+    .map((r) => ({
+      topic: r.topic,
+      solved: r.solved,
+      total: r.total,
+      pct: r.pct,
+      skipped: r.skipped,
+    }));
   const comTaxa = porTopico.filter((t): t is SimuladoTopicScore & { pct: number } => t.pct !== null);
   const worst = comTaxa.length
     ? comTaxa.reduce((a, b) => (b.pct < a.pct ? b : a))
