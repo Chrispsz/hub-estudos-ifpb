@@ -11,6 +11,13 @@
 // "nao caem" acha "não, caem." — acentos e pontuação dobram, o trecho
 // exibido é o texto ORIGINAL. E como tudo no tubo do tutor: o índice morre
 // com o diálogo (doc pdf.js destruído, nada fica em disco).
+//
+// t159 — A PERGUNTA LEVA A PÁGINA: o "Perguntar" não manda mais SÓ o texto.
+// O MESMO doc que indexa o texto renderiza a página do trecho em 2× (o mesmo
+// tubo do print de página da t152) e a imagem entra no composer JUNTO com a
+// pergunta — para a IA, símbolo de matemática desenhado vale mais que texto
+// extraído (o ToUnicode cura palavras, não fórmulas). O chip é do aluno:
+// remove-se com um X, e NADA é despachado sem a mão dele.
 
 import * as React from 'react';
 import {
@@ -27,8 +34,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { pdfPageText, searchPdfPages, pdfSnippetQuestion, type PdfSearchHit, type PdfTextItem } from '@/lib/pdf-search';
+import { downscaleCanvas } from '@/lib/tutor-image';
+import {
+  PDF_SEARCH_TOTAL,
+  pdfPageText,
+  pdfSnippetQuestion,
+  pdfTotalOccurrences,
+  searchPdfPages,
+  type PdfSearchHit,
+  type PdfTextItem,
+} from '@/lib/pdf-search';
 import type { Material } from '@/data/course-data';
 
 interface Props {
@@ -40,8 +57,10 @@ interface Props {
   /** Abre o print de página (t152) JÁ parado na página do trecho. */
   onPrint: (page: number) => void;
   /** Pergunta pronta sobre o trecho (t158) — destino decide o chamador
-   * (painel AO LADO no dividido; chat principal via openTutor fora dele). */
-  onAsk: (question: string) => void;
+   * (painel AO LADO no dividido; chat principal via openTutor fora dele).
+   * t159: a PÁGINA do trecho vem junto (JPEG 2×, o tubo do print) — se o
+   * render falhar, a pergunta segue SÓ com o texto (degradação honesta). */
+  onAsk: (question: string, image?: string) => void;
 }
 
 type Phase = 'indexing' | 'ready' | 'error';
@@ -56,10 +75,20 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
   /** A agulha crua e a debounced (220ms — busca sem tremer a cada tecla). */
   const [query, setQuery] = React.useState('');
   const [debounced, setDebounced] = React.useState('');
+  /** Página sendo preparada para o Perguntar (t159) — spinner no botão certo. */
+  const [askingPage, setAskingPage] = React.useState<number | null>(null);
 
   /** Doc pdf.js vivo apenas enquanto o diálogo está aberto (padrão t139/t152). */
   const taskRef = React.useRef<any>(null);
+  /** O doc JÁ PROMETIDO (t159): o mesmo que indexa renderiza a página do trecho. */
+  const docRef = React.useRef<any>(null);
+  /** Espelho de `open` para o ask assíncrono saber se o gesto ainda vale. */
+  const openRef = React.useRef(open);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   const cleanup = React.useCallback(() => {
     try {
@@ -68,6 +97,7 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
       /* doc já morto */
     }
     taskRef.current = null;
+    docRef.current = null;
   }, []);
 
   // ABERTURA: indexa o PDF inteiro (getPage + getTextContent por página, em
@@ -81,6 +111,7 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
       setTexts([]);
       setQuery('');
       setDebounced('');
+      setAskingPage(null); // preparação não sobrevive ao fechar
       return;
     }
     let alive = true;
@@ -95,6 +126,7 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
           return;
         }
         taskRef.current = task;
+        docRef.current = doc; // t159: o render do Perguntar reusa este doc
         const total = doc.numPages;
         setProgress({ done: 0, total });
         const collected: string[] = [];
@@ -129,6 +161,61 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
     [phase, texts, debounced],
   );
 
+  /**
+   * t159 — A PÁGINA DO TRECHO EM PIXELS: render 2× do MESMO doc que indexou
+   * o texto (canvas FORA do DOM — pdf.js só quer o contexto 2d), JPEG na
+   * mesma régua dos prints (downscaleCanvas, teto 1400px). Falha devolve
+   * null — o chamador manda a pergunta só com o texto e avisa a verdade.
+   */
+  const renderPageImage = React.useCallback(async (n: number): Promise<string | null> => {
+    const doc = docRef.current;
+    if (!doc) return null;
+    const page = await doc.getPage(n);
+    const base = page.getViewport({ scale: 1 });
+    const scale = (620 / base.width) * 2; // a mesma régua da prévia do print (t152)
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+    return downscaleCanvas(canvas);
+  }, []);
+
+  /**
+   * O ask completo (t159): prepara a página, monta a pergunta e entrega TUDO
+   * ao destino (painel ao lado ou chat principal). Enquanto prepara, o botão
+   * vira spinner — e os outros Perguntar descansam (um gesto por vez). Se o
+   * diálogo fechar no meio, o gesto morre com ele (openRef).
+   */
+  const askWithPage = React.useCallback(
+    async (h: PdfSearchHit) => {
+      if (askingPage !== null) return;
+      setAskingPage(h.page);
+      let image: string | null = null;
+      try {
+        image = await renderPageImage(h.page);
+      } catch {
+        image = null; // render falhou — a degradação é declarada abaixo
+      }
+      if (!openRef.current) return; // fechou no meio — o gesto morreu com o diálogo
+      setAskingPage(null);
+      const question = pdfSnippetQuestion(
+        material.title,
+        h.page,
+        h.segments.map((s) => s.text).join(''),
+        image !== null,
+      );
+      if (!image) {
+        toast.info('Não consegui anexar a página — a pergunta segue só com o texto.');
+      }
+      onAsk(question, image ?? undefined);
+      onOpenChange(false);
+    },
+    [askingPage, renderPageImage, material.title, onAsk, onOpenChange],
+  );
+
   /** Enter = correr para o 1º trecho (a busca do PDF também CAMINHA). */
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && hits.length > 0) {
@@ -140,6 +227,10 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
 
   const q = debounced.trim();
   const pagesWithHits = new Set(hits.map((h) => h.page)).size;
+  /** t159 — a conta do rodapé: todas as ocorrências das páginas com trecho. */
+  const totalOccurrences = pdfTotalOccurrences(hits);
+  /** No teto de exibição o número vira PISO (o + diz que há mais). */
+  const hitsCapped = hits.length >= PDF_SEARCH_TOTAL;
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
@@ -153,7 +244,8 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
           <DialogDescription className="mt-1 text-xs">
             Acha o trecho em TODAS as páginas — ignora acentos e pontuação ("logica"
             acha "Lógica"). Ir salta o visualizador até a página; print abre a captura
-            já parada nela; Perguntar leva o trecho ao tutor pronto para revisar.{" "}
+            já parada nela; Perguntar leva o trecho e a página ao tutor prontos para
+            revisar.{" "}
             <span className="text-emerald-500">Nada sai do seu navegador.</span>
           </DialogDescription>
         </DialogHeader>
@@ -300,24 +392,22 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
                           </Button>
                           {/* t158 — A PERGUNTA QUE NASCE DO TRECHO: o último
                               gesto da cadeia (achar → saltar → printar →
-                              PERGUNTAR). A pergunta vai PRÉ-PREENCHIDA — o
+                              PERGUNTAR). t159: a pergunta leva a PÁGINA junto
+                              (chip removível no composer) — pré-preenchida, o
                               aluno revisa e envia; nada sai sem a mão dele. */}
                           <Button
                             size="sm"
-                            className="h-8 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"
-                            onClick={() => {
-                              onAsk(
-                                pdfSnippetQuestion(
-                                  material.title,
-                                  h.page,
-                                  h.segments.map((s) => s.text).join(''),
-                                ),
-                              );
-                              onOpenChange(false);
-                            }}
-                            title={`Perguntar ao tutor sobre este trecho da página ${h.page} (a pergunta entra no campo para você revisar e enviar)`}
+                            className="h-8 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-70"
+                            disabled={askingPage !== null}
+                            onClick={() => void askWithPage(h)}
+                            title={`Perguntar ao tutor sobre este trecho da página ${h.page} (a pergunta e a página entram no campo para você revisar e enviar)`}
                           >
-                            <MessageCircleQuestion className="size-3" aria-hidden /> Perguntar
+                            {askingPage === h.page ? (
+                              <Loader2 className="size-3 animate-spin" aria-hidden />
+                            ) : (
+                              <MessageCircleQuestion className="size-3" aria-hidden />
+                            )}
+                            {askingPage === h.page ? 'Preparando…' : 'Perguntar'}
                           </Button>
                         </div>
                       </div>
@@ -329,12 +419,32 @@ export function PdfSearchDialog({ material, open, onOpenChange, onJump, onPrint,
           )}
         </div>
 
-        {/* Rodapé: a conta honesta do que foi achado */}
+        {/* Rodapé: a conta honesta do que foi achado — t159 soma as
+            ocorrências reais (count por página da t158); no teto, o número
+            vira piso com "+" (o cap de exibição não mente). */}
         <div className="flex items-center justify-between gap-2 border-t bg-muted/40 px-4 py-2 text-[11px] text-muted-foreground">
-          <span className={cn('tabular-nums', phase !== 'ready' && 'opacity-60')}>
+          <span
+            className={cn('tabular-nums', phase !== 'ready' && 'opacity-60')}
+            title={
+              q && hits.length > 0
+                ? `Ocorrências somadas de todas as páginas com trecho${hitsCapped ? ' — a lista para em 80 trechos, o total é maior' : ''}`
+                : undefined
+            }
+          >
             {phase === 'ready'
               ? q
-                ? `${hits.length} trecho${hits.length === 1 ? '' : 's'} em ${pagesWithHits} página${pagesWithHits === 1 ? '' : 's'}`
+                ? hits.length > 0
+                  ? (
+                    <>
+                      {hits.length} trecho{hits.length === 1 ? '' : 's'} em {pagesWithHits} página
+                      {pagesWithHits === 1 ? '' : 's'} ·{' '}
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        {hitsCapped ? '+' : ''}
+                        {totalOccurrences} ocorrência{totalOccurrences === 1 ? '' : 's'}
+                      </span>
+                    </>
+                  )
+                  : '0 trechos'
                 : `${texts.length} página${texts.length === 1 ? '' : 's'} indexadas`
               : 'indexando…'}
           </span>

@@ -305,16 +305,20 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
 
   /** Pergunta vinda da BUSCA no MODO DIVIDIDO (t158): o texto entra no campo
    * do painel AO LADO — no mobile a aba Tutor abre sozinha (a pergunta está
-   * lá). Sem o painel ao lado, o mapa usa openTutor (chat principal). */
-  const handleQuestionAttach = React.useCallback((question: string) => {
+   * lá). t159: a PÁGINA do trecho entra no MESMO painel pelo tubo do print
+   * (externalImage) — chip removível, a mão do aluno continua sendo a única
+   * que envia. Sem o painel ao lado, o mapa usa openTutor (chat principal). */
+  const handleQuestionAttach = React.useCallback((question: string, image?: string) => {
     setPanelQuestion(question);
+    if (image) setPanelImage(image);
     if (window.innerWidth < 1024) setMobileTab('tutor');
   }, []);
   const askMainChat = React.useCallback(
-    (question: string) => {
+    (question: string, image?: string) => {
       if (!material) return;
       openTutor({
         question,
+        image,
         disciplineCode: material.disciplineCode,
         materialId: material.id,
       });
@@ -717,7 +721,9 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
         {/* t157 — O MAPA DO PDF: busca em todas as páginas (pdf.js), com salto
             (#page=N no leitor nativo) e ponte direta para o print de página.
             t158: "Perguntar" completa a cadeia — no dividido a pergunta nasce
-            no campo do painel AO LADO; fora dele, vai ao chat principal. */}
+            no campo do painel AO LADO; fora dele, vai ao chat principal.
+            t159: a pergunta leva a PÁGINA do trecho junto (imagem + texto no
+            MESMO tubo — painel ou openTutor; o chip morre no envio). */}
         <PdfSearchDialog
           material={material}
           open={searchOpen}

@@ -211,11 +211,32 @@ export function searchPdfPages(
  * página e o PRÓPRIO trecho (texto de nascença, com as reticências da
  * janela). O recorte tem teto de 220 caracteres — a pergunta cabe no campo e
  * a IA lê o essencial; espaços da extração não vazam para o rótulo.
+ *
+ * t159 — A PERGUNTA LEVA A PÁGINA: quando a página do trecho segue anexada
+ * (render 2× do MESMO doc que indexa), a frase declara o anexo — a IA sabe
+ * que a imagem é a página inteira e o aluno sabe o que está indo no chip.
  */
-export function pdfSnippetQuestion(materialTitle: string, page: number, snippet: string): string {
+export function pdfSnippetQuestion(
+  materialTitle: string,
+  page: number,
+  snippet: string,
+  withPage?: boolean,
+): string {
   const t = (materialTitle || '').trim() || 'o material';
   const flat = (snippet || '').replace(/\s+/g, ' ').trim();
   const MAX = 220;
   const s = flat.length > MAX ? flat.slice(0, MAX) + '…' : flat;
-  return `Estou estudando "${t}" e na página ${page} encontrei este trecho: "${s}". Me explica o que ele quer dizer?`;
+  const where = withPage ? ' (a página está na imagem anexada)' : '';
+  return `Estou estudando "${t}" e na página ${page} encontrei este trecho: "${s}"${where}. Me explica o que ele quer dizer?`;
+}
+
+/**
+ * A CONTA DO RODAPÉ (t159): soma as ocorrências de TODOS os hits exibidos —
+ * cada hit carrega o count REAL da sua página (t158), então a soma é o total
+ * achado no material ATÉ o teto de exibição. Quando a lista bate o cap
+ * (PDF_SEARCH_TOTAL), o chamador acrescenta o "+" — o número vira piso, não
+ * mentira.
+ */
+export function pdfTotalOccurrences(hits: PdfSearchHit[]): number {
+  return (hits ?? []).reduce((n, h) => n + (h?.count ?? 0), 0);
 }
