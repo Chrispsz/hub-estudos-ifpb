@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  ArrowDown,
   Bot,
   BookOpen,
   CalendarCheck,
@@ -85,6 +86,7 @@ import {
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
+import { isNearBottom } from '@/lib/tutor-follow';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
 import { buildHubContext } from '@/lib/tutor-context';
@@ -656,6 +658,13 @@ export function StudyView({
   const endTimeRef = React.useRef<number | null>(null);
   const bannerInitRef = React.useRef(false);
   const messagesRef = React.useRef<HTMLDivElement>(null);
+  // t165 — A LEITURA NÃO É SEQUESTRADA: true = o leitor está no fim e o
+  // auto-scroll segue o fio; false = ele subiu de propósito (reler uma
+  // explicação) e a leitura fica PRESERVADA — o stream cresce em silêncio
+  // e a pill oferece a volta. followLockRef protege o VOO programático da
+  // pill (scroll suave) de se auto-desligar nos eventos intermediários.
+  const [chatFollowing, setChatFollowing] = React.useState(true);
+  const followLockRef = React.useRef(false);
 
   // Sincroniza refs a cada render (para uso em intervals/listeners/cleanup)
   React.useEffect(() => {
@@ -1135,6 +1144,11 @@ export function StudyView({
   // Memória: restaura a conversa salva da disciplina ao abrir o chat.
   React.useEffect(() => {
     if (!chatOpen) return;
+    // t165: cada abertura é um recomeço de leitura — o follow volta ligado
+    // (o Sheet desmonta o fio; sem o reset, um "subiu" da sessão anterior
+    // deixaria o aluno no topo com a resposta nova crescendo em silêncio).
+    setChatFollowing(true);
+    followLockRef.current = false;
     let alive = true;
     (async () => {
       try {
@@ -1181,11 +1195,43 @@ export function StudyView({
     };
   }, [chatOpen, disciplineCode]);
 
-  // Auto-scroll do chat
+  // Auto-scroll do chat — t165: CONDICIONAL à intenção do leitor. Se ele
+  // subiu (chatFollowing=false), o fio cresce em silêncio; a pill oferece a
+  // volta. Quem pergunta quer a resposta: o envio devolve o follow
+  // (setChatFollowing(true) no sendQuestion). O chatFollowing nos deps faz a
+  // volta pela pill também pousar no fim (o clique já rola; o efeito é o
+  // cinto e suspensa — idempotente no mesmo destino).
   React.useEffect(() => {
     const el = messagesRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, chatLoading, chatOpen, streamText]);
+    if (el && chatFollowing) el.scrollTop = el.scrollHeight;
+  }, [messages, chatLoading, chatOpen, streamText, chatFollowing]);
+
+  // t165 — o relogio da intenção: cada scroll REAL do leitor reavalia o
+  // follow. O voo programático (pill) é ignorado até pousar no fim
+  // (followLockRef), para os eventos intermediários do smooth não nascerem
+  // a pill de novo. O salto do auto-follow é INSTANTE (pousa na distância 0
+  // — o handler confirma o follow, sem churn).
+  const onThreadScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (followLockRef.current) {
+      if (isNearBottom(el.scrollTop, el.clientHeight, el.scrollHeight)) {
+        followLockRef.current = false;
+      }
+      return;
+    }
+    setChatFollowing(isNearBottom(el.scrollTop, el.clientHeight, el.scrollHeight));
+  }, []);
+
+  // t165 — a volta pela pill: rola suave até o fim e religa o follow já
+  // protegido pelo lock (os eventos do voo não desligam o que o clique ligou).
+  const scrollThreadToBottom = React.useCallback((smooth: boolean) => {
+    const el = messagesRef.current;
+    if (!el) return;
+    followLockRef.current = true;
+    setChatFollowing(true);
+    if (smooth) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    else el.scrollTop = el.scrollHeight;
+  }, []);
 
   // t155: A BUSCA QUE CAMINHA — achar não basta, é preciso CHEGAR. pos é a
   // posição na lista de resultados (null = parado), flash é a bolha acesa e
@@ -1280,6 +1326,11 @@ export function StudyView({
       .join('\n\n')
       .trim();
     if ((!q && !chatImage) || chatLoading) return;
+    // t165: quem pergunta quer a resposta — o envio devolve o follow mesmo
+    // que o leitor estivesse relendo algo acima (e solta o lock do voo da
+    // pill, se ele ainda estivesse em voo).
+    setChatFollowing(true);
+    followLockRef.current = false;
     const image = isRetry ? imageOverride : chatImage;
     // O TUTOR CONTA (123, o P2 que a 118 deixou pendente): a dúvida enviada com
     // material selecionado É estudo do material — o retrieval lê o conteúdo REAL
@@ -2079,6 +2130,7 @@ export function StudyView({
 
           <div
             ref={messagesRef}
+            onScroll={onThreadScroll}
             className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 [scrollbar-width:thin]"
           >
             {/* t151: o status da busca — contagem honesta OU vazio explicado. */}
@@ -2393,6 +2445,31 @@ export function StudyView({
                   </div>
                 </div>
               )}
+
+            {/* t165 — A PILL DA VOLTA: só nasce quando o leitor subiu de
+                propósito (chatFollowing=false). Sticky no rodapé do fio, a
+                voz esmeralda da casa, o rótulo confessa o estado: resposta
+                viva ("ao vivo") quando o tutor ainda escreve, fim da conversa
+                quando o fio está em repouso. position:sticky ocupa o próprio
+                lugar no fluxo — quando o follow volta, ela some e o espaço
+                volta a ser do fio. */}
+            {!chatFollowing && (
+              <div className="sticky bottom-2 z-10 flex justify-center pt-1">
+                <button
+                  type="button"
+                  data-testid="chat-follow-pill"
+                  onClick={() => scrollThreadToBottom(true)}
+                  aria-label="Descer para o fim da conversa"
+                  title="Você subiu para reler — a leitura sua ficou preservada. Clique para descer ao fim e voltar a seguir a conversa."
+                  className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background/90 px-3 py-1.5 text-xs font-medium text-emerald-600 shadow-lg backdrop-blur transition-colors hover:border-emerald-500/60 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:text-emerald-400"
+                >
+                  <ArrowDown className="size-3.5" aria-hidden />
+                  {chatLoading || streamText !== null
+                    ? 'Descer para a resposta ao vivo'
+                    : 'Descer para o fim da conversa'}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-white/10 p-4">

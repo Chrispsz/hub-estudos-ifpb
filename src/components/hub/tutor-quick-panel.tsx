@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, RotateCcw, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, RotateCcw, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
+import { isNearBottom } from '@/lib/tutor-follow';
 import {
   clearThread,
   loadThread,
@@ -169,6 +170,13 @@ export function TutorQuickPanel({
     }, []),
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  // t165 — A LEITURA NÃO É SEQUESTRADA (paridade com o chat principal): o
+  // auto-scroll SÓ segue quando o leitor está no fim. Ele subiu para reler
+  // (no painel dividido, enquanto o PDF rola ao lado) — o stream cresce em
+  // silêncio e a pill oferece a volta. followLockRef protege o voo suave da
+  // pill de se auto-desligar nos eventos intermediários.
+  const [following, setFollowing] = React.useState(true);
+  const followLockRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
   /** t158: foco do composer quando a pergunta nasce na busca do PDF. */
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -268,9 +276,35 @@ export function TutorQuickPanel({
     [],
   );
 
+  // t165: CONDICIONAL à intenção do leitor — e INSTANTE (sem smooth): o voo
+  // suave a cada tick do stream encadeava eventos intermediários que, com o
+  // gate novo, poderiam flipar o follow no meio do voo. O salto seco pousa
+  // na distância 0 e o handler confirma o follow, sem churn.
   React.useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, loading, streamText]);
+    const el = scrollRef.current;
+    if (el && following) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamText, following]);
+
+  // t165 — o relógio da intenção do painel (mesma forma do chat principal).
+  const onPanelScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (followLockRef.current) {
+      if (isNearBottom(el.scrollTop, el.clientHeight, el.scrollHeight)) {
+        followLockRef.current = false;
+      }
+      return;
+    }
+    setFollowing(isNearBottom(el.scrollTop, el.clientHeight, el.scrollHeight));
+  }, []);
+
+  // t165 — a volta pela pill do painel: rola suave protegida pelo lock.
+  const scrollPanelToBottom = React.useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    followLockRef.current = true;
+    setFollowing(true);
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, []);
 
   /** Anexa print/foto da questão — reduzido antes de virar data URL. t163:
    * a origem vem junto — o chip do composer conta de onde o print nasceu. */
@@ -300,6 +334,10 @@ export function TutorQuickPanel({
   ) {
     const q = question.trim();
     if ((!q && !image) || loading) return;
+    // t165: quem pergunta quer a resposta — o envio devolve o follow (e solta
+    // o lock do voo da pill, se ele ainda estivesse em voo).
+    setFollowing(true);
+    followLockRef.current = false;
     // t164: o retry ("tentar de novo") passa keepComposer=true — o rascunho
     // em digitação e o print pendente do AGORA sobrevivem; só o turno antigo
     // é reenviado. Envio normal: composer limpo como sempre.
@@ -441,6 +479,7 @@ export function TutorQuickPanel({
       )}
       <div
         ref={scrollRef}
+        onScroll={onPanelScroll}
         role="log"
         aria-label="Conversa com o tutor"
         className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 [scrollbar-width:thin]"
@@ -640,6 +679,27 @@ export function TutorQuickPanel({
               </div>
             </div>
           )}
+
+        {/* t165 — A PILL DA VOLTA do painel (paridade com o chat principal):
+            nasce só quando o leitor subiu; sticky no rodapé do log, a voz
+            esmeralda da casa, o rótulo confessa se a resposta ainda vive. */}
+        {!following && (
+          <div className="sticky bottom-1.5 z-10 flex justify-center pt-1">
+            <button
+              type="button"
+              data-testid="panel-follow-pill"
+              onClick={scrollPanelToBottom}
+              aria-label="Descer para o fim da conversa"
+              title="Você subiu para reler — a leitura sua ficou preservada. Clique para descer ao fim e voltar a seguir a conversa."
+              className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background/90 px-2.5 py-1 text-[11px] font-medium text-emerald-600 shadow-lg backdrop-blur transition-colors hover:border-emerald-500/60 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:text-emerald-400"
+            >
+              <ArrowDown className="size-3" aria-hidden />
+              {loading || streamText !== null
+                ? 'Descer para a resposta ao vivo'
+                : 'Descer para o fim da conversa'}
+            </button>
+          </div>
+        )}
       </div>
 
       <form
