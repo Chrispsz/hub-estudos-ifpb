@@ -58,9 +58,11 @@ import {
 import { daysUntilDate } from '@/lib/semester';
 import { openProgress, openPractice, openSimulado, openTutor } from '@/lib/hub-events';
 import {
+  conceitoPaletteEntries,
   exercisePaletteEntries,
   flashcardPaletteEntries,
   paletteWordFilter,
+  type ConceitoIndexEntry,
 } from '@/lib/palette-search';
 import { exercises } from '@/lib/exercise-extractor';
 import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
@@ -171,6 +173,37 @@ export function CommandPalette({ onNavigate }: Props) {
     [sp.progress.flashcards],
   );
 
+  // A BUSCA QUE LÊ OS RESUMOS (174): a camada de CONCEITOS dos resumos IA
+  // (268) entra na paleta — "onde eu li transposta?" ganhou resposta na
+  // navegação universal. O índice é 96KB e entra por DYNAMIC IMPORT SÓ no
+  // primeiro abrir (a página nunca paga por ele); enquanto não chega, o grupo
+  // cala (nenhum esqueleto mentiroso). A porta é a MESMA do grupo Materiais:
+  // o resumo dialog aberto no material do conceito (join por summaryFile —
+  // conceito sem material par cala: sem porta, a entrada não existe).
+  const [conceitosIdx, setConceitosIdx] = React.useState<ConceitoIndexEntry[] | null>(null);
+  React.useEffect(() => {
+    if (!open || conceitosIdx) return;
+    let alive = true;
+    import('@/data/conceitos-index.json')
+      .then((mod) => {
+        if (alive) setConceitosIdx(mod.default as ConceitoIndexEntry[]);
+      })
+      .catch(() => {}); // falha ao carregar = grupo cala (nada inventado)
+    return () => {
+      alive = false;
+    };
+  }, [open, conceitosIdx]);
+  const materialBySummaryFile = React.useMemo(
+    () => new Map(materials.filter((m) => m.summaryFile).map((m) => [m.summaryFile, m])),
+    [],
+  );
+  const conceitoEntries = React.useMemo(() => {
+    if (!conceitosIdx) return [];
+    return conceitoPaletteEntries(conceitosIdx).filter((e) =>
+      materialBySummaryFile.has(e.summaryFile),
+    );
+  }, [conceitosIdx, materialBySummaryFile]);
+
   /** Ação da semana — cada kind tem a porta que JÁ existe no app. */
   function runExamAction(a: PaletteExamAction) {
     switch (a.kind) {
@@ -270,7 +303,7 @@ export function CommandPalette({ onNavigate }: Props) {
         commandFilter={paletteWordFilter}
         className="[_[cmdk-group-heading]]:text-emerald-600 dark:[_[cmdk-group-heading]]:text-emerald-400"
       >
-        <CommandInput placeholder="Buscar páginas, disciplinas, materiais, questões e ações..." />
+        <CommandInput placeholder="Buscar páginas, disciplinas, materiais, questões, conceitos e ações..." />
         <CommandList className="max-h-[min(60vh,420px)] [scrollbar-width:thin]">
           <CommandEmpty>
             <span className="flex flex-col items-center gap-1.5 text-muted-foreground">
@@ -524,6 +557,78 @@ export function CommandPalette({ onNavigate }: Props) {
           </CommandGroup>
 
           <CommandSeparator />
+
+          {/* CONCEITOS NOS RESUMOS (174): a camada que responde "onde eu li
+              isso?" — o tom violeta é o mesmo Sparkles dos resumos (a IA da
+              casa tem cor). Grupo condicionado ao ÍNDICE carregado (dynamic
+              import no primeiro abrir): enquanto não chega, cala — esqueleto
+              mentiroso não é honestidade. A porta é a MESMA do grupo
+              Materiais: o resumo aberto no material do conceito. */}
+          {conceitoEntries.length > 0 && (
+            <>
+              <CommandGroup
+                heading={
+                  <span className="inline-flex items-center gap-1.5 font-semibold">
+                    <Sparkles className="size-3.5" aria-hidden="true" />
+                    Conceitos nos resumos
+                    <span className="ml-1 rounded border border-current/30 px-1 font-mono text-[10px] tabular-nums opacity-80">
+                      {conceitoEntries.length}
+                    </span>
+                  </span>
+                }
+              >
+                {conceitoEntries.map((c) => {
+                  const mat = materialBySummaryFile.get(c.summaryFile);
+                  const disc = disciplines.find((d) => d.code === mat?.disciplineCode);
+                  const color = getColorClasses(disc?.color ?? 'slate');
+                  return (
+                    <CommandItem
+                      key={c.key}
+                      value={c.value}
+                      onSelect={() =>
+                        run(() => {
+                          const material = materialBySummaryFile.get(c.summaryFile);
+                          if (!material) return; // sem porta, sem gesto (defesa)
+                          setSelectedMaterial(material);
+                          setMaterialOpen(true);
+                        })
+                      }
+                      className="gap-2.5"
+                    >
+                      <span className="shrink-0 text-violet-500 [&_svg]:size-4">
+                        <Sparkles aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{c.conceito}</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {c.explicacaoPreview}
+                        </span>
+                      </span>
+                      {c.exemploPreview && (
+                        <span
+                          className="hidden shrink-0 text-[10px] italic text-muted-foreground/70 sm:inline"
+                          title={c.exemploPreview}
+                        >
+                          ex.
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          'shrink-0 max-w-[9rem] truncate text-[10px] uppercase tracking-wide',
+                          color.text,
+                          'opacity-70',
+                        )}
+                        title={c.materialTitle}
+                      >
+                        {c.materialTitle}
+                      </span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
           {/* A BUSCA QUE ACHA A QUESTÃO (173): o acervo como conteúdo de
               busca de primeira classe — o mesmo direito dos materiais. A

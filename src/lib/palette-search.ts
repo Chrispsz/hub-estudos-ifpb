@@ -188,3 +188,60 @@ export function paletteWordFilter(value: string, search: string): number {
 function foldAccents(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
+
+/* -------------------------------------------------------------------------
+ * CONCEITOS NOS RESUMOS (174) — a busca que LÊ o conteúdo dos resumos IA.
+ *
+ * A paleta achava o TÍTULO do material, nunca o que ele explica: na véspera,
+ * "onde eu li transposta?" não tinha resposta. O índice
+ * (src/data/conceitos-index.json, gerado por scripts/gen-conceitos-index.mjs
+ * a partir dos resumos) carrega a camada de conceitos — a de maior valor por
+ * byte — com summaryFile como CHAVE DE JUNÇÃO para course-data.materials
+ * (fonte única): conceito sem material par NÃO vira entrada (material-first:
+ * sem a porta do resumo, a entrada não existe).
+ * ----------------------------------------------------------------------- */
+
+/** Linha do índice gerado (scripts/gen-conceitos-index.mjs). */
+export interface ConceitoIndexEntry {
+  conceito: string;
+  explicacao: string;
+  exemplo?: string;
+  summaryFile: string;
+  titulo: string;
+}
+
+export interface ConceitoPaletteEntry {
+  /** conceito + summaryFile — dois conceitos homônimos em resumos distintos. */
+  key: string;
+  conceito: string;
+  /** Explicação cortada para a linha de apoio do resultado. */
+  explicacaoPreview: string;
+  exemploPreview: string | null;
+  /** String de busca da cmdk — conceito + explicação + exemplo + resumo. */
+  value: string;
+  summaryFile: string;
+  materialTitle: string;
+}
+
+/** Comprimento da explicação no resultado da busca. */
+export const CONCEITO_PREVIEW_MAX = 120;
+
+export function conceitoPaletteEntry(c: ConceitoIndexEntry): ConceitoPaletteEntry {
+  const conceito = c.conceito.trim();
+  const explicacaoPreview = trimPreview(c.explicacao, CONCEITO_PREVIEW_MAX);
+  const exemploPreview = c.exemplo ? trimPreview(c.exemplo, 110) : null;
+  const titulo = c.titulo.trim();
+  return {
+    key: `${c.summaryFile}::${conceito}`,
+    conceito,
+    explicacaoPreview,
+    exemploPreview,
+    value: `conceito resumo ia ${titulo} ${conceito} ${explicacaoPreview} ${exemploPreview ?? ''}`.toLowerCase(),
+    summaryFile: c.summaryFile,
+    materialTitle: titulo || c.summaryFile,
+  };
+}
+
+export function conceitoPaletteEntries(all: ConceitoIndexEntry[]): ConceitoPaletteEntry[] {
+  return all.map(conceitoPaletteEntry);
+}

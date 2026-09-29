@@ -47,22 +47,21 @@ if git cat-file -e "origin/tests" 2>/dev/null; then
   fi
 fi
 
-entries=""
+# ÁRVORE VIA ÍNDICE TEMPORÁRIO: git mktree não aceita paths com barra
+# ("fatal: path ... contains slash" — mktree é FLAT). O read-tree vazio +
+# update-index + write-tree monta a árvore com subdiretórios corretamente.
+tmpidx=$(mktemp)
+GIT_INDEX_FILE="$tmpidx" git read-tree --empty
 for f in "${test_files[@]}"; do
   blob=$(git hash-object -w "$f")
-  entries="${entries}100644 blob ${blob}$(printf '\t')%s\n" "$f"
+  GIT_INDEX_FILE="$tmpidx" git update-index --add --cacheinfo "100644,${blob},${f}"
 done
-
-# vercel.json TEM que ir junto: com git.deploymentEnabled {"tests": false} no
-# próprio commit pushado, a Vercel ignora o branch (senão tenta buildar e
-# falha por falta de package.json). Como a árvore é reconstruída do zero, sem
-# isso o próximo update apagaria o arquivo do branch.
 if [ -f vercel.json ]; then
   blob_vjson=$(git hash-object -w vercel.json)
-  entries="${entries}100644 blob ${blob_vjson}$(printf '\t')vercel.json\n"
+  GIT_INDEX_FILE="$tmpidx" git update-index --add --cacheinfo "100644,${blob_vjson},vercel.json"
 fi
-
-tree=$(printf '%b' "$entries" | git mktree)
+tree=$(GIT_INDEX_FILE="$tmpidx" git write-tree)
+rm -f "$tmpidx"
 note="${1:-update $(date -u '+%Y-%m-%dT%H:%MZ')}"
 commit=$(git commit-tree "$tree" -m "tests: ${note}")
 git push -q origin "${commit}:refs/heads/tests" --force
