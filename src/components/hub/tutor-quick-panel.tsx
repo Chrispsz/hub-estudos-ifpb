@@ -25,6 +25,7 @@ import {
   useScreenCapture,
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
+import { CaptureTidyBanner } from './capture-tidy-banner';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
@@ -227,7 +228,7 @@ export function TutorQuickPanel({
   /** t175 — O PRINT NASCE DO PDF: o render da página aberta em curso (o
    * botão mostra o spinner e não aceita segundo clique). */
   const [instantPrinting, setInstantPrinting] = React.useState(false);
-  const { capturing, startCapture } = useScreenCapture(
+  const { capturing, tidying, tidySeconds, startCapture } = useScreenCapture(
     React.useCallback((canvas: HTMLCanvasElement) => {
       setCaptureCanvas(canvas);
       setCaptureOpen(true);
@@ -1181,6 +1182,13 @@ export function TutorQuickPanel({
           }
         }}
       />
+
+      {/* t181 — O AVISO DE ARRUMAÇÃO: entre o dono escolher a superfície e a
+          régua v3 começar, o aviso fica de pé ~2s (janela garantida da
+          capture-clean) — o seletor morre de verdade e o frame final não
+          carrega overlay. pointer-events-none: bloquear clique seria mentir
+          sobre "a captura acontece sozinha". */}
+      <CaptureTidyBanner active={tidying} seconds={tidySeconds} />
 
       {/* Recorte da captura de tela — anexa no MESMO pendingImage dos prints.
           t175 — O DE NOVO SEM OVERLAY: o "De novo" FECHA este diálogo e

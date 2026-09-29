@@ -18,7 +18,9 @@ import {
   Clock3,
   Code2,
   Copy,
+  Crop,
   Download,
+  FileScan,
   FileText,
   History,
   ImagePlus,
@@ -108,13 +110,20 @@ import { resolveRetryTarget } from '@/lib/tutor-retry';
 import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
-import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import { downscaleCanvas, downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import {
+  instantPrintPage,
+  pagePrintLabel,
+  renderPdfPageToCanvas,
+} from '@/lib/pdf-print';
 import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import {
   screenCaptureSupported,
   useScreenCapture,
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
+import { CaptureTidyBanner } from './capture-tidy-banner';
+import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
@@ -646,7 +655,7 @@ export function StudyView({
   /** Captura de tela em recorte — o frame bruto vive só até o diálogo fechar. */
   const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
   const [captureOpen, setCaptureOpen] = React.useState(false);
-  const { capturing, startCapture } = useScreenCapture(
+  const { capturing, tidying, tidySeconds, startCapture } = useScreenCapture(
     React.useCallback((canvas: HTMLCanvasElement) => {
       setCaptureCanvas(canvas);
       setCaptureOpen(true);
@@ -708,6 +717,40 @@ export function StudyView({
   // AUTO-ABRIR DA PORTA: nonce inédito (> o consumido) + material com PDF.
   // O ref-guard de módulo impede a remontagem de reabrir o mesmo clique —
   // e um clique NOVO da porta (nonce maior) abre de novo, como deve.
+  /**
+   * t181 — O PRINT DE PÁGINA NO CHAT PRINCIPAL: a via da t175 (UM clique,
+   * página do PDF anexada sem seletor) agora mora TAMBÉM aqui — o dono com
+   * material aberto no Estudar não precisa mais abrir o leitor para printar
+   * o PDF, nem escolher aba/tela no seletor (a segunda metade da reclamação:
+   * "o print deveria ser do pdf quando estou com um aberto"). A página é a
+   * HONESTA da lib (instantPrintPage): a memória de retomada SÓ entra se o
+   * dono aceitou o convite — printar lembrança não aceita é printar página
+   * que não está na frente dos olhos (a doutrina da t175, intacta).
+   */
+  const [chatInstantPrinting, setChatInstantPrinting] = React.useState(false);
+  /** t181: a via de PRECISÃO (escolher página + recortar) no chat principal. */
+  const [chatPdfCaptureOpen, setChatPdfCaptureOpen] = React.useState(false);
+  const instantChatPdfPrint = React.useCallback(async () => {
+    if (!selectedMaterial?.pdfPath || chatInstantPrinting) return;
+    const page = instantPrintPage(readerResumePage, selectedMaterial.pages);
+    setChatInstantPrinting(true);
+    try {
+      const canvas = await renderPdfPageToCanvas(selectedMaterial.pdfPath, page);
+      const image = downscaleCanvas(canvas);
+      const label = pagePrintLabel(page, selectedMaterial.title);
+      setChatImage(image);
+      setChatImageLabel(label);
+      toast.success(
+        `Página ${page} anexada ao tutor — nada foi salvo no seu computador.`,
+      );
+    } catch {
+      toast.error(
+        'Não consegui renderizar a página. Use a captura de tela ou cole com Ctrl+V.',
+      );
+    } finally {
+      setChatInstantPrinting(false);
+    }
+  }, [selectedMaterial, chatInstantPrinting, readerResumePage]);
   React.useEffect(() => {
     if (!initialOpenNonce || initialOpenNonce <= lastReaderNonceConsumed) return;
     if (!shouldAutoOpenReader(initialOpenNonce, !!selectedMaterial, readerDoorVisible(selectedMaterial))) {
@@ -2920,6 +2963,55 @@ export function StudyView({
               >
                 <ImagePlus className="size-4" />
               </Button>
+              {/* t181 — O PRINT DE PÁGINA NO CHAT PRINCIPAL (a régua da t175
+                  no chat da aba Estudar): com material de PDF selecionado, o
+                  PRIMEIRO botão é o instantâneo — UM clique anexa a página do
+                  PDF, sem seletor de tela, sem recorte (o pedido do dono: o
+                  print é do PDF quando há um aberto). Esmeralda = print que
+                  nasce do conteúdo do Hub (a gramatura das portas irmãs). */}
+              {selectedMaterial && readerDoorVisible(selectedMaterial) && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    data-testid="chat-instant-pdf-print"
+                    className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    onClick={() => void instantChatPdfPrint()}
+                    disabled={chatLoading || chatInstantPrinting}
+                    aria-busy={chatInstantPrinting}
+                    aria-label={`Anexar a página ${instantPrintPage(readerResumePage, selectedMaterial.pages)} do PDF ao tutor`}
+                    title={
+                      chatInstantPrinting
+                        ? 'Renderizando a página…'
+                        : `Print da página ${instantPrintPage(readerResumePage, selectedMaterial.pages)} — UM clique anexa a página do PDF "${selectedMaterial.title}". Sem escolher aba/tela, sem seletor do navegador (nada é salvo no seu computador)`
+                    }
+                  >
+                    {chatInstantPrinting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <FileScan className="size-4" />
+                    )}
+                  </Button>
+                  {/* A via de PRECISÃO (t152): escolher outra página na
+                      prévia e recortar só a questão — o irmão lento. */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    onClick={() => setChatPdfCaptureOpen(true)}
+                    disabled={chatLoading || chatInstantPrinting}
+                    aria-label="Escolher página do PDF e recortar trecho para o tutor"
+                    title="Print de página com recorte — escolha a página na prévia, arraste para recortar só a questão e anexe (nada é salvo no seu computador)"
+                  >
+                    <Crop className="size-4" />
+                  </Button>
+                  {/* O divisor separa o print de FORA — a tela livre, que
+                      continua aqui (o dono pediu para manter as duas vias). */}
+                  <div aria-hidden className="h-6 w-px shrink-0 bg-border" />
+                </>
+              )}
               <Button
                 type="button"
                 variant="ghost"
@@ -3059,6 +3151,13 @@ export function StudyView({
         }}
       />
 
+      {/* t181 — O AVISO DE ARRUMAÇÃO do chat: entre o dono escolher a
+          superfície e a régua v3 começar, o aviso fica de pé ~2s (janela
+          garantida da capture-clean) — o seletor morre de verdade e o frame
+          final não carrega overlay. pointer-events-none: bloquear clique
+          seria mentir sobre "a captura acontece sozinha". */}
+      <CaptureTidyBanner active={tidying} seconds={tidySeconds} />
+
       {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints.
           t175 — O DE NOVO SEM OVERLAY: o "De novo" fecha o diálogo e limpa o
           frame ANTES de capturar — o frame novo não nasce com o overlay do
@@ -3080,6 +3179,25 @@ export function StudyView({
           void startCapture();
         }}
       />
+
+      {/* t181 — A VIA DE PRECISÃO no chat principal: o MESMO diálogo de
+          páginas da Biblioteca/painel (prévia 2×, recorte dos pixels
+          ORIGINAIS, procedência t169) — o anexo entra no MESMO chatImage
+          dos prints. Pré-seleção honesta: a página da memória de leitura
+          SÓ entra se existir (o hint confessa a origem, t169). */}
+      {selectedMaterial && readerDoorVisible(selectedMaterial) && (
+        <PdfPageCaptureDialog
+          material={selectedMaterial}
+          open={chatPdfCaptureOpen}
+          onOpenChange={setChatPdfCaptureOpen}
+          initialPage={readerResumePage ?? undefined}
+          presetHint={readerResumePage ? 'página do seu último salto' : undefined}
+          onAttach={(image, label) => {
+            setChatImage(image);
+            setChatImageLabel(label);
+          }}
+        />
+      )}
 
       {/* ===== Modo Foco (Zen) — overlay tela-cheia com o timer ===== */}
       <AnimatePresence>

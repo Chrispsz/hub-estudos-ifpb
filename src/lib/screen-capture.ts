@@ -10,6 +10,17 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
+import {
+  SETTLE_MAX_SAMPLES,
+  SETTLE_SAMPLE_PX,
+  TIDY_SECONDS,
+  TIDY_TOTAL_MS,
+  nextSettleStreak,
+  settleDelayMs,
+  settleDone,
+  tidySecondsLeft,
+  type CapturePhase,
+} from '@/lib/capture-clean';
 
 /** Erros classificados da captura — a UI responde diferente a cada motivo. */
 export type ScreenCaptureFail =
@@ -32,10 +43,9 @@ export function screenCaptureSupported(): boolean {
   );
 }
 
-// ===== Assentamento medido (t163; a régua fixa da t152 cresceu) =====
-const SETTLE_MIN_MS = 440; // a régua da t152 continua sendo o MÍNIMO (t175: +60ms de folga para a morte do seletor)
-const SETTLE_STEP_MS = 140; // intervalo entre amostras de comparação
-const SETTLE_MAX_SAMPLES = 8; // teto ~1.4s: superfície viva não prende a captura
+// ===== Assentamento (t181): a JANELA DE ARRUMAÇÃO + a RÉGUA v3 moram na
+// lib PURA capture-clean.ts — tempos, trilho de igualdades e o teto da
+// superfície viva são DECISÃO (contrato t181); aqui é só a execução.
 
 /**
  * Duas amostras da superfície são IGUAIS? (comparação inteira de 32 bits —
@@ -48,23 +58,23 @@ export function framesEqual(a: Uint32Array, b: Uint32Array): boolean {
 }
 
 /**
- * Espera a superfície capturada ASSENTAR antes de congelar o frame. O seletor
- * do navegador ("Choose what to share") morre DEPOIS que o stream começa —
- * nos primeiros frames ele ainda está assado na superfície capturada (a
- * reclamação do dono com print, t152). Em vez de confiar num tempo fixo,
- * amostra uma miniatura da transmissão a cada 140ms e devolve o controle
- * quando DUAS amostras seguidas são idênticas — a tela provou que parou de
- * mudar. Nunca antes de 380ms (a régua da t152); nunca depois de ~1.4s
- * (conteúdo vivo — vídeo/animação — não prende a captura: colhe o último).
- * Leitura de pixels indisponível (canvas taint etc.) = régua fixa cobre.
+ * Espera a superfície capturada ASSENTAR antes de congelar o frame — a RÉGUA
+ * v3 (t181): o aviso de arrumação já morreu (a janela garantida da lib), a
+ * primeira amostra espera o PISO da régua (700ms — o seletor morre com folga
+ * DEPOIS do aviso também), e o frame só congela quando TRÊS amostras seguidas
+ * são idênticas em comparação de 240px. A reclamação do dono (t152 → 181): o
+ * fade quase imperceptível do seletor enganava a régua de 2 — um diálogo
+ * branco sumindo sobre conteúdo branco muda pouquíssimos pixels; 3 seguidas
+ * em amostra maior cobram 280ms de silêncio VISUAL de verdade. Teto ~2.3s:
+ * conteúdo vivo (vídeo/animação) não prende a captura — colhe o último.
+ * Leitura de pixels indisponível (canvas taint etc.) = o piso da régua cobre.
  */
 async function settleScreenSurface(video: HTMLVideoElement): Promise<void> {
   let sampled = false;
   try {
-    // t175: 160px de comparação (eram 96) — um seletor morrendo em fade deixa
-    // de passar despercebido na miniatura: quanto maior a amostra, menor o
-    // delta que ainda conta como "a tela está se movendo".
-    const cw = 160;
+    // t181: 240px de comparação (a v2 usava 160) — o fade que enganava a
+    // régua antiga deixa rastro na amostra maior.
+    const cw = SETTLE_SAMPLE_PX;
     const ch = Math.max(
       1,
       Math.round((cw * video.videoHeight) / Math.max(1, video.videoWidth)),
@@ -75,20 +85,25 @@ async function settleScreenSurface(video: HTMLVideoElement): Promise<void> {
     const cctx = cmp.getContext('2d', { willReadFrequently: true });
     if (!cctx) throw new Error('sem contexto de comparação');
     let prev: Uint32Array | null = null;
+    let streak = 0;
     for (let i = 0; i < SETTLE_MAX_SAMPLES; i++) {
-      await new Promise<void>((r) =>
-        setTimeout(r, i === 0 ? SETTLE_MIN_MS : SETTLE_STEP_MS),
-      );
+      await new Promise<void>((r) => setTimeout(r, settleDelayMs(i)));
       cctx.drawImage(video, 0, 0, cw, ch);
       const cur = new Uint32Array(cctx.getImageData(0, 0, cw, ch).data.buffer);
-      if (prev && framesEqual(prev, cur)) return; // parou de mudar — assentou
+      if (prev) {
+        // t181: o trilho de igualdades é DECISÃO da lib pura — 3 seguidas
+        // declaram o assentamento; UMA diferença zera o trilho inteiro.
+        streak = nextSettleStreak(framesEqual(prev, cur), streak);
+        if (settleDone(streak)) return; // silêncio visual provado
+      }
       prev = cur;
       sampled = true;
     }
   } catch {
-    // Sem leitura de pixels: a régua fixa da t152 cobre o caso.
+    // Sem leitura de pixels: o piso da régua (a janela de arrumação + 700ms)
+    // cobre o caso — o seletor morreu com folga garantida.
     if (!sampled) {
-      await new Promise<void>((r) => setTimeout(r, SETTLE_MIN_MS));
+      await new Promise<void>((r) => setTimeout(r, settleDelayMs(0)));
     }
   }
 }
@@ -100,9 +115,32 @@ async function settleScreenSurface(video: HTMLVideoElement): Promise<void> {
  * via JS — se o seletor não aparece (automação, aba em segundo plano) a
  * promessa pode ficar pendente para sempre. O 2º clique no botão = desistir:
  * a UI se solta na hora e a tentativa pendente é descartada quando (se) voltar.
+ *
+ * t181 — O AVISO DE ARRUMAÇÃO: a janela garantida da captura limpa passa
+ * AQUI — `tidying` é a fase 'tidy' (o banner sobe: "a captura acontece
+ * sozinha") e `tidySeconds` é a contagem honesta para o chip tabular. O
+ * banner é renderizado pelo composable (CaptureTidyBanner) — a lib não
+ * conhece DOM.
  */
 export function useScreenCapture(onCanvas: (canvas: HTMLCanvasElement) => void) {
   const [capturing, setCapturing] = React.useState(false);
+  /** t181: fase 'tidy' ativa — o banner de arrumação está de pé. */
+  const [tidying, setTidying] = React.useState(false);
+  /** t181: segundos que faltam no aviso (chip tabular do banner). */
+  const [tidySeconds, setTidySeconds] = React.useState<number | null>(null);
+  /** t181: o relógio do aviso — a contagem é HONESTA (tiquetaca real, não
+   * número congelado) e morre no desistir, no fim e na desmontagem. */
+  const tidyStartRef = React.useRef<number | null>(null);
+  const tidyTickRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopTidyTick = React.useCallback(() => {
+    if (tidyTickRef.current) {
+      clearInterval(tidyTickRef.current);
+      tidyTickRef.current = null;
+    }
+    tidyStartRef.current = null;
+  }, []);
+  // A desmontagem da superfície não deixa o relógio do aviso vivo para trás.
+  React.useEffect(() => stopTidyTick, [stopTidyTick]);
   const attemptRef = React.useRef(0);
 
   const startCapture = React.useCallback(async () => {
@@ -110,13 +148,35 @@ export function useScreenCapture(onCanvas: (canvas: HTMLCanvasElement) => void) 
       // DESISTIR: solta a UI; a promessa pendente vira no-op pelo attemptRef.
       attemptRef.current++;
       setCapturing(false);
+      setTidying(false);
+      setTidySeconds(null);
+      stopTidyTick();
       toast.info('Captura liberada — clique de novo para tentar outra vez.');
       return;
     }
     setCapturing(true);
     const attempt = ++attemptRef.current;
     try {
-      const canvas = await captureScreenFrame();
+      const canvas = await captureScreenFrame((phase) => {
+        if (attempt !== attemptRef.current) return; // desistiu enquanto isso
+        if (phase === 'tidy') {
+          setTidying(true);
+          tidyStartRef.current = Date.now();
+          setTidySeconds(TIDY_SECONDS);
+          // A contagem do banner tiquetaca de verdade (250ms de passo — o
+          // salto visível é de 1 em 1 segundo, o teto da lib manda).
+          if (tidyTickRef.current) clearInterval(tidyTickRef.current);
+          tidyTickRef.current = setInterval(() => {
+            if (tidyStartRef.current !== null) {
+              setTidySeconds(tidySecondsLeft(Date.now() - tidyStartRef.current));
+            }
+          }, 250);
+        } else {
+          setTidying(false);
+          setTidySeconds(null);
+          stopTidyTick();
+        }
+      });
       if (attempt !== attemptRef.current) return; // desistiu enquanto isso
       onCanvas(canvas);
     } catch (err) {
@@ -137,19 +197,31 @@ export function useScreenCapture(onCanvas: (canvas: HTMLCanvasElement) => void) 
         toast.error('Não consegui capturar a tela. Tente de novo.');
       }
     } finally {
-      if (attempt === attemptRef.current) setCapturing(false);
+      if (attempt === attemptRef.current) {
+        setCapturing(false);
+        setTidying(false);
+        setTidySeconds(null);
+        stopTidyTick();
+      }
     }
-  }, [capturing, onCanvas]);
+  }, [capturing, onCanvas, stopTidyTick]);
 
-  return { capturing, startCapture };
+  return { capturing, tidying, tidySeconds, startCapture };
 }
 
 /**
  * Pede a tela ao navegador, captura UM frame em resolução NATIVA e encerra
  * a transmissão na hora (o indicador de compartilhamento apaga sozinho).
  * Retorna o canvas bruto — o recorte acontece sobre ele sem perder pixels.
+ *
+ * t181 — `onPhase` anuncia as fases da captura limpa: 'tidy' (a janela de
+ * arrumação começou — o banner sobe na superfície do dono) e 'settle' (o
+ * banner JÁ morreu, a régua v3 começa). O callback é opcional: sem ele a
+ * captura acontece igual — o aviso é guia, não dependência.
  */
-export async function captureScreenFrame(): Promise<HTMLCanvasElement> {
+export async function captureScreenFrame(
+  onPhase?: (phase: CapturePhase) => void,
+): Promise<HTMLCanvasElement> {
   if (!screenCaptureSupported()) throw new ScreenCaptureError('unsupported');
 
   let stream: MediaStream | null = null;
@@ -209,12 +281,19 @@ export async function captureScreenFrame(): Promise<HTMLCanvasElement> {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('canvas indisponível');
 
-    // Assentamento (t152 → t163, reclamação do dono com print): o SELETOR do
-    // navegador morre DEPOIS que o stream começa — nos primeiros frames a
-    // superfície capturada ainda carrega o próprio seletor ("Choose what to
-    // share") congelado na imagem. Um 1º draw só aquece o decode; o frame
-    // VERDADEIRO é colhido quando a superfície PROVA que parou de mudar
-    // (settleScreenSurface: duas amostras seguidas idênticas, mínimo 380ms).
+    // A JANELA DE ARRUMAÇÃO (t181, o pedido do dono com print): o seletor
+    // morre DEPOIS que o stream começa — e o fade lento já enganou a régua
+    // uma vez. Em vez de apostar, o aviso sobe (fase 'tidy') e a captura
+    // ESPERA os 2s garantidos da lib: o seletor tem 4× o tempo antigo para
+    // morrer de verdade, o dono fecha o que não deve sair na foto, e a
+    // superfície PROVA mudança (o aviso entra e sai — nada congela antes).
+    onPhase?.('tidy');
+    await new Promise<void>((r) => setTimeout(r, TIDY_TOTAL_MS));
+    // O aviso JÁ saiu da superfície (fase 'settle') — o frame final não pode
+    // carregá-lo; a régua v3 só começa depois que a casa está limpa.
+    onPhase?.('settle');
+    // Um 1º draw aquece o decode; o frame VERDADEIRO é colhido quando a
+    // superfície PROVA silêncio visual (settleScreenSurface: 3 seguidas).
     ctx.drawImage(video, 0, 0, w, h);
     await settleScreenSurface(video);
     ctx.drawImage(video, 0, 0, w, h);
