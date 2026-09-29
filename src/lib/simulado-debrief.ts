@@ -78,6 +78,61 @@ export function pacingFor(times: ReadonlyArray<number | null | undefined>): Paci
 }
 
 /**
+ * O REPLAY DO TEMPO (t193) — o histórico deixa de ser uma nota morta. O
+ * pacing do t192 só aparecia no debrief FRESCO: a tentativa de ontem virava
+ * de novo um número seco (10% · 12min), e a pergunta "onde o tempo foi?"
+ * ficava sem resposta depois de fechar o diálogo. O gate é HONESTO: corridas
+ * antigas (pré-detail) não têm `questions` — sem registro não há linha
+ * (regra 88), e o botão de replay nem aparece para quem não tem o que
+ * mostrar. Pura: não muta o run.
+ */
+export function runQuestionsOf(run: SimuladoRun): RunQuestionDetail[] | null {
+  return run.questions && run.questions.length > 0 ? run.questions : null;
+}
+
+/**
+ * A matéria-prima do strip "Onde o tempo foi" no HISTÓRICO: os tempos por
+ * questão gravados no run. null quando a corrida não tem detalhes OU nada
+ * foi medido (pré-t192) — o strip cala; nunca inventa zeros para dizer
+ * que não sabe. Pura: não muta o run.
+ */
+export function timeSecsOfRun(run: SimuladoRun): number[] | null {
+  const qs = runQuestionsOf(run);
+  if (!qs) return null;
+  const times = qs.map((q) => q.timeSec ?? 0);
+  return pacingFor(times).measured ? times : null;
+}
+
+/**
+ * O title do chip de pacing — FONTE ÚNICA compartilhada pelo strip FRESCO
+ * (ResultsScreen, t192) e pelo strip do HISTÓRICO (t193): a confissão da
+ * questão mais lenta ("foi a que mais comeu o relógio… e ficou sem resposta")
+ * nasce daqui nos dois lugares — duas superfícies, uma voz, sem divergir.
+ *
+ * `solved` segue a convenção do run: true = consegui, false = não consegui,
+ * null = pulada (só a pulada confessa que é ELA a revisão de amanhã).
+ */
+export function pacingChipTitle(input: {
+  idx: number;
+  secs: number;
+  totalSec: number;
+  slowestIdx: number;
+  topic?: string;
+  solved?: boolean | null;
+}): string {
+  const { idx, secs, totalSec, slowestIdx, topic, solved } = input;
+  const label = `Q${idx + 1}`;
+  if (idx === slowestIdx) {
+    return `${label} foi a que mais comeu o relógio: ${fmtClockSec(secs)} de ${fmtClockSec(
+      totalSec,
+    )} (${topic ?? '—'})${
+      solved === null ? ' — e ficou sem resposta: é ELA a revisão de amanhã' : ''
+    }`;
+  }
+  return `${label}: ${fmtClockSec(secs)} na tela · ${topic ?? '—'}`;
+}
+
+/**
  * O run é o SIMULADO OFICIAL da Av1 (o ensaio real do dia marcado, prova de
  * Matemática)? MESMOS critérios do findMathSimuladoRunOficial — fonte única,
  * sem critério paralelo para divergir. Serve para o debrief declarar a

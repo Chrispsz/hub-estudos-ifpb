@@ -61,6 +61,7 @@ import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
 import {
   buildDebriefFromDetails,
   isSimuladoDayToday,
+  pacingChipTitle,
   pacingFor,
 } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
@@ -2125,13 +2126,14 @@ function ResultsScreen({
               return (
                 <span
                   key={q?.id ?? i}
-                  title={
-                    isSlowest
-                      ? `Q${i + 1} foi a que mais comeu o relógio: ${fmtClock(secs)} de ${fmtClock(Math.round(pacing.totalSec))} (${q?.topic ?? '—'})${
-                          solved === null ? ' — e ficou sem resposta: é ELA a revisão de amanhã' : ''
-                        }`
-                      : `Q${i + 1}: ${fmtClock(secs)} na tela · ${q?.topic ?? '—'}`
-                  }
+                  title={pacingChipTitle({
+                    idx: i,
+                    secs,
+                    totalSec: Math.round(pacing.totalSec),
+                    slowestIdx: pacing.slowestIdx,
+                    topic: q?.topic,
+                    solved: solved ?? null,
+                  })}
                   className={cn(
                     'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
                     isSlowest

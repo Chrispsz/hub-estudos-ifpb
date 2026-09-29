@@ -7,14 +7,24 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { AlarmClock, Award, Dumbbell, History, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { AlarmClock, Award, ChevronDown, ChevronUp, Dumbbell, History, Hourglass, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
+import { useStudyProgress, type RunQuestionDetail, type SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode } from '@/lib/simulado-resume';
-import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends, isSimuladoDayToday } from '@/lib/simulado-debrief';
+import {
+  buildRunDebriefQuestion,
+  buildTrendQuestion,
+  computeTopicTrends,
+  fmtClockSec,
+  isSimuladoDayToday,
+  pacingChipTitle,
+  pacingFor,
+  runQuestionsOf,
+  timeSecsOfRun,
+} from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_TOPICO_CURTO, drillTopicOf, findMathSimuladoRunOficial, mathDrillFeedbackFor, simuladoVerdictFor } from '@/lib/math-exam-prep';
 
@@ -154,9 +164,145 @@ function DistributionBar({ r, className }: { r: SimuladoRun; className?: string 
   );
 }
 
+/**
+ * O REPLAY DO TEMPO (t193) — o painel questão a questão de uma tentativa do
+ * histórico. O strip "Onde o tempo foi" reusa a MESMA gramática visual do
+ * debrief fresco (t192): chip por questão com o dot do desfecho, a mais
+ * lenta em amber e a confissão do FONTE ÚNICA (pacingChipTitle) — duas
+ * superfícies, uma voz. Corrida sem tempo medido (pré-t192) mostra as linhas
+ * sem o strip: o que não foi registrado não é inventado (regra 88).
+ */
+function RunReplayPanel({ run }: { run: SimuladoRun }) {
+  const details = runQuestionsOf(run)!;
+  const times = timeSecsOfRun(run);
+  const pacing = pacingFor(times ?? []);
+  const statusLabel = (s: RunQuestionDetail['status']) =>
+    s === 'solved' ? 'consegui' : s === 'missed' ? 'não consegui' : 'pulada';
+  const statusTone = (s: RunQuestionDetail['status']) =>
+    s === 'solved'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : s === 'missed'
+        ? 'text-rose-600 dark:text-rose-400'
+        : 'text-zinc-500 dark:text-zinc-400';
+  const statusDot = (s: RunQuestionDetail['status']) =>
+    s === 'solved'
+      ? 'bg-emerald-500'
+      : s === 'missed'
+        ? 'bg-rose-500'
+        : 'bg-zinc-400 dark:bg-zinc-600';
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="overflow-hidden"
+    >
+      <div className="rounded-lg border border-border/80 bg-gradient-to-b from-muted/40 to-muted/20 px-3 py-2.5">
+        {/* O STRIP do pacing — só quando há tempo medido; o footer compara
+            "nas questões" vs "no relógio" com a MESMA régua do debrief fresco
+            (diferença ≥ 3s confessa o que ficou fora das questões). */}
+        {times && (
+          <div className="mb-2">
+            <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Hourglass className="size-3" aria-hidden /> Onde o tempo foi
+              </p>
+              <p className="text-[10px] tabular-nums text-muted-foreground/80">
+                {fmtClockSec(Math.round(pacing.totalSec))} nas questões
+                {run.durationSec - pacing.totalSec >= 3 && (
+                  <>
+                    {' '}· {fmtClockSec(run.durationSec)} no relógio (a diferença ficou fora das
+                    questões)
+                  </>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {times.map((raw, i) => {
+                const secs = Math.max(0, Math.round(raw));
+                const q = details[i];
+                const solved =
+                  q.status === 'solved' ? true : q.status === 'missed' ? false : null;
+                return (
+                  <span
+                    key={i}
+                    title={pacingChipTitle({
+                      idx: i,
+                      secs,
+                      totalSec: Math.round(pacing.totalSec),
+                      slowestIdx: pacing.slowestIdx,
+                      topic: q?.topic,
+                      solved,
+                    })}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
+                      i === pacing.slowestIdx
+                        ? 'border-amber-500/50 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-400'
+                        : 'border-border bg-muted/50 text-muted-foreground',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn('size-1.5 shrink-0 rounded-full', statusDot(q.status))}
+                    />
+                    Q{i + 1} {fmtClockSec(secs)}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {/* A LINHA por questão — status, tópico, enunciado e o tempo na tela.
+            O tempo cala quando não há registro ('—'), nunca um 00:00 falso. */}
+        <div className="space-y-0.5">
+          {details.map((q, i) => (
+            <div
+              key={i}
+              className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-background/70"
+            >
+              <span
+                aria-hidden
+                className={cn('size-1.5 shrink-0 translate-y-[-1px] rounded-full', statusDot(q.status))}
+              />
+              <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground">
+                Q{i + 1}
+              </span>
+              <span className={cn('text-[10px] font-medium', statusTone(q.status))}>
+                {statusLabel(q.status)}
+              </span>
+              <span className="text-[10px] text-muted-foreground/80">{q.topic ?? '—'}</span>
+              {q.statement && (
+                <span
+                  className="min-w-0 basis-48 flex-1 truncate text-[11px] text-muted-foreground/90"
+                  title={q.statement}
+                >
+                  {q.statement}
+                </span>
+              )}
+              <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+                {typeof q.timeSec === 'number' && q.timeSec > 0
+                  ? fmtClockSec(Math.round(q.timeSec))
+                  : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/70">
+          Tempo que cada questão passou na tela — a pausa não entra (o cronômetro congela). '—' =
+          sem registro (corrida antiga ou questão fora da tela): nunca um zero inventado.
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 export function SimuladoHistory() {
   const sp = useStudyProgress();
   const runs = sp.progress.simuladoRuns ?? NO_RUNS;
+
+  // O REPLAY DO TEMPO (t193): a tentativa expandida (uma por vez — abrir outra
+  // fecha a anterior; a tela não vira um acordeão de barulho).
+  const [replayId, setReplayId] = React.useState<string | null>(null);
 
   // A TENTATIVA OFICIAL do plano (29/09, prova de Matemática) — a MESMA fonte
   // única do hero e do card da prova (85). No histórico ela era anônima:
@@ -520,9 +666,11 @@ export function SimuladoHistory() {
                 if (!d || d.melhorou !== true || oficialPct === null) return null;
                 return { from: oficialPct, to: d.pct ?? 0 };
               })();
+              const replayOpen = replayId === r.id;
+              const replayDetalhes = runQuestionsOf(r);
               return (
+                <div key={r.id} className="space-y-0.5">
                 <div
-                  key={r.id}
                   className={cn(
                     'group flex flex-wrap items-center gap-2 rounded-lg border border-border border-l-2 bg-muted/20 px-3 py-2 text-xs transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/[0.03]',
                     accentTone(pct),
@@ -598,6 +746,37 @@ export function SimuladoHistory() {
                       {getDiscShort(r.filters.discipline)}
                     </span>
                   )}
+                  {/* O REPLAY DO TEMPO (t193): a tentativa com detalhes ganha a
+                      lupa questão a questão — status, tópico, enunciado e o
+                      tempo na tela. Corrida antiga sem detalhes nem mostra o
+                      botão (sem registro não há linha — regra 88). Uma aberta
+                      por vez: abrir outra fecha a anterior. */}
+                  {replayDetalhes && (
+                    <button
+                      type="button"
+                      onClick={() => setReplayId(replayOpen ? null : r.id)}
+                      aria-expanded={replayOpen}
+                      aria-pressed={replayOpen}
+                      title={
+                        replayOpen
+                          ? 'Fechar o replay da tentativa'
+                          : 'Ver o replay da tentativa — questão por questão, com o tempo que cada uma comeu'
+                      }
+                      aria-label={`${replayOpen ? 'Fechar' : 'Abrir'} o replay questão a questão da tentativa de ${fmtDate(r.date)}`}
+                      className={cn(
+                        'inline-flex size-6 shrink-0 items-center justify-center rounded-full border transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40 focus-visible:ring-offset-1 dark:focus-visible:ring-zinc-400/40',
+                        replayOpen
+                          ? 'border-zinc-400 bg-zinc-200 text-zinc-900 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100'
+                          : 'border-zinc-200 bg-zinc-50 text-zinc-600 opacity-0 hover:border-zinc-300 hover:bg-zinc-100 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800',
+                      )}
+                    >
+                      {replayOpen ? (
+                        <ChevronUp className="size-3" aria-hidden />
+                      ) : (
+                        <ChevronDown className="size-3" aria-hidden />
+                      )}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() =>
@@ -616,6 +795,8 @@ export function SimuladoHistory() {
                   >
                     <Sparkles className="size-3" aria-hidden />
                   </button>
+                </div>
+                {replayOpen && replayDetalhes && <RunReplayPanel run={r} />}
                 </div>
               );
             })}
