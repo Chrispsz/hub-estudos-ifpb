@@ -467,6 +467,8 @@ export function StudyView({
   const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(null);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
+  /** t166: o rótulo de procedência (t163) que o lightbox mostra no título — o chip SABE, a bolha enviada não carrega. */
+  const [lightboxLabel, setLightboxLabel] = React.useState<string | null>(null);
   const chatFileRef = React.useRef<HTMLInputElement>(null);
   /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
   const camFileRef = React.useRef<HTMLInputElement>(null);
@@ -2256,7 +2258,10 @@ export function StudyView({
                         <button
                           type="button"
                           onClick={() => {
-                            if (m.image) setLightboxSrc(m.image);
+                            if (m.image) {
+                              setLightboxSrc(m.image);
+                              setLightboxLabel(null); // bolha enviada não carrega rótulo (doutrina t163) — o título cai no fallback
+                            }
                           }}
                           aria-label="Ver o print em tamanho grande"
                           title="Ver o print em tamanho grande — o clique na imagem alterna o zoom"
@@ -2477,7 +2482,10 @@ export function StudyView({
               <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
                 <button
                   type="button"
-                  onClick={() => setLightboxSrc(chatImage)}
+                  onClick={() => {
+                    setLightboxSrc(chatImage);
+                    setLightboxLabel(chatImageLabel); // t166: o título do lightbox diz de onde o print veio
+                  }}
                   aria-label="Ver o print em tamanho grande"
                   title="Conferir o print antes de enviar — o clique na imagem alterna o zoom"
                   className="cursor-zoom-in overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 hover:ring-2 hover:ring-emerald-500/40"
@@ -2719,7 +2727,16 @@ export function StudyView({
       </Sheet>
 
       {/* t160: o print que se lê de novo — o MESMO data URL, só visão. */}
-      <PrintLightboxDialog src={lightboxSrc} onOpenChange={(o) => !o && setLightboxSrc(null)} />
+      <PrintLightboxDialog
+        src={lightboxSrc}
+        label={lightboxLabel}
+        onOpenChange={(o) => {
+          if (!o) {
+            setLightboxSrc(null);
+            setLightboxLabel(null); // t166: a vida do rótulo morre junto com o diálogo
+          }
+        }}
+      />
 
       {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints. */}
       <CaptureCropDialog
