@@ -91,6 +91,7 @@ import {
   TUTOR_HISTORY_KEEP,
   chatDayGroups,
   hhmmOf,
+  searchFold,
 } from '@/lib/tutor-history-view';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
@@ -454,15 +455,17 @@ export function StudyView({
   /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
   const camFileRef = React.useRef<HTMLInputElement>(null);
   // ----- Busca na conversa (t151) — filtrar o fio por texto, com contagem -----
+  // t153: o casamento DOBRA ACENTOS (searchFold) — "logica" acha "Lógica",
+  // "proporcao" acha "proporção"; a bolha continua exibindo o texto original.
   const [chatSearchOpen, setChatSearchOpen] = React.useState(false);
   const [chatSearch, setChatSearch] = React.useState('');
   const chatSearchActive = chatSearchOpen && chatSearch.trim().length >= 2;
   const chatSearchResults = React.useMemo(() => {
-    const q = chatSearch.trim().toLowerCase();
+    const q = searchFold(chatSearch.trim());
     if (!chatSearchActive) return null;
     return messages
       .map((m, i) => ({ m, i }))
-      .filter(({ m }) => !m.error && m.content.toLowerCase().includes(q));
+      .filter(({ m }) => !m.error && searchFold(m.content).includes(q));
   }, [messages, chatSearch, chatSearchActive]);
   // O CALENDÁRIO do fio (t151): cabeça de dia por mensagem + o recibo da
   // memória restaurada. Derivado de messages — nunca diverge do que se vê.
@@ -1780,7 +1783,17 @@ export function StudyView({
 
       {/* ===== Chat IA lateral ===== */}
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>
-        <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-lg lg:max-w-xl">
+        <SheetContent
+          side="right"
+          className="w-full gap-0 p-0 sm:max-w-lg lg:max-w-xl"
+          onEscapeKeyDown={(e) => {
+            // t153: com a busca aberta, o Esc é DA BUSCA (fecha e limpa o
+            // campo — handler do input) e NÃO da conversa: o preventDefault
+            // aqui é o contrato do Radix (DismissableLayer só demite sem
+            // defaultPrevented). Sem busca, o Esc continua fechando o chat.
+            if (chatSearchOpen) e.preventDefault();
+          }}
+        >
           <SheetHeader className="border-b border-white/10 pr-12">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
@@ -1915,12 +1928,18 @@ export function StudyView({
                   onChange={(e) => setChatSearch(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') {
+                      // t153: fecha SÓ a busca — o fechamento do chat em si
+                      // é travado no onEscapeKeyDown do SheetContent (o
+                      // Radix escuta Escape em CAPTURE no document, antes
+                      // de qualquer handler daqui: stopPropagation nunca
+                      // chegaria lá).
                       setChatSearchOpen(false);
                       setChatSearch('');
                     }
                   }}
                   placeholder="Buscar nesta conversa…"
                   aria-label="Buscar na conversa"
+                  title="A busca ignora acentos e maiúsculas — 'logica' acha 'Lógica'"
                   className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-8 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                   autoFocus
                 />

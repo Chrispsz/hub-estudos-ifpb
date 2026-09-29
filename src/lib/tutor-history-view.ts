@@ -77,3 +77,18 @@ export function hhmmOf(iso: string | null | undefined): string | undefined {
   if (Number.isNaN(d.getTime())) return undefined;
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
+
+/**
+ * A BUSCA QUE OBEDECE AO IDIOMA (t153) — dobra acentos e caixa para o casamento
+ * literal virar busca de gente: "logica" acha "Lógica", "proporcao" acha
+ * "proporção", "INVERSA" acha "inversa". NFD separa o diacrítico da letra
+ * (á → a + ́), a faixa U+0300–U+036F apaga só a marca e o lowercase iguala o
+ * resto. A textura do texto no fio NÃO muda — o fold vive só na comparação
+ * (a bolha continua mostrando "Lógica" com acento e maiúscula).
+ */
+export function searchFold(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
