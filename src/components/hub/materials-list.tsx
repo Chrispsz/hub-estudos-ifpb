@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   PlayCircle,
   Building2,
+  BookMarked,
   CheckCircle2,
   ExternalLink,
   FileText,
@@ -44,6 +45,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { daysUntilDate } from '@/lib/semester';
 import { MATH_EXAM, MATH_SCOPE_MATERIALS } from '@/lib/math-exam-prep';
+import { recallPdfPage } from '@/lib/pdf-position';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { VideoPlayerDialog } from './video-player-dialog';
@@ -99,6 +101,9 @@ export function MaterialsList() {
   const sp = useStudyProgress();
   const [selected, setSelected] = React.useState<Material | null>(null);
   const [pdfFor, setPdfFor] = React.useState<Material | null>(null);
+  /** t162 — a página pedida pelo botão "continuar" da linha (o convite
+   * aceito lá fora). Morre ao fechar do visualizador, como o material. */
+  const [pdfResumePage, setPdfResumePage] = React.useState<number | undefined>(undefined);
 
   // Conjuntos de IDs (busca O(1)) memoizados — só recalculam quando o progresso muda.
   const completedIds = React.useMemo(
@@ -151,6 +156,12 @@ export function MaterialsList() {
   const handleOpen = React.useCallback((m: Material) => setSelected(m), []);
   const handleOpenPdf = React.useCallback((m: Material) => setPdfFor(m), []);
   const handleWatch = React.useCallback((m: Material) => setVideoMaterial(m), []);
+  /** t162 — o convite aceito no cartão: página + material viajam JUNTOS para
+   * o visualizador (que abre JÁ saltado e cala a pill desta abertura). */
+  const handleResume = React.useCallback((m: Material, page: number) => {
+    setPdfResumePage(page);
+    setPdfFor(m);
+  }, []);
 
   // Semana da Av1 nas linhas: os 4 materiais do escopo ganham o badge 'escopo
   // Av1' dentro da janela do plano (D-7 → D-0) — a lista é a FONTE ÚNICA
@@ -213,9 +224,11 @@ export function MaterialsList() {
                   material={m}
                   status="recent"
                   examScope={examWindowActive && examScopeIds.has(m.id)}
+                  resumePage={m.pdfPath ? (recallPdfPage(m.id, m.pages) ?? undefined) : undefined}
                   onOpen={handleOpen}
                   onOpenPdf={handleOpenPdf}
                   onWatch={handleWatch}
+                  onResume={handleResume}
                 />
               ))}
             </div>
@@ -238,9 +251,11 @@ export function MaterialsList() {
                   material={m}
                   status="completed"
                   examScope={examWindowActive && examScopeIds.has(m.id)}
+                  resumePage={m.pdfPath ? (recallPdfPage(m.id, m.pages) ?? undefined) : undefined}
                   onOpen={handleOpen}
                   onOpenPdf={handleOpenPdf}
                   onWatch={handleWatch}
+                  onResume={handleResume}
                 />
               ))}
             </div>
@@ -314,9 +329,11 @@ export function MaterialsList() {
                               material={m}
                               status={status}
                               examScope={examWindowActive && examScopeIds.has(m.id)}
+                              resumePage={m.pdfPath ? (recallPdfPage(m.id, m.pages) ?? undefined) : undefined}
                               onOpen={handleOpen}
                               onOpenPdf={handleOpenPdf}
                               onWatch={handleWatch}
+                              onResume={handleResume}
                             />
                           );
                         })}
@@ -376,9 +393,11 @@ export function MaterialsList() {
                           material={m}
                           status={status}
                           examScope={examWindowActive && examScopeIds.has(m.id)}
+                          resumePage={m.pdfPath ? (recallPdfPage(m.id, m.pages) ?? undefined) : undefined}
                           onOpen={handleOpen}
                           onOpenPdf={handleOpenPdf}
                           onWatch={handleWatch}
+                          onResume={handleResume}
                         />
                       );
                     })}
@@ -405,7 +424,13 @@ export function MaterialsList() {
       <PdfViewerDialog
         material={pdfFor}
         open={!!pdfFor}
-        onOpenChange={(o) => !o && setPdfFor(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPdfFor(null);
+            setPdfResumePage(undefined); // o convite morre com a abertura (t162)
+          }
+        }}
+        initialPage={pdfResumePage}
       />
     </div>
   );
@@ -437,17 +462,23 @@ const MaterialRow = React.memo(function MaterialRow({
   material,
   status,
   examScope,
+  resumePage,
   onOpen,
   onOpenPdf,
   onWatch,
+  onResume,
 }: {
   material: Material;
   status: MaterialStatus;
   /** Dentro da janela da Av1: o material pertence ao escopo da prova. */
   examScope?: boolean;
+  /** t162 — página do último salto lembrada (≥ 2) ou undefined: presença
+   * desenha o botão "continuar"; ausência deixa a linha como era. */
+  resumePage?: number;
   onOpen: (m: Material) => void;
   onOpenPdf: (m: Material) => void;
   onWatch: (m: Material) => void;
+  onResume: (m: Material, page: number) => void;
 }) {
   const discipline = DISCIPLINE_BY_CODE.get(material.disciplineCode);
   const color = getColorClasses(discipline?.color ?? 'slate');
@@ -481,7 +512,7 @@ const MaterialRow = React.memo(function MaterialRow({
           {material.pages ? <span>{material.pages} páginas</span> : null}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         {material.externalUrl && (
           <Button
             size="sm"
@@ -520,6 +551,17 @@ const MaterialRow = React.memo(function MaterialRow({
                 <FileText className="size-3.5" /> PDF
               </>
             )}
+          </Button>
+        )}
+        {material.pdfPath && resumePage != null && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-11 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 sm:h-8 dark:text-emerald-400 dark:hover:text-emerald-300"
+            onClick={() => onResume(material, resumePage)}
+            title={`Continuar da página ${resumePage} — onde o Hub vi o seu último salto neste material`}
+          >
+            <BookMarked className="size-3.5" /> pág. {resumePage}
           </Button>
         )}
         {material.summaryFile && (

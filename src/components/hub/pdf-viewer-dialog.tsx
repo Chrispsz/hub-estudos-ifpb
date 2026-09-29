@@ -60,6 +60,13 @@ interface Props {
   material: Material | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * t162 — página pedida por um convite ACEITO FORA do diálogo (o botão
+   * "continuar" do cartão na lista): abre JÁ saltado para ela, sem oferecer
+   * a pill de retomada nesta abertura (o clique JÁ disse "continuar"). O
+   * prop morre ao fechar — quem chama zera no onOpenChange.
+   */
+  initialPage?: number;
 }
 
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
@@ -89,7 +96,7 @@ const TYPE_LABEL: Record<Material['type'], string> = {
   exemplo: 'Exemplo de código',
 };
 
-export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
+export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: Props) {
   const sp = useStudyProgress();
   /** Modo do workspace — 'split' é lembrado no localStorage (hidrata no mount). */
   const [mode, setMode] = React.useState<'pdf' | 'split'>('pdf');
@@ -120,6 +127,9 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
   /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
    * ao fechar, ao aceitar e ao dispensar (efêmero, como tudo neste diálogo). */
   const [resumePage, setResumePage] = React.useState<number | null>(null);
+  /** t162 — a abertura veio de um convite aceito lá fora: a pill NÃO oferece
+   * o que o clique já pediu. Morre no fechar junto com o resto. */
+  const [resumeSuppressed, setResumeSuppressed] = React.useState(false);
 
   const rowRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef(false);
@@ -354,17 +364,30 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
     }
   }, [open, material, markAccessed]);
 
-  // ===== O LEITOR LEMBRA (t161): ao abrir um PDF buscável, o Hub lê a
-  // posição do último salto e oferece o CONVITE de retomada — nunca um
-  // auto-salto escondido. Material sem busca/página ou diálogo fechado:
-  // o convite morre (efêmero como tudo neste diálogo).
+  // ===== O LEITOR LEMBRA (t161) + O CONVITE ACEITO LÁ FORA (t162): ao abrir
+  // um PDF buscável, o Hub lê a posição do último salto e oferece o CONVITE
+  // de retomada — nunca um auto-salto escondido. EXCEÇÃO honesta: quando a
+  // abertura veio do botão "continuar" do cartão (initialPage), o clique JÁ
+  // declarou a intenção — o diálogo abre saltado e a pill cala. Material sem
+  // busca/página ou diálogo fechado: tudo morre (efêmero como sempre).
   React.useEffect(() => {
     if (!open) {
       setResumePage(null);
+      setResumeSuppressed(false);
       return;
     }
+    if (material && pdfSearchable) {
+      const ip = clampPdfPage(initialPage ?? null, material.pages);
+      if (ip && ip > 1) {
+        setResumeSuppressed(true);
+        setResumePage(null);
+        doJump(ip);
+        return;
+      }
+    }
+    setResumeSuppressed(false);
     setResumePage(material && pdfSearchable ? recallPdfPage(material.id, material.pages) : null);
-  }, [open, material, pdfSearchable]);
+  }, [open, material, pdfSearchable, initialPage, doJump]);
 
   if (!material) return null;
 
@@ -632,7 +655,7 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                   centrada no rodapé (onde a leitura acontece, longe da barra
                   do leitor nativo). pointer-events-none no casulo: rolar e
                   ler NUNCA é bloqueado; só a pill captura o clique. */}
-              {pdfSearchable && resumePage !== null && (
+              {pdfSearchable && !resumeSuppressed && resumePage !== null && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
                   <div
                     data-testid="pdf-resume-pill"

@@ -10,6 +10,7 @@ import {
   ExternalLink,
   FileText,
   GraduationCap,
+  BookMarked,
   Image as ImageIcon,
   LayoutList,
   Library,
@@ -73,6 +74,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { openTutor } from '@/lib/hub-events';
 import { captureElementToDataUrl } from '@/lib/dom-capture';
+import { recallPdfPage } from '@/lib/pdf-position';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { VideoPlayerDialog } from './video-player-dialog';
@@ -115,9 +117,22 @@ const categoryDarkClasses: Record<string, string> = {
   linguagens: 'dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-900/60',
 };
 
+/**
+ * t162 — A LEITURA CHAMA DE VOLTA: a memória de retomada do cartão. Só
+ * materiais com memória digna (recallPdfPage ≥ 2) ganham o botão "continuar"
+ * — a memória só EXISTE para quem já saltou, então aqui não há gate de tipo:
+ * web_page/imagem/html nunca tiveram salto e o recall devolve null.
+ */
+function resumePageOf(m: Material): number | null {
+  return m.pdfPath ? recallPdfPage(m.id, m.pages) : null;
+}
+
 export function DisciplineDetailDialog({ discipline, open, onOpenChange, initialTab }: Props) {
   const [summaryFor, setSummaryFor] = React.useState<Material | null>(null);
   const [pdfFor, setPdfFor] = React.useState<Material | null>(null);
+  /** t162 — a página pedida pelo botão "continuar" do cartão (o convite
+   * aceito lá fora). Morre ao fechar do visualizador, como o material. */
+  const [pdfResumePage, setPdfResumePage] = React.useState<number | undefined>(undefined);
   const [videoFor, setVideoFor] = React.useState<Material | null>(null);
   const [tab, setTab] = React.useState(initialTab ?? 'overview');
 
@@ -654,7 +669,7 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                 {m.pages ? <span>{m.pages} páginas</span> : null}
                               </div>
                             </div>
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex shrink-0 flex-wrap items-center gap-2">
                               {m.externalUrl && (
                                 <Button
                                   size="sm"
@@ -693,6 +708,23 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                       <FileText className="size-3.5" /> Abrir PDF
                                     </>
                                   )}
+                                </Button>
+                              )}
+                              {m.pdfPath && resumePageOf(m) !== null && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className={cn(
+                                    touchBtn,
+                                    'text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300',
+                                  )}
+                                  onClick={() => {
+                                    setPdfResumePage(resumePageOf(m)!);
+                                    setPdfFor(m);
+                                  }}
+                                  title={`Continuar da página ${resumePageOf(m)} — onde o Hub vi o seu último salto neste material`}
+                                >
+                                  <BookMarked className="size-3.5" /> Continuar pág. {resumePageOf(m)}
                                 </Button>
                               )}
                               {m.summaryFile && (
@@ -776,7 +808,13 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
       <PdfViewerDialog
         material={pdfFor}
         open={!!pdfFor}
-        onOpenChange={(o) => !o && setPdfFor(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPdfFor(null);
+            setPdfResumePage(undefined); // o convite morre com a abertura (t162)
+          }
+        }}
+        initialPage={pdfResumePage}
       />
       <VideoPlayerDialog
         material={videoFor}
