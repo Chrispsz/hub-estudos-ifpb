@@ -30,7 +30,8 @@
  *     limpo/igual/trocado; folhaDayLine nos dias da casa; derivações
  *     (MATH_EXAM_DATE_SHORT, título do D-0, flashcard, véspera).
  *  B. FIAÇÃO: prop pendingAttachLabel no diálogo + espelho do StudyView;
- *     gate do render; folha com fmtDayBR(MATH_VESPERA_DATE) e a linha do dia;
+ *     gate do render; folha com a data do plano DERIVADA (t184: via
+ *     folhaPlanForPaper — a MESMA promessa, a forma nova) e a linha do dia;
  *     card com a véspera sem lista e o dia comum derivado.
  *  C. DOUTRINA: nenhum fóssil de data restante nas superfícies tocadas.
  *  D. REGRESSÕES: t178 (recibo/chip), t180 (porta do leitor), t182 (porta da
@@ -116,7 +117,7 @@ const folha = src('src/components/hub/folha-revisao-sheet.tsx');
 ok(folha.includes('folhaDayLine') && folha.includes('daysUntilDate'), 'a folha importa a linha do dia e a régua da distância');
 ok(folha.includes("data-testid=\"folha-day-line\""), 'a linha do dia tem testid (o E2E acha a confissão)');
 ok(/todayKey \? folhaDayLine\(daysUntilDate\(MATH_EXAM\.date\)\) : null/.test(folha), 'a distância é pergunta do CLIENTE (só com todayKey montado — âncora local, lição 108)');
-ok(folha.includes('fmtDayBR(MATH_VESPERA_DATE)'), 'o título da Véspera usa a data DERIVADA (fmtDayBR da constante)');
+ok(folha.includes('fmtDayBR(paperPlan.dateISO)') && folha.includes('folhaPlanForPaper'), 'o título do plano usa a data DERIVADA (t184: a coluna lê o dia via a lib — a MESMA promessa, a forma nova; fmtDayBR(MATH_VESPERA_DATE) saiu da folha com a coluna)');
 ok(folha.includes('fmtDayBR(MATH_EXAM.date)'), 'o cabeçalho "Prova ..." usa a data DERIVADA da fonte');
 ok(folha.includes('MATH_EXAM_DATE_SHORT') || folha.includes('MATH_EXAM.date'), 'a folha cita o dia pela fonte única');
 
