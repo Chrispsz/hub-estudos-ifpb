@@ -111,8 +111,13 @@ ok(/onRetry=\{\(\) => \{/.test(study) && /setCaptureOpen\(false\);\s*\n\s*setCap
 const crop = src('src/components/hub/capture-crop-dialog.tsx');
 ok(/Fecha o recorte, descarta este frame/.test(crop), 'o title do "De novo" confessa o descarte');
 const sc = src('src/lib/screen-capture.ts');
-ok(/const cw = 160;/.test(sc), 'assentamento mais sensível (160px de comparação — fade não escapa)');
-ok(/SETTLE_MIN_MS = 440/.test(sc), 'mínimo 440ms (folga para a morte do seletor)');
+// t181: a régua v2 (160px/440ms) foi SUPERADA pela v3 da lib pura
+// capture-clean (240px + 3 iguais seguidas + piso 700ms) — a mesma
+// promessa (o fade não escapa), forma mais sensível. O pin segue na
+// FIAÇÃO: a execução usa as CONSTANTES da lib (não números soltos).
+ok(/const cw = SETTLE_SAMPLE_PX;/.test(sc), 'assentamento mais sensível (240px da régua v3 da lib — o fade não escapa)');
+ok(/setTimeout\(r, settleDelayMs\(i\)\)/.test(sc) && /sampleIndex === 0 \? SETTLE_MIN_MS : SETTLE_STEP_MS/.test(src('src/lib/capture-clean.ts')), 'piso/passo vêm da lib (a primeira amostra espera mais — folga para a morte do seletor)');
+ok(/from '@\/lib\/capture-clean'/.test(sc), 'a régua mora na LIB PURA (t181) — decisão executada, não copiada');
 ok(/Math\.round\(\(cw \* video\.videoHeight\)\/ Math\.max\(1, video\.videoWidth\)\) /.test(sc.replace(/\s+/g, ' ')) || /cw \* video\.videoHeight/.test(sc), 'proporção calculada do PRÓPRIO cw (sem 96 órfão)');
 
 // doutrina: a parte pura da lib não toca em nada do mundo real
