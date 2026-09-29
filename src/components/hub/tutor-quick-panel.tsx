@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Crop, Download, FileScan, ImagePlus, Lightbulb, Loader2, Play, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Crop, Download, FileScan, History, ImagePlus, Lightbulb, Loader2, Play, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,12 @@ import {
   saveThread,
   threadKey,
 } from '@/lib/tutor-thread-cache';
+import {
+  composerDraftKey,
+  hasComposerDraft,
+  loadComposerDraft,
+  saveComposerDraft,
+} from '@/lib/composer-draft';
 import type { Material } from '@/data/course-data';
 import { UserBubbleContent } from './chat-code';
 import { TutorMarkdown } from './tutor-markdown';
@@ -178,7 +184,14 @@ export function TutorQuickPanel({
   const [messages, setMessages] = React.useState<ChatMessage[]>(() =>
     loadThread(threadCacheKey).map((m) => ({ ...m, id: freshMessageId() })),
   );
-  const [input, setInput] = React.useState('');
+  // t176 — O RASCUNHO QUE SOBREVIVE (paridade do chat principal): fechar o
+  // diálogo do PDF desmonta o painel — o FIO já sobrevivia (thread-cache,
+  // t144) mas o que estava DIGITADO morria. O composer renasce do rascunho
+  // da sessão, um por material (mesma chave do fio).
+  const panelDraftKey = composerDraftKey('panel', threadCacheKey);
+  const [input, setInput] = React.useState(() => loadComposerDraft(panelDraftKey)?.input ?? '');
+  /** true → o composer nasceu de um rascunho (a pill conta). */
+  const [draftRestored, setDraftRestored] = React.useState(() => hasComposerDraft(panelDraftKey));
   const [loading, setLoading] = React.useState(false);
   /**
    * Resposta em streaming. VERDADE DO TUBO (descoberta na t149): o turno do
@@ -193,12 +206,14 @@ export function TutorQuickPanel({
   const stopPanel = React.useCallback(() => {
     panelAbortRef.current?.abort();
   }, []);
-  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
-  const [pendingImage, setPendingImage] = React.useState<string | null>(null);
+  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador).
+   *  t176: renasce do rascunho da sessão — fechar o diálogo não mata mais o
+   *  print caro; recarregar a página sim. */
+  const [pendingImage, setPendingImage] = React.useState<string | null>(() => loadComposerDraft(panelDraftKey)?.image ?? null);
   /** Procedência do print pendente (t163): o chip diz ONDE ele nasceu —
    * "print de tela", "página 3 · Lista de Matrizes", "print colado"… Só
    * memória: morre junto com o anexo no envio (ou no X do chip). */
-  const [pendingLabel, setPendingLabel] = React.useState<string | null>(null);
+  const [pendingLabel, setPendingLabel] = React.useState<string | null>(() => loadComposerDraft(panelDraftKey)?.imageLabel ?? null);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   /** t166: o rótulo de procedência (t163) que o lightbox mostra no título — o chip SABE, a bolha enviada não carrega. */
@@ -293,6 +308,16 @@ export function TutorQuickPanel({
   React.useEffect(() => {
     saveThread(threadCacheKey, messages);
   }, [messages, threadCacheKey]);
+
+  // t176 — o espelho do rascunho do painel: mesmo contrato do chat principal.
+  // Composer zerado → a lib apaga a chave; o envio limpa sem saber.
+  React.useEffect(() => {
+    saveComposerDraft(panelDraftKey, {
+      input,
+      image: pendingImage ?? undefined,
+      imageLabel: pendingLabel ?? undefined,
+    });
+  }, [input, pendingImage, pendingLabel, panelDraftKey]);
 
   /** Limpa a conversa efêmera do painel (o aluno recomeça a dúvida). */
   const clearConversation = () => {
@@ -874,6 +899,30 @@ export function TutorQuickPanel({
           ask(input, pendingImage);
         }}
       >
+        {draftRestored && !!input.trim() && (
+          <div
+            data-testid="panel-draft-pill"
+            className="mb-2 flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200"
+          >
+            <History className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Rascunho restaurado</span>{' '}
+              · <span className="tabular-nums">{input.length}</span> caracteres — continue de onde parou
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setInput('');
+                setDraftRestored(false);
+              }}
+              aria-label="Descartar o rascunho restaurado"
+              title="Descarta o texto restaurado — o anexo pendente segue pelo chip dele"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:hover:text-rose-400"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
         {pendingImage && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
             <button

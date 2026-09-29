@@ -118,6 +118,12 @@ import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { setEphemeralChatState } from '@/lib/ephemeral-registry';
+import {
+  composerDraftKey,
+  hasComposerDraft,
+  loadComposerDraft,
+  saveComposerDraft,
+} from '@/lib/composer-draft';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
@@ -461,19 +467,28 @@ export function StudyView({
       ),
     },
   ]);
-  const [chatInput, setChatInput] = React.useState('');
+  // t176 — O RASCUNHO QUE SOBREVIVE: o composer renasce do que o aluno já
+  // tinha digitado nesta disciplina (cache de sessão — navegar para a
+  // Biblioteca desmonta esta view e ANTES matava o texto; agora volta).
+  // O anexo pendente e o bloco de código voltam junto: o gesto inteiro.
+  const mainDraftKey = composerDraftKey('main', disciplineCode);
+  const [chatInput, setChatInput] = React.useState(() => loadComposerDraft(mainDraftKey)?.input ?? '');
   // Bloco de código SEPARADO da mensagem (pedido do dono) — vai para a IA formatado em ```lang
-  const [chatCode, setChatCode] = React.useState('');
+  const [chatCode, setChatCode] = React.useState(() => loadComposerDraft(mainDraftKey)?.code ?? '');
+  /** true → o composer desta disciplina nasceu de um rascunho (a pill conta). */
+  const [draftRestored, setDraftRestored] = React.useState(() => hasComposerDraft(mainDraftKey));
   const [codeOpen, setCodeOpen] = React.useState(false);
   const [codeLang, setCodeLang] = React.useState<ChatCodeLang>('c');
   const chatTaRef = React.useRef<HTMLTextAreaElement>(null);
   const [chatLoading, setChatLoading] = React.useState(false);
-  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
-  const [chatImage, setChatImage] = React.useState<string | null>(null);
+  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador).
+   *  t176: renasce do rascunho da sessão — navegar não mata mais o print
+   *  caro (página escolhida, recorte feito); recarregar a página sim. */
+  const [chatImage, setChatImage] = React.useState<string | null>(() => loadComposerDraft(mainDraftKey)?.image ?? null);
   /** Procedência do print pendente (t163): o chip diz ONDE ele nasceu —
    * "print de tela", "página 3 · Lista de Matrizes", "print do resumo"…
    * Só memória: morre no envio (ou no X do chip), nada toca o disco. */
-  const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(null);
+  const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(() => loadComposerDraft(mainDraftKey)?.imageLabel ?? null);
   // O ESPELHO DO CHIP (171): a raiz (page.tsx) não pode ler estado React de
   // fora do mount — mas é ela quem vê o gesto de SAIR da aba Estudar, o gesto
   // que desmonta esta view e mata o anexo pendente. O registro efêmero é o
@@ -484,6 +499,36 @@ export function StudyView({
     setEphemeralChatState({ pendingImage: !!chatImage, pendingLabel: chatImageLabel });
     return () => setEphemeralChatState({ pendingImage: false, pendingLabel: null });
   }, [chatImage, chatImageLabel]);
+  // t176 — o espelho do rascunho: cada gesto do composer grava na memória de
+  // sessão da disciplina. Composer zerado → a lib APAGA a chave (o envio e o
+  // descarte limpam sem saber). Na TROCA de disciplina este efeito CALA (o
+  // espelho anterior já está salvo sob a chave antiga, tecla a tecla) — quem
+  // fala na troca é o restore abaixo, senão o texto velho sujaria a chave nova.
+  const prevDiscRef = React.useRef(disciplineCode);
+  React.useEffect(() => {
+    if (prevDiscRef.current !== disciplineCode) return; // troca: o restore fala
+    saveComposerDraft(composerDraftKey('main', disciplineCode), {
+      input: chatInput,
+      code: chatCode,
+      image: chatImage ?? undefined,
+      imageLabel: chatImageLabel ?? undefined,
+    });
+  }, [chatInput, chatCode, chatImage, chatImageLabel, disciplineCode]);
+  // t176 — trocou a disciplina, troca o rascunho: o composer acompanha a
+  // memória da conversa (a pergunta de Matemática não vaza para o chat de
+  // RHT). Pedido externo (tutorReq) vence rascunho: intenção nova é intenção
+  // nova — o efeito dele roda depois deste na montagem e sobrescreve.
+  React.useEffect(() => {
+    if (prevDiscRef.current === disciplineCode) return;
+    prevDiscRef.current = disciplineCode;
+    const key = composerDraftKey('main', disciplineCode);
+    const d = loadComposerDraft(key);
+    setChatInput(d?.input ?? '');
+    setChatCode(d?.code ?? '');
+    setChatImage(d?.image ?? null);
+    setChatImageLabel(d?.imageLabel ?? null);
+    setDraftRestored(hasComposerDraft(key));
+  }, [disciplineCode]);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   /** t166: o rótulo de procedência (t163) que o lightbox mostra no título — o chip SABE, a bolha enviada não carrega. */
@@ -1327,13 +1372,16 @@ export function StudyView({
    * que não é cancelável: 2º clique solta a UI) e nada é salvo no disco —
    * a pasta de prints do aluno fica limpa. */
 
-  // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha)
+  // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha).
+  // t176: chatOpen nos deps — o rascunho restaurado com o Sheet fechado monta
+  // o textarea DEPOIS; sem re-medir na abertura, um texto de 5 linhas nascia
+  // espremido em 1 linha (o effect antigo só media quando o texto mudava).
   React.useEffect(() => {
     const el = chatTaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
-  }, [chatInput]);
+  }, [chatInput, chatOpen]);
 
   const sendQuestion = async (
     question: string,
@@ -2558,7 +2606,7 @@ export function StudyView({
                 quando o fio está em repouso. position:sticky ocupa o próprio
                 lugar no fluxo — quando o follow volta, ela some e o espaço
                 volta a ser do fio. */}
-            {!chatFollowing && (
+            {!chatFollowing && !chatSearchOpen && (
               <div className="sticky bottom-2 z-10 flex justify-center pt-1">
                 <button
                   type="button"
@@ -2578,6 +2626,35 @@ export function StudyView({
           </div>
 
           <div className="border-t border-white/10 p-4">
+            {draftRestored && !!(chatInput.trim() || chatCode.trim()) && (
+              <div
+                data-testid="chat-draft-pill"
+                className="mb-2 flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200"
+              >
+                <History
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Rascunho restaurado</span>{' '}
+                  · <span className="tabular-nums">{chatInput.length}</span> caracteres —
+                  continue de onde parou nesta sessão
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatInput('');
+                    setChatCode('');
+                    setDraftRestored(false);
+                  }}
+                  aria-label="Descartar o rascunho restaurado"
+                  title="Descarta o texto e o bloco de código restaurados — o anexo pendente segue pelo chip dele"
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:hover:text-rose-400"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            )}
             {chatImage && (
               <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
                 <button

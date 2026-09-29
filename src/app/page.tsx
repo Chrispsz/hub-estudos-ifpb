@@ -193,21 +193,21 @@ export default function Page() {
   const clearDeliveredRequests = React.useCallback((target: TabKey) => {
     const leaving = activeRef.current;
     if (target !== 'study') {
-      // Aviso honesto de descarte (feature 171): o anexo pendente de print é
-      // trabalho DELIBERADO do aluno (página escolhida, recorte feito) e morre
-      // com a desmontagem — descobrir isso DEPOIS é pior que a perda. O
-      // rascunho de texto não avisa (digitar e sair é comum, toast seria
-      // ruído); o print é raro e caro — o aviso é o mesmo "nada é salvo" que
-      // a casa já confessa nos diálogos de captura.
+      // t176 — A CONFESSÃO DA MISERICÓRDIA (era o aviso de descarte da 171):
+      // o anexo pendente de print é trabalho DELIBERADO do aluno (página
+      // escolhida, recorte feito) e AGORA SOBREVIVE à navegação (o rascunho
+      // inteiro viaja no composer-draft de sessão). O aviso muda de tom:
+      // não é perda, é a promessa de volta — e a fronteira honesta continua
+      // sendo a mesma ("nada é salvo no disco"): recarregar a página descarta.
       const eph = readEphemeralChatState();
       if (leaving === 'study' && eph.pendingImage) {
-        toast.warning(
+        toast.info(
           eph.pendingLabel
-            ? `O print anexado (${eph.pendingLabel}) foi descartado ao sair do Estudar`
-            : 'O print anexado ao tutor foi descartado ao sair do Estudar',
+            ? `O print anexado (${eph.pendingLabel}) segue te esperando no Estudar`
+            : 'O print anexado ao tutor segue te esperando no Estudar',
           {
             description:
-              'O anexo é efêmero: morre no envio, no X e na navegação — anexe de novo quando voltar.',
+              'O rascunho e o anexo sobrevivem à navegação nesta sessão — só recarregar a página descarta.',
           },
         );
       }
