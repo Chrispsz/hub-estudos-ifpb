@@ -22,6 +22,9 @@ export interface CachedThreadMessage {
   content: string;
   model?: string;
   image?: string;
+  /** t170: a assinatura do print — a imagem já sobrevive ao fechar aqui no
+   * cache de sessão; a procedência dela viaja junto (o mesmo ciclo de vida). */
+  imageLabel?: string;
   time?: string;
   /** true → bolha de erro (falha do provedor) — não sobrevive ao fechar. */
   error?: boolean;

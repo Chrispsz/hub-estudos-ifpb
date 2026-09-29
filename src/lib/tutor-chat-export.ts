@@ -18,6 +18,10 @@ export interface ExportableTurn {
   error?: boolean;
   /** t167: resposta interrompida a pedido do aluno — o .md confessa o freio. */
   interrupted?: boolean;
+  /** t170: procedência do print anexado ("recorte da página 3 · Lista") —
+   * a imagem não entra no .md (data URL não viaja em texto de estudo), mas
+   * a ASSINATURA dela sim: o material exportado diz o que estava na dúvida. */
+  imageLabel?: string;
 }
 
 /**
@@ -41,7 +45,10 @@ export function buildChatMarkdown(
       // t167: o freio é parte da história honesta da conversa — o .md diz onde
       // a resposta acabou porque o aluno cortou (o parcial é material de estudo).
       const stop = m.interrupted ? '\n\n*(interrompida a seu pedido — o que chegou, ficou)*' : '';
-      return `${who}${when}\n\n${m.content}${stop}\n`;
+      // t170: a assinatura do print — a imagem não entra no .md, mas DE ONDE
+      // ela veio entra (a linha fica junto da pergunta, como legenda).
+      const print = m.imageLabel ? `\n\n*(print anexado: ${m.imageLabel})*` : '';
+      return `${who}${when}\n\n${m.content}${print}${stop}\n`;
     });
   const header = `# ${title}\n\nExportado do Hub de Estudos em ${exportedAt.toLocaleDateString('pt-BR')}\n\n---\n\n`;
   return header + lines.join('\n---\n\n');

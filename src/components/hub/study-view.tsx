@@ -146,6 +146,10 @@ interface ChatMessage {
   model?: string;
   /** Miniatura do print anexado (só na conversa viva — não persiste no banco). */
   image?: string;
+  /** t170 — A ASSINATURA DO PRINT: de onde ele nasceu ("página 2 · Noções de
+   * Lógica", "recorte da página 3 · Lista"). Vive EXATAMENTE com a imagem —
+   * mesma vida efêmera, mesmo desaparecimento no envio/restauração. */
+  imageLabel?: string;
   /** Hora local (HH:MM) da mensagem — referência discreta de quando estudou. */
   time?: string;
   /** ISO do banco (t151) — alimenta os separadores de dia e o HH:MM das
@@ -1320,14 +1324,22 @@ export function StudyView({
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
   }, [chatInput]);
 
-  const sendQuestion = async (question: string, imageOverride?: string | null) => {
+  const sendQuestion = async (
+    question: string,
+    imageOverride?: string | null,
+    labelOverride?: string | null,
+  ) => {
     // t164 — A SEGUNDA CHANCE: o "tentar de novo" da bolha de erro passa
     // imageOverride DEFINIDO (string ou null explícito) e reenvia o turno
     // ORIGINAL inteiro — sem colar o bloco de código do composer (a pergunta
     // original já o carrega, a bolha mostrou os dois blocos) e sem limpar o
     // que o aluno estiver digitando agora (o composer é do presente). Envio
     // normal: sem 2º argumento — comportamento idêntico ao de sempre.
+    // t170 — A ASSINATURA VIAJA NO RETRY TAMBÉM: o labelOverride é quem
+    // distingue retry de envio normal (o turno reenviado carrega o rótulo
+    // da bolha ORIGINAL — a assinatura não morre na segunda chance).
     const isRetry = imageOverride !== undefined;
+    const imageLabelLive = isRetry ? (labelOverride ?? null) : chatImageLabel;
     const code = isRetry ? '' : chatCode.replace(/\s+$/, '');
     const q = [
       question.trim(),
@@ -1366,6 +1378,9 @@ export function StudyView({
         role: 'user',
         content: q || '📷 print anexado',
         image: image ?? undefined,
+        // t170: a assinatura entra JUNTO da imagem — sem imagem, sem rótulo
+        // (o mesmo ciclo de vida, a bolha conta de onde o print veio).
+        imageLabel: image ? (imageLabelLive ?? undefined) : undefined,
         time: hhmm(),
         savedAt: new Date().toISOString(),
       },
@@ -1960,6 +1975,15 @@ export function StudyView({
         <SheetContent
           side="right"
           className="w-full gap-0 p-0 sm:max-w-lg lg:max-w-xl"
+          onOpenAutoFocus={(e) => {
+            // t170 — PERGUNTAR JÁ RECORTADO: o chat aberto COM print pendente
+            // (ou pergunta pré-preenchida) pousa o cursor no composer — o
+            // anexo já é a intenção de perguntar, o próximo gesto é digitar.
+            // O foco default do Radix (1º focável = X do header) não serve
+            // para quem acabou de anexar; preventDefault evita o pouso duplo.
+            e.preventDefault();
+            chatTaRef.current?.focus();
+          }}
           onEscapeKeyDown={(e) => {
             // t153: com a busca aberta, o Esc é DA BUSCA (fecha e limpa o
             // campo — handler do input) e NÃO da conversa: o preventDefault
@@ -2276,7 +2300,10 @@ export function StudyView({
                           onClick={() => {
                             if (m.image) {
                               setLightboxSrc(m.image);
-                              setLightboxLabel(null); // bolha enviada não carrega rótulo (doutrina t163) — o título cai no fallback
+                              // t170: a bolha enviada CARREGA a assinatura — o
+                              // lightbox diz de onde o print veio (a mesma voz
+                              // do chip; sem rótulo, o fallback honesto fica).
+                              setLightboxLabel(m.imageLabel ?? null);
                             }
                           }}
                           aria-label="Ver o print em tamanho grande"
@@ -2289,6 +2316,21 @@ export function StudyView({
                             className="max-h-44 rounded-lg border border-white/20 transition-transform duration-150 group-hover:scale-[1.02]"
                           />
                         </button>
+                      )}
+                      {m.image && m.imageLabel && (
+                        // t170 — A LEGENDA DA ASSINATURA: a bolha diz de onde o
+                        // print nasceu (a mesma voz esmeralda do chip t163, em
+                        // versão clara dentro da bolha esmeralda). Legendagem
+                        // de figura: fica embaixo da imagem, alinhada à direita
+                        // (o lado da bolha do aluno); truncate com title cheio.
+                        <p
+                          data-testid="chat-image-label"
+                          className="mt-1 flex items-center justify-end gap-1 text-[10px] font-medium text-emerald-100"
+                          title={`Print anexado: ${m.imageLabel}`}
+                        >
+                          <Camera className="size-2.5 shrink-0" aria-hidden />
+                          <span className="truncate">{m.imageLabel}</span>
+                        </p>
                       )}
                       {m.time && (
                         <p className="mt-1 text-right text-[10px] text-white/70">{m.time}</p>
@@ -2351,7 +2393,7 @@ export function StudyView({
                             type="button"
                             onClick={() => {
                               const target = resolveRetryTarget(messages, i);
-                              if (target) void sendQuestion(target.content, target.image ?? null);
+                              if (target) void sendQuestion(target.content, target.image ?? null, target.imageLabel ?? null);
                             }}
                             disabled={chatLoading}
                             aria-label="Tentar de novo — reenvia a pergunta que falhou"
