@@ -139,7 +139,7 @@ ok(svSrc.includes('border-emerald-500/40 bg-emerald-500/10'), 'esmeralda = conte
 ok(svSrc.includes('hover:bg-emerald-500/20'), 'hover responde (o gesto tem eco)');
 ok(svSrc.includes('group-hover:-translate-y-0.5 group-hover:translate-x-0.5'), 'ArrowUpRight com o micro-gesto das portas irmãs');
 ok(svSrc.includes('max-w-[300px]') && svSrc.includes('truncate'), 'título longo não quebra o relógio (truncate + teto de largura)');
-ok(svSrc.includes("live.phase === 'focus' && readerDoorVisible(selectedMaterial)"), 'a porta existe na fase FOCO e com PDF (no break o gesto é levantar; sem PDF, texto honesto)');
+ok(svSrc.includes("live.phase === 'focus'") && svSrc.includes("(readerDoorVisible(selectedMaterial) || materialDoors.length > 0)"), 'a porta existe na fase FOCO e com material que tenha porta (t185 estendeu a linha ao resumo/vídeo/página — MESMA promessa: no break o gesto é levantar; sem porta, texto honesto)');
 ok(svSrc.includes('setReaderInitialPage(readerResumePage ?? undefined)'), 'porta manual também retoma a página guardada');
 ok(svSrc.includes('setReaderPosEpoch((e) => e + 1)'), 'fechar o leitor bumpa o epoch (a leitura muda a memória — t180)');
 ok(/readerPosEpoch\]\)/.test(svSrc), 'a porta RELÊ a memória quando o epoch muda (rótulo nunca congelado no valor velho)');
