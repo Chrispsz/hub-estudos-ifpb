@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode } from '@/lib/simulado-resume';
-import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
+import { buildRunDebriefQuestion, buildTrendQuestion, computeTopicTrends, isSimuladoDayToday } from '@/lib/simulado-debrief';
 import { openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_TOPICO_CURTO, drillTopicOf, findMathSimuladoRunOficial, mathDrillFeedbackFor, simuladoVerdictFor } from '@/lib/math-exam-prep';
 
@@ -222,10 +222,22 @@ export function SimuladoHistory() {
       {!stats ? (
         <div className="mt-4 flex flex-col items-center gap-2.5 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-center">
           <History className="size-5 text-muted-foreground/50" aria-hidden />
-          <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
-            Nenhum simulado ainda. Rode o <strong className="text-emerald-500">Simulado Pro</strong> na aba
-            Praticar — cada tentativa aparece aqui para acompanhar sua evolução. 🎯
-          </p>
+          {/* O estado vazio sabe que dia é hoje: na VÉSPERA DO ENSAIO (29/09) a
+              frase muda de convite para chamada — o resultado desta noite é o
+              que alimenta o debrief da IA e a revisão da véspera. Nos outros
+              dias, o texto estável de sempre (nada de urgência emprestada). */}
+          {isSimuladoDayToday() ? (
+            <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+              O ensaio real é <strong className="text-emerald-500">HOJE</strong>. Rode o{' '}
+              <strong className="text-emerald-500">Simulado Pro</strong> da Av1 — o resultado desta
+              noite vira o debrief da IA e decide o que a véspera revisa.
+            </p>
+          ) : (
+            <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+              Nenhum simulado ainda. Rode o <strong className="text-emerald-500">Simulado Pro</strong> na aba
+              Praticar — cada tentativa aparece aqui para acompanhar sua evolução. 🎯
+            </p>
+          )}
           <Button
             size="sm"
             onClick={() => openSimulado({ preset: 'math_exam' })}

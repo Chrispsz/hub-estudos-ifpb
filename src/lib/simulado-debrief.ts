@@ -13,6 +13,7 @@ import { getDisciplineByCode } from '@/data/course-data';
 import type { RunQuestionDetail, SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode, type AttemptMode } from '@/lib/simulado-resume';
 import { capQuestion } from '@/lib/tutor-stream';
+import { MATH_SIMULADO_DATE, findMathSimuladoRunOficial } from '@/lib/math-exam-prep';
 
 export function fmtClockSec(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -34,26 +35,57 @@ function discShort(code?: string): string {
 }
 
 /**
+ * O run é o SIMULADO OFICIAL da Av1 (o ensaio real do dia marcado, prova de
+ * Matemática)? MESMOS critérios do findMathSimuladoRunOficial — fonte única,
+ * sem critério paralelo para divergir. Serve para o debrief declarar a
+ * NATUREZA do ensaio: a IA analisa uma prova oficial (stake real, meta de
+ * aprovação) diferente de um treino (repetição).
+ */
+export function isSimuladoRunOficial(run: SimuladoRun): boolean {
+  return findMathSimuladoRunOficial([run])?.id === run.id;
+}
+
+/**
+ * Hoje é o dia do simulado oficial? (usado na rodada FRESCA — o run acabou de
+ * terminar e pode ainda não estar no histórico que a função acima lê.)
+ */
+export function isSimuladoDayToday(): boolean {
+  return (
+    new Date().toDateString() ===
+    new Date(`${MATH_SIMULADO_DATE}T12:00:00`).toDateString()
+  );
+}
+
+/**
  * Debriefing detalhado a partir dos detalhes por questão (rodada ao vivo ou
  * tentativa do histórico que gravou `questions`). Compacta: status, disciplina,
  * tópico, dificuldade e enunciado truncado — e pede análise de professor.
+ *
+ * `isOficial` declara que ESTE foi o simulado oficial da Av1 (ensaio real):
+ * a abertura muda de tom — a IA sabe que há meta de aprovação e prova real
+ * chegando, e prioriza o plano para os dias que faltam.
  */
 export function buildDebriefFromDetails(input: {
   mode?: AttemptMode;
   pct: number;
   elapsedSec: number;
   details: RunQuestionDetail[];
+  isOficial?: boolean;
 }): string {
-  const { pct, elapsedSec, details } = input;
+  const { pct, elapsedSec, details, isOficial } = input;
   const mode = normalizeMode(input.mode);
   // A abertura declara a NATUREZA — a IA analisa um treino como treino
   // (feedback de repetição) e não como prova (simulação de exam day).
+  // O ENSAIO OFICIAL merece abertura própria: stake real, meta de aprovação,
+  // e o plano serve à prova que vem — não à repetição.
   const abertura =
     mode === 'treino'
       ? 'Acabei de terminar um TREINO no Hub (drill do Caderno de Erros — repetição dos meus erros, não prova). Analisa como um professor faria na correção e monta um plano de revisão CURTO e organizado.'
       : mode === 'topico'
         ? 'Acabei de terminar um treino CURTO de um único tópico no Hub (replay de tópico, não prova completa). Analisa como um professor faria na correção e monta um plano de revisão CURTO e organizado.'
-        : 'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.';
+        : isOficial
+          ? 'Acabei de terminar o SIMULADO OFICIAL da Av1 no Hub — o ensaio REAL da prova de Matemática, com meta de aprovação (≥ 70). Analisa meu desempenho como um professor faria na correção de um ensaio oficial e monta o plano de revisão CURTO e organizado para os dias que faltam até a prova.'
+          : 'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.';
   const lines = details.map((q, i) => {
     const status =
       q.status === 'solved' ? 'CONSEGUI' : q.status === 'missed' ? 'NÃO CONSEGUI' : 'PULADA';
@@ -78,16 +110,27 @@ export function buildDebriefFromDetails(input: {
  */
 export function buildRunDebriefQuestion(run: SimuladoRun): string {
   const mode = normalizeMode(run.mode);
+  // O oficial se declara SOZINHO (critério único do math-exam-prep): o dono
+  // clica o Sparkles de qualquer linha — se a linha é o ensaio da Av1, a IA
+  // precisa saber com o que está lidando sem ninguém lembrar de avisar.
+  const oficial = isSimuladoRunOficial(run);
   if (run.questions && run.questions.length > 0) {
     return buildDebriefFromDetails({
       mode,
       pct: run.total > 0 ? Math.round((run.solved / run.total) * 100) : 0,
       elapsedSec: run.durationSec,
       details: run.questions,
+      isOficial: oficial,
     });
   }
   const natureza =
-    mode === 'treino' ? 'um TREINO (drill do caderno)' : mode === 'topico' ? 'um treino de tópico' : 'um simulado';
+    mode === 'treino'
+      ? 'um TREINO (drill do caderno)'
+      : mode === 'topico'
+        ? 'um treino de tópico'
+        : oficial
+          ? 'o SIMULADO OFICIAL da Av1 (o ensaio real da prova de Matemática, com meta de aprovação)'
+          : 'um simulado';
   const partes = [
     `aproveitamento ${run.total > 0 ? Math.round((run.solved / run.total) * 100) : 0}%`,
     `${run.solved}/${run.total} resolvidas`,
@@ -177,7 +220,11 @@ export function buildTrendQuestion(runs: SimuladoRun[]): string {
     const disc = r.filters?.discipline
       ? discShort(r.filters.discipline)
       : (r.questions && [...new Set(r.questions.map((q) => discShort(q.disciplineCode)).filter((d) => d !== '—'))].slice(0, 2).join('+')) || 'geral';
-    return `- ${fmtDate(r.date)}: ${pct}% (${r.solved}/${r.total}) · ${disc} · ${fmtClockSec(r.durationSec)}`;
+    // O ensaio OFICIAL se marca na série: a IA lê a tendência sabendo qual
+    // linha é a simulação de exam day (a referência que importa) — e não
+    // mais um treino entre treinos.
+    const marca = isSimuladoRunOficial(r) ? ' · ENSAIO OFICIAL da Av1' : '';
+    return `- ${fmtDate(r.date)}: ${pct}% (${r.solved}/${r.total}) · ${disc} · ${fmtClockSec(r.durationSec)}${marca}`;
   });
 
   // Tendência por tópico (só tentativas com detalhes por questão contribuem).

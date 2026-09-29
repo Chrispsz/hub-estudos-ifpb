@@ -57,7 +57,7 @@ import { disciplines, getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
-import { buildDebriefFromDetails } from '@/lib/simulado-debrief';
+import { buildDebriefFromDetails, isSimuladoDayToday } from '@/lib/simulado-debrief';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
 import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
@@ -1656,6 +1656,14 @@ function ResultsScreen({
   const info = MODE_INFO[mode];
   const missedList = questions.filter((q, i) => results[i].solved !== true);
   const hasMissed = missedList.length > 0;
+  // A rodada FRESCA sabe que foi o ENSAIO OFICIAL quando é prova de Matemática
+  // no dia marcado (mesmo critério do findMathSimuladoRunOficial, aqui local:
+  // o ResultsScreen pode renderizar antes do histórico reler o localStorage).
+  // Só o debrief do ensaio real pede o tom de prova oficial — treino cala.
+  const freshRunOficial =
+    mode === 'prova' &&
+    isSimuladoDayToday() &&
+    questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode);
   const verdict =
     pct >= 80
       ? { label: 'Excelente!', tone: 'text-emerald-500', icon: Trophy }
@@ -2001,7 +2009,46 @@ function ResultsScreen({
               </div>
             ))}
             {missedList.length > 4 && (
-              <p className="text-[11px] text-muted-foreground">+ {missedList.length - 4} outras</p>
+              // A PORTA DAS OCULTAS: a lista de cima mostra 4 — as restantes
+              // não podiam ficar mudas no dia em que cada erro conta. Uma
+              // pergunta só, com TODAS as ocultas (enunciado + tópico), na
+              // mesma via openTutor das portas individuais. Em 10 questões
+              // com 10 erros: ~3.2k chars, bem abaixo do teto de 5500 do
+              // capQuestion — não trunca.
+              <button
+                type="button"
+                onClick={() => {
+                  const ocultas = missedList.slice(4);
+                  const byDisc = new Map<string, number>();
+                  for (const q of ocultas) {
+                    byDisc.set(q.disciplineCode, (byDisc.get(q.disciplineCode) ?? 0) + 1);
+                  }
+                  // Disciplina com mais erros entre as ocultas — a mesma régua
+                  // da porta do ciclo (linha 1924) e do debrief completo.
+                  const worst =
+                    [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ??
+                    ocultas[0]?.disciplineCode;
+                  onOpenChange(false);
+                  openTutor({
+                    disciplineCode: worst,
+                    question: [
+                      `No simulado que acabei de fazer, NÃO CONSEGUI resolver também estas ${ocultas.length} questões (ficaram fora da lista de cima):`,
+                      ...ocultas.map(
+                        (q) =>
+                          `- [${getDisciplineByCode(q.disciplineCode)?.shortName ?? q.disciplineCode} · ${q.topic}] ${q.statement}`,
+                      ),
+                      '',
+                      'Me ensina como se resolve cada uma, passo a passo, como o professor faria na correção — começa pela que mais aparece na prova.',
+                    ].join('\n'),
+                  });
+                }}
+                title="Perguntar à IA como resolver TODAS as questões que ficaram fora da lista de cima"
+                aria-label={`Perguntar à IA como resolver as outras ${missedList.length - 4} questões perdidas`}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-500/[0.06] px-3 py-2 text-xs font-medium text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+              >
+                <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                Perguntar à IA sobre as outras {missedList.length - 4} questões
+              </button>
             )}
           </div>
         </div>
@@ -2022,6 +2069,7 @@ function ResultsScreen({
                 disciplineCode: worst[0]?.disciplineCode ?? questions[0]?.disciplineCode,
                 question: buildDebriefFromDetails({
                   mode, // prop do ResultsScreen — a IA sabe se foi prova ou treino
+                  isOficial: freshRunOficial, // o ensaio oficial da Av1 se declara — a IA sabe o stake
                   pct,
                   elapsedSec: elapsed,
                   details: questions.map((q, i) => ({
@@ -2039,8 +2087,17 @@ function ResultsScreen({
                 }),
               });
             }}
-            aria-label="Enviar o resultado do simulado para a IA analisar e montar plano de revisão"
-            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+            aria-label={
+              freshRunOficial
+                ? 'Enviar o resultado do ensaio oficial da Av1 para a IA analisar e montar o plano da véspera'
+                : 'Enviar o resultado do simulado para a IA analisar e montar plano de revisão'
+            }
+            title={
+              freshRunOficial
+                ? 'Foi o SIMULADO OFICIAL — a análise vira o plano da véspera, com a meta de aprovação na conta'
+                : undefined
+            }
+            className="border-amber-300 bg-amber-50 font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
           >
             <Sparkles className="size-3.5" /> Analisar com IA
           </Button>
