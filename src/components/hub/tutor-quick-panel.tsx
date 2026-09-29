@@ -831,7 +831,7 @@ export function TutorQuickPanel({
         }}
       >
         {pendingImage && (
-          <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
             <button
               type="button"
               onClick={() => {
@@ -861,7 +861,7 @@ export function TutorQuickPanel({
                 setPendingLabel(null);
               }}
               aria-label="Remover imagem anexada"
-              className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:hover:text-rose-400"
             >
               <X className="size-3.5" />
             </button>

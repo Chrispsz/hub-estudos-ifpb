@@ -27,6 +27,8 @@ import { ProgressView } from '@/components/hub/progress-view';
 import { SettingsView } from '@/components/hub/settings-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useSmartCrons } from '@/lib/use-smart-crons';
+import { toast } from 'sonner';
+import { readEphemeralChatState } from '@/lib/ephemeral-registry';
 import { OPEN_METHOD_EVENT, type OpenMethodDetail } from '@/lib/hub-events';
 import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenPracticeDetail, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { OPEN_PROGRESS_EVENT } from '@/lib/hub-events';
@@ -170,7 +172,58 @@ export default function Page() {
     return () => window.removeEventListener(OPEN_TUTOR_EVENT, onOpenTutor);
   }, []);
 
+  // O PEDIDO NÃO VIRA ZUMBI (171): o pedido entregue por evento (tutorReq,
+  // simuladoReq, practiceReq, methodParams) tem a vida do MOUNT que o consumiu
+  // — só a aba ativa renderiza (switch do activeContent), sair da aba desmonta
+  // a view e o efeito de nonce não volta a rodar. Deixar o pedido vivo na raiz
+  // era o bug provado AO VIVO nesta rodada: remover o print com X e navegar
+  // RESSUSCITAVA o anexo (o efeito re-aplicava o mesmo nonce no remount) e o
+  // chat re-abria sozinho; o diálogo do simulado re-abria sem clique (hoje é o
+  // dia dele — a última coisa que a prova precisa é uma interferência); os
+  // filtros do Praticar voltavam do nada. A doutrina efêmera da t163 (o X
+  // mata, o envio mata, fechar mata) passa a valer também para a NAVEGAÇÃO:
+  // saiu da aba-alvo, o pedido morre na raiz. Nada muda DENTRO da aba — o
+  // efeito de nonce segue consumindo na hora; a entrega (evento → req + aba)
+  // é ANTES de qualquer limpeza possível.
+  const activeRef = React.useRef<TabKey>('dashboard');
+  React.useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
+  const clearDeliveredRequests = React.useCallback((target: TabKey) => {
+    const leaving = activeRef.current;
+    if (target !== 'study') {
+      // Aviso honesto de descarte (feature 171): o anexo pendente de print é
+      // trabalho DELIBERADO do aluno (página escolhida, recorte feito) e morre
+      // com a desmontagem — descobrir isso DEPOIS é pior que a perda. O
+      // rascunho de texto não avisa (digitar e sair é comum, toast seria
+      // ruído); o print é raro e caro — o aviso é o mesmo "nada é salvo" que
+      // a casa já confessa nos diálogos de captura.
+      const eph = readEphemeralChatState();
+      if (leaving === 'study' && eph.pendingImage) {
+        toast.warning(
+          eph.pendingLabel
+            ? `O print anexado (${eph.pendingLabel}) foi descartado ao sair do Estudar`
+            : 'O print anexado ao tutor foi descartado ao sair do Estudar',
+          {
+            description:
+              'O anexo é efêmero: morre no envio, no X e na navegação — anexe de novo quando voltar.',
+          },
+        );
+      }
+      setTutorReq(undefined);
+    }
+    if (target !== 'practice') {
+      setSimuladoReq(undefined);
+      setPracticeReq(undefined);
+    }
+    if (target !== 'method') {
+      setMethodParams({});
+    }
+  }, []);
+
   const setActive = React.useCallback((k: TabKey) => {
+    clearDeliveredRequests(k);
     setActiveState(k);
     // Hash na URL → botão voltar do browser volta para a aba anterior
     if (typeof window !== 'undefined') {
@@ -178,20 +231,21 @@ export default function Page() {
       window.history.pushState({ tab: k }, '', newUrl);
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
-  }, []);
+  }, [clearDeliveredRequests]);
 
   // Voltar/avançar do browser → troca de aba conforme o hash
   React.useEffect(() => {
     function onPopState() {
       const k = tabFromHash();
       if (k) {
+        clearDeliveredRequests(k); // voltar do browser também mata o pedido entregue (mesma régua do clique)
         setActiveState(k);
         window.scrollTo({ top: 0, behavior: 'auto' });
       }
     }
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  }, [clearDeliveredRequests]);
 
   // Garante hash na primeira carga
   React.useEffect(() => {

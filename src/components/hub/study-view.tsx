@@ -117,6 +117,7 @@ import { CaptureCropDialog } from './capture-crop-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
+import { setEphemeralChatState } from '@/lib/ephemeral-registry';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from './tutor-markdown';
@@ -473,6 +474,16 @@ export function StudyView({
    * "print de tela", "página 3 · Lista de Matrizes", "print do resumo"…
    * Só memória: morre no envio (ou no X do chip), nada toca o disco. */
   const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(null);
+  // O ESPELHO DO CHIP (171): a raiz (page.tsx) não pode ler estado React de
+  // fora do mount — mas é ela quem vê o gesto de SAIR da aba Estudar, o gesto
+  // que desmonta esta view e mata o anexo pendente. O registro efêmero é o
+  // espelho só de leitura (mesma vida: memória, zero disco/storage) para o
+  // aviso honesto de descarte. O cleanup zera no unmount E a cada mudança do
+  // par — o registro nunca sobrevive à verdade do chip.
+  React.useEffect(() => {
+    setEphemeralChatState({ pendingImage: !!chatImage, pendingLabel: chatImageLabel });
+    return () => setEphemeralChatState({ pendingImage: false, pendingLabel: null });
+  }, [chatImage, chatImageLabel]);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   /** t166: o rótulo de procedência (t163) que o lightbox mostra no título — o chip SABE, a bolha enviada não carrega. */
@@ -2568,7 +2579,7 @@ export function StudyView({
 
           <div className="border-t border-white/10 p-4">
             {chatImage && (
-              <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
+              <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -2598,7 +2609,7 @@ export function StudyView({
                     setChatImageLabel(null);
                   }}
                   aria-label="Remover imagem anexada"
-                  className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:hover:text-rose-400"
                 >
                   <X className="size-3.5" />
                 </button>

@@ -80,8 +80,13 @@ export function SidebarNav({
       key={it.value}
       onClick={() => handleSelect(it.value)}
       className={cn(
-        'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all active:scale-[0.98]',
+        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all active:scale-[0.98]',
         'hover:bg-muted/60',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+        // t171: indicador da casa no item ativo — a barra esmeralda que o
+        // rodapé já usa no progresso, agora dizendo ONDE a pessoa está.
+        active === it.value &&
+          'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-emerald-500',
         active === it.value
           ? 'bg-muted text-foreground shadow-sm'
           : 'text-muted-foreground',
@@ -126,6 +131,7 @@ export function SidebarNav({
             aria-expanded={moreOpen}
             className={cn(
               'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
               activeHidden ? 'text-foreground' : 'text-muted-foreground',
             )}
           >
