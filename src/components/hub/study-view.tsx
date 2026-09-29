@@ -91,7 +91,10 @@ import {
   TUTOR_HISTORY_KEEP,
   chatDayGroups,
   hhmmOf,
-  searchFold,
+  searchFoldLoose,
+  searchMatchSegments,
+  searchSnippetSegments,
+  type SearchSegment,
 } from '@/lib/tutor-history-view';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
@@ -455,18 +458,46 @@ export function StudyView({
   /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
   const camFileRef = React.useRef<HTMLInputElement>(null);
   // ----- Busca na conversa (t151) — filtrar o fio por texto, com contagem -----
-  // t153: o casamento DOBRA ACENTOS (searchFold) — "logica" acha "Lógica",
-  // "proporcao" acha "proporção"; a bolha continua exibindo o texto original.
+  // t153: o casamento DOBRA ACENTOS — "logica" acha "Lógica". t154: o dobro
+  // ganhou PONTUAÇÃO (searchFoldLoose) — "nao caem" acha "não, caem.",
+  // "proposicao logica" acha "proposição lógica?" — e o TRECHO casado acende
+  // (mark inline na bolha do aluno, chip de trecho sob a bolha do tutor); a
+  // textura das bolhas segue sendo o texto de nascença (fold só na comparação).
   const [chatSearchOpen, setChatSearchOpen] = React.useState(false);
   const [chatSearch, setChatSearch] = React.useState('');
   const chatSearchActive = chatSearchOpen && chatSearch.trim().length >= 2;
   const chatSearchResults = React.useMemo(() => {
-    const q = searchFold(chatSearch.trim());
+    const q = searchFoldLoose(chatSearch.trim());
     if (!chatSearchActive) return null;
     return messages
       .map((m, i) => ({ m, i }))
-      .filter(({ m }) => !m.error && searchFold(m.content).includes(q));
+      .filter(({ m }) => !m.error && searchFoldLoose(m.content).includes(q));
   }, [messages, chatSearch, chatSearchActive]);
+  // t154: os pedaços com o <mark> — bolha do ALUNO acende o trecho no lugar
+  // (só quando não há bloco de código: o CodeBlock não recebe marca).
+  const chatSearchSegments = React.useMemo(() => {
+    const map = new Map<number, SearchSegment[]>();
+    if (!chatSearchActive) return map;
+    const q = chatSearch.trim();
+    for (const { m, i } of chatSearchResults ?? []) {
+      if (!m.content.includes('```')) map.set(i, searchMatchSegments(m.content, q));
+    }
+    return map;
+  }, [chatSearchActive, chatSearch, chatSearchResults]);
+  // t154: o chip de TRECHO sob a bolha do TUTOR — janela curta em volta do
+  // 1º casamento (o markdown da bolha segue intacto em cima).
+  const chatSearchSnippets = React.useMemo(() => {
+    const map = new Map<number, SearchSegment[]>();
+    if (!chatSearchActive) return map;
+    const q = chatSearch.trim();
+    for (const { m, i } of chatSearchResults ?? []) {
+      if (m.role === 'assistant') {
+        const segs = searchSnippetSegments(m.content, q);
+        if (segs.length) map.set(i, segs);
+      }
+    }
+    return map;
+  }, [chatSearchActive, chatSearch, chatSearchResults]);
   // O CALENDÁRIO do fio (t151): cabeça de dia por mensagem + o recibo da
   // memória restaurada. Derivado de messages — nunca diverge do que se vê.
   const restoredCount = React.useMemo(
@@ -1939,7 +1970,7 @@ export function StudyView({
                   }}
                   placeholder="Buscar nesta conversa…"
                   aria-label="Buscar na conversa"
-                  title="A busca ignora acentos e maiúsculas — 'logica' acha 'Lógica'"
+                  title="A busca ignora acentos, maiúsculas e pontuação — 'logica' acha 'Lógica', 'nao caem' acha 'não caem.'"
                   className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-8 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                   autoFocus
                 />
@@ -2016,7 +2047,26 @@ export function StudyView({
                 >
                   {m.role === 'user' ? (
                     <>
-                      <UserBubbleContent content={m.content} />
+                      {chatSearchSegments.has(i) ? (
+                        // t154: o trecho casado ACENDE dentro da bolha do
+                        // aluno — âmbar sobre o esmeralda, texto original.
+                        <p className="whitespace-pre-wrap">
+                          {chatSearchSegments.get(i)!.map((seg, k) =>
+                            seg.hit ? (
+                              <mark
+                                key={k}
+                                className="rounded-sm bg-amber-300 px-0.5 text-emerald-950"
+                              >
+                                {seg.text}
+                              </mark>
+                            ) : (
+                              <React.Fragment key={k}>{seg.text}</React.Fragment>
+                            ),
+                          )}
+                        </p>
+                      ) : (
+                        <UserBubbleContent content={m.content} />
+                      )}
                       {m.image && (
                         <img
                           src={m.image}
@@ -2037,6 +2087,31 @@ export function StudyView({
                         </div>
                       ) : (
                         <TutorMarkdown content={m.content} enableCards disciplineCode={discipline.code} />
+                      )}
+                      {chatSearchSnippets.has(i) && (
+                        // t154: onde a agulha caiu — janela com o trecho aceso
+                        // (âmbar translúcido sobre o muted), reticências
+                        // honestas quando a resposta foi cortada.
+                        <p
+                          className="mt-1.5 flex items-start gap-1 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[11px] leading-relaxed text-muted-foreground"
+                          title="Trecho onde a busca casou"
+                        >
+                          <Search className="mt-0.5 size-3 shrink-0 text-amber-600/80 dark:text-amber-400/80" aria-hidden />
+                          <span className="min-w-0">
+                            {chatSearchSnippets.get(i)!.map((seg, k) =>
+                              seg.hit ? (
+                                <mark
+                                  key={k}
+                                  className="rounded-sm bg-amber-400/25 px-0.5 font-medium text-foreground"
+                                >
+                                  {seg.text}
+                                </mark>
+                              ) : (
+                                <React.Fragment key={k}>{seg.text}</React.Fragment>
+                              ),
+                            )}
+                          </span>
+                        </p>
                       )}
                       <div className="mt-1.5 flex items-center gap-2">
                         {m.time && (
