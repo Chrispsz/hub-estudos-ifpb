@@ -19,6 +19,7 @@ import {
   CircleAlert,
   CircleCheck,
   Crosshair,
+  Download,
   Dumbbell,
   Flag,
   GraduationCap,
@@ -31,6 +32,7 @@ import {
   Printer,
   RotateCcw,
   ScrollText,
+  ShieldCheck,
   Sigma,
   Sparkles,
   Target,
@@ -57,6 +59,8 @@ import {
 } from '@/lib/exam-readiness';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
+import { BACKUP_STAMP_KEY, backupStatus, progressWorthOf } from '@/lib/backup-guard';
+import { exportProgressBackup } from '@/lib/backup-export';
 import { collectMistakes, notebookStats, pendingMistakes } from '@/lib/mistake-notebook';
 import { cn } from '@/lib/utils';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
@@ -167,7 +171,14 @@ function planDayForDaysLeft(daysLeft: number): PlanDay | undefined {
   return planDayFor(offset) ?? MATH_EXAM_PLAN[Math.min(offset, MATH_EXAM_PLAN.length - 1)];
 }
 
-export function ExamPrepCard() {
+interface ExamPrepCardProps {
+  /** O nudge do backup (173): "gerenciar" abre as Configurações, onde vivem
+   * o medidor completo e a importação. Opcional: sem o callback, o atalho
+   * some (o card continua inteiro — a casa não promete o que não tem). */
+  onOpenSettings?: () => void;
+}
+
+export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
   const daysLeft = daysUntilDate(MATH_EXAM.date);
   const [open, setOpen] = React.useState(false);
   const [checked, setChecked] = useLocalStorage<CheckedMap>(MATH_PLAN_KEY, {});
@@ -182,6 +193,14 @@ export function ExamPrepCard() {
   const travadasCount = countTravadas(travadas);
   const travadasLabel = React.useMemo(() => formatTravadas(travadas), [travadas]);
   const sp = useStudyProgress();
+  // O SEGURO NA PORTA (173): a frescura do backup lida da MESMA chave do
+  // medidor das Configurações (hub:backup:last-export-at) — exportar aqui
+  // grava o selo (via exportProgressBackup → writeLocalStorage) e o medidor
+  // de lá sincroniza pelo storage event. O useLocalStorage é a régua da casa:
+  // default no primeiro render (sem mismatch), leitura pós-mount.
+  const [lastExport] = useLocalStorage<string | null>(BACKUP_STAMP_KEY, null);
+  const backup = backupStatus(lastExport);
+  const backupWorth = React.useMemo(() => progressWorthOf(sp.progress), [sp.progress]);
   // Caderno de Erros: contagem ao vivo dos PENDENTES (revisados não disputam
   // atenção na véspera — o card mostra o que ainda pede trabalho).
   const mistakes = React.useMemo(() => collectMistakes(sp.progress), [sp.progress]);
@@ -423,6 +442,18 @@ export function ExamPrepCard() {
   function openTravadas() {
     setDialogFocus('travadas');
     setOpen(true);
+  }
+
+  // O GESTO INTEIRO (173): o nudge não manda para outra aba fazer — ele FAZ.
+  // Mesma lib, mesma chave de selo, mesma mecânica do handleExport das
+  // Configurações; a voz (toast) é a mesma frase da casa.
+  function handleBackupNow() {
+    try {
+      exportProgressBackup(sp.progress);
+      toast.success('Backup exportado com sucesso! — o seguro está em dia.');
+    } catch (e) {
+      toast.error('Erro ao exportar: ' + (e as Error).message);
+    }
   }
 
   // Linha do tempo dos 8 dias (offset 7 → 0): passado✓ verde, passado✗ âmbar,
@@ -1065,6 +1096,59 @@ export function ExamPrepCard() {
           </span>
           <span className="shrink-0 text-[10px] text-muted-foreground">Estudar →</span>
         </button>
+
+        {/* O SEGURO NA PORTA (173): a frescura do backup mora no rodapé do
+            card que o aluno olha todo dia — silencioso quando em dia, botão
+            inteiro quando o seguro precisa ser feito. A conta de dias é
+            tabular-nums; o selo é a MESMA chave das Configurações. */}
+        <div
+          data-testid="backup-nudge"
+          className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2 animate-in fade-in duration-300"
+        >
+          <p
+            className="flex min-w-0 items-center gap-1.5 text-[11px]"
+            title={
+              backupWorth.total > 0
+                ? `O progresso mora só neste navegador — ${backupWorth.total} ${backupWorth.total === 1 ? 'registro' : 'registros'} no seguro. Exporte um JSON de vez em quando.`
+                : 'O progresso mora só neste navegador — exporte um JSON de vez em quando.'
+            }
+          >
+            <ShieldCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0 truncate text-muted-foreground">Seguro do progresso:</span>
+            <span className={cn('font-medium', BACKUP_NUDGE_TEXT[backup.tone])}>
+              {backup.label}
+            </span>
+            <span
+              aria-hidden
+              className={cn('size-1.5 shrink-0 rounded-full', BACKUP_NUDGE_DOT[backup.tone])}
+            />
+          </p>
+          <div className="flex shrink-0 items-center gap-1">
+            {backup.tone !== 'ok' ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="backup-nudge-action"
+                onClick={handleBackupNow}
+                className="h-6 gap-1 rounded-md border-emerald-500/40 px-2 text-[11px] text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 focus-visible:ring-emerald-500/40 dark:text-emerald-300 dark:hover:text-emerald-200"
+              >
+                <Download className="size-3" aria-hidden />
+                Fazer backup agora
+              </Button>
+            ) : null}
+            {onOpenSettings ? (
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                data-testid="backup-nudge-manage"
+                className="rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              >
+                gerenciar
+              </button>
+            ) : null}
+          </div>
+        </div>
       </Card>
 
       {/* Dialog: plano completo + fórmulas + checklist */}
@@ -1432,6 +1516,25 @@ const READINESS_BADGE: Record<ReadinessTone, string> = {
   pronto: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
   quase: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
   atencao: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+};
+
+// ---------- O nudge do backup (173): a mesma gramática do medidor (172) ----------
+
+/** Cor = significado (a gramática da casa): os 4 tons da régua do backup.
+ *  danger/never pulsam (a mesma voz do chip "é hoje" — o que espera, pulsa);
+ *  ok respira parado. */
+const BACKUP_NUDGE_DOT: Record<string, string> = {
+  ok: 'bg-emerald-500',
+  warn: 'bg-amber-500',
+  danger: 'bg-rose-500 animate-pulse',
+  never: 'bg-zinc-400 dark:bg-zinc-500 animate-pulse',
+};
+
+const BACKUP_NUDGE_TEXT: Record<string, string> = {
+  ok: 'text-emerald-700 dark:text-emerald-300',
+  warn: 'text-amber-700 dark:text-amber-300',
+  danger: 'text-rose-700 dark:text-rose-300',
+  never: 'text-muted-foreground',
 };
 
 const READINESS_LABEL: Record<ReadinessTone, string> = {

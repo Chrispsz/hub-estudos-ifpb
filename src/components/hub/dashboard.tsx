@@ -72,9 +72,12 @@ interface Props {
   onOpenSchedule?: () => void;
   onOpenLibrary?: () => void;
   onOpenPractice?: () => void;
+  /** O nudge do backup (173): "gerenciar" no card da prova abre as
+   *  Configurações — o mesmo setActive das outras portas da home. */
+  onOpenSettings?: () => void;
 }
 
-export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice }: Props) {
+export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenPractice, onOpenSettings }: Props) {
   const sp = useStudyProgress();
   const [selected, setSelected] = React.useState<Discipline | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -353,7 +356,7 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
       </motion.section>
 
       {/* FOCO: Prova de Matemática (Av1, 01/10) — plano 12 dias material-first */}
-      <ExamPrepCard />
+      <ExamPrepCard onOpenSettings={onOpenSettings} />
 
       {/* PLANO DE RECUPERAÇÃO — semana atual + fila de prioridades (sem S1 feita, resto pendente) */}
       <RecoveryCard />

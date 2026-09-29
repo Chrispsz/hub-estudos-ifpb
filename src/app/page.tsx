@@ -336,6 +336,7 @@ export default function Page() {
             onOpenSchedule={() => setActive('schedule')}
             onOpenLibrary={() => setActive('library')}
             onOpenPractice={() => setActive('practice')}
+            onOpenSettings={() => setActive('settings')}
           />
         );
       case 'study':
