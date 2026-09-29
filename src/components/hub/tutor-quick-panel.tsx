@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, Camera, Check, Copy, CornerDownLeft, Download, ImagePlus, Lightbulb, Loader2, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, Sparkles, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ import {
   useScreenCapture,
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
+import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
@@ -68,6 +69,11 @@ interface TutorQuickPanelProps {
   materialId?: string;
   /** Perguntas prontas exibidas como chips antes da 1ª resposta. */
   suggestions?: string[];
+  /** Material aberto — quando é PDF, o painel ganha o print DE PÁGINA (t152):
+   * pdf.js renderiza a página exata e o recorte acontece SOBRE o PDF, sem
+   * seletor de tela — o pedido do dono: "o print deveria ser do pdf quando
+   * estou com um aberto". */
+  material?: Material;
   /** Tipo do material aberto — os chips de início MUDAM com ele: numa LISTA
    * o aluno não quer "resumir", quer começar a resolver (145). */
   materialType?: Material['type'];
@@ -85,6 +91,10 @@ interface TutorQuickPanelProps {
   /** Aviso de resposta: a 1ª parte da resposta chegou — o diálogo marca o
    * ponto não lido na aba Tutor quando o aluno está vendo o PDF no mobile. */
   onAssistantReply?: () => void;
+  /** Destino do print de página (t152): quando fornecido, o anexo passa pelo
+   * MESMO tubo do externalImage (chip no composer + aba Tutor abre no mobile).
+   * Sem o callback, o print fica no composer do próprio painel. */
+  onPdfCaptureAttach?: (image: string) => void;
   className?: string;
 }
 
@@ -95,10 +105,12 @@ export function TutorQuickPanel({
   materialId,
   suggestions,
   materialType,
+  material,
   showHeader,
   externalImage,
   onExternalImageConsumed,
   onAssistantReply,
+  onPdfCaptureAttach,
   className,
 }: TutorQuickPanelProps) {
   const sp = useStudyProgress();
@@ -126,6 +138,8 @@ export function TutorQuickPanel({
   /** Captura de tela em recorte (o frame bruto vive aqui até o diálogo fechar). */
   const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
   const [captureOpen, setCaptureOpen] = React.useState(false);
+  /** Print de PÁGINA do PDF aberto (t152) — a via sem seletor de tela. */
+  const [pdfCaptureOpen, setPdfCaptureOpen] = React.useState(false);
   const { capturing, startCapture } = useScreenCapture(
     React.useCallback((canvas: HTMLCanvasElement) => {
       setCaptureCanvas(canvas);
@@ -633,6 +647,20 @@ export function TutorQuickPanel({
           >
             <ImagePlus className="size-4" />
           </Button>
+          {material?.pdfPath && material.type !== 'web_page' && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+              onClick={() => setPdfCaptureOpen(true)}
+              disabled={loading}
+              aria-label="Print de página do PDF para o tutor"
+              title="Print direto do PDF — escolha a página, recorte a questão se quiser e anexe. Sem escolher aba/tela, sem seletor do navegador (nada é salvo no seu computador)"
+            >
+              <FileScan className="size-4" />
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -660,7 +688,7 @@ export function TutorQuickPanel({
               capturing
                 ? 'Escolhendo a tela… clique de novo para soltar'
                 : screenOk
-                  ? 'Capturar a tela — recorte a questão e anexe (nada é salvo no seu computador)'
+                  ? 'Capturar a TELA (qualquer coisa fora do PDF) — recorte e anexe (nada é salvo no seu computador)'
                   : 'Sem captura de tela neste navegador — abre a câmera para fotografar a questão (nada é salvo no seu computador)'
             }
           >
@@ -728,6 +756,22 @@ export function TutorQuickPanel({
         onAttach={setPendingImage}
         onRetry={() => void startCapture()}
       />
+
+      {/* Print de PÁGINA do material aberto (t152): a via SEM seletor de tela —
+          pdf.js renderiza, o aluno recorta sobre o próprio PDF e o anexo entra
+          no MESMO pendingImage (ou no tubo do diálogo via onPdfCaptureAttach,
+          que também acende a aba Tutor no mobile). */}
+      {material?.pdfPath && material.type !== 'web_page' && (
+        <PdfPageCaptureDialog
+          material={material}
+          open={pdfCaptureOpen}
+          onOpenChange={setPdfCaptureOpen}
+          onAttach={(image) => {
+            if (onPdfCaptureAttach) onPdfCaptureAttach(image);
+            else setPendingImage(image);
+          }}
+        />
+      )}
     </div>
   );
 }

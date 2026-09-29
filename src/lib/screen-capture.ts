@@ -147,6 +147,14 @@ export async function captureScreenFrame(): Promise<HTMLCanvasElement> {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('canvas indisponível');
+
+    // Assentamento (t152, reclamação do dono com print): o SELETOR do
+    // navegador morre DEPOIS que o stream começa — nos primeiros frames a
+    // superfície capturada ainda carrega o próprio seletor ("Choose what to
+    // share") congelado na imagem. Um 1º draw só aquece o decode; o frame
+    // VERDADEIRO é colhido depois do assentamento, com a tela já limpa.
+    ctx.drawImage(video, 0, 0, w, h);
+    await new Promise<void>((r) => setTimeout(r, 380));
     ctx.drawImage(video, 0, 0, w, h);
     return canvas;
   } catch {

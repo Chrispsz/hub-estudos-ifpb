@@ -6,9 +6,15 @@
 // arquivo é nosso: pdf.js renderiza a página EXATA em alta resolução (2×) e o
 // jpeg entra DIRETO no chat do tutor via openTutor({ image }) — sem seletor de
 // tela, sem recorte manual, sem arquivo no disco (o canvas morre com o diálogo).
+//
+// t152 (pedido do dono com print): a página inteira nem sempre é a pergunta —
+// numa LISTA de 35 questões ele quer UMA questão. O recorte da captura de tela
+// (138) agora mora AQUI TAMBÉM: arrasta sobre a PRÉVIA renderizada e só o
+// recorte segue — recortado dos pixels ORIGINAIS do render 2× (a resolução da
+// tela deixa de ser o teto; o PDF manda na nitidez).
 
 import * as React from 'react';
-import { Camera, Check, Loader2, X } from 'lucide-react';
+import { Camera, Check, Crop, Expand, Loader2, ScanText, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -33,12 +39,26 @@ interface Props {
 /** Estado de carregamento do documento/página — a UI mostra o que acontece. */
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
+/** Retângulo de seleção em coordenadas NORMALIZADAS (0..1 da prévia). */
+interface Rect {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
 export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }: Props) {
   const [state, setState] = React.useState<LoadState>('idle');
   const [pageCount, setPageCount] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
   const [rendering, setRendering] = React.useState(false);
   const [attached, setAttached] = React.useState(false);
+  /** Recorte arrastado sobre a prévia (t152) — null = página inteira. */
+  const [rect, setRect] = React.useState<Rect | null>(null);
+  const draggingRef = React.useRef(false);
+  const cropBoxRef = React.useRef<HTMLDivElement>(null);
   /** Espelho de selected para os listeners de teclado lerem o valor vivo. */
   const selectedRef = React.useState({ current: null as number | null })[0];
 
@@ -81,6 +101,7 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
       setSelected(null);
       selectedRef.current = null;
       setAttached(false);
+      setRect(null);
       return;
     }
     let alive = true;
@@ -125,12 +146,18 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
   /** Página grande no preview — 2× de nitidez para o OCR da IA ler tudo. */
   const renderPreview = React.useCallback(async (n: number) => {
     const doc = docRef.current;
-    const canvas = previewRef.current;
-    if (!doc || !canvas) return;
+    if (!doc) return;
     setRendering(true);
     try {
       renderTaskRef.current?.cancel?.();
       const page = await doc.getPage(n);
+      // LIÇÃO t152 (pega AO VIVO no E2E): o canvas NÃO existia no 1º pick —
+      // ele monta junto com o estado `selected`, DEPOIS do handler. Ler o ref
+      // ANTES do await devolvia null e a prévia morria em branco (300×150).
+      // Re-ler DEPOIS do await: o React 18 descarga o clique de forma
+      // síncrona, então quando o pdf.js volta o canvas já está no DOM.
+      const canvas = previewRef.current;
+      if (!canvas) return;
       const base = page.getViewport({ scale: 1 });
       const scale = (620 / base.width) * 2; // coluna do preview ~620px, nitidez 2×
       const viewport = page.getViewport({ scale });
@@ -177,6 +204,7 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
     setSelected(n);
     selectedRef.current = n;
     setAttached(false);
+    setRect(null); // o recorte pertence à página onde nasceu — trocou, morreu
     void renderPreview(n);
     // a miniatura escolhida segue o teclado (folhear com ←/→ sem caçar o scroll)
     const thumb = thumbsRef.current?.querySelector<HTMLCanvasElement>(
@@ -200,12 +228,70 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
     return () => window.removeEventListener('keydown', onKey);
   }, [open, state, pageCount]);
 
+  // ===== Recorte sobre a prévia (mesma gramática do capture-crop-dialog):
+  // coordenadas NORMALIZADAS no display, pixels recortados dos ORIGINAIS 2×.
+  const normFromEvent = (e: React.PointerEvent): { x: number; y: number } => {
+    const box = cropBoxRef.current?.getBoundingClientRect();
+    if (!box) return { x: 0, y: 0 };
+    return {
+      x: clamp01((e.clientX - box.left) / box.width),
+      y: clamp01((e.clientY - box.top) / box.height),
+    };
+  };
+
+  const onCropPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const p = normFromEvent(e);
+    draggingRef.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* sem capture — o move direto continua servindo */
+    }
+    setRect({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
+  };
+
+  const onCropPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    const p = normFromEvent(e);
+    setRect((r) => (r ? { ...r, x2: p.x, y2: p.y } : r));
+  };
+
+  const onCropPointerUp = () => {
+    draggingRef.current = false;
+    // Clique sem arrasto não é seleção — a página inteira segue sendo o 1-clic.
+    setRect((r) => {
+      if (!r || !cropBoxRef.current) return null;
+      const box = cropBoxRef.current.getBoundingClientRect();
+      const w = Math.abs(r.x2 - r.x1) * box.width;
+      const h = Math.abs(r.y2 - r.y1) * box.height;
+      return w < 8 || h < 8 ? null : r;
+    });
+  };
+
   /** Anexa ao tutor: canvas → JPEG 1400px (a mesma régua dos prints) → chat. */
-  const attach = () => {
+  const attach = (whole: boolean) => {
     const canvas = previewRef.current;
     if (!canvas || !canvas.width || selected === null) return;
     try {
-      const image = downscaleCanvas(canvas);
+      let out: HTMLCanvasElement = canvas;
+      if (!whole && rect && cropBoxRef.current) {
+        const rx1 = Math.min(rect.x1, rect.x2);
+        const rx2 = Math.max(rect.x1, rect.x2);
+        const ry1 = Math.min(rect.y1, rect.y2);
+        const ry2 = Math.max(rect.y1, rect.y2);
+        const sx = Math.round(rx1 * canvas.width);
+        const sy = Math.round(ry1 * canvas.height);
+        const sw = Math.max(1, Math.round((rx2 - rx1) * canvas.width));
+        const sh = Math.max(1, Math.round((ry2 - ry1) * canvas.height));
+        out = document.createElement('canvas');
+        out.width = sw;
+        out.height = sh;
+        const ctx = out.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+      }
+      const image = downscaleCanvas(out);
       if (onAttach) {
         // Modo dividido: o painel do tutor mora AO LADO — o anexo nem sai
         // do diálogo (o print já nasce do lado de quem vai ler).
@@ -219,13 +305,32 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
       }
       setAttached(true);
       toast.success(
-        `Página ${selected} anexada ao tutor — nada foi salvo no seu computador.`,
+        whole
+          ? `Página ${selected} anexada ao tutor — nada foi salvo no seu computador.`
+          : `Recorte da página ${selected} anexado ao tutor — nada foi salvo no seu computador.`,
       );
       onOpenChange(false); // fecha: o print some daqui junto com o diálogo
     } catch {
       toast.error('Não consegui converter a página. Tente de novo.');
     }
   };
+
+  const sel = rect
+    ? {
+        left: `${Math.min(rect.x1, rect.x2) * 100}%`,
+        top: `${Math.min(rect.y1, rect.y2) * 100}%`,
+        width: `${Math.abs(rect.x2 - rect.x1) * 100}%`,
+        height: `${Math.abs(rect.y2 - rect.y1) * 100}%`,
+      }
+    : null;
+
+  const selPixels =
+    rect && previewRef.current
+      ? {
+          w: Math.max(1, Math.round(Math.abs(rect.x2 - rect.x1) * previewRef.current.width)),
+          h: Math.max(1, Math.round(Math.abs(rect.y2 - rect.y1) * previewRef.current.height)),
+        }
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -236,8 +341,9 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
             Print de página — {material.title}
           </DialogTitle>
           <DialogDescription className="mt-1 text-xs">
-            Escolha a página e anexe ao tutor — a imagem vai direto para a conversa e
-            some com o envio. <span className="text-emerald-500">Nada é salvo no seu computador.</span>
+            Escolha a página, arraste para recortar só a questão (ou anexe a página
+            inteira) — a imagem vai direto para a conversa e some com o envio.{" "}
+            <span className="text-emerald-500">Nada é salvo no seu computador.</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -298,12 +404,34 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
                     Clique numa página à esquerda
                   </div>
                 ) : (
-                  <div className="relative">
+                  <div
+                    ref={cropBoxRef}
+                    className="relative touch-none select-none"
+                  >
                     <canvas
                       ref={previewRef}
-                      className="max-w-full rounded-md bg-white shadow-md"
+                      className="block max-w-full rounded-md bg-white shadow-md"
                       aria-label={`Prévia da página ${selected}`}
                     />
+                    {/* Camada de recorte POR CIMA do canvas — a prévia não
+                        recebe interação, o arrasto é todo desta camada. */}
+                    <div
+                      aria-hidden={rect ? undefined : true}
+                      aria-label={rect ? 'Recorte selecionado na página' : undefined}
+                      className="absolute inset-0 cursor-crosshair rounded-md"
+                      onPointerDown={onCropPointerDown}
+                      onPointerMove={onCropPointerMove}
+                      onPointerUp={onCropPointerUp}
+                      onPointerCancel={onCropPointerUp}
+                    >
+                      {sel && (
+                        <div
+                          data-testid="pdf-capture-selection"
+                          className="pointer-events-none absolute border-2 border-emerald-400 bg-emerald-400/10"
+                          style={{ ...sel, boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)' }}
+                        />
+                      )}
+                    </div>
                     {rendering && (
                       <div className="absolute inset-0 grid place-items-center rounded-md bg-background/60">
                         <Loader2 className="size-6 animate-spin text-emerald-500" aria-hidden />
@@ -316,25 +444,60 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach }:
                 <p className="min-w-0 flex-1 text-xs text-muted-foreground">
                   {selected !== null && (
                     <>
-                      Página <span className="font-medium tabular-nums text-foreground">{selected}</span> de{' '}
-                      <span className="tabular-nums">{pageCount}</span> · qualidade 2× para a IA ler os números
+                      Página <span className="font-medium tabular-nums text-foreground">{selected}</span> de{" "}
+                      <span className="tabular-nums">{pageCount}</span>
+                      {selPixels ? (
+                        <>
+                          {" · "}recorte:{" "}
+                          <span className="tabular-nums text-foreground">
+                            {selPixels.w} × {selPixels.h} px
+                          </span>
+                        </>
+                      ) : (
+                        <> · qualidade 2× para a IA ler os números</>
+                      )}
                     </>
                   )}
                 </p>
+                {rect && (
+                  <button
+                    type="button"
+                    onClick={() => setRect(null)}
+                    className="hidden rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                  >
+                    limpar seleção
+                  </button>
+                )}
+                {rect && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9"
+                    onClick={() => attach(true)}
+                    disabled={rendering || attached}
+                    aria-label="Anexar a página inteira ao tutor"
+                  >
+                    <Expand className="size-3.5" aria-hidden /> Página inteira
+                  </Button>
+                )}
                 <Button
                   size="sm"
-                  onClick={attach}
+                  onClick={() => attach(!rect)}
                   disabled={selected === null || rendering || attached}
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  aria-label="Anexar página ao tutor"
+                  aria-label={rect ? 'Anexar o recorte selecionado ao tutor' : 'Anexar página ao tutor'}
                 >
                   {attached ? (
                     <>
                       <Check className="size-3.5" /> Anexada
                     </>
+                  ) : rect ? (
+                    <>
+                      <Crop className="size-3.5" /> Anexar recorte
+                    </>
                   ) : (
                     <>
-                      <Camera className="size-3.5" /> Anexar ao tutor
+                      <ScanText className="size-3.5" /> Anexar ao tutor
                     </>
                   )}
                 </Button>

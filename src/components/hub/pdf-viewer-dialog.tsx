@@ -547,10 +547,12 @@ export function PdfViewerDialog({ material, open, onOpenChange }: Props) {
                 materialTitle={material.title}
                 materialId={material.id}
                 materialType={material.type}
+                material={material}
                 showHeader={isSplit}
                 externalImage={panelImage}
                 onExternalImageConsumed={consumePanelImage}
                 onAssistantReply={handleAssistantReply}
+                onPdfCaptureAttach={handleCaptureAttach}
                 className="min-h-0 flex-1"
               />
             </div>
