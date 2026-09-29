@@ -21,6 +21,8 @@ import {
   Crosshair,
   Download,
   Dumbbell,
+  Eye,
+  EyeOff,
   Flag,
   GraduationCap,
   Layers,
@@ -57,6 +59,22 @@ import {
   type ReadinessResult,
   type ReadinessTone,
 } from '@/lib/exam-readiness';
+import {
+  MATH_RECITE_KEY,
+  buildReceipt,
+  isRecitable,
+  localDateKey,
+  normalizeReciteReceipt,
+  reciteProgress,
+  recitableCount,
+  receiptBadgeText,
+  receiptIsToday,
+  sameReceipt,
+  stuckCount,
+  stuckTitles,
+  toggleStuck,
+  type ReciteReceipt,
+} from '@/lib/formula-recite';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { BACKUP_STAMP_KEY, backupStatus, progressWorthOf } from '@/lib/backup-guard';
@@ -178,6 +196,11 @@ interface ExamPrepCardProps {
   onOpenSettings?: () => void;
 }
 
+// A REGUA DA RODADA (t177): só caixas com fórmula real são recitáveis — a
+// PÓS-PROVA é aviso, não conteúdo de prova (o contador da tela é a FONTE,
+// nunca a conta otimista do DOM — lição 105).
+const RECITE_TOTAL = recitableCount(MATH_FORMULAS);
+
 export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
   const daysLeft = daysUntilDate(MATH_EXAM.date);
   const [open, setOpen] = React.useState(false);
@@ -234,6 +257,60 @@ export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
     }, 120); // espera o conteúdo do Dialog montar
     return () => window.clearTimeout(id);
   }, [open, dialogFocus]);
+
+  // A RECITAÇÃO QUE VÊ O TRAVO (t177): o diálogo de fórmulas ganha a rodada
+  // que a folha já tem na TELA e o travo que nem a folha tem — revelada, a
+  // caixa pode ser marcada "travei nesta", e a rodada completa grava o RECIBO
+  // do dia (o kit lê: "recitou hoje · N travaram"). Reveladas/travadas são
+  // estado de TELA (recarregou, a rodada recomeça — o MESMO contrato da
+  // folha; o title do toggle confessa); o RECIBO é o que sobrevive.
+  const [reciteOn, setReciteOn] = React.useState(false);
+  const [reciteRevealed, setReciteRevealed] = React.useState<Record<string, boolean>>({});
+  const [reciteStuck, setReciteStuck] = React.useState<Record<string, boolean>>({});
+  const [reciteSolo, setReciteSolo] = React.useState(false);
+  const [reciteReceipt, setReciteReceipt] = React.useState<ReciteReceipt | null>(null);
+  const [reciteTodayKey, setReciteTodayKey] = React.useState('');
+  React.useEffect(() => {
+    setReciteTodayKey(localDateKey(new Date()));
+    try {
+      setReciteReceipt(
+        normalizeReciteReceipt(JSON.parse(window.localStorage.getItem(MATH_RECITE_KEY) ?? 'null')),
+      );
+    } catch {
+      setReciteReceipt(null); // storage bloqueado/lixo — sem recibo (nunca inventado)
+    }
+  }, []);
+  function toggleReciteMode() {
+    setReciteOn((on) => {
+      if (on) {
+        // desligou = a próxima rodada começa do zero (MESMA semântica da folha)
+        setReciteRevealed({});
+        setReciteStuck({});
+        setReciteSolo(false);
+      }
+      return !on;
+    });
+  }
+  // O recibo nasce quando a rodada fica COMPLETA — efeito, não handler: a
+  // última caixa revelada por qualquer gesto (teclado inclusive) fecha a
+  // rodada. Travo marcado DEPOIS do fim REGRAVA o recibo (a verdade FINAL do
+  // dia, não a foto do primeiro frame completo); a guarda de igualdade evita
+  // regravar o mesmo recibo a cada re-render.
+  React.useEffect(() => {
+    if (!reciteOn || !reciteTodayKey) return;
+    if (!reciteProgress(reciteRevealed, RECITE_TOTAL).allRevealed) return;
+    const receipt = buildReceipt(reciteTodayKey, RECITE_TOTAL, reciteStuck, MATH_FORMULAS);
+    if (sameReceipt(reciteReceipt, receipt)) return;
+    setReciteReceipt(receipt);
+    try {
+      window.localStorage.setItem(MATH_RECITE_KEY, JSON.stringify(receipt));
+    } catch {
+      // quota/storage — a rodada segue; perde-se o recibo, não a revisão
+    }
+  }, [reciteOn, reciteRevealed, reciteStuck, reciteReceipt, reciteTodayKey]);
+  const reciteProg = reciteProgress(reciteRevealed, RECITE_TOTAL);
+  const reciteStuckN = stuckCount(reciteStuck);
+  const reciteStuckList = stuckTitles(reciteStuck, MATH_FORMULAS);
 
   // FOCO DA PROVA (dados reais, material-first): pior tópico do escopo da Av1
   // segundo a tendência das tentativas do Simulado Pro. O card deixa de ser
@@ -1057,6 +1134,8 @@ export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
             }
             travadasCount={travadasCount}
             travadasLabel={travadasLabel}
+            reciteReceipt={reciteReceipt}
+            reciteTodayKey={reciteTodayKey}
             onOpenErrors={() => openSimulado()}
             onOpenFormulas={() => {
               setDialogFocus('formulas');
@@ -1314,60 +1393,218 @@ export function ExamPrepCard({ onOpenSettings }: ExamPrepCardProps) {
               </div>
             </section>
 
-            {/* Fórmulas */}
+            {/* Fórmulas — e, na rodada (t177), a recitação que vê o travo */}
             <section id="dlg-formulas" aria-label="Fórmulas essenciais" className="scroll-mt-4">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <Sparkles className="size-3.5" /> Fórmulas essenciais (dos materiais)
                 </h3>
-                <a
-                  href="/folha-revisao"
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Abrir a folha de revisão pronta para imprimir (fórmulas + checklist + kit)"
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                >
-                  <Printer className="size-3" aria-hidden />
-                  Folha para imprimir
-                </a>
-              </div>
-              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {MATH_FORMULAS.map((f) => (
-                  <Card
-                    key={f.titulo}
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleReciteMode}
+                    aria-pressed={reciteOn}
+                    title={
+                      reciteOn
+                        ? 'Rodada a correr — toque nas caixas tracejadas para conferir; recarregar a página recomeça a rodada'
+                        : `Oculta as ${RECITE_TOTAL} fórmulas para recitar de memória e marcar em quais travou`
+                    }
                     className={cn(
-                      'rounded-lg p-3',
-                      f.grupo === 'Matrizes'
-                        ? 'border-rose-500/20 bg-rose-500/[0.04]'
-                        : 'border-sky-500/20 bg-sky-500/[0.04]',
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors',
+                      reciteOn
+                        ? 'border-indigo-400/50 bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-300'
+                        : 'border-zinc-300/70 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100',
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold">{f.titulo}</p>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'text-[9px]',
-                          f.grupo === 'Matrizes'
-                            ? 'border-rose-500/30 text-rose-600 dark:text-rose-400'
-                            : 'border-sky-500/30 text-sky-600 dark:text-sky-400',
-                        )}
-                      >
-                        {f.grupo}
-                      </Badge>
-                    </div>
-                    {f.math && (
-                      <div className="mt-1 rounded-md bg-background/60 px-2 py-1.5">
-                        {f.math.map((line, i) => (
-                          <TutorMarkdown key={i} content={`$$${line}$$`} className="text-xs [&_.katex-display]:my-1" />
-                        ))}
-                      </div>
+                    {reciteOn ? (
+                      <Eye className="size-3" aria-hidden />
+                    ) : (
+                      <EyeOff className="size-3" aria-hidden />
                     )}
-                    <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-foreground/70">
-                      {f.corpo}
-                    </p>
-                  </Card>
-                ))}
+                    {reciteOn ? (
+                      <>
+                        Recitação ·{' '}
+                        <span className="tabular-nums">{reciteProg.hiddenCount}</span> oculta
+                        {reciteProg.hiddenCount === 1 ? '' : 's'}
+                      </>
+                    ) : (
+                      'Recitar'
+                    )}
+                  </button>
+                  <a
+                    href="/folha-revisao"
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Abrir a folha de revisão pronta para imprimir (fórmulas + checklist + kit)"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100 px-2.5 py-1 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                  >
+                    <Printer className="size-3" aria-hidden />
+                    Folha para imprimir
+                  </a>
+                </div>
+              </div>
+
+              {/* A LINHA DA RODADA (④): só existe com a rodada a correr —
+                  contagem da FONTE (tabular-nums, a gramática da casa) e o
+                  travo já marcado com a voz honesta do zero. */}
+              {reciteOn && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="tabular-nums">
+                    {reciteProg.revealedCount}/{RECITE_TOTAL} reveladas
+                  </span>
+                  <span aria-hidden>·</span>
+                  {reciteStuckN > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 font-medium tabular-nums text-rose-600 dark:text-rose-400">
+                      <Flag className="size-2.5" aria-hidden /> {reciteStuckN} travei
+                    </span>
+                  ) : (
+                    <span>nenhuma travou ainda</span>
+                  )}
+                  {/* A ENTRADA do reler-dirigido (t177): travou ≥ 1 e o modo
+                      completo ainda não filtra — o botão abre o "só as
+                      travadas" da promessa ("é só ela que você relê"). */}
+                  {reciteStuckN > 0 && !reciteSolo && (
+                    <button
+                      type="button"
+                      onClick={() => setReciteSolo(true)}
+                      title="Mostra só as caixas marcadas com travei — o reler dirigido da promessa"
+                      className="rounded text-[10px] font-medium text-rose-600 underline-offset-2 hover:underline dark:text-rose-300"
+                    >
+                      reler só as travadas
+                    </button>
+                  )}
+                  {reciteSolo && reciteStuckN > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setReciteSolo(false)}
+                      className="ml-auto rounded text-[10px] font-medium text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-300"
+                    >
+                      voltar à rodada inteira
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* A PROMESSA FECHADA (t177): rodada completa = a linha que diz
+                  onde reler antes de dormir — "é só ela que você relê" agora
+                  tem NOME (o Moon da véspera, a calma indigo da casa; os
+                  travos em rose, a família do travado). */}
+              {reciteOn && reciteProg.allRevealed && (
+                <div className="mt-2 rounded-lg border border-indigo-400/30 bg-indigo-500/[0.06] p-2.5">
+                  <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-200">
+                    <Moon className="size-3.5 shrink-0" aria-hidden />
+                    {reciteStuckN === 0
+                      ? 'Rodada completa — zero travado hoje. Pode dormir.'
+                      : `Rodada completa — ${reciteStuckN} ${reciteStuckN === 1 ? 'ficou' : 'ficaram'} para reler antes de dormir:`}
+                  </p>
+                  {reciteStuckN > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {reciteStuckList.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-400"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                {MATH_FORMULAS.map((f) => {
+                  // A RODADA (t177): recitável = caixa com fórmula real; oculta
+                  // até o toque; travada marcada DEPOIS de revelar (travo é
+                  // dado, não memória de caneta). Solo-travadas é filtro da
+                  // RODADA e é LITERAL — só as travadas ficam (a PÓS-PROVA,
+                  // que não se recita, também sai; recitação desligada, a
+                  // grade volta inteira).
+                  const recitable = isRecitable(f);
+                  const hidden = reciteOn && recitable && reciteRevealed[f.titulo] !== true;
+                  const isStuck = reciteStuck[f.titulo] === true;
+                  if (reciteOn && reciteSolo && reciteStuckN > 0 && !isStuck) return null;
+                  return (
+                    <Card
+                      key={f.titulo}
+                      className={cn(
+                        'rounded-lg p-3 transition-colors',
+                        isStuck
+                          ? 'border-l-2 border-l-rose-500/70 border-rose-500/30 bg-rose-500/[0.05]'
+                          : f.grupo === 'Matrizes'
+                            ? 'border-rose-500/20 bg-rose-500/[0.04]'
+                            : 'border-sky-500/20 bg-sky-500/[0.04]',
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold">{f.titulo}</p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-[9px]',
+                            f.grupo === 'Matrizes'
+                              ? 'border-rose-500/30 text-rose-600 dark:text-rose-400'
+                              : 'border-sky-500/30 text-sky-600 dark:text-sky-400',
+                          )}
+                        >
+                          {f.grupo}
+                        </Badge>
+                      </div>
+                      {hidden ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReciteRevealed((prev) => ({ ...prev, [f.titulo]: true }))
+                          }
+                          aria-label={`Conferir a fórmula: ${f.titulo}`}
+                          title="Recitou? toque para conferir"
+                          className="mt-1 flex w-full items-center justify-between gap-2 rounded-md border border-dashed border-rose-500/40 bg-background/40 px-2 py-2.5 text-left transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 active:scale-[0.99]"
+                        >
+                          <span className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                            Recite o conteúdo — toque para conferir
+                          </span>
+                          <Eye className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        </button>
+                      ) : (
+                        recitable &&
+                        f.math && (
+                          <div className="mt-1 rounded-md bg-background/60 px-2 py-1.5">
+                            {f.math.map((line, i) => (
+                              <TutorMarkdown
+                                key={i}
+                                content={`$$${line}$$`}
+                                className="text-xs [&_.katex-display]:my-1"
+                              />
+                            ))}
+                          </div>
+                        )
+                      )}
+                      {reciteOn && recitable && !hidden && (
+                        <button
+                          type="button"
+                          onClick={() => setReciteStuck((prev) => toggleStuck(prev, f.titulo))}
+                          aria-pressed={isStuck}
+                          title={
+                            isStuck
+                              ? 'Tira a marca: recitou certo agora'
+                              : 'Recitou e travou — ela entra na lista do reler antes de dormir (e no recibo de hoje)'
+                          }
+                          className={cn(
+                            'mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9.5px] font-medium transition-colors',
+                            isStuck
+                              ? 'border-rose-500/50 bg-rose-500/15 text-rose-600 dark:text-rose-300'
+                              : 'border-zinc-300/70 text-zinc-500 hover:border-rose-500/40 hover:text-rose-600 dark:border-zinc-600 dark:text-zinc-400 dark:hover:text-rose-300',
+                          )}
+                        >
+                          <Flag className="size-2.5" aria-hidden />
+                          {isStuck ? 'travei nesta' : 'travei? marcar'}
+                        </button>
+                      )}
+                      <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-foreground/70">
+                        {f.corpo}
+                      </p>
+                    </Card>
+                  );
+                })}
               </div>
             </section>
 
@@ -1626,6 +1863,8 @@ function VesperaKit({
   flashcardsDue,
   travadasCount,
   travadasLabel,
+  reciteReceipt,
+  reciteTodayKey,
   onOpenErrors,
   onOpenFormulas,
   onOpenTravadas,
@@ -1650,6 +1889,10 @@ function VesperaKit({
   flashcardsDue: number;
   travadasCount: number;
   travadasLabel: string;
+  /** Recibo da recitação de HOJE (t177) — null/antigo = a linha fica no estado de convite. */
+  reciteReceipt: ReciteReceipt | null;
+  /** Chave local de hoje ('' até o mount — o mesmo contrato honesto da folha). */
+  reciteTodayKey: string;
   onOpenErrors: () => void;
   onOpenFormulas: () => void;
   onOpenTravadas: () => void;
@@ -1900,7 +2143,37 @@ function VesperaKit({
               MATH_EXAM.topicosEscopo.find((t) => t !== foco.topic) ?? '',
             )} depois — se travar numa, é só ela que você relê antes de dormir.`
           : 'Matrizes primeiro, Lógica depois — se travar numa, é só ela que você relê antes de dormir.',
+      // O RECIBO DA RECITAÇÃO (t177): a promessa desta linha ("é só ela que
+      // você relê antes de dormir") agora FECHA no mesmo dia — a rodada
+      // completa deixa recibo com os travos NOMEADOS (ordem da fonte), e a
+      // linha confessa o que ficou para o sono. Sem recibo de hoje: nada
+      // aqui (nada inventado — a regra da 88).
+      subNode: receiptIsToday(reciteReceipt, reciteTodayKey) ? (
+        <span className="mt-1 block text-[11px] leading-relaxed">
+          {reciteReceipt && reciteReceipt.stuck.length > 0 ? (
+            <>
+              {'Recitou hoje — ficou para reler: '}
+              <span className="font-medium text-rose-600 dark:text-rose-300">
+                {reciteReceipt.stuck.join(' · ')}
+              </span>
+              .
+            </>
+          ) : (
+            'Recitou hoje — zero travado. A noite cumpriu o que a linha promete.'
+          )}
+        </span>
+      ) : undefined,
       action: onOpenFormulas,
+      badge:
+        receiptIsToday(reciteReceipt, reciteTodayKey) && reciteReceipt
+          ? {
+              text: receiptBadgeText(reciteReceipt),
+              tone:
+                reciteReceipt.stuck.length === 0
+                  ? 'border-emerald-500/40 bg-emerald-500/10 tabular-nums text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                  : 'border-amber-500/50 bg-amber-500/10 tabular-nums text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400',
+            }
+          : undefined,
       cta: 'Abrir fórmulas',
     },
     // A FOLHA ENTRA NO KIT NA VÉSPERA (122): o detalhe do marco da véspera
