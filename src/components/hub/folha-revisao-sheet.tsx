@@ -10,7 +10,9 @@
  *   2. Fórmulas essenciais (MATH_FORMULAS, KaTeX) — Matrizes primeiro
  *   3. Checklist de domínio (MATH_CHECKLIST) — sincronizado com o card da
  *      prova (mesma chave hub:math-exam:v1:checklist e mesmas keys)
- *   4. Kit do dia da prova (FOLHA_KIT) + plano da véspera (D-1 do plano)
+ *   4. Kit do dia da prova (FOLHA_KIT) + plano que LÊ O DIA (t184: véspera
+ *      D-1 — e o plano do DIA DA PROVA no D-0, o papel da manhã não fala
+ *      das tarefas da noite anterior)
  *   + FOCO DO SIMULADO (useSimuladoFoco): o tópico mais fraco da tentativa
  *      mais recente da Av1 (escopo TEC.1984) — a promessa "o bloco com mais
  *      erros vira a revisão de amanhã" impressa.
@@ -39,12 +41,11 @@ import {
   MATH_CHECKLIST,
   MATH_EXAM,
   MATH_EXAM_DATE_SHORT,
-  MATH_EXAM_PLAN,
   MATH_FORMULAS,
   MATH_META,
-  MATH_VESPERA_DATE,
   examWeekMilestoneFor,
   folhaDayLine,
+  folhaPlanForPaper,
 } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import {
@@ -271,7 +272,16 @@ export function FolhaRevisaoSheet() {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  const vespera = MATH_EXAM_PLAN.find((d) => d.offset === 1);
+  // A COLUNA DO PLANO LÊ O DIA (t184): no DIA da prova o papel mostra o
+  // plano do DIA (reler os cards, conferir o kit, a conduta na prova) — a
+  // véspera é papel de ONTEM. Antes de o cliente saber a hora (todayKey
+  // vazio), a véspera (a forma original: a folha nasce PARA a véspera,
+  // zero flash vazio no SSR — mesmo contrato honesto do dayLine/selo).
+  const paperPlan = React.useMemo(
+    () => folhaPlanForPaper(todayKey ? daysUntilDate(MATH_EXAM.date) : null),
+    [todayKey],
+  );
+  const isProvaDay = paperPlan?.plan.offset === 0;
   const matrizes = MATH_FORMULAS.filter((f) => f.grupo === 'Matrizes');
   const logica = MATH_FORMULAS.filter((f) => f.grupo === 'Lógica');
 
@@ -512,8 +522,10 @@ export function FolhaRevisaoSheet() {
             </div>
           </section>
 
-          {/* 4. Véspera + kit do dia */}
-          <section aria-label="Véspera e kit do dia da prova" className="mt-5 border-t border-zinc-200 pt-3">
+          {/* 4. Plano do dia + kit — a coluna LÊ O DIA (t184): véspera no
+              D-1 (e antes), o plano do DIA DA PROVA no D-0 — o papel da
+              manhã não fala das tarefas da noite anterior. */}
+          <section aria-label="Plano do dia e kit do dia da prova" className="mt-5 border-t border-zinc-200 pt-3">
             {/* Foco do simulado — o resultado do ensaio vira a ordem do dia
                 (mesma promessa do plano D-2, agora no papel). Sem tentativa
                 com detalhes, o slot da promessa ocupa o lugar e manda
@@ -559,13 +571,26 @@ export function FolhaRevisaoSheet() {
               </div>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {vespera && (
-                <div className="break-inside-avoid">
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900">
-                    Véspera · {fmtDayBR(MATH_VESPERA_DATE)} <span className="font-medium normal-case tracking-normal text-zinc-500">— {vespera.minutos} min</span>
+              {paperPlan && (
+                <div
+                  data-testid="folha-plan-day"
+                  className={cn(
+                    'break-inside-avoid',
+                    // ④ O peso do dia: no D-0 a coluna ganha a régua escura
+                    // (o vocabulário do foco, já usado no bloco do simulado)
+                    // — marca de BORDA, não de cor: impressora P&B lê.
+                    isProvaDay && 'border-l-4 border-l-zinc-900 pl-3',
+                  )}
+                >
+                  <h3
+                    data-testid="folha-plan-label"
+                    className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900"
+                  >
+                    {paperPlan.label} · {fmtDayBR(paperPlan.dateISO)}{' '}
+                    <span className="font-medium normal-case tracking-normal text-zinc-500">— {paperPlan.plan.minutos} min</span>
                   </h3>
                   <ol className="mt-1.5 space-y-1">
-                    {vespera.tarefas.map((t, i) => (
+                    {paperPlan.plan.tarefas.map((t, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-[10.5px] leading-snug text-zinc-700">
                         <span className="mt-[1px] font-bold tabular-nums text-zinc-400">{i + 1}.</span>
                         <span>{t.texto}</span>
@@ -588,10 +613,14 @@ export function FolhaRevisaoSheet() {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 text-[10px] leading-snug text-zinc-500">
-                  Na prova: leia o enunciado 2×, comece pelas fáceis e confira a inversa com
-                  A·A⁻¹ = I.
-                </p>
+                {/* No D-0 a conduta na prova já está no plano do dia (tarefa
+                    3) — repetir aqui era tinta dobrada no papel da manhã. */}
+                {!isProvaDay && (
+                  <p className="mt-2 text-[10px] leading-snug text-zinc-500">
+                    Na prova: leia o enunciado 2×, comece pelas fáceis e confira a inversa com
+                    A·A⁻¹ = I.
+                  </p>
+                )}
               </div>
             </div>
           </section>

@@ -1329,6 +1329,34 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
   },
 ];
 
+/**
+ * A COLUNA DO PLANO LÊ O DIA (t184) — a folha sempre mostrou a VÉSPERA na
+ * coluna do plano, mesmo impressa NO DIA da prova: o papel da manhã falava
+ * das tarefas da noite anterior (recitar, refazer as travadas) enquanto o
+ * plano do DIA (reler os cards, conferir o kit, a conduta na prova) nunca
+ * saía da tela. A doutrina da 183 ("a folha lê o dia") chega à coluna: no
+ * D-0 o papel mostra o plano do dia; em qualquer outro dia — e antes de o
+ * cliente saber a hora (daysLeft null, o primeiro render do servidor) — a
+ * véspera segue sendo o alvo do papel (a folha nasce PARA a véspera; zero
+ * flash vazio no SSR). FONTE ÚNICA: MATH_EXAM_PLAN para o plano,
+ * MATH_EXAM/MATH_VESPERA_DATE para a data — zero segunda derivação.
+ * (A função vive DEPOIS do MATH_EXAM_PLAN — a lição da 183 sobre TDZ.)
+ */
+export function folhaPlanForPaper(daysLeft: number | null): {
+  plan: PlanDay;
+  label: string;
+  dateISO: string;
+} | null {
+  const offset = daysLeft === 0 ? 0 : 1;
+  const plan = MATH_EXAM_PLAN.find((d) => d.offset === offset) ?? null;
+  if (!plan) return null;
+  return {
+    plan,
+    label: offset === 0 ? 'Dia da prova' : 'Véspera',
+    dateISO: offset === 0 ? MATH_EXAM.date : MATH_VESPERA_DATE,
+  };
+}
+
 export interface FormulaCard {
   grupo: 'Matrizes' | 'Lógica';
   titulo: string;
