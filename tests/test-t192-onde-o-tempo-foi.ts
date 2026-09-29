@@ -341,9 +341,12 @@ ok(
 );
 
 // E3 — a mais lenta veste amber com a confissão no hover
+// (t193: a confissão mudou para a FONTE ÚNICA — pacingChipTitle na lib —
+// e o view a consome; duas superfícies, uma voz)
+const debriefLib = src('src/lib/simulado-debrief.ts');
 ok(
-  view.includes('isSlowest') && view.includes('foi a que mais comeu o relógio'),
-  'E3: a questão mais lenta é nomeada no title',
+  view.includes('isSlowest') && view.includes('pacingChipTitle') && debriefLib.includes('foi a que mais comeu o relógio'),
+  'E3: a questão mais lenta é nomeada no title (fonte única t193)',
 );
 ok(
   /isSlowest[\s\S]*?border-amber-500\/50/.test(view),
@@ -351,8 +354,10 @@ ok(
 );
 
 // E4 — a pulada que comeu o relógio tem confissão própria no hover
+// (t193: a confissão mora na lib — pacingChipTitle com solved === null)
 ok(
-  view.includes('ficou sem resposta: é ELA a revisão de amanhã'),
+  debriefLib.includes('ficou sem resposta: é ELA a revisão de amanhã') &&
+    debriefLib.includes('solved === null'),
   'E4: pulada lenta → a confissão aponta a revisão de amanhã',
 );
 
