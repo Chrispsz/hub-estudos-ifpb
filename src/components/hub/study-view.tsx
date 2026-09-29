@@ -104,6 +104,7 @@ import {
 } from '@/lib/tutor-history-view';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
+import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
@@ -2359,6 +2360,25 @@ export function StudyView({
                           >
                             <RotateCcw className="size-3" />
                             tentar de novo
+                          </button>
+                        )}
+                        {!m.error && canContinueFromInterrupt(messages, i) && (
+                          // t168 — A PALAVRA DE VOLTA: o freio ganhou ré. O
+                          // parcial é conteúdo real (a IA o lê no histórico);
+                          // o turno novo nasce AO LADO — append-only, o
+                          // carimbo da t167 continua dizendo a verdade. O
+                          // composer é do presente: sem colar código, sem
+                          // levar o print pendente, sem limpar rascunho.
+                          <button
+                            type="button"
+                            onClick={() => void sendQuestion(TUTOR_CONTINUE_QUESTION, null)}
+                            disabled={chatLoading}
+                            aria-label="Continuar a resposta de onde parou"
+                            title="Envia o pedido de continuação — o tutor lê o que chegou e segue daí; o parcial e o carimbo continuam no fio"
+                            className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 transition-colors hover:text-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-400 dark:hover:text-emerald-300"
+                          >
+                            <Play className="size-3" />
+                            continuar de onde parou
                           </button>
                         )}
                         {m.time && (

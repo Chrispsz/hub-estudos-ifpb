@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, Play, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
+import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
 import { isNearBottom } from '@/lib/tutor-follow';
 import {
   clearThread,
@@ -112,6 +113,25 @@ interface TutorQuickPanelProps {
    * também o rótulo de procedência fabricado pelo diálogo de captura. */
   onPdfCaptureAttach?: (image: string, label: string) => void;
   className?: string;
+}
+
+/**
+ * O RELÓGIO DA ESPERA (t168) — os segundos do "pensando" do painel, a mesma
+ * régua do ThinkingBubble do chat principal. Montagem condicional (só vive
+ * enquanto `loading`): cada turno recomeça do zero — o número conta a espera
+ * DESTA resposta, não a idade do painel.
+ */
+function PanelThinkingSecs() {
+  const [secs, setSecs] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setSecs((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="tabular-nums opacity-70" aria-hidden>
+      {secs}s
+    </span>
+  );
 }
 
 export function TutorQuickPanel({
@@ -637,6 +657,23 @@ export function TutorQuickPanel({
                         tentar de novo
                       </button>
                     )}
+                    {!m.error && canContinueFromInterrupt(messages, idx) && (
+                      // t168 — A PALAVRA DE VOLTA (paridade): o freio ganhou
+                      // ré aqui também. O turno novo nasce AO LADO do parcial
+                      // (append-only); keepComposer=true — o rascunho e o
+                      // print pendente do agora sobrevivem (régua t164).
+                      <button
+                        type="button"
+                        onClick={() => void ask(TUTOR_CONTINUE_QUESTION, null, true)}
+                        disabled={loading}
+                        aria-label="Continuar a resposta de onde parou"
+                        title="Envia o pedido de continuação — o tutor lê o que chegou e segue daí; o parcial e o carimbo continuam no fio"
+                        className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 transition-colors hover:text-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-400 dark:hover:text-emerald-300"
+                      >
+                        <Play className="size-3" />
+                        continuar de onde parou
+                      </button>
+                    )}
                     {m.time && <span className="text-[10px] text-muted-foreground/60">{m.time}</span>}
                     {m.model && (
                       <span className="text-[10px] text-muted-foreground/60">via {m.model}</span>
@@ -670,8 +707,18 @@ export function TutorQuickPanel({
         ))}
 
         {loading && (
-          <div aria-live="polite" className="flex items-center gap-2 text-xs text-muted-foreground">
+          // t168 — O RELÓGIO DA ESPERA (paridade com o ThinkingBubble do
+          // chat principal): modelos grátis podem levar até ~30s e um
+          // spinner sozinho não diz se a espera está viva ou presa. O número
+          // é honesto e morre junto com a espera (montagem condicional
+          // zera o contador a cada turno).
+          <div
+            aria-live="polite"
+            data-testid="panel-thinking"
+            className="flex items-center gap-2 text-xs text-muted-foreground"
+          >
             <Loader2 className="size-3.5 animate-spin" aria-hidden /> O tutor está pensando…
+            <PanelThinkingSecs />
           </div>
         )}
 
