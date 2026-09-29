@@ -97,13 +97,27 @@ export function useSmartCrons() {
         const id = `${ev.disciplineCode}-${ev.evaluationName}`;
         if (!notified.includes(id)) {
           const disc = getDisciplineByCode(ev.disciplineCode);
-          toast.warning(
-            `Faltam ${days} ${days === 1 ? 'dia' : 'dias'} para ${ev.evaluationName} — ${disc?.shortName ?? ev.disciplineCode}`,
-            {
-              description: ev.description,
-              duration: 8000,
-            },
-          );
+          // t191 — A VOZ DO DIA D: "Faltam 0 dias" era um fóssil no próprio
+          // dia (a prova é HOJE — não falta nada). No dia, a voz vira "É hoje"
+          // em toast.info (calma — a prova não é um alarme, é um compromisso);
+          // o warning fica para 1–7 dias, onde "faltar" é verdade.
+          if (days === 0) {
+            toast.info(
+              `É hoje: ${ev.evaluationName} — ${disc?.shortName ?? ev.disciplineCode}`,
+              {
+                description: ev.description,
+                duration: 8000,
+              },
+            );
+          } else {
+            toast.warning(
+              `Faltam ${days} ${days === 1 ? 'dia' : 'dias'} para ${ev.evaluationName} — ${disc?.shortName ?? ev.disciplineCode}`,
+              {
+                description: ev.description,
+                duration: 8000,
+              },
+            );
+          }
           notified.push(id);
         }
       }

@@ -97,6 +97,7 @@ import {
   MATH_META,
   MATH_NOTA_REAL_KEY,
   MATH_PLAN_KEY,
+  MATH_PROVA_REAL_KEY,
   MATH_SIMULADO_DATE,
   MATH_TOPICO_CURTO,
   MATH_TRAVADAS_KEY,
@@ -115,12 +116,17 @@ import {
   normalizeTravadas,
   notaRealAv1Valida,
   planDayChecked,
+  PROVA_REAL_LABEL,
+  provaRealRead,
+  provaRealSummary,
   planDayFor,
   planDaysBehind,
   simuladoVerdictFor,
   type DrillRunLike,
   type PlanDay,
   type PlanKind,
+  type ProvaRealEntry,
+  type ProvaRealLevel,
   type SimuladoTopicScore,
   type SimuladoVerdict,
   type AutoavaliacaoLink,
@@ -228,6 +234,74 @@ function PlacarChips({ porTopico }: { porTopico: SimuladoTopicScore[] }) {
   );
 }
 
+/**
+ * t191 — OS CHIPS DO DEBRIEF DA PROVA REAL. A noite da prova (01/10) tinha
+ * só a nota (Calculadora, t77) — o ritual que faltava: como foi POR TÓPICO,
+ * com a memória fresca. Três níveis honestos na gramática de cor da casa:
+ * emerald = tranquilo (a família do done), rose = travei (a família do
+ * travado no kit e no drill), zinc = não caiu (o neutro honesto do pulado,
+ * t190 — nunca a tinta do erro nem a do acerto). Selecionado veste a família
+ * com mais tinta; tocar outro chip sobrescreve (o recibo é o último toque,
+ * mesma doutrina do recorte). ④ foco visível, aria-pressed por chip e
+ * dark/light paritários.
+ */
+const PROVA_REAL_CHIP: Record<ProvaRealLevel, { base: string; on: string }> = {
+  tranquilo: {
+    base: 'border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300',
+    on: 'border-emerald-500/60 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  },
+  travei: {
+    base: 'border-rose-500/40 text-rose-700 hover:bg-rose-500/15 dark:text-rose-300',
+    on: 'border-rose-500/60 bg-rose-500/15 text-rose-700 dark:text-rose-300',
+  },
+  'nao-caiu': {
+    base: 'border-zinc-400/50 text-zinc-600 hover:bg-zinc-500/10 dark:text-zinc-300',
+    on: 'border-zinc-500/60 bg-zinc-500/15 text-zinc-700 dark:text-zinc-200',
+  },
+};
+
+function ProvaRealChips({
+  topic,
+  value,
+  onPick,
+}: {
+  topic: string;
+  value: ProvaRealLevel | undefined;
+  onPick: (topic: string, level: ProvaRealLevel) => void;
+}) {
+  const levels = Object.keys(PROVA_REAL_LABEL) as ProvaRealLevel[];
+  return (
+    <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end">
+      <span className="min-w-0 shrink-0 text-xs font-medium text-foreground sm:min-w-[7.5rem]">
+        {curto(topic)}
+      </span>
+      <span className="flex flex-wrap gap-1">
+        {levels.map((level) => {
+          const on = value === level;
+          const family = PROVA_REAL_CHIP[level];
+          return (
+            <button
+              key={level}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onPick(topic, level)}
+              title={`${PROVA_REAL_LABEL[level]} — ${topic}${on ? ' (registrado; toque outro para ajustar)' : ''}`}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                on ? family.on : cn('bg-transparent', family.base),
+              )}
+            >
+              {on && <CircleCheck className="size-3" aria-hidden />}
+              {PROVA_REAL_LABEL[level]}
+            </button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
 const KIND_LABEL: Record<PlanKind, string> = {
   estudo: 'Estudo',
   pratica: 'Prática',
@@ -285,6 +359,28 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
   );
   const travadasCount = countTravadas(travadas);
   const travadasLabel = React.useMemo(() => formatTravadas(travadas), [travadas]);
+  // t191 — O DEBRIEF DA PROVA REAL: lido da MESMA chave que a Recuperação
+  // confessa (hub:math-exam:v1:prova-real) com o parser da lib como régua
+  // (deserialize) — lixo/parcial chega null (card calmo), dado bom chega
+  // completo no primeiro render pós-mount. O storage event sincroniza as
+  // duas superfícies na mesma aba sem reload.
+  const [provaReal, setProvaReal] = useLocalStorage<ProvaRealEntry | null>(
+    MATH_PROVA_REAL_KEY,
+    null,
+    provaRealRead,
+  );
+  const registrarProvaReal = React.useCallback(
+    (topic: string, level: ProvaRealLevel) => {
+      const atual = provaReal ?? { registeredAt: '', perTopic: {} };
+      if (atual.perTopic[topic] === level) return; // mesmo nível — nada muda, nada reescreve
+      setProvaReal({
+        registeredAt: new Date().toISOString(),
+        perTopic: { ...atual.perTopic, [topic]: level },
+      });
+      toast.success(`Debrief da prova salvo — ${curto(topic)}: ${PROVA_REAL_LABEL[level].toLowerCase()}.`);
+    },
+    [provaReal, setProvaReal],
+  );
   const sp = useStudyProgress();
   // O SEGURO NA PORTA (173): a frescura do backup lida da MESMA chave do
   // medidor das Configurações (hub:backup:last-export-at) — exportar aqui
@@ -589,6 +685,43 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
             <Calculator className="size-3.5" />{' '}
             {nota === null ? 'Abrir a Calculadora' : 'Ver a média na Calculadora'}
           </Button>
+        </div>
+        {/* t191 — O DEBRIEF DA PROVA REAL: a nota mora na Calculadora; o COMO
+            FOI por tópico mora aqui, com a memória fresca da noite da prova.
+            Aparece nos TRÊS estados do card (a autoavaliação é independente
+            da nota — um não espera o outro). A Recuperação lê os "Travei" da
+            MESMA chave (storage event sincroniza, sem reload). */}
+        <div className="mt-3 border-t border-border/60 pt-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Como foi a prova, por tópico?
+            </p>
+            {provaReal?.registeredAt ? (
+              <p className="shrink-0 text-[11px] text-muted-foreground">
+                registrado{' '}
+                {new Date(provaReal.registeredAt).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                })}{' '}
+                às{' '}
+                {new Date(provaReal.registeredAt).toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                · toque para ajustar
+              </p>
+            ) : null}
+          </div>
+          <div className="mt-2 space-y-2">
+            {MATH_EXAM.topicosEscopo.map((topic) => (
+              <ProvaRealChips
+                key={topic}
+                topic={topic}
+                value={provaReal?.perTopic[topic]}
+                onPick={registrarProvaReal}
+              />
+            ))}
+          </div>
         </div>
       </Card>
     );

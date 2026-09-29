@@ -1910,6 +1910,113 @@ export function notaRealAv1Valida(
   return new Date(registro.doneAt).getTime() >= new Date(`${MATH_EXAM.date}T00:00:00`).getTime();
 }
 
+// ---------------------------------------------------------------------------
+// O DEBRIEF DA PROVA REAL (t191) — a nota mora na Calculadora (t77), mas a
+// NOITE da prova (01/10) tem um ritual que faltava: registrar COMO FOI por
+// tópico, com a memória fresca. A autoavaliação alimenta a Recuperação (os
+// tópicos marcados "travei" são exatamente onde a retomada começa — os gates
+// pós-prova, determinantes e sistemas, se apoiam em Matrizes) e o próprio
+// dono (a próxima folha nasce com a confissão da prova anterior). Regra da
+// casa: dado que o dono não deu não existe — três níveis honestos por tópico
+// do escopo REAL (MATH_EXAM.topicosEscopo), nada inventado, nada obrigatório.
+// ---------------------------------------------------------------------------
+
+/** Nível honesto da autoavaliação — a gramática de cor da casa em três peças. */
+export type ProvaRealLevel = 'tranquilo' | 'travei' | 'nao-caiu';
+
+/**
+ * Chave do debrief da prova real — a MESMA família do kit (hub:math-exam:v1:recite)
+ * e do plano (hub:math-exam:v1:*). Lida pelo card pós-prova (escreve) e pela
+ * Recuperação (confessa) via useLocalStorage — o storage event sincroniza as
+ * duas superfícies na mesma aba sem reload.
+ */
+export const MATH_PROVA_REAL_KEY = 'hub:math-exam:v1:prova-real';
+
+export interface ProvaRealEntry {
+  /** ISO do último toque (o recibo é a última escrita — mesma doutrina do recorte). */
+  registeredAt: string;
+  /** Tópico → nível. Só entra tópico com nível válido (o parser é a régua). */
+  perTopic: Record<string, ProvaRealLevel>;
+}
+
+const PROVA_REAL_LEVELS: readonly ProvaRealLevel[] = ['tranquilo', 'travei', 'nao-caiu'];
+
+/** Rótulo na voz do dono — fonte única dos chips do card e da confissão da Recuperação. */
+export const PROVA_REAL_LABEL: Record<ProvaRealLevel, string> = {
+  tranquilo: 'Tranquilo',
+  travei: 'Travei',
+  'nao-caiu': 'Não caiu',
+};
+
+/**
+ * Parser/normalizador (a doutrina do recibo da recitação, t178): lixo, dado
+ * parcial ou corrompido → null (o card fica calmo, sem debrief — nunca um
+ * meio-registro vestido de dado). Tópico sem nível conhecido não mata o
+ * registro: sai do mapa e o resto vale (dados antigos não são apagados —
+ * são honestamente ignorados). Sem nenhum nível válido → null (registro
+ * vazio não é debrief).
+ */
+export function provaRealRead(raw: unknown): ProvaRealEntry | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const typed = raw as Record<string, unknown>;
+  const perTopicRaw = typed.perTopic;
+  if (perTopicRaw == null || typeof perTopicRaw !== 'object' || Array.isArray(perTopicRaw)) {
+    return null;
+  }
+  const perTopic: Record<string, ProvaRealLevel> = {};
+  for (const [topic, level] of Object.entries(perTopicRaw as Record<string, unknown>)) {
+    if (typeof topic !== 'string' || topic.trim() === '') continue;
+    if (typeof level !== 'string') continue;
+    if (!(PROVA_REAL_LEVELS as readonly string[]).includes(level)) continue;
+    perTopic[topic] = level as ProvaRealLevel;
+  }
+  if (Object.keys(perTopic).length === 0) return null;
+  const registeredAt =
+    typeof typed.registeredAt === 'string' && !Number.isNaN(new Date(typed.registeredAt).getTime())
+      ? typed.registeredAt
+      : '';
+  return { registeredAt, perTopic };
+}
+
+/**
+ * Tópicos agrupados por nível, na ORDEM do escopo (a voz da casa lê na ordem
+ * da prova, nunca na ordem do toque); tópicos fora do escopo (registro
+ * antigo/parcial) entram no fim dos seus grupos — honestos, nunca apagados.
+ */
+export function provaRealSummary(entry: ProvaRealEntry | null): Record<ProvaRealLevel, string[]> {
+  const summary: Record<ProvaRealLevel, string[]> = { tranquilo: [], travei: [], 'nao-caiu': [] };
+  if (!entry) return summary;
+  const fora = new Set(Object.keys(entry.perTopic));
+  for (const topic of MATH_EXAM.topicosEscopo) {
+    const level = entry.perTopic[topic];
+    if (level) {
+      summary[level].push(topic);
+      fora.delete(topic);
+    }
+  }
+  for (const topic of fora) summary[entry.perTopic[topic]].push(topic);
+  return summary;
+}
+
+/** Existe tópico "travei"? — o gatilho honesto da confissão na Recuperação. */
+export function provaRealTemTravei(entry: ProvaRealEntry | null): boolean {
+  return !!entry && Object.values(entry.perTopic).some((l) => l === 'travei');
+}
+
+/**
+ * A confissão da Recuperação (fonte única da voz): cita SOMENTE os tópicos
+ * marcados "travei" na ordem do escopo — é onde a retomada começa. Sem
+ * travei → null (a linha cala — tranquilidade não pede plano; o card
+ * celebra por si).
+ */
+export function provaRealConfessionFor(entry: ProvaRealEntry | null): string | null {
+  if (!entry || !provaRealTemTravei(entry)) return null;
+  const { travei } = provaRealSummary(entry);
+  if (travei.length === 0) return null;
+  const voz = travei.map((t) => MATH_TOPICO_CURTO[t] ?? t).join(' e ');
+  return `autoavaliação da prova: ${voz} — travei`;
+}
+
 export interface GradeTableExamStrip {
   tone: 'amber' | 'rose' | 'emerald';
   /** Chip tabular ('D-2' | 'D-1' | 'hoje') — pós-prova fala pelo título, sem chip. */

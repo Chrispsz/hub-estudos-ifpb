@@ -40,7 +40,15 @@ import {
   TRACK_STATUS_LABEL,
   type TrackStatus,
 } from '@/lib/recovery-plan';
-import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
+import {
+  MATH_EXAM,
+  MATH_META,
+  MATH_PROVA_REAL_KEY,
+  MATH_SIMULADO_DATE,
+  provaRealConfessionFor,
+  provaRealRead,
+  type ProvaRealEntry,
+} from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 
 const STATUS_STYLE: Record<TrackStatus, string> = {
@@ -89,6 +97,16 @@ export function RecoveryCard() {
     () => findNotaRealAv1(sp.progress.realGrades),
     [sp.progress.realGrades],
   );
+  // t191 — O DEBRIEF DA PROVA REAL: a MESMA chave que o card pós-prova
+  // escreve (hub:math-exam:v1:prova-real, parser da lib como régua) — o
+  // storage event sincroniza na hora (o dono registra no card da home e a
+  // Recuperação confessa sem reload). A confissão só existe com "travei".
+  const [provaReal] = useLocalStorage<ProvaRealEntry | null>(
+    MATH_PROVA_REAL_KEY,
+    null,
+    provaRealRead,
+  );
+  const confissaoProva = React.useMemo(() => provaRealConfessionFor(provaReal), [provaReal]);
   const todayItems = React.useMemo(
     () =>
       todayRecoveryActions(
@@ -179,6 +197,15 @@ export function RecoveryCard() {
             )}
           </Badge>
         </div>
+        {/* t191 — A CONFISSÃO DO DEBRIEF: só depois da prova e só quando o
+            dono marcou "Travei" em algum tópico (a lib cala sem travei —
+            tranquilidade não pede plano). Cor = a família do travado (rose),
+            a linha aponta a retomada sem fabricar tarefa. */}
+        {daysToExam < 0 && confissaoProva && (
+          <p className="-mt-2 px-4 text-xs font-medium text-rose-600 sm:-mt-3 sm:px-5 dark:text-rose-400">
+            {confissaoProva} — a retomada começa por aí.
+          </p>
+        )}
 
         {/* Faça hoje (ordem de prioridade) */}
         <div className="border-t px-4 py-3 sm:px-5">
