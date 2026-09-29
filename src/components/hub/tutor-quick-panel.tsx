@@ -7,13 +7,18 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Download, FileScan, ImagePlus, Lightbulb, Loader2, Play, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
+import { Bot, ArrowDown, Camera, Check, Copy, CornerDownLeft, Crop, Download, FileScan, ImagePlus, Lightbulb, Loader2, Play, RotateCcw, Sparkles, Square, Target, Trash2, TriangleAlert, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { buildHubContext } from '@/lib/tutor-context';
-import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import { downscaleCanvas, downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import {
+  instantPrintPage,
+  pagePrintLabel,
+  renderPdfPageToCanvas,
+} from '@/lib/pdf-print';
 import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import {
   screenCaptureSupported,
@@ -201,14 +206,53 @@ export function TutorQuickPanel({
   /** Captura de tela em recorte (o frame bruto vive aqui até o diálogo fechar). */
   const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
   const [captureOpen, setCaptureOpen] = React.useState(false);
-  /** Print de PÁGINA do PDF aberto (t152) — a via sem seletor de tela. */
+  /** Print de PÁGINA do PDF aberto (t152) — a via de PRECISÃO (escolher
+   * página + recortar). O clique único da régua rápida é o instantâneo (t175). */
   const [pdfCaptureOpen, setPdfCaptureOpen] = React.useState(false);
+  /** t175 — O PRINT NASCE DO PDF: o render da página aberta em curso (o
+   * botão mostra o spinner e não aceita segundo clique). */
+  const [instantPrinting, setInstantPrinting] = React.useState(false);
   const { capturing, startCapture } = useScreenCapture(
     React.useCallback((canvas: HTMLCanvasElement) => {
       setCaptureCanvas(canvas);
       setCaptureOpen(true);
     }, []),
   );
+  /**
+   * t175 — O PRINT QUE NASCE DO PDF (pedido do dono): com o material aberto,
+   * UM clique anexa a página que está AO LADO — pdf.js renderiza a página
+   * despachada (último salto; sem salto, a 1ª que o leitor mostra), a régua
+   * de 1400px dos prints encolhe o payload e o anexo entra no MESMO tubo do
+   * print de página (onPdfCaptureAttach no modo dividido; composer próprio
+   * sem o callback). Sem seletor de tela, sem recorte, sem arquivo no disco.
+   * Falha: o caminho de precisão (recorte) e o Ctrl+V continuam de pé.
+   */
+  const instantPdfPrint = React.useCallback(async () => {
+    if (!material?.pdfPath || instantPrinting) return;
+    const page = instantPrintPage(pdfCurrentPage, material.pages);
+    setInstantPrinting(true);
+    try {
+      const canvas = await renderPdfPageToCanvas(material.pdfPath, page);
+      const image = downscaleCanvas(canvas);
+      const label = pagePrintLabel(page, material.title);
+      if (onPdfCaptureAttach) {
+        onPdfCaptureAttach(image, label);
+      } else {
+        setPendingImage(image);
+        setPendingLabel(label);
+      }
+      toast.success(
+        `Página ${page} anexada ao tutor — nada foi salvo no seu computador.`,
+      );
+    } catch {
+      toast.error(
+        'Não consegui renderizar a página. Use o recorte do PDF ou cole com Ctrl+V.',
+      );
+    } finally {
+      setInstantPrinting(false);
+    }
+  }, [material, instantPrinting, pdfCurrentPage, onPdfCaptureAttach]);
+
   const scrollRef = React.useRef<HTMLDivElement>(null);
   // t165 — A LEITURA NÃO É SEQUESTRADA (paridade com o chat principal): o
   // auto-scroll SÓ segue quando o leitor está no fim. Ele subiu para reler
@@ -927,18 +971,55 @@ export function TutorQuickPanel({
             <ImagePlus className="size-4" />
           </Button>
           {material?.pdfPath && material.type !== 'web_page' && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
-              onClick={() => setPdfCaptureOpen(true)}
-              disabled={loading}
-              aria-label="Print de página do PDF para o tutor"
-              title="Print direto do PDF — escolha a página, recorte a questão se quiser e anexe. Sem escolher aba/tela, sem seletor do navegador (nada é salvo no seu computador)"
-            >
-              <FileScan className="size-4" />
-            </Button>
+            <>
+              {/* t175 — O PRINT QUE NASCE DO PDF: o PRIMEIRO botão é o
+                  instantâneo — UM clique anexa a página aberta ao lado, sem
+                  seletor de tela, sem recorte (o pedido do dono: o print é
+                  do PDF quando há um aberto). Spinner honesto no render. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                data-testid="instant-pdf-print"
+                className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                onClick={() => void instantPdfPrint()}
+                disabled={loading || instantPrinting}
+                aria-busy={instantPrinting}
+                aria-label={`Anexar a página ${instantPrintPage(pdfCurrentPage, material.pages)} do PDF ao tutor`}
+                title={
+                  instantPrinting
+                    ? 'Renderizando a página…'
+                    : `Print da página ${instantPrintPage(pdfCurrentPage, material.pages)} — UM clique anexa a página aberta ao lado. Sem escolher aba/tela, sem seletor do navegador (nada é salvo no seu computador)`
+                }
+              >
+                {instantPrinting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <FileScan className="size-4" />
+                )}
+              </Button>
+              {/* A via de PRECISÃO (t152): escolher outra página na prévia e
+                  recortar só a questão — o irmão lento do instantâneo. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                onClick={() => setPdfCaptureOpen(true)}
+                disabled={loading || instantPrinting}
+                aria-label="Escolher página do PDF e recortar trecho para o tutor"
+                title="Print de página com recorte — escolha a página na prévia, arraste para recortar só a questão e anexe (nada é salvo no seu computador)"
+              >
+                <Crop className="size-4" />
+              </Button>
+            </>
+          )}
+          {/* A GRAMATURA DA COR (t175): esmeralda = print que nasce do
+              conteúdo do Hub (a página do PDF); o divisor separa o print de
+              FORA — a tela livre, que continua aqui (o dono pediu para
+              manter as duas vias). */}
+          {material?.pdfPath && material.type !== 'web_page' && (
+            <div aria-hidden className="h-6 w-px shrink-0 bg-border" />
           )}
           <Button
             type="button"
@@ -1052,7 +1133,11 @@ export function TutorQuickPanel({
         }}
       />
 
-      {/* Recorte da captura de tela — anexa no MESMO pendingImage dos prints. */}
+      {/* Recorte da captura de tela — anexa no MESMO pendingImage dos prints.
+          t175 — O DE NOVO SEM OVERLAY: o "De novo" FECHA este diálogo e
+          limpa o frame ANTES de capturar — o frame novo não pode nascer com
+          o overlay do recorte anterior assado nele (a reclamação do dono:
+          "o print fica pegando o overlay de captura de tela"). */}
       <CaptureCropDialog
         canvas={captureCanvas}
         open={captureOpen}
@@ -1064,7 +1149,11 @@ export function TutorQuickPanel({
           setPendingImage(image);
           setPendingLabel('print de tela');
         }}
-        onRetry={() => void startCapture()}
+        onRetry={() => {
+          setCaptureOpen(false);
+          setCaptureCanvas(null);
+          void startCapture();
+        }}
       />
 
       {/* Print de PÁGINA do material aberto (t152): a via SEM seletor de tela —

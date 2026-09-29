@@ -30,8 +30,10 @@ import {
   FileText,
   GripVertical,
   Image as ImageIcon,
+  Loader2,
   Search,
   X,
+  Zap,
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +54,12 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { pdfJumpSrc, clampPdfPage } from '@/lib/pdf-search';
 import { rememberPdfPage, recallPdfPage } from '@/lib/pdf-position';
+import {
+  instantPrintPage,
+  pagePrintLabel,
+  renderPdfPageToCanvas,
+} from '@/lib/pdf-print';
+import { downscaleCanvas } from '@/lib/tutor-image';
 import { TutorQuickPanel } from './tutor-quick-panel';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PdfSearchDialog } from './pdf-search-dialog';
@@ -136,6 +144,9 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
    * leitor ou o trecho da busca. A prévia do print confessa a origem
    * (doutrina da casa: nada é segredo) e morre junto com o diálogo. */
   const [captureHint, setCaptureHint] = React.useState<string | undefined>(undefined);
+  /** t175 — O PRINT RÁPIDO: o render da página aberta em curso (spinner no
+   * botão da barra, segundo clique recusado). */
+  const [instantPrinting, setInstantPrinting] = React.useState(false);
   /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
   const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
   /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
@@ -347,6 +358,44 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
     setCaptureOpen(true);
   }, []);
 
+  /**
+   * t175 — O PRINT RÁPIDO (o pedido do dono: "o print deveria ser do pdf
+   * quando estou com um aberto"): UM clique na barra anexa a página ABERTA
+   * — pdf.js renderiza (nitidez 2×), a régua de 1400px encolhe o payload e
+   * o anexo entra no tubo do lado de quem vai ler: no painel AO LADO quando
+   * a tela está dividida; no chat principal (openTutor) no modo material
+   * cheio. Sem seletor de tela, sem recorte, sem arquivo no disco. A página
+   * é a HONESTA: o último salto despachado — sem salto, a 1ª que o leitor
+   * mostra (instantPrintPage).
+   */
+  const instantPrint = React.useCallback(async () => {
+    if (!material?.pdfPath || instantPrinting) return;
+    const page = instantPrintPage(jumpPage, material.pages);
+    setInstantPrinting(true);
+    try {
+      const canvas = await renderPdfPageToCanvas(material.pdfPath, page);
+      const image = downscaleCanvas(canvas);
+      const label = pagePrintLabel(page, material.title);
+      if (isSplit) {
+        handleCaptureAttach(image, label); // painel AO LADO (+ aba Tutor no mobile)
+      } else {
+        openTutor({
+          image,
+          imageLabel: label,
+          disciplineCode: material.disciplineCode,
+          materialId: material.id,
+        });
+        toast.success(
+          `Página ${page} anexada ao tutor — nada foi salvo no seu computador.`,
+        );
+      }
+    } catch {
+      toast.error('Não consegui renderizar a página. Use o print de página.');
+    } finally {
+      setInstantPrinting(false);
+    }
+  }, [material, instantPrinting, jumpPage, isSplit, handleCaptureAttach]);
+
   /** Pergunta vinda da BUSCA no MODO DIVIDIDO (t158): o texto entra no campo
    * do painel AO LADO — no mobile a aba Tutor abre sozinha (a pergunta está
    * lá). t159: a PÁGINA do trecho entra no MESMO painel pelo tubo do print
@@ -539,6 +588,38 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
                 </button>
               </div>
             </>
+          )}
+          {/* t175 — PRINT RÁPIDO: UM clique anexa a página aberta ao tutor
+              (painel ao lado em dividido; chat principal no modo cheio). O
+              irmão veloz do print de página — que segue ao lado dele para a
+              precisão (escolher outra página / recortar). */}
+          {pdfSearchable && (
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid="quick-print-page"
+              className={cn(touchBtn, 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300')}
+              onClick={() => void instantPrint()}
+              disabled={instantPrinting}
+              aria-busy={instantPrinting}
+              aria-label={
+                instantPrinting
+                  ? 'Renderizando a página para o tutor'
+                  : `Anexar a página ${instantPrintPage(jumpPage, material.pages)} do PDF ao tutor — um clique, sem recorte`
+              }
+              title={
+                instantPrinting
+                  ? 'Renderizando a página…'
+                  : `Print rápido da página ${instantPrintPage(jumpPage, material.pages)} (a aberta no leitor) — UM clique anexa ao tutor, sem escolher aba/tela e sem recorte (nada é salvo no seu computador)`
+              }
+            >
+              {instantPrinting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Zap className="size-3.5" />
+              )}{' '}
+              Print rápido
+            </Button>
           )}
           <Button
             size="sm"

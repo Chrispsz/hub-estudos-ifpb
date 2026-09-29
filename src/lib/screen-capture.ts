@@ -33,7 +33,7 @@ export function screenCaptureSupported(): boolean {
 }
 
 // ===== Assentamento medido (t163; a régua fixa da t152 cresceu) =====
-const SETTLE_MIN_MS = 380; // a régua da t152 continua sendo o MÍNIMO
+const SETTLE_MIN_MS = 440; // a régua da t152 continua sendo o MÍNIMO (t175: +60ms de folga para a morte do seletor)
 const SETTLE_STEP_MS = 140; // intervalo entre amostras de comparação
 const SETTLE_MAX_SAMPLES = 8; // teto ~1.4s: superfície viva não prende a captura
 
@@ -61,10 +61,13 @@ export function framesEqual(a: Uint32Array, b: Uint32Array): boolean {
 async function settleScreenSurface(video: HTMLVideoElement): Promise<void> {
   let sampled = false;
   try {
-    const cw = 96;
+    // t175: 160px de comparação (eram 96) — um seletor morrendo em fade deixa
+    // de passar despercebido na miniatura: quanto maior a amostra, menor o
+    // delta que ainda conta como "a tela está se movendo".
+    const cw = 160;
     const ch = Math.max(
       1,
-      Math.round((96 * video.videoHeight) / Math.max(1, video.videoWidth)),
+      Math.round((cw * video.videoHeight) / Math.max(1, video.videoWidth)),
     );
     const cmp = document.createElement('canvas');
     cmp.width = cw;

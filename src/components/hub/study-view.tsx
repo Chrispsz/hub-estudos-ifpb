@@ -2854,7 +2854,10 @@ export function StudyView({
         }}
       />
 
-      {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints. */}
+      {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints.
+          t175 — O DE NOVO SEM OVERLAY: o "De novo" fecha o diálogo e limpa o
+          frame ANTES de capturar — o frame novo não nasce com o overlay do
+          recorte anterior assado nele (a reclamação do dono com print). */}
       <CaptureCropDialog
         canvas={captureCanvas}
         open={captureOpen}
@@ -2866,7 +2869,11 @@ export function StudyView({
           setChatImage(image);
           setChatImageLabel('print de tela');
         }}
-        onRetry={() => void startCapture()}
+        onRetry={() => {
+          setCaptureOpen(false);
+          setCaptureCanvas(null);
+          void startCapture();
+        }}
       />
 
       {/* ===== Modo Foco (Zen) — overlay tela-cheia com o timer ===== */}
