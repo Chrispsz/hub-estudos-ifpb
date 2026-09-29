@@ -112,6 +112,13 @@ interface TutorQuickPanelProps {
    * Sem o callback, o print fica no composer do próprio painel. t163: leva
    * também o rótulo de procedência fabricado pelo diálogo de captura. */
   onPdfCaptureAttach?: (image: string, label: string) => void;
+  /** t169 — A PÁGINA ABERTA AO LADO: o último salto que o pai (diálogo do
+   * material) despachou no leitor. O print de página do painel abre JÁ
+   * parado nela — o aluno está lendo a página N e o print da página N é o
+   * clique seguinte, sem re-folhear miniaturas. Honestidade: só o salto
+   * DESPACHADO é página conhecida — o leitor nativo não conta rolagem.
+   * Morre junto com o diálogo do material (o pai zera no fecho). */
+  pdfCurrentPage?: number | null;
   className?: string;
 }
 
@@ -150,6 +157,7 @@ export function TutorQuickPanel({
   onExternalQuestionConsumed,
   onAssistantReply,
   onPdfCaptureAttach,
+  pdfCurrentPage,
   className,
 }: TutorQuickPanelProps) {
   const sp = useStudyProgress();
@@ -1037,6 +1045,11 @@ export function TutorQuickPanel({
           material={material}
           open={pdfCaptureOpen}
           onOpenChange={setPdfCaptureOpen}
+          // t169 — o print do painel nasce na PÁGINA ABERTA AO LADO: o
+          // último salto despachado entra como pré-seleção, com a
+          // procedência confessada na prévia (a mesma régua do diálogo).
+          initialPage={pdfCurrentPage ?? undefined}
+          presetHint={pdfCurrentPage ? 'página do seu último salto' : undefined}
           onAttach={(image, label) => {
             if (onPdfCaptureAttach) onPdfCaptureAttach(image, label);
             else {

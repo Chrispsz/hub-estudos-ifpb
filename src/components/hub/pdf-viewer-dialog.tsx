@@ -96,6 +96,14 @@ const TYPE_LABEL: Record<Material['type'], string> = {
   exemplo: 'Exemplo de código',
 };
 
+/** t169 — Procedência da pré-seleção do print (a prévia confessa a origem).
+ * Mesmo idioma da pill de retomada (t161): a página conhecida é a do ÚLTIMO
+ * SALTO que o Hub despachou — o leitor nativo não reporta rolagem ao pai, e
+ * a preseleção honesta não adivinha. */
+const CAPTURE_HINT_JUMP = 'página do seu último salto';
+/** A pré-seleção vinda da BUSCA (t157 → t169): a página do trecho achado. */
+const CAPTURE_HINT_SEARCH = 'página do trecho buscado';
+
 export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: Props) {
   const sp = useStudyProgress();
   /** Modo do workspace — 'split' é lembrado no localStorage (hidrata no mount). */
@@ -124,6 +132,10 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
   const [jumpInput, setJumpInput] = React.useState('');
   /** Página pedida pela BUSCA ao print de página (o prop morre ao fechar). */
   const [captureInitialPage, setCaptureInitialPage] = React.useState<number | undefined>(undefined);
+  /** Procedência da pré-seleção (t169): de ONDE a página veio — o salto do
+   * leitor ou o trecho da busca. A prévia do print confessa a origem
+   * (doutrina da casa: nada é segredo) e morre junto com o diálogo. */
+  const [captureHint, setCaptureHint] = React.useState<string | undefined>(undefined);
   /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
   const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
   /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
@@ -173,6 +185,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
       setJumpPage(null);
       setJumpInput('');
       setCaptureInitialPage(undefined);
+      setCaptureHint(undefined);
       setPanelQuestion(null);
       setResumePage(null);
     }
@@ -324,9 +337,13 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
     [material],
   );
 
-  /** Print vindo da BUSCA: fecha o mapa, abre a captura já parada na página. */
-  const openCaptureAt = React.useCallback((page?: number) => {
+  /** Print vindo da BUSCA: fecha o mapa, abre a captura já parada na página.
+   * t169: o print de página inteiro também vem daQUI — o botão da barra passa
+   * a página ABERTA (jumpPage, o último salto que o Hub despachou) e a
+   * procedência para a prévia confessar de onde a pré-seleção nasceu. */
+  const openCaptureAt = React.useCallback((page?: number, hint?: string) => {
     setCaptureInitialPage(page);
+    setCaptureHint(hint);
     setCaptureOpen(true);
   }, []);
 
@@ -527,12 +544,34 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
             size="sm"
             variant="outline"
             className={cn(touchBtn, 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300')}
-            onClick={() => setCaptureOpen(true)}
+            onClick={() =>
+              // t169 — O PRINT JÁ NASCE NA PÁGINA: com um salto conhecido
+              // (jumpPage), o diálogo abre JÁ parado na página aberta — o
+              // anexo é o clique seguinte, sem re-folhear miniaturas. Sem
+              // salto, a honestidade manda: o leitor nativo não conta a
+              // rolagem, então a pré-seleção não adivinha.
+              openCaptureAt(jumpPage ?? undefined, jumpPage ? CAPTURE_HINT_JUMP : undefined)
+            }
             disabled={!material.pdfPath || material.type === 'web_page'}
-            aria-label="Print de página para o tutor"
-            title="Print de página — escolha a página e anexe ao tutor (nada é salvo no seu computador)"
+            aria-label={
+              jumpPage
+                ? `Print da página ${jumpPage} para o tutor — abre já parado nela`
+                : 'Print de página para o tutor'
+            }
+            title={
+              jumpPage
+                ? `Print da página ${jumpPage} — já parado na página do seu último salto; arraste na prévia para recortar se quiser (nada é salvo no seu computador)`
+                : 'Print de página — escolha a página e anexe ao tutor (nada é salvo no seu computador)'
+            }
           >
-            <Camera className="size-3.5" /> Print de página
+            <Camera className="size-3.5" />{' '}
+            {jumpPage ? (
+              <>
+                Print da pág. <span className="tabular-nums">{jumpPage}</span>
+              </>
+            ) : (
+              'Print de página'
+            )}
           </Button>
           <Button
             size="sm"
@@ -790,6 +829,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
                 onExternalQuestionConsumed={() => setPanelQuestion(null)}
                 onAssistantReply={handleAssistantReply}
                 onPdfCaptureAttach={handleCaptureAttach}
+                pdfCurrentPage={jumpPage}
                 className="min-h-0 flex-1"
               />
             </div>
@@ -806,10 +846,14 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
           open={captureOpen}
           onOpenChange={(o) => {
             setCaptureOpen(o);
-            if (!o) setCaptureInitialPage(undefined); // a próxima abertura não herda página velha
+            if (!o) {
+              setCaptureInitialPage(undefined); // a próxima abertura não herda página velha
+              setCaptureHint(undefined); // t169: a procedência morre junto
+            }
           }}
           onAttach={isSplit ? handleCaptureAttach : undefined}
           initialPage={captureInitialPage}
+          presetHint={captureHint}
         />
 
         {/* t157 — O MAPA DO PDF: busca em todas as páginas (pdf.js), com salto
@@ -823,7 +867,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
           open={searchOpen}
           onOpenChange={setSearchOpen}
           onJump={doJump}
-          onPrint={openCaptureAt}
+          onPrint={(p) => openCaptureAt(p, CAPTURE_HINT_SEARCH)}
           onAsk={isSplit ? handleQuestionAttach : askMainChat}
         />
       </DialogContent>

@@ -40,9 +40,18 @@ interface Props {
    * Página pedida pela BUSCA do PDF (t157): o diálogo abre JÁ parado nela,
    * sem re-folhear as miniaturas. Vale UMA vez por abertura — o visualizador
    * zera o prop ao fechar, então abrir pela BARRA depois não herda página
-   * velha.
+   * velha. t169: a BARRA também pré-seleciona — a página ABERTA (último
+   * salto despachado) entra por aqui; o aluno que está lendo a página N
+   * printa a página N sem re-folhear nada.
    */
   initialPage?: number;
+  /**
+   * t169 — Procedência da pré-seleção: de ONDE a página veio ("página do seu
+   * último salto", "página do trecho buscado"). A prévia confessa a origem
+   * enquanto EXATAMENTE ela está vista — escolheu outra página, o rótulo
+   * cala (nenhuma mentira na casa). Morre junto com o diálogo.
+   */
+  presetHint?: string;
 }
 
 /** Estado de carregamento do documento/página — a UI mostra o que acontece. */
@@ -58,7 +67,7 @@ interface Rect {
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
-export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, initialPage }: Props) {
+export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, initialPage, presetHint }: Props) {
   const [state, setState] = React.useState<LoadState>('idle');
   const [pageCount, setPageCount] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
@@ -72,6 +81,9 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
   const selectedRef = React.useState({ current: null as number | null })[0];
   /** t157: a página inicial pedida pela busca já foi aplicada nesta abertura? */
   const presetRef = React.useRef(false);
+  /** t169: a página que a pré-seleção escolheu — o rótulo de procedência
+   * só vive enquanto ELA está na prévia (escolheu outra, o rótulo cala). */
+  const [presetPage, setPresetPage] = React.useState<number | null>(null);
 
   const thumbsRef = React.useRef<HTMLDivElement>(null);
   const previewRef = React.useRef<HTMLCanvasElement>(null);
@@ -113,6 +125,7 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
       selectedRef.current = null;
       setAttached(false);
       setRect(null);
+      setPresetPage(null); // t169: a procedência morre junto com o diálogo
       presetRef.current = false; // t157: nova abertura pode receber nova página inicial
       return;
     }
@@ -234,6 +247,7 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
     const p = clampPdfPage(Number(initialPage ?? 0), pageCount);
     if (!p) return;
     presetRef.current = true;
+    setPresetPage(p); // t169: a procedência sabe de quem é a página vista
     pick(p);
   }, [open, state, pageCount, initialPage]);
 
@@ -347,6 +361,27 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
       toast.error('Não consegui converter a página. Tente de novo.');
     }
   };
+
+  // t169 — ENTER ANEXA O QUE ESTÁ NA PRÉVIA: com a página vista (e nada
+  // renderizando), Enter é o anexo — o gesto de quem já está com a mão no
+  // teclado folheando (←/→) e não quer caçar o botão. O Enter NATIVO dos
+  // botões/campos continua sendo deles: o foco em button/input/textarea/
+  // select/contentEditable não é roubado (mesma régua do teclado da t166).
+  // Efeito SEM deps: o listener renasce a cada render com o closure VIVO
+  // (rect/rendering/attached frescos — nenhum espelho para manter).
+  React.useEffect(() => {
+    if (!open || state !== 'ready') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest('button, input, textarea, select, [contenteditable="true"]')) return;
+      if (selected === null || rendering || attached) return;
+      e.preventDefault();
+      attach(!rect); // recorte visto → anexa o recorte; página inteira → anexa ela
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const sel = rect
     ? {
@@ -479,6 +514,13 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
                     <>
                       Página <span className="font-medium tabular-nums text-foreground">{selected}</span> de{" "}
                       <span className="tabular-nums">{pageCount}</span>
+                      {/* t169 — procedência da pré-seleção: o rótulo só vive
+                          enquanto a página pré-escolhida está NA prévia. */}
+                      {presetHint && presetPage !== null && selected === presetPage && (
+                        <span className="ml-1.5 hidden font-medium text-emerald-600 sm:inline dark:text-emerald-400">
+                          · {presetHint}
+                        </span>
+                      )}
                       {selPixels ? (
                         <>
                           {" · "}recorte:{" "}
@@ -491,6 +533,9 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
                       )}
                     </>
                   )}
+                </p>
+                <p className="hidden text-xs text-muted-foreground/80 lg:block">
+                  Enter anexa o que está na prévia
                 </p>
                 {rect && (
                   <button
