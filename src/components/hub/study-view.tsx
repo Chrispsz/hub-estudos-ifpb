@@ -26,6 +26,8 @@ import {
   PenLine,
   Play,
   RotateCcw,
+  Search,
+  SearchX,
   Send,
   SkipForward,
   Sparkles,
@@ -85,6 +87,11 @@ import { getDisciplineTopics } from '@/lib/study-topics';
 import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
 import { buildHubContext } from '@/lib/tutor-context';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
+import {
+  TUTOR_HISTORY_KEEP,
+  chatDayGroups,
+  hhmmOf,
+} from '@/lib/tutor-history-view';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
@@ -128,6 +135,9 @@ interface ChatMessage {
   image?: string;
   /** Hora local (HH:MM) da mensagem — referência discreta de quando estudou. */
   time?: string;
+  /** ISO do banco (t151) — alimenta os separadores de dia e o HH:MM das
+   * restauradas; as mensagens vivas carimbam no envio. */
+  savedAt?: string;
   /** true → mensagem de erro (falha do provedor/sem key) — estilo rosa + sem ações. */
   error?: boolean;
 }
@@ -135,6 +145,39 @@ interface ChatMessage {
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
 const hhmm = () =>
   new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+/** Cabeça de dia no fio (t151): "Hoje" · "Ontem" · dd/mm entre fios de cabelo. */
+function ChatDayChip({ label }: { label: string }) {
+  return (
+    <div
+      className="flex items-center gap-2 py-0.5"
+      role="separator"
+      aria-label={`Mensagens de ${label}`}
+    >
+      <span aria-hidden className="h-px flex-1 bg-border/60" />
+      <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+        {label}
+      </span>
+      <span aria-hidden className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
+/** O recibo honesto da memória (t151): quantas mensagens vieram do banco —
+ * o teto existe (TUTOR_HISTORY_KEEP) e agora está VISÍVEL, não escondido. */
+function MemoryChip({ count }: { count: number }) {
+  return (
+    <div className="flex justify-center py-0.5">
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground/70"
+        title={`A memória da disciplina guarda as últimas ${TUTOR_HISTORY_KEEP} mensagens — estas ${count} vieram do banco. Pra guardar tudo, baixe a conversa (botão de download).`}
+      >
+        <History className="size-3" aria-hidden />
+        memória da disciplina · {count} {count === 1 ? 'mensagem' : 'mensagens'}
+      </span>
+    </div>
+  );
+}
 
 interface BannerSnapshot {
   saved: PomodoroState;
@@ -410,6 +453,33 @@ export function StudyView({
   const chatFileRef = React.useRef<HTMLInputElement>(null);
   /** Ref do input de CÂMERA (fallback mobile da captura — ver camFileRef). */
   const camFileRef = React.useRef<HTMLInputElement>(null);
+  // ----- Busca na conversa (t151) — filtrar o fio por texto, com contagem -----
+  const [chatSearchOpen, setChatSearchOpen] = React.useState(false);
+  const [chatSearch, setChatSearch] = React.useState('');
+  const chatSearchActive = chatSearchOpen && chatSearch.trim().length >= 2;
+  const chatSearchResults = React.useMemo(() => {
+    const q = chatSearch.trim().toLowerCase();
+    if (!chatSearchActive) return null;
+    return messages
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => !m.error && m.content.toLowerCase().includes(q));
+  }, [messages, chatSearch, chatSearchActive]);
+  // O CALENDÁRIO do fio (t151): cabeça de dia por mensagem + o recibo da
+  // memória restaurada. Derivado de messages — nunca diverge do que se vê.
+  const restoredCount = React.useMemo(
+    () => messages.filter((m) => m.savedAt).length,
+    [messages],
+  );
+  const firstRestoredIndex = React.useMemo(
+    () => messages.findIndex((m) => m.savedAt),
+    [messages],
+  );
+  const daySeparators = React.useMemo(() => {
+    if (chatSearchActive) return new Map<number, string>();
+    const groups = chatDayGroups(messages.map((m) => m.savedAt));
+    // índice 0 é o welcome (Hoje) — separador ali é ruído, não informação
+    return new Map(groups.filter((g) => g.index > 0).map((g) => [g.index, g.label]));
+  }, [messages, chatSearchActive]);
   /** getDisplayMedia existe neste navegador? (SSR renderiza true — o effect
    * corrige no mount; sem mismatch porque o 1º paint do cliente é igual.) */
   const [screenOk, setScreenOk] = React.useState(true);
@@ -982,6 +1052,8 @@ export function StudyView({
     ]);
     setChatLoading(false);
     setStreamText(null);
+    setChatSearchOpen(false);
+    setChatSearch('');
   }, [disciplineShortName]);
 
   // Pedido externo de tutor (hub:open-tutor): seleciona a disciplina, abre o
@@ -1025,7 +1097,12 @@ export function StudyView({
         );
         if (!res.ok) return;
         const data = (await res.json()) as {
-          messages?: { role: 'user' | 'assistant'; content: string; model?: string }[];
+          messages?: {
+            role: 'user' | 'assistant';
+            content: string;
+            model?: string;
+            savedAt?: string;
+          }[];
         };
         const restored = data.messages;
         if (alive && restored && restored.length > 0) {
@@ -1037,7 +1114,15 @@ export function StudyView({
                 role: 'assistant' as const,
                 content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
               },
-              ...restored,
+              // t151: cada restaurada carrega QUANDO foi dita (savedAt ISO
+              // → HH:MM) — o fio restaurado ganha o mesmo carimbo da viva.
+              ...restored.map((m) => ({
+                role: m.role,
+                content: m.content,
+                model: m.model,
+                savedAt: m.savedAt,
+                time: hhmmOf(m.savedAt),
+              })),
             ];
           });
         }
@@ -1112,7 +1197,13 @@ export function StudyView({
       .map(({ role, content }) => ({ role, content }));
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: q || '📷 print anexado', image: image ?? undefined, time: hhmm() },
+      {
+        role: 'user',
+        content: q || '📷 print anexado',
+        image: image ?? undefined,
+        time: hhmm(),
+        savedAt: new Date().toISOString(),
+      },
     ]);
     setChatImage(null);
     setChatInput('');
@@ -1140,20 +1231,35 @@ export function StudyView({
       );
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: result.answer, model: result.model, time: hhmm() },
+        {
+          role: 'assistant',
+          content: result.answer,
+          model: result.model,
+          time: hhmm(),
+          savedAt: new Date().toISOString(),
+        },
       ]);
     } catch (err) {
       // stream caiu no meio? mantém o parcial que o aluno já viu
       const partial = err instanceof TutorStreamError ? err.partial : '';
       if (partial.trim()) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: partial, time: hhmm() }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: partial, time: hhmm(), savedAt: new Date().toISOString() },
+        ]);
       } else {
         // Sem resposta nenhuma (deploy sem key de IA, falha total): o motivo PRECISA
         // ficar visível no próprio chat — toast some em 4s e fica fora do diálogo.
         const msg = err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.';
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: msg, time: hhmm(), error: true },
+          {
+            role: 'assistant',
+            content: msg,
+            time: hhmm(),
+            savedAt: new Date().toISOString(),
+            error: true,
+          },
         ]);
       }
       toast.error(err instanceof Error ? err.message : 'Não foi possível consultar o tutor agora.');
@@ -1735,6 +1841,29 @@ export function StudyView({
               >
                 <Lightbulb className="size-4" />
               </Button>
+              {/* t151: buscar na conversa — a memória da disciplina só serve
+                  se dá pra ACHAR o que o tutor explicou (ex.: a explicação
+                  da inversa na semana da prova). */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'size-8 shrink-0 transition-colors',
+                  chatSearchOpen
+                    ? 'bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 hover:text-emerald-500 dark:text-emerald-400'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => {
+                  const next = !chatSearchOpen;
+                  setChatSearchOpen(next);
+                  if (!next) setChatSearch('');
+                }}
+                aria-pressed={chatSearchOpen}
+                aria-label="Buscar na conversa"
+                title={`Buscar nesta conversa (a memória guarda as últimas ${TUTOR_HISTORY_KEEP} mensagens da disciplina)`}
+              >
+                <Search className="size-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1773,18 +1902,84 @@ export function StudyView({
             </div>
           </SheetHeader>
 
+          {/* t151: a barra da busca — abre sob o cabeçalho, some com Esc/X. */}
+          {chatSearchOpen && (
+            <div className="border-b border-border/60 px-3 py-2">
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  value={chatSearch}
+                  onChange={(e) => setChatSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setChatSearchOpen(false);
+                      setChatSearch('');
+                    }
+                  }}
+                  placeholder="Buscar nesta conversa…"
+                  aria-label="Buscar na conversa"
+                  className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-8 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatSearchOpen(false);
+                    setChatSearch('');
+                  }}
+                  aria-label="Fechar busca"
+                  title="Fechar busca"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div
             ref={messagesRef}
             className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 [scrollbar-width:thin]"
           >
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'animate-msg-in flex gap-2',
-                  m.role === 'user' ? 'justify-end' : 'justify-start',
-                )}
+            {/* t151: o status da busca — contagem honesta OU vazio explicado. */}
+            {chatSearchActive && (
+              <p
+                className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                role="status"
               >
+                {chatSearchResults && chatSearchResults.length > 0 ? (
+                  <>
+                    <Search className="size-3 shrink-0" aria-hidden />
+                    {chatSearchResults.length}{' '}
+                    {chatSearchResults.length === 1 ? 'mensagem' : 'mensagens'}{' '}
+                    com “{chatSearch.trim()}”
+                  </>
+                ) : (
+                  <>
+                    <SearchX className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />
+                    Nada com “{chatSearch.trim()}” nesta conversa — a memória guarda as últimas{' '}
+                    {TUTOR_HISTORY_KEEP} mensagens da disciplina.
+                  </>
+                )}
+              </p>
+            )}
+            {(chatSearchResults ?? messages.map((m, i) => ({ m, i }))).map(({ m, i }) => (
+              <React.Fragment key={i}>
+                {!chatSearchActive && daySeparators.has(i) && (
+                  <ChatDayChip label={daySeparators.get(i)!} />
+                )}
+                {!chatSearchActive && i === firstRestoredIndex && (
+                  <MemoryChip count={restoredCount} />
+                )}
+                <div
+                  className={cn(
+                    'animate-msg-in flex gap-2',
+                    m.role === 'user' ? 'justify-end' : 'justify-start',
+                  )}
+                >
                 {m.role === 'assistant' && (
                   <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10">
                     <Bot className={cn('size-4', m.error ? 'text-rose-400' : 'text-emerald-400')} />
@@ -1857,6 +2052,7 @@ export function StudyView({
                   )}
                 </div>
               </div>
+              </React.Fragment>
             ))}
 
             {chatLoading && <ThinkingBubble />}
@@ -1876,7 +2072,7 @@ export function StudyView({
               </div>
             )}
 
-            {messages.length <= 1 && !chatLoading && (
+            {!chatSearchActive && messages.length <= 1 && !chatLoading && (
               <div className="flex flex-wrap gap-2 pt-2">
                 {/* Chip de INVERSÃO DE PAPEL: o tutor passa a perguntar (recall ativo).
                     Na janela da Av1 (148) o teste nasce COM O ESCOPO REAL da prova —
@@ -1916,7 +2112,7 @@ export function StudyView({
 
             {/* Continuidade: follow-ups após a última resposta — o aluno segue
                 falando do mesmo assunto com 1 toque, sem reexplicar a dúvida. */}
-            {!chatLoading && streamText === null && messages.length > 1 &&
+            {!chatSearchActive && !chatLoading && streamText === null && messages.length > 1 &&
               messages[messages.length - 1]?.role === 'assistant' && (
                 <div className="pt-1">
                   <p className="mb-1.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">

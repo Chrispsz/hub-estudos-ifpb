@@ -35,6 +35,7 @@ export const maxDuration = 60;
 import { db } from '@/lib/db';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
+import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
 import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER, tutorCourseContext } from '@/lib/curriculum';
 
 interface ChatMessage {
@@ -1231,10 +1232,15 @@ export async function GET(req: Request) {
  */
 
 /** Limites da memória por disciplina — economia de armazenamento. */
-const HISTORY_KEEP = 40;
+// O teto vem da FONTE ÚNICA (t151, lib/tutor-history-view): 80 mensagens —
+// a poda a 40 virava a CEIRA da memória (a noite do debrief do simulado, 3
+// conversas valiosas, empurrava a semana do aluno para fora do banco em
+// silêncio). O prompt da IA não lê daqui (o cliente manda as últimas 12):
+// o custo é de armazenamento, não de contexto.
+const HISTORY_KEEP = TUTOR_HISTORY_KEEP;
 const MSG_CAP = 4000;
 
-/** Salva a dupla pergunta+resposta e poda o histórico (mantém as 40 mais novas). */
+/** Salva a dupla pergunta+resposta e poda o histórico (mantém as 80 mais novas). */
 async function saveTurn(discipline: string, question: string, answer: string, model: string): Promise<void> {
   const key = discipline.slice(0, 40);
   if (!key || key === 'geral') return;

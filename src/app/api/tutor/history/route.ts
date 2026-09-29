@@ -1,5 +1,8 @@
 // /api/tutor/history — memória das conversas do tutor por disciplina.
-//  GET    ?discipline=TEC.1687 → últimas 40 mensagens (ordem cronológica)
+//  GET    ?discipline=TEC.1687 → últimas 80 mensagens (ordem cronológica),
+//         cada uma com savedAt (ISO) — o CALENDÁRIO da conversa (t151):
+//         separadores de dia e HH:MM nas restauradas. Campo ADITIVO — o
+//         consumidor antigo que só lê role/content continua funcionando.
 //  DELETE ?discipline=TEC.1687 → apaga a conversa da disciplina ("Nova conversa")
 //  DELETE ?discipline=TEC.1687&after=ISO → apaga SÓ o que nasceu depois do
 //         instante dado — a vassoura cirúrgica dos E2E (t147): o script
@@ -10,10 +13,9 @@
 
 import { db } from '@/lib/db';
 import { normalizeMath } from '@/lib/sanitize-latex';
+import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
 
 export const runtime = 'nodejs';
-
-const KEEP = 40;
 
 function disciplineOf(req: Request): string | null {
   const raw = new URL(req.url).searchParams.get('discipline') ?? '';
@@ -30,7 +32,7 @@ export async function GET(req: Request) {
     const rows = await db.tutorMessage.findMany({
       where: { discipline },
       orderBy: { createdAt: 'desc' },
-      take: KEEP,
+      take: TUTOR_HISTORY_KEEP,
       select: { role: true, content: true, model: true, createdAt: true },
     });
     // devolve em ordem cronológica (mais antiga primeiro)
@@ -40,6 +42,7 @@ export async function GET(req: Request) {
       role: r.role === 'user' ? 'user' : 'assistant',
       content: r.role === 'assistant' ? normalizeMath(r.content) : r.content,
       model: r.model ?? undefined,
+      savedAt: r.createdAt.toISOString(),
     }));
     return Response.json({ messages });
   } catch (err) {
