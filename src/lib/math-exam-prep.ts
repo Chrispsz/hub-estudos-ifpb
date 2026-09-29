@@ -1220,6 +1220,22 @@ export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)
   exercisePool?: string[]; // ids no Praticar
+  /**
+   * t187 — O DEEP-LINK DA AUTOAVALIAÇÃO: tarefas cujo gesto termina DENTRO
+   * do resumo IA, na seção das perguntas. Cada entrada é um resumo REAL do
+   * acervo (o id existe em course-data; as perguntas existem desde a t186) —
+   * o chip do card abre o diálogo do resumo DIRETO nas perguntas, com a
+   * contagem viva de respondidas ao lado. A casa não inventa porta para
+   * resumo sem pergunta: quem preenche este campo responde pelo conteúdo.
+   */
+  autoavaliacao?: AutoavaliacaoLink[];
+}
+
+export interface AutoavaliacaoLink {
+  /** id do material no acervo (a fonte da verdade é course-data). */
+  id: string;
+  /** Rótulo curto do chip — voz do plano, não título completo do acervo. */
+  label: string;
 }
 
 export interface PlanDay {
@@ -1228,6 +1244,45 @@ export interface PlanDay {
   titulo: string;
   minutos: number;
   tarefas: PlanTask[];
+}
+
+/**
+ * t187 — OS QUATRO RESUMOS DA TAREFA 3 DA VÉSPERA (a promessa da t186, agora
+ * com porta): os resumos IA de Matemática do escopo da Av1, cada um com 8
+ * perguntas de autoavaliação REAIS (scripts/fix-186-perguntas.py + autorais).
+ * O rótulo é voz do PLANO (curto, para o chip), não título de acervo.
+ */
+export const MATH_AUTOAVALIACAO_TAREFA: AutoavaliacaoLink[] = [
+  { id: 'mat-00-matrizes', label: 'Matrizes · Aula 00' },
+  { id: 'mat-01-matrizes', label: 'Matrizes · Aula 01' },
+  { id: 'mat-logica-lista', label: 'Lógica · Lista' },
+  { id: 'mat-logica-slides', label: 'Lógica · Slides' },
+];
+
+/**
+ * t187 — A CONTAGEM VIVA DOS CHIPS (PURA — zero DOM/storage/fetch/react):
+ * lê o mapa de checks do progresso (autoavaliacaoChecks) e devolve, para os
+ * ids pedidos, quantas perguntas estão marcadas em CADA material e o total.
+ * Estruturas ausentes, lixo e índices não-booleanos contam ZERO — a contagem
+ * nunca inventa respondida. Fonte única: o mesmo mapa que o diálogo usa.
+ */
+export function autoavaliacaoAnswered(
+  checksByMaterial: { [materialId: string]: { [questionIndex: number]: boolean } } | undefined | null,
+  ids: string[],
+): { answered: number; byId: Record<string, number> } {
+  const map = checksByMaterial ?? {};
+  const byId: Record<string, number> = {};
+  let answered = 0;
+  for (const id of ids) {
+    const checks = map[id];
+    let count = 0;
+    if (checks && typeof checks === 'object') {
+      for (const v of Object.values(checks)) if (v === true) count++;
+    }
+    byId[id] = count;
+    answered += count;
+  }
+  return { answered, byId };
 }
 
 /**
@@ -1313,7 +1368,8 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
     tarefas: [
       { texto: 'Recitar os cards de fórmulas de memória (abaixo) — Matrizes primeiro, Lógica depois', },
       { texto: 'Refazer SOMENTE as questões que travaram nas duas listas — o Hub guarda as travadas marcadas (na folha impressa elas vêm listadas)', },
-      { texto: 'Perguntas de autoavaliação dos resumos IA dos 4 materiais de Matemática (leve, antes de dormir)', materialId: 'mat-01-matrizes' },
+      { texto: 'Perguntas de autoavaliação dos resumos IA dos 4 materiais de Matemática (leve, antes de dormir)',
+        autoavaliacao: MATH_AUTOAVALIACAO_TAREFA },
     ],
   },
   {

@@ -19,6 +19,7 @@ import {
   CircleAlert,
   CircleCheck,
   Crosshair,
+  CircleHelp,
   Download,
   Dumbbell,
   Eye,
@@ -50,7 +51,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { daysUntilDate } from '@/lib/semester';
 import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
-import { materials } from '@/data/course-data';
+import { materials, type Material } from '@/data/course-data';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildRunDebriefQuestion, computeTopicTrends } from '@/lib/simulado-debrief';
 import {
@@ -99,6 +100,8 @@ import {
   MATH_SIMULADO_DATE,
   MATH_TOPICO_CURTO,
   MATH_TRAVADAS_KEY,
+  MATH_AUTOAVALIACAO_TAREFA,
+  autoavaliacaoAnswered,
   countTravadas,
   examWeekMilestoneFor,
   findMathSimuladoRunOficial,
@@ -120,10 +123,66 @@ import {
   type PlanKind,
   type SimuladoTopicScore,
   type SimuladoVerdict,
+  type AutoavaliacaoLink,
 } from '@/lib/math-exam-prep';
+import { MaterialSummaryDialog } from './material-summary-dialog';
 
 /** Rótulo curto do tópico — o kit fala 'Matrizes'/'Lógica', não o nome do catálogo. */
 const curto = (topic: string): string => MATH_TOPICO_CURTO[topic] ?? topic;
+
+/**
+ * t187 — OS CHIPS DO DEEP-LINK DA AUTOAVALIAÇÃO. A tarefa da véspera falava
+ * em QUATRO materiais e a porta antiga abria UM na Biblioteca — o dono ainda
+ * tinha que achar o resumo e rolar até as perguntas. O chip abre o DIÁLOGO
+ * do resumo DIRETO na seção das perguntas (focusSection do diálogo), com a
+ * contagem viva de respondidas ao lado — o mesmo mapa que o diálogo usa
+ * (autoavaliacaoAnswered), sem segunda fonte de verdade. ④ a família é a
+ * esmeralda das portas (t185) e das perguntas respondidas (t186): cor =
+ * conteúdo; quem já respondeu veste o acerto com um pouco mais de tinta.
+ * Um só componente para os DOIS renders de tarefas (card do dia e plano
+ * completo) — regra duplicada é dívida certa (lição t175).
+ */
+function AutoavaliacaoChips({
+  links,
+  byId,
+  onOpen,
+}: {
+  links: AutoavaliacaoLink[];
+  byId: Record<string, number>;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      {links.map((l) => {
+        const answered = byId[l.id] ?? 0;
+        return (
+          <button
+            key={l.id}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault(); // dentro de <label>: o clique é do chip, não do checkbox
+              onOpen(l.id);
+            }}
+            title={`Abrir o resumo de ${l.label} direto nas perguntas de autoavaliação (${answered} respondida${answered === 1 ? '' : 's'} até agora)`}
+            className={cn(
+              'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1',
+              answered > 0
+                ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300'
+                : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300',
+            )}
+          >
+            <CircleHelp className="size-2.5" aria-hidden />
+            {l.label}
+            {answered > 0 && (
+              <span className="tabular-nums font-semibold">· {answered}</span>
+            )}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
 
 /**
  * O PLACAR DO SIMULADO EM CHIPS — a linha do bloco fraco mostrava o placar
@@ -268,6 +327,24 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
     }, 120); // espera o conteúdo do Dialog montar
     return () => window.clearTimeout(id);
   }, [open, dialogFocus]);
+
+  // t187 — O DEEP-LINK DA AUTOAVALIAÇÃO: o card monta o PRÓPRIO diálogo do
+  // resumo (o MESMO componente da Biblioteca e do Estudar — t185) e os chips
+  // da tarefa da véspera abrem direto na seção das perguntas. A contagem ao
+  // lado de cada chip vem do MESMO mapa que o diálogo usa — responder dentro
+  // do diálogo acende o chip atrás (sp é reativo, sem reload).
+  const [autoMaterial, setAutoMaterial] = React.useState<Material | null>(null);
+  const [autoOpen, setAutoOpen] = React.useState(false);
+  const autoOpenFor = React.useCallback((id: string) => {
+    const m = materials.find((x) => x.id === id) ?? null;
+    if (!m) return; // a casa não abre resumo de material que não existe
+    setAutoMaterial(m);
+    setAutoOpen(true);
+  }, []);
+  const autoAnswered = React.useMemo(
+    () => autoavaliacaoAnswered(sp.progress.autoavaliacaoChecks, MATH_AUTOAVALIACAO_TAREFA.map((l) => l.id)),
+    [sp.progress.autoavaliacaoChecks],
+  );
 
   // A RECITAÇÃO QUE VÊ O TRAVO (t177): o diálogo de fórmulas ganha a rodada
   // que a folha já tem na TELA e o travo que nem a folha tem — revelada, a
@@ -1112,6 +1189,13 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                           <BookOpen className="size-2.5" /> material
                         </button>
                       )}
+                      {t.autoavaliacao && (
+                        <AutoavaliacaoChips
+                          links={t.autoavaliacao}
+                          byId={autoAnswered.byId}
+                          onOpen={autoOpenFor}
+                        />
+                      )}
                       {t.exercisePool && (
                         <button
                           type="button"
@@ -1223,9 +1307,7 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
             onOpenTravadas={openTravadas}
             onDeckAction={addAv1Deck}
             onOpenFlashcards={() => openPractice({ mode: 'flashcards' })}
-            onOpenSelfAssessment={() =>
-              openMethod({ disciplineCode: MATH_EXAM.disciplineCode, materialId: 'mat-01-matrizes' })
-            }
+            onOpenSelfAssessment={() => autoOpenFor('mat-01-matrizes')}
           />
         )}
 
@@ -1404,6 +1486,13 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
                                 >
                                   <BookOpen className="size-2.5" /> material
                                 </button>
+                              )}
+                              {t.autoavaliacao && (
+                                <AutoavaliacaoChips
+                                  links={t.autoavaliacao}
+                                  byId={autoAnswered.byId}
+                                  onOpen={autoOpenFor}
+                                />
                               )}
                               {t.exercisePool && (
                                 <button
@@ -1810,6 +1899,17 @@ export function ExamPrepCard({ onOpenSettings, onStartStudy }: ExamPrepCardProps
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* t187 — O DIÁLOGO DO DEEP-LINK: o MESMO componente da Biblioteca e do
+          Estudar (t185), montado pelo card para que o gesto do chip/Kit
+          termine DENTRO da seção das perguntas (focusSection). UMA tela por
+          vez: nada disto empilha sobre o plano completo. */}
+      <MaterialSummaryDialog
+        material={autoMaterial}
+        open={autoOpen}
+        onOpenChange={setAutoOpen}
+        focusSection="autoavaliacao"
+      />
     </>
   );
 }
@@ -2304,9 +2404,9 @@ function VesperaKit({
     {
       icon: BookOpen,
       title: 'Autoavaliação dos resumos IA',
-      sub: 'Perguntas de autoavaliação do resumo da Lista — responda de cabeça, confira depois. 10 minutos.',
+      sub: 'Perguntas de autoavaliação dos 4 resumos de Matemática — abre direto nelas (as outras três ficam nos chips da tarefa 3). Responda de cabeça. 10 minutos.',
       action: onOpenSelfAssessment,
-      cta: 'Abrir resumo',
+      cta: 'Abrir perguntas',
     },
   ];
 

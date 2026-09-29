@@ -75,6 +75,15 @@ interface Props {
   material: Material | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * t187 — O DEEP-LINK DA AUTOAVALIAÇÃO: quando o diálogo é aberto por uma
+   * tarefa do plano (chip do card/Kit), o gesto termina DENTRO da seção das
+   * perguntas — não no topo de um resumo longo. O pai pede 'autoavaliacao'
+   * e o diálogo rola até a seção (uma vez, por abertura) e a acende por um
+   * instante: o olho chega onde a tarefa manda chegar. Padrão null = abrir
+   * no topo, como sempre (Biblioteca/Estudar não mudam de hábito).
+   */
+  focusSection?: 'autoavaliacao' | null;
 }
 
 const typeLabel: Record<Material['type'], string> = {
@@ -96,12 +105,36 @@ const summaryCache = new Map<string, AiSummary>();
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
 const touchBtn = 'h-11 sm:h-8';
 
-export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
+export function MaterialSummaryDialog({ material, open, onOpenChange, focusSection = null }: Props) {
   const sp = useStudyProgress();
   const [loading, setLoading] = React.useState(false);
   const [summary, setSummary] = React.useState<AiSummary | null>(null);
   const [available, setAvailable] = React.useState<boolean | null>(null);
   const [message, setMessage] = React.useState<string>('');
+
+  // t187 — O FAROL DA SEÇÃO: a âncora rola UMA vez por abertura (o efeito
+  // lê a epoch do material, não o clique — trocar de chip dentro do diálogo
+  // aberto re-ancora honesto) e o destaque morre sozinho (estado de TELA,
+  // o MESMO contrato da recitação: recarregou, a rodada recomeça).
+  const [sectionLit, setSectionLit] = React.useState(false);
+  const litOff = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (!open || focusSection !== 'autoavaliacao' || loading || !summary) {
+      setSectionLit(false);
+      return;
+    }
+    const settle = window.setTimeout(() => {
+      const el = document.getElementById('resumo-autoavaliacao');
+      if (!el) return;
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      setSectionLit(true);
+      litOff.current = window.setTimeout(() => setSectionLit(false), 2400); // o farol apaga
+    }, 150); // espera o conteúdo do Dialog assentar (o padrão da casa)
+    return () => {
+      window.clearTimeout(settle);
+      if (litOff.current) window.clearTimeout(litOff.current);
+    };
+  }, [open, focusSection, loading, summary, material?.id]);
 
   // Drill-down PDF: em vez de empilhar o viewer SOBRE este diálogo (telas
   // sobrepostas), este diálogo se oculta enquanto o PDF está aberto e volta
@@ -380,6 +413,7 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 onAskAi={handleAskAi}
                 answeredCount={answeredCount}
                 totalQuestions={totalQuestions}
+                sectionLit={sectionLit}
               />
             ) : null}
           </div>
@@ -524,14 +558,28 @@ function Section({
   icon,
   color,
   children,
+  id,
+  highlight,
 }: {
   title: string;
   icon: React.ReactNode;
   color: string;
   children: React.ReactNode;
+  /** t187 — âncora do deep-link (resumo-autoavaliacao): o farol do diálogo
+   * rola até ela quando a abertura vem do plano. */
+  id?: string;
+  /** t187 — o destaque temporário do deep-link: a seção acende no momento
+   * em que o olho chega (esmeralda da casa) e apaga sozinho. */
+  highlight?: boolean;
 }) {
   return (
-    <section className="space-y-2">
+    <section
+      id={id}
+      className={cn(
+        'space-y-2 rounded-lg scroll-mt-3 transition-all duration-700',
+        highlight && 'ring-2 ring-emerald-500/50 bg-emerald-500/[0.05] px-2 py-2 -mx-2',
+      )}
+    >
       <h3 className={cn('flex items-center gap-2 text-sm font-semibold', color)}>
         {icon}
         {title}
@@ -552,6 +600,7 @@ const SummaryBody = React.memo(function SummaryBody({
   onAskAi,
   answeredCount,
   totalQuestions,
+  sectionLit,
 }: {
   summary: AiSummary;
   color: ReturnType<typeof getColorClasses>;
@@ -563,6 +612,8 @@ const SummaryBody = React.memo(function SummaryBody({
   onAskAi: (question: string) => void;
   answeredCount: number;
   totalQuestions: number;
+  /** t187 — o farol do deep-link: acende a seção das perguntas na chegada. */
+  sectionLit?: boolean;
 }) {
   const conceitos = summary.conceitos_chave ?? [];
   const pontos = summary.pontos_importantes ?? [];
@@ -700,7 +751,13 @@ const SummaryBody = React.memo(function SummaryBody({
       )}
 
       {perguntas.length > 0 && (
-        <Section icon={<CircleHelp className="size-4" />} title="Perguntas de Autoavaliação" color={color.text}>
+        <Section
+          id="resumo-autoavaliacao"
+          highlight={sectionLit}
+          icon={<CircleHelp className="size-4" />}
+          title="Perguntas de Autoavaliação"
+          color={color.text}
+        >
           <p className="mb-2 text-xs text-muted-foreground">
             Marque quando souber responder com confiança. O botão de estrelas envia a pergunta ao tutor. Suas respostas ficam salvas.
           </p>
