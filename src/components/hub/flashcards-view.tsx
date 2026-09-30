@@ -52,6 +52,7 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { MathText } from './math-text';
 import { TutorMarkdown } from './tutor-markdown';
 import {
   flashcardBoxLabel,
@@ -769,10 +770,10 @@ export function FlashcardsView() {
                   </Button>
                 </div>
                 <p className="mt-2 text-sm font-medium leading-snug text-foreground/90">
-                  {card.front}
+                  <MathText text={card.front} />
                 </p>
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {card.back}
+                  <MathText text={card.back} />
                 </p>
                 <div className="mt-2 flex gap-3 border-t pt-2 text-[10px] text-muted-foreground/70">
                   <span>{card.reviews} revisões</span>

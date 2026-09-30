@@ -44,6 +44,7 @@ import { Separator } from '@/components/ui/separator';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { MathText } from './math-text';
 import { useStudyProgress } from '@/lib/study-progress';
 import type { Exercise } from '@/lib/exercise-extractor';
 import { exercises } from '@/lib/exercise-extractor';
@@ -271,7 +272,7 @@ function ReviewScreen({
         </div>
 
         <p className="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">
-          {ex.statement}
+          <MathText text={ex.statement} />
         </p>
 
         {ex.hint && showTip && (
@@ -279,7 +280,9 @@ function ReviewScreen({
             <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
               <Lightbulb className="size-3" /> Dica do Hub
             </p>
-            {ex.hint}
+            {ex.hint && (
+              <MathText text={ex.hint} className="mt-1 block text-sm leading-relaxed" />
+            )}
           </div>
         )}
 

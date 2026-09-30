@@ -50,6 +50,7 @@ import { daysUntilDate } from '@/lib/semester';
 import { captureElementToDataUrl } from '@/lib/dom-capture';
 import { normalizeAiSummary } from '@/lib/ai-summary-schema';
 import { cn } from '@/lib/utils';
+import { MathText } from './math-text';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 
 interface AiSummary {
@@ -628,7 +629,7 @@ const SummaryBody = React.memo(function SummaryBody({
       {summary.resumo_geral && (
         <Section icon={<BookOpenText className="size-4" />} title="Resumo Geral" color={color.text}>
           <p className="text-sm leading-relaxed text-foreground/90">
-            {summary.resumo_geral}
+            <MathText text={summary.resumo_geral} />
           </p>
           {typeof summary.tempo_estudo_minutos === 'number' && (
             <Badge variant="outline" className="mt-2 border-border text-muted-foreground">
@@ -643,14 +644,16 @@ const SummaryBody = React.memo(function SummaryBody({
           <div className="grid gap-2 sm:grid-cols-2">
             {conceitos.map((c, i) => (
               <div key={i} className="rounded-md border border-border bg-muted/30 p-3">
-                <p className={cn('text-sm font-semibold', color.text)}>{c.conceito}</p>
+                <p className={cn('text-sm font-semibold', color.text)}>
+                  <MathText text={c.conceito} />
+                </p>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/85">
-                  {c.explicacao}
+                  <MathText text={c.explicacao} />
                 </p>
                 {c.exemplo && (
                   <p className="mt-2 rounded bg-card p-2 text-xs italic text-muted-foreground">
                     <span className="font-medium not-italic">Ex.: </span>
-                    {c.exemplo}
+                    <MathText text={c.exemplo} />
                   </p>
                 )}
               </div>
@@ -665,7 +668,7 @@ const SummaryBody = React.memo(function SummaryBody({
             {pontos.map((p, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
                 <CheckCircle2 className={cn('mt-0.5 size-4 shrink-0', color.text)} />
-                {p}
+                <MathText text={p} className="min-w-0 flex-1" />
               </li>
             ))}
           </ul>
@@ -677,9 +680,10 @@ const SummaryBody = React.memo(function SummaryBody({
           <div className="overflow-hidden rounded-md border border-border bg-muted/40">
             {formulas.map((f, i) => (
               <div key={i} className="border-b border-border p-2.5 last:border-b-0">
-                <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground/90">
-                  {f}
-                </pre>
+                {/* t194: fórmulas da IA em KaTeX (era <pre> mono — matriz vivia torta) */}
+                <div className="overflow-x-auto [scrollbar-width:thin]">
+                  <MathText text={f} className="block text-xs leading-relaxed text-foreground/90" />
+                </div>
               </div>
             ))}
           </div>
@@ -695,7 +699,7 @@ const SummaryBody = React.memo(function SummaryBody({
                 className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900 transition-colors hover:bg-amber-100/70 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/60"
               >
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <span className="flex-1">{e}</span>
+                <MathText text={e} className="min-w-0 flex-1" />
                 <AskAiChip
                   onAsk={() =>
                     onAskAi(
@@ -722,7 +726,7 @@ const SummaryBody = React.memo(function SummaryBody({
                 className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-2.5 text-sm text-foreground/85 transition-colors hover:bg-muted/50"
               >
                 <span className={cn('font-semibold', color.text)}>{i + 1}.</span>
-                <span className="flex-1">{ex}</span>
+                <MathText text={ex} className="min-w-0 flex-1" />
                 <AskAiChip
                   onAsk={() =>
                     onAskAi(
@@ -743,7 +747,7 @@ const SummaryBody = React.memo(function SummaryBody({
             {proximos.map((p, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
                 <Plus className={cn('mt-0.5 size-4 shrink-0', color.text)} />
-                {p}
+                <MathText text={p} className="min-w-0 flex-1" />
               </li>
             ))}
           </ul>
@@ -789,7 +793,7 @@ const SummaryBody = React.memo(function SummaryBody({
                       checks[i] && 'text-muted-foreground line-through',
                     )}
                   >
-                    {p}
+                    <MathText text={p} />
                   </span>
                 </label>
                 <AskAiChip

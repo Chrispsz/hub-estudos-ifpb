@@ -33,6 +33,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 import { db } from '@/lib/db';
+import { examIntelForTutor } from '@/lib/prof-audio-map';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
 import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
@@ -1405,7 +1406,11 @@ export async function POST(req: Request) {
             hub,
             materialBlock,
             body.hintMode === true,
-          );
+          ) +
+      // t194 (porta da t177) — INTEL DA PROVA (só modo tutor): na disciplina da
+      // Av1, o tutor recebe o mapa espelhado completo (6 questões, espelhos,
+      // ordem, pontos) gerado DO MESMO prof-audio-map que os cards usam.
+      (disciplineKey === 'TEC.1984' ? `\n\n${examIntelForTutor()}` : '');
 
     // ---------- MODO STREAMING (SSE) — chat do tutor ----------
     if (useStream) {

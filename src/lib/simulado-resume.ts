@@ -25,6 +25,12 @@ export interface SavedSimuladoConfig {
   durationMin: number; // 0 = sem tempo
   aligned: boolean;
   topics?: string[];
+  /**
+   * t194 — prova de estrutura fixa (Simulado do Professor, t172): os ids das
+   * questões NA ORDEM ditada. Persistido junto do config — F5 no meio da
+   * prova não perde a estrutura fixa da retomada.
+   */
+  fixedIds?: string[];
 }
 
 /**

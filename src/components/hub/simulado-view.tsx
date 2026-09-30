@@ -8,6 +8,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlarmClock,
+  Bot,
   Hourglass,
   ArrowLeft,
   ArrowRight,
@@ -54,7 +55,16 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
-import { disciplines, getDisciplineByCode } from '@/data/course-data';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { disciplines, getDisciplineByCode, materials } from '@/data/course-data';
+import { TutorQuickPanel } from './tutor-quick-panel';
+import { MathText } from './math-text';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
@@ -99,6 +109,13 @@ export interface SimuladoConfig {
    * Vazio/undefined = todos os tópicos da disciplina.
    */
   topics?: string[];
+  /**
+   * t194 (porta da t172) — PROVA DE ESTRUTURA FIXA: quando presente, o
+   * simulado NÃO sorteia — roda EXATAMENTE estas questões, nesta ordem (o
+   * "Simulado do Professor", ditado no áudio da véspera). A retomada
+   * persiste o campo junto do config, então F5 no meio não quebra nada.
+   */
+  fixedIds?: string[];
 }
 
 interface QuestionResult {
@@ -198,6 +215,21 @@ function pausedWhenLabel(iso: string): string {
   return mins % 60 > 0 ? `${h}h ${mins % 60} min` : `${h}h`;
 }
 
+/**
+ * t194 (porta da t177) — o pedido de dúvida DENTRO do simulado: o enunciado
+ * da questão atual vai pré-preenchido no painel do tutor. O prompt pede o
+ * MÉTODO sem entregar a resposta de primeira: treino para a prova real, não colar.
+ */
+function buildDoubtPrompt(ex: Exercise, n: number, total: number): string {
+  return [
+    `Estou no simulado (questão ${n} de ${total}). Minha dúvida é nesta questão:`,
+    '',
+    `"${ex.statement}"`,
+    '',
+    'Me guie pelo método SEM entregar a resposta de primeira — quero aprender para a prova real. Se eu travar, eu peço a resolução completa.',
+  ].join('\n');
+}
+
 export function SimuladoView({
   open,
   onOpenChange,
@@ -221,6 +253,14 @@ export function SimuladoView({
   const [idx, setIdx] = React.useState(0);
   const [results, setResults] = React.useState<QuestionResult[]>([]);
   const [hintVisible, setHintVisible] = React.useState(false);
+  /**
+   * t194 (porta da t177) — DÚVIDA DENTRO DA PROVA: a questão atual abre o
+   * TutorQuickPanel num Sheet lateral, com o enunciado pré-preenchido.
+   * O cronômetro NÃO pausa — honestidade de simulado: na prova real não tem
+   * tutor, então usar aqui é decisão do aluno (treinar com apoio ou não).
+   */
+  const [doubt, setDoubt] = React.useState<{ q: Exercise; n: number; total: number } | null>(null);
+  const [doubtPrompt, setDoubtPrompt] = React.useState<string | null>(null);
   const [remaining, setRemaining] = React.useState(0);
   const [elapsed, setElapsed] = React.useState(0);
   /**
@@ -534,13 +574,26 @@ export function SimuladoView({
   }, [config.discipline]);
 
   function start(cfg: SimuladoConfig = config) {
-    // Sorteio com seed diferente a cada tentativa (evita repetir o mesmo conjunto)
+    // t194 — PROVA FIXA: com fixedIds, NÃO há sorteio — as questões do
+    // professor entram EXATAMENTE na ordem ditada (a estrutura da prova real).
     let picked: Exercise[] = [];
-    const seedBase = Date.now();
-    // pickRandomExercises sortea do acervo completo — filtramos antes re-implementando
-    // a escolha com seed determinística no pool filtrado:
-    const shuffled = shuffle(pool, seedBase);
-    picked = shuffled.slice(0, Math.min(cfg.quantity, shuffled.length));
+    if (cfg.fixedIds && cfg.fixedIds.length > 0) {
+      const byId = new Map(exercises.map((e) => [e.id, e] as const));
+      picked = cfg.fixedIds
+        .map((id) => byId.get(id))
+        .filter((e): e is Exercise => Boolean(e));
+      if (picked.length === 0) {
+        toast.error('As questões da prova não estão mais no acervo.');
+        return;
+      }
+    } else {
+      // Sorteio com seed diferente a cada tentativa (evita repetir o mesmo conjunto)
+      const seedBase = Date.now();
+      // pickRandomExercises sortea do acervo completo — filtramos antes re-implementando
+      // a escolha com seed determinística no pool filtrado:
+      const shuffled = shuffle(pool, seedBase);
+      picked = shuffled.slice(0, Math.min(cfg.quantity, shuffled.length));
+    }
     if (picked.length === 0) {
       toast.error('Nenhum exercício com esses filtros. Ajuste a seleção.');
       return;
@@ -775,7 +828,7 @@ export function SimuladoView({
           <SetupScreen
             config={config}
             setConfig={setConfig}
-            poolCount={pool.length}
+            poolCount={config.fixedIds?.length ?? pool.length}
             topicOptions={topicOptions}
             onStart={() => start()}
             resume={resumeRun}
@@ -810,6 +863,14 @@ export function SimuladoView({
               setHintVisible(false);
             }}
             onFinish={() => setConfirmingFinish(true)}
+            // t194 — a dúvida ANCORADA na questão atual: enunciado pré-preenchido
+            // no painel do tutor (o aluno revisa e envia). O cronômetro continua.
+            onAskDoubt={() => {
+              const q = questions[idx];
+              if (!q) return;
+              setDoubt({ q, n: idx + 1, total: questions.length });
+              setDoubtPrompt(buildDoubtPrompt(q, idx + 1, questions.length));
+            }}
             onPause={() => {
               // A tentativa já está salva (o efeito de persistência grava no
               // fechamento) — avisar ONDE retomar é o que falta para o aluno.
@@ -874,6 +935,55 @@ export function SimuladoView({
             }}
           />
         )}
+
+        {/* t194 (porta da t177) — DÚVIDA NO SIMULADO: o dono pediu "conseguir
+            tirar dúvida nesse modo simulado". Sheet lateral com o MESMO painel
+            do PDF+Tutor (TutorQuickPanel): pergunta pré-preenchida com o
+            enunciado da questão atual, respostas salvas no histórico da
+            disciplina (a dúvida vira estudo). Cronômetro continua — o rótulo
+            confessa isso. */}
+        <Sheet
+          open={doubt !== null}
+          onOpenChange={(v) => {
+            if (!v) {
+              setDoubt(null);
+              setDoubtPrompt(null);
+            }
+          }}
+        >
+          <SheetContent
+            side="right"
+            className="flex w-full flex-col gap-0 p-0 sm:max-w-lg"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <SheetHeader className="border-b pr-12">
+              <SheetTitle className="flex items-center gap-2 text-base">
+                <Bot className="size-4 text-violet-500" aria-hidden />
+                Tutor — dúvida da questão {doubt?.n ?? '…'}
+              </SheetTitle>
+              <SheetDescription className="truncate">
+                O cronômetro da prova continua · a dúvida vai para o histórico de estudo
+              </SheetDescription>
+            </SheetHeader>
+            {doubt && (
+              <TutorQuickPanel
+                className="min-h-0 flex-1"
+                discipline={getDisciplineByCode(doubt.q.disciplineCode)?.name ?? 'Matemática'}
+                disciplineCode={doubt.q.disciplineCode}
+                materialId={doubt.q.linkedMaterials?.[0]}
+                materialTitle={materials.find((m) => m.id === doubt.q.linkedMaterials?.[0])?.title}
+                suggestions={[
+                  'Me dê SÓ uma dica do caminho, sem resolver',
+                  'Me explique o método passo a passo',
+                  'Tem uma questão parecida para eu treinar depois?',
+                ]}
+                showHeader={false}
+                externalQuestion={doubtPrompt}
+                onExternalQuestionConsumed={() => setDoubtPrompt(null)}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </DialogContent>
     </Dialog>
   );
@@ -1341,6 +1451,7 @@ function ExamScreen({
   onMark,
   onNavigate,
   onFinish,
+  onAskDoubt,
   onPause,
 }: {
   questions: Exercise[];
@@ -1358,6 +1469,8 @@ function ExamScreen({
   onMark: (solved: boolean) => void;
   onNavigate: (i: number) => void;
   onFinish: () => void;
+  /** t194: abre o Tutor ao lado com esta questão pré-preenchida (Sheet). */
+  onAskDoubt: () => void;
   /** Pausa explícita: salva e fecha — a retomada espera no banner do setup. */
   onPause: () => void;
 }) {
@@ -1476,7 +1589,9 @@ function ExamScreen({
                 do Radix usa display:table, que em telas estreitas impede o wrap
                 do texto e estourava o diálogo (548px num viewport de 390). */}
             <div className="max-h-[30vh] min-w-0 overflow-y-auto pr-2">
-              <p className="text-sm leading-relaxed text-foreground/90">{ex.statement}</p>
+              <p className="text-sm leading-relaxed text-foreground/90">
+                <MathText text={ex.statement} />
+              </p>
             </div>
 
             {ex.hint && hintVisible && (
@@ -1485,7 +1600,7 @@ function ExamScreen({
                 animate={{ opacity: 1, height: 'auto' }}
                 className="mt-3 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400"
               >
-                <Lightbulb className="mt-0.5 size-3 shrink-0" /> {ex.hint}
+                <Lightbulb className="mt-0.5 size-3 shrink-0" /> <MathText text={ex.hint ?? ''} className="min-w-0 flex-1" />
               </motion.p>
             )}
           </motion.div>
@@ -1530,6 +1645,19 @@ function ExamScreen({
           >
             {hintVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {hintVisible ? 'Esconder dica' : 'Ver dica'}
+          </Button>
+          {/* t194 — TIRAR DÚVIDA NA PROVA: abre o Tutor ao lado com o enunciado
+              desta questão pré-preenchido. O cronômetro segue rodando (o title
+              confessa — na prova real não existe tutor, então é escolha do
+              aluno treinar com apoio ou não). */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAskDoubt}
+            title="Abre o Tutor com esta questão — o cronômetro continua rodando"
+            className="h-11 border-violet-500/40 text-violet-600 hover:bg-violet-500/10 hover:text-violet-600 dark:text-violet-400 sm:h-8"
+          >
+            <Bot className="size-3.5" /> Tirar dúvida
           </Button>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button

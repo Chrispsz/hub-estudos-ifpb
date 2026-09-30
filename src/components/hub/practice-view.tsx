@@ -46,6 +46,7 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { MathText } from './math-text';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
@@ -173,6 +174,28 @@ const MATH_EXAM_PRESET = {
   durationMin: 60,
   aligned: true,
   topics: ['Álgebra Matricial', 'Lógica Matemática'],
+};
+
+/**
+ * t194 (porta da t172) — SIMULADO DO PROFESSOR (áudio de 30/09, véspera): a
+ * ESTRUTURA REAL da Av1, ditada por ele questão a questão. 6 questões FIXAS,
+ * na ordem, sem sorteio; 50 min como a prova oficial. A retomada persiste os
+ * ids junto do config — F5 no meio não perde nada.
+ */
+const MATH_EXAM_PROF_PRESET = {
+  discipline: 'TEC.1984',
+  difficulty: 'all' as const,
+  quantity: 6,
+  durationMin: 50,
+  aligned: true,
+  fixedIds: [
+    'prof-av1-q1', // lógica — valores lógicos + conclusão do argumento
+    'prof-av1-q2', // lógica — proposição composta + tabela-verdade (≈ Lista Q3)
+    'prof-av1-q3', // matriz quadrada (≈ Lista de Matrizes Q1)
+    'prof-av1-q4', // situação-problema com produto de matrizes (NÃO sistema)
+    'prof-av1-q5', // transformação geométrica + potência/soma/produto (≈ Q26)
+    'prof-av1-q6', // inversa: isolar X + definição (≈ Q34–Q35)
+  ],
 };
 
 /**
@@ -357,6 +380,10 @@ function ExercisesPanel({
     if (d.preset === 'math_exam') {
       setSimuladoInitialMode('prova');
       setSimuladoInitialConfig(MATH_EXAM_PRESET);
+    } else if (d.preset === 'math_exam_prof') {
+      // t194 — a estrutura REAL ditada pelo professor: 6 questões fixas, 50 min.
+      setSimuladoInitialMode('prova');
+      setSimuladoInitialConfig(MATH_EXAM_PROF_PRESET);
     } else if (d.topicScope) {
       // Drill de 1 tópico (ex.: replay do pior tópico da tendência no Histórico):
       // prova curta, no ritmo da turma, cronômetro leve — ajustável no setup.
@@ -907,7 +934,9 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
                     );
                   })()}
                 </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">{ex.statement}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">
+                  <MathText text={ex.statement} />
+                </p>
               </div>
               <div className="flex shrink-0 gap-1.5">
                 <Button
@@ -1052,10 +1081,12 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             <Star className={cn('size-4', progress?.marked && 'fill-current')} />
           </button>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-foreground/90">{exercise.statement}</p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+            <MathText text={exercise.statement} />
+          </p>
           {exercise.hint && (
             <p className="mt-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
-              <Lightbulb className="mt-0.5 size-3 shrink-0" /> {exercise.hint}
+              <Lightbulb className="mt-0.5 size-3 shrink-0" /> <MathText text={exercise.hint ?? ''} className="min-w-0 flex-1" />
             </p>
           )}
         </div>

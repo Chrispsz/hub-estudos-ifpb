@@ -25,8 +25,12 @@ export const OPEN_SIMULADO_EVENT = 'hub:open-simulado';
 export interface OpenSimuladoDetail {
   /** Código da disciplina para pré-selecionar. */
   disciplineCode?: string;
-  /** Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10). */
-  preset?: 'math_exam';
+  /**
+   * Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10).
+   * t194 — 'math_exam_prof' = ESTRUTURA REAL ditada pelo professor no áudio
+   * de 30/09 (t172): as 6 questões fixas, na ordem e no tipo que ele descreveu.
+   */
+  preset?: 'math_exam' | 'math_exam_prof';
   /**
    * Escopo de UM tópico (ex.: replay do pior tópico da tendência no Histórico).
    * Abre o Simulado Pro com só esse tópico ativo — prova curta (5 questões,

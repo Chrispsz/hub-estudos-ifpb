@@ -49,6 +49,7 @@ import type { Discipline, Material } from '@/data/course-data';
 import { studyStrategy } from '@/data/course-data';
 import { TodayStudyCard } from './today-study-card';
 import { useNow } from './clock-widget';
+import { ExamTutorCard } from './exam-tutor-card';
 import { ExamPrepCard } from './exam-prep-card';
 import { RecoveryCard } from './recovery-card';
 import { SemesterProjection } from './semester-projection';
@@ -358,6 +359,9 @@ export function Dashboard({ onStartStudy, onOpenSchedule, onOpenLibrary, onOpenP
       {/* FOCO: Prova de Matemática (Av1, 01/10) — plano 12 dias material-first */}
       {/* t179: o mesmo canal do apoio do dia serve a PORTA DO MARCO — o chip
           da S3 (entrega de hoje) abre o material real no Estudar. */}
+      {/* t194 — TUTOR DA PROVA: a home abre com o tutor (pergunta direta,
+          treino guiado das questões do professor e os PDFs em tela dividida). */}
+      <ExamTutorCard />
       <ExamPrepCard onOpenSettings={onOpenSettings} onStartStudy={onStartStudy} />
 
       {/* PLANO DE RECUPERAÇÃO — semana atual + fila de prioridades (sem S1 feita, resto pendente) */}

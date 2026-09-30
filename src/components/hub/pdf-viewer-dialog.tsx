@@ -70,6 +70,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
+   * t194 (porta da t177) — modo pedido por FORA na abertura (ex.: o card
+   * Tutor da prova abre os PDFs da Av1 JÁ em tela dividida — a integração
+   * que o dono ama). Honrado SÓ quando o localStorage não tem memória do
+   * dono (a escolha dele vence — o prop é um convite, não uma ordem).
+   */
+  initialMode?: 'pdf' | 'split';
+  /**
    * t162 — página pedida por um convite ACEITO FORA do diálogo (o botão
    * "continuar" do cartão na lista): abre JÁ saltado para ela, sem oferecer
    * a pill de retomada nesta abertura (o clique JÁ disse "continuar"). O
@@ -128,11 +135,12 @@ export function PdfViewerDialog({
   open,
   onOpenChange,
   initialPage,
+  initialMode,
   pendingAttachLabel,
 }: Props) {
   const sp = useStudyProgress();
   /** Modo do workspace — 'split' é lembrado no localStorage (hidrata no mount). */
-  const [mode, setMode] = React.useState<'pdf' | 'split'>('pdf');
+  const [mode, setMode] = React.useState<'pdf' | 'split'>(initialMode ?? 'pdf');
   /** Largura do painel do MATERIAL em % (o tutor leva o resto). */
   const [splitPct, setSplitPct] = React.useState(58);
   /** Abas do mobile (< lg): o painel ocupa a tela INTEIRA, um por vez. */
@@ -195,7 +203,7 @@ export function PdfViewerDialog({
   // com a hidratação; a escolha de uma sessão vale para as próximas.
   React.useEffect(() => {
     try {
-      if (localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
+      if (!initialMode && localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
       const p = Number(localStorage.getItem(SPLIT_PCT_KEY));
       if (p >= PCT_MIN && p <= PCT_MAX) setSplitPct(Math.round(p));
       if (localStorage.getItem(SPLIT_HINT_KEY) !== '1') setDragHint(true);
