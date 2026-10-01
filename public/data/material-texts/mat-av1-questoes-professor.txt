@@ -1,0 +1,115 @@
+Av1 de Matemática — as questões do professor (espelhos das listas)
+====================================================================
+Fonte: áudio do professor (30/09, transcrito no Hub) + listas oficiais.
+Núcleo: Matrizes (operações, transposta, simétrica/antissimétrica, inversa) e
+Lógica (proposições, conectivos, tabelas-verdade, equivalências, argumentos).
+NÃO CAEM: determinantes e sistemas lineares (ainda não dados — confirmado 24/09).
+Pontuação: 6 questões, 20 pts cada (100). Q6 é bônus (+20 — a nota trava em 100).
+Ordem recomendada: Q3 → Q1 → Q4 → Q2 → Q5 → Q6 (mecânico primeiro, bônus por último).
+
+QUESTÃO 1 — Lógica: valores lógicos e conclusão do argumento (6 min, 20 pts, 2º)
+Prof: "proposições lógicas, você diz os valores lógicos e, a partir das premissas,
+chega a uma conclusão — bem de boa, parecidos com os exemplos de aula."
+Espelho exato — Lista de Lógica Q7: proposições p: 3+2=6 (F) · q: π>3 (V) ·
+r: Cajazeiras é a capital da Paraíba (F). Determine V/F:
+a) p → q · b) ¬(p ∨ r) ∧ q · c) ¬(q → p) ∧ p · d) (r ↔ p) ∨ ¬q
+Espelho exato — Lista de Lógica Q13 (argumento com alternativas A–E):
+"Se Carlos é executivo público, então Cláudio é eletricista e André médico. Se
+Márcia é enfermeira ou Carolina é nutricionista, então André não é médico.
+Constata-se que Márcia é enfermeira ou que Ana é advogada. Sabe-se, ainda, que
+Carlos é executivo público. Logo, é verdade que:" (A) Ana é advogada (B) André
+não é médico (C) Márcia é enfermeira (D) Cláudio não é eletricista (E) Carolina
+é nutricionista.
+Irmãos: Lógica Q5, Q6, Q14, Q15.
+Gabarito: Q7 → a) V b) V c) F d) V. Q13 → alternativa A (Carlos V ⇒ André médico
+e Cláudio eletricista; 2ª condicional força "Márcia ou Carolina" = F; da
+disjunção com Márcia = F sobra Ana advogada).
+Receita: (1) valorize cada proposição simples (números: calcule). (2) Regras de
+ouro: ∧ = V só se os dois V · ∨ = F só se os dois F · → só é F quando V→F ·
+↔ = V quando os lados são iguais. (3) Encadeie: modus ponens, modus tollens,
+silogismo, disjunção. (4) Conclusão = a única alternativa que não contraria a cadeia.
+
+QUESTÃO 2 — Lógica: formalizar + tabela-verdade + classificar (10 min, 20 pts, 4º)
+Prof: "identificar as proposições simples e traduzir; construir a tabela-verdade
+e classificar — tautologia, contradição ou contingência. Parecida com a questão 3
+da lista de lógica."
+Espelho exato — Lista de Lógica Q3 (CITADA): p: Luciana é rica · q: Luciana é feliz.
+Traduza: a) Luciana é pobre, mas é feliz · b) rica ou infeliz · c) pobre e infeliz ·
+d) pobre ou rica, mas é infeliz.
+Irmãos: Lógica Q4, Q8, Q10, Q11.
+Gabarito: a) ¬p ∧ q (o "mas" é ∧ e "pobre" é ¬p) · b) p ∨ ¬q · c) ¬p ∧ ¬q ·
+d) (¬p ∨ p) ∧ ¬q = ¬q (pois ¬p ∨ p é tautologia).
+Receita: (1) sublinhe as simples, nomeie p/q; vocabulário: e/mas = ∧ · ou = ∨ ·
+se...então = → · se e somente se = ↔ · não/pobre/infeliz = ¬. (2) n variáveis → 2ⁿ
+linhas; colunas de dentro para fora. (3) coluna final: toda V = tautologia · toda
+F = contradição · mista = contingência. (4) atalho: ¬p ∧ p = F garantido; X → X =
+tautologia.
+
+QUESTÃO 3 — Matrizes: matriz por lei de formação (6 min, 20 pts, 1º)
+Prof: "uma matriz quadrada de formação... algo parecido com a primeira questão da
+lista de matrizes."
+Espelho exato — Lista de Matrizes Q1 (CITADA): construa:
+a) A=(a_ij) 2×2 tal que a_ij = 2+i+j · b) A 3×3 com a_ij = 1 se i=j, 0 se i≠j ·
+c) B 3×3 com b_ij = 1 se i+j=4, 0 se i+j≠4 · d) B 4×3 com b_ij = 2i−j se i>j, π se
+i=j, ij−3 se i<j.
+Irmãos: Matrizes Q3 (igualdade), Q7 (soma por lei), Q28 (simétrica), Q29 (antissimétrica).
+Gabarito: a) [[4,5],[5,6]] · b) é a identidade I3 · c) 1 na diagonal SECUNDÁRIA
+[[0,0,1],[0,1,0],[1,0,0]] · d) regra certa casa a casa.
+Receita: (1) i = linha, j = coluna; i=j = diagonal principal · i+j=n+1 = secundária.
+(2) monte linha por linha (nas por partes, teste i>j, i=j, i<j separadamente).
+(3) Simétrica: Aᵗ=A; antissimétrica: Aᵗ=−A ⇒ diagonal toda ZERO. (4) igualdade =
+casa a casa igual, vira sistema simples.
+
+QUESTÃO 4 — Matrizes: situação-problema é PRODUTO, NÃO sistema (8 min, 20 pts, 3º)
+Prof: "queijo, frango, biscoito... Vai representar por sistemas lineares? NÃO! É
+o produto de matrizes: quantidades de um lado, preços do outro."
+Espelho exato — Lista de Matrizes Q2: D = [[0,15,27],[15,0,46],[27,46,0]]
+(distâncias entre X, Y, Z). a) distâncias X-Y, Z-X, Y-Z · b) a transposta de D.
+Espelho exato — Lista de Matrizes Q17: calcule os produtos:
+a) [[0,1],[1,0]]·[[4,7],[2,3]] · b) coluna [1;2;3] × linha [3 1 1 2] (produto
+externo 3×4) · c) [[−2,1],[0,3]]·[[−2,3,2,−1],[−1,0,0,−4]] · d) 3×3·3×3.
+Irmãos: Matrizes Q9 (soma/subtração), Q18 (elemento c23), Q22 (produto por diagonal).
+Gabarito: Q2 → a) 15, 27, 46 · b) Dᵗ = D (simétrica). Q17 → a) [[2,3],[7,4]] (a 1ª
+troca as linhas — permutação) · b) externo 3×4 · c) ordem 2×4 · d) ordem 3×3;
+confira colunas da 1ª = linhas da 2ª.
+Receita: (1) QUANTIDADES = Q (linhas = dias/lojas, colunas = produtos) e PREÇOS = P
+(matriz coluna). (2) ordem: Q(m×n)·P(n×1) → (m×1). (3) c_ik = linha i de Q × coluna
+k de P. (4) cada linha do resultado = faturamento daquele dia/loja. É produto, NÃO
+sistema linear.
+
+QUESTÃO 5 — Matrizes: transformação no plano e potência (10 min, 20 pts, 5º)
+Prof: "figura poligonal por vértices no plano cartesiano; transformações
+geométricas por operação matricial — e essa operação é a MULTIPLICAÇÃO. E tem
+letra de operação: potenciação, adição, multiplicação — parecida com a vinte e
+seis da lista."
+Espelho exato — Lista de Matrizes Q19: A = [[1,1],[0,1]]; determine a) A² · b) A³ ·
+c) A⁴ · d) A²⁵ · e) Aⁿ.
+Espelho exato — Lista de Matrizes Q20: A = [[1,2],[4,−3]]; determine A² + 2A − 11I.
+Irmãos: Matrizes Q26 (transposta em equação), Q17d (produto 3×3 — mecânica do
+vértice novo), Q12 (escalar e combinação).
+Gabarito: Q19 → A²=[[1,2],[0,1]] · A³=[[1,3],[0,1]] · A⁴=[[1,4],[0,1]] ·
+A²⁵=[[1,25],[0,1]] · Aⁿ=[[1,n],[0,1]] (só o canto cresce — tem letra E!). Q20 →
+A²=[[9,−4],[−8,17]]; 2A=[[2,4],[8,−6]]; resultado = MATRIZ NULA.
+Receita: (1) vértice (x,y) vira matriz coluna [x;y]; vértice novo = M·[x;y].
+(2) reconheça M: [[0,−1],[1,0]] = rotação 90° · [[1,0],[0,−1]] = espelho no eixo x ·
+[[k,0],[0,k]] = escala k. (3) A² = A·A — nunca elemento a elemento. (4) combo:
+primeiro A², depois 2A e 11I, só então soma elemento a elemento.
+
+QUESTÃO 6 — Matrizes: inversa — isolar X + definição (10 min, 20 pts BÔNUS, último)
+Prof: "a sexta vai ter uma definição... usar é muito mais fácil do que fazer. É só
+isolar a matriz X, lembrando das propriedades da inversa e da transposta — questão
+trinta e quatro, trinta e cinco. E a letra B usa a definição do que é uma matriz
+tal coisa."
+Espelho exato — Lista de Matrizes Q34 (CITADA): isole X: a) AXB = I_n · b) (AX)⁻¹ = B ·
+c) BAX = A · d) (AX)ᵗ = B · e) (A+X)ᵗ = B.
+Espelho exato — Lista de Matrizes Q35 (CITADA): A = [[3,4],[−2,1]], B = [[5,−2],[0,3]];
+determine X tal que (XA)⁻¹ = B.
+Irmãos: Matrizes Q31 (inversas), Q32 (inversa por igualdade), Q33 (equação matricial).
+Gabarito: Q34 → a) X = A⁻¹B⁻¹ · b) AX = B⁻¹ ⇒ X = A⁻¹B⁻¹ · c) X = A⁻¹B⁻¹A ·
+d) AX = Bᵗ ⇒ X = A⁻¹Bᵗ · e) A+X = Bᵗ ⇒ X = Bᵗ − A. Q35 → X = B⁻¹A⁻¹ =
+(1/165)[[7,−6],[10,15]].
+Receita: (1) DEFINIÇÃO: M inversa de A ⇔ A·M = M·A = I_n (verificar: multiplicar e
+mostrar que dá I). (2) isolar X: multiplique pelos dois lados pela inversa na ordem
+certa — quem está à esquerda é desfeito primeiro (BAX=A → AX=B⁻¹A → X=A⁻¹B⁻¹A).
+(3) propriedades: (AB)⁻¹ = B⁻¹A⁻¹ · (A⁻¹)⁻¹ = A · (Aᵗ)⁻¹ = (A⁻¹)ᵗ · (A+X)ᵗ = B começa
+tirando a transposta. (4) ordem não comuta: A⁻¹B⁻¹ ≠ B⁻¹A⁻¹ — escreva os passos.

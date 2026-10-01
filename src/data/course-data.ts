@@ -961,6 +961,13 @@ export const materials: Material[] = [
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['1. Álgebra Matricial'],
   },
+  // t180 — A folha da prova: as questões do professor (espelhos extraídos do
+  // áudio 30/09 + listas reais), tipografadas em LaTeX. Vive COMO MATERIAL
+  // (abre na tela dividida PDF + Tutor como qualquer outro) — sem modo especial.
+  { id: 'mat-av1-questoes-professor', disciplineCode: 'TEC.1984',
+    title: 'Av1 — As questões do professor (espelhos das listas)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/mat-av1-questoes-professor.pdf',
+    summaryFile: 'mat-av1-questoes-professor.summary.json', pages: 6, source: 'user_upload' },
   // NOVOS MATERIAIS — Algoritmos (Slides gerais + Tipos/Operadores)
   { id: 'alg-slides-geral', disciplineCode: 'TEC.1687', title: 'Algoritmos — Slides Gerais (64 páginas, Prof. Fábio)',
     type: 'slides', pdfPath: '/pdfs/alg-slides-geral.pdf',

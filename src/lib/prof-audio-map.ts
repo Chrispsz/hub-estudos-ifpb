@@ -530,6 +530,7 @@ export function examIntelForTutor(): string {
     `RASCUNHO (ensine este protocolo quando treinar): ${EXAM_STRATEGY.rascunho.join(' ')}`,
     `DOCTRINA Q6: ${EXAM_STRATEGY.q6Doctrine}`,
     'NÃO CAEM: determinantes (1.3) e sistemas lineares (1.4) — professor ainda não deu; se pedirem, explique que é pós-prova.',
+    'FORMATO (confirmado pelo dono em 30/09): apenas UMA questão é de marcar (múltipla escolha); as demais são discursivas — resolução escrita. Ao treinar, peça SEMPRE a resolução escrita passo a passo, não só a letra.',
     'AO TREINAR: prefira os ESPELHOS exatos (é o tipo real da prova); ensine o MÉTODO de cada tipo (fórmula padrão primeiro); se o aluno pedir, crie variações NO MESMO FORMATO do espelho e corrija com o gabarito oficial do Hub.',
     '=== FIM DA INTEL DA PROVA ===',
   ].join('\n');
