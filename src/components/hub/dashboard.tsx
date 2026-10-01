@@ -51,8 +51,21 @@ export function Dashboard({ onStartStudy, onOpenSettings }: DashboardProps) {
 
   const folha = materials.find((m) => m.id === FOLHA_DA_PROVA_ID) ?? null;
 
+  // t198 — A DATA vira estado pós-mount: o servidor mora em UTC e o aluno em
+  // Brasília — na virada do dia (21h–23h59 BRT) o daysLeft calculado no render
+  // divergia entre SSR e navegador em 1 e o React estourava #418 (hidratação
+  // de texto: "prova hoje" ≠ "prova amanhã"). SSR e 1º render do cliente
+  // dividem o MESMO neutro (sem prova em foco); o efeito adapta em seguida e
+  // reavalia a cada minuto — a home muda sozinha à meia-noite, sem F5.
+  const [agora, setAgora] = React.useState<Date | null>(null);
+  React.useEffect(() => {
+    setAgora(new Date());
+    const id = window.setInterval(() => setAgora(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   // A prova em uma linha — contente, sem medidor.
-  const daysLeft = daysUntilDate(MATH_EXAM.date);
+  const daysLeft = agora ? daysUntilDate(MATH_EXAM.date, agora) : 999;
   const provaPerto = daysLeft >= 0 && daysLeft <= 7;
   const provaLabel =
     daysLeft < 0

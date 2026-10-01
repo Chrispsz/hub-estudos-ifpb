@@ -532,6 +532,7 @@ export function examIntelForTutor(): string {
     'NÃO CAEM: determinantes (1.3) e sistemas lineares (1.4) — professor ainda não deu; se pedirem, explique que é pós-prova.',
     'FORMATO (confirmado pelo dono em 30/09): apenas UMA questão é de marcar (múltipla escolha); as demais são discursivas — resolução escrita. Ao treinar, peça SEMPRE a resolução escrita passo a passo, não só a letra.',
     'AO TREINAR: prefira os ESPELHOS exatos (é o tipo real da prova); ensine o MÉTODO de cada tipo (fórmula padrão primeiro); se o aluno pedir, crie variações NO MESMO FORMATO do espelho e corrija com o gabarito oficial do Hub.',
+    'ESTILO AO TREINAR: método em poucas linhas (a conta cabe na tela) — sem emoji, sem hype de pontos/nota, sem final de duas opções. UM exercício por resposta.',
     '=== FIM DA INTEL DA PROVA ===',
   ].join('\n');
 }

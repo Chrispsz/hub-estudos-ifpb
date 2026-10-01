@@ -32,6 +32,40 @@ function nodeText(node: React.ReactNode): string {
   return '';
 }
 
+// t198 — COSTURA DO LATEX DE IA: visto em produção, o modelo de turno às vezes
+// solta uma matriz com \end{pmatrix} mas sem o \begin{pmatrix} correspondente
+// (a abertura ficou fora do trecho que o parser enxergou) — o KaTeX estoura
+// "Expected 'EOF', got '&'" e o aluno leva um span vermelho no meio da aula.
+// Costura: para cada \end{env} sem \begin{env} pareado, se existir $$ ABERTO
+// (nº ímpar de $$ antes dele), injeta \begin{env} logo depois dessa abertura.
+// Construção manual por matchAll — o replace() só troca o trecho casado e
+// NÃO deixaria editar o texto anterior ao match (a abertura $$ vem antes).
+// Regra de segurança: sem $$ aberto, não inventa ponto ( LaTeX sã intocado).
+const MATH_ENV_RE =
+  /\\end\{(pmatrix|bmatrix|vmatrix|Bmatrix|Vmatrix|matrix|cases|array|aligned|align)\}/g;
+
+function repairOrphanMathEnds(src: string): string {
+  const matches = [...src.matchAll(MATH_ENV_RE)];
+  if (matches.length === 0) return src;
+  let out = '';
+  let cursor = 0;
+  for (const m of matches) {
+    const offset = m.index;
+    if (offset === undefined || offset < cursor) continue;
+    const env = m[1];
+    const before = src.slice(0, offset);
+    const opens = before.split(`\\begin{${env}}`).length - 1;
+    const closes = before.split(`\\end{${env}}`).length - 1;
+    if (opens > closes) continue; // pareado — nada a fazer
+    const delimCount = before.split('$$').length - 1;
+    if (delimCount % 2 !== 1) continue; // sem $$ aberto — não inventa ponto
+    const injectAt = before.lastIndexOf('$$') + 2;
+    out += src.slice(cursor, injectAt) + `\\begin{${env}} `;
+    cursor = injectAt; // o corpo e o \end seguem no fluxo normal
+  }
+  return out + src.slice(cursor);
+}
+
 interface TutorMarkdownProps {
   content: string;
   /** Cor de destaque (tailwind text class). Padrão: esmeralda do tutor. */
@@ -57,7 +91,11 @@ function TutorMarkdownImpl({
 }: TutorMarkdownProps) {
   // Protege o cifrão do "R$" do pareamento de math ($...$): vira escape markdown
   // (R\$) que o remark-math ignora e o CommonMark renderiza como "$" literal.
-  const prepared = React.useMemo(() => content.replace(/R\$/g, 'R\\$'), [content]);
+  // Depois, costura LaTeX de IA mal formado (t198) — matriz órfã sem \begin.
+  const prepared = React.useMemo(
+    () => repairOrphanMathEnds(content.replace(/R\$/g, 'R\\$')),
+    [content],
+  );
 
   const remarkPlugins = React.useMemo<PluggableList>(() => [remarkGfm, remarkMath], []);
   // Opções do plugin em TUPLA aninhada ([plugin, options]) — no formato plano o
@@ -113,6 +151,9 @@ function TutorMarkdownImpl({
           {children}
         </blockquote>
       ),
+      // Mensagens antigas podem trazer "---" decorativo — renderiza como
+      // divisor quase invisível em vez de uma régua pesada no meio da conversa.
+      hr: () => <hr className="my-2 border-border/30" />,
       table: ({ children }) => (
         <div className="mb-2 overflow-x-auto [scrollbar-width:thin]">
           <table className="w-full border-collapse text-xs">{children}</table>
