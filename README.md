@@ -1,100 +1,102 @@
-# 🎓 Hub de Estudos — IFPB ADS 2026.2
+# 🎓 Study Hub — IFPB ADS 2026.2
 
-App de estudos pessoal para o 2º período de **Análise e Desenvolvimento de Sistemas** no IFPB Campus Cajazeiras (2026.2) — construído em Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui.
+> **[Versão em português](README.pt-BR.md)**
 
-## ✨ O que tem dentro
+Personal study app for the 2nd term of **Systems Analysis and Development** at IFPB Campus Cajazeiras (2026.2) — built with Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui.
 
-- **Dashboard** com semana atual do semestre, agenda acadêmica oficial e próximas avaliações **com data oficial** (política anti-estimativa: sem data divulgada = "data a confirmar", nunca um prazo inventado)
-- **7 disciplinas** com materiais, tópicos de estudo, progresso por item e PDFs integrados (visualizador com tutor IA embutido)
-- **Tutor IA** em PT-BR (`/api/tutor`) via OpenRouter com cadeia de modelos gratuitos + fallback — responde com base no contexto real do app (professor, datas oficiais, progresso do aluno)
-- **Flashcards** gerados por IA com revisão espaçada
-- **Pomodoro**, **exercícios interativos em C**, **mapa de tópicos** e **timeline do semestre**
-- PWA: instalável, com service worker e manifest
+## ✨ What's inside
 
-## 🧠 Política de dados
+- **Dashboard** with the current semester week, official academic agenda and upcoming exams **with official dates** (anti-estimation policy: no disclosed date = "date to be confirmed", never an invented deadline)
+- **7 courses** with materials, study topics, per-item progress and built-in PDFs (viewer with an embedded AI tutor)
+- **AI tutor** (`/api/tutor`) via OpenRouter with a chain of free models + fallback — answers based on the app's real context (professor, official dates, student progress)
+- **AI-generated flashcards** with spaced repetition
+- **Pomodoro**, **interactive C exercises**, **topic map** and **semester timeline**
+- PWA: installable, with service worker and manifest
 
-- Todo o progresso do aluno (materiais, tópicos, pomodoro, flashcards) fica **no navegador** (localStorage) — sem cadastro, sem servidor de dados.
-- O tutor só usa **datas oficiais** enviadas pelo front. Avaliações sem data divulgada nunca recebem prazo estimado.
+## 🧠 Data policy
 
-## 🚀 Rodando localmente
+- All student progress (materials, topics, pomodoro, flashcards) stays **in the browser** (localStorage) — no signup, no data server.
+- The tutor only uses **official dates** sent by the front end. Exams without a disclosed date never get an estimated deadline.
+
+## 🚀 Running locally
 
 ```bash
-# 1. instale as dependências (npm, pnpm ou bun)
+# 1. install dependencies (npm, pnpm or bun)
 bun install
 
-# 2. configure a chave do tutor
-echo 'OPENROUTER_API_KEY=sua_chave' > .env
+# 2. set the tutor key
+echo 'OPENROUTER_API_KEY=your_key' > .env
 
-# 3. rode
+# 3. run
 bun run dev
 ```
 
-> A chave `OPENROUTER_API_KEY` (ou `ZAI_API_KEY` — veja a seção abaixo) é opcional para o app funcionar, mas obrigatória para o tutor IA responder fora do ambiente de desenvolvimento.
+> The `OPENROUTER_API_KEY` (or `ZAI_API_KEY` — see below) is optional for the app to work, but required for the AI tutor to answer outside the development environment.
 
-## 🔑 Colocando o Tutor IA no ar (1 chave gratuita, 2 minutos)
+## 🔑 Bringing the AI tutor online (1 free key, 2 minutes)
 
-O tutor funciona com **UMA** das duas opções abaixo — escolha a que preferir. Nenhuma delas interfere em contas existentes: são chaves suas, novas e gratuitas.
+The tutor works with **ONE** of the two options below — pick whichever you prefer. Neither interferes with existing accounts: they are your own, new and free keys.
 
-### Opção A — OpenRouter (recomendado)
+### Option A — OpenRouter (recommended)
 
-1. Crie conta grátis em [openrouter.ai](https://openrouter.ai) → *Keys* → *Create Key*
-2. Adicione nas variáveis de ambiente (local `.env` + Vercel):
+1. Create a free account at [openrouter.ai](https://openrouter.ai) → *Keys* → *Create Key*
+2. Add it to the environment variables (local `.env` + Vercel):
 
    ```
    OPENROUTER_API_KEY=sk-or-v1-...
    ```
 
-   Acesso a dezenas de modelos gratuitos (a cadeia já usa Nemotron, Nex, Ling e mais — sem custo).
+   Access to dozens of free models (the chain already uses Nemotron, Nex, Ling and more — at no cost).
 
-### Opção B — API pública Z.ai (GLM)
+### Option B — Z.ai public API (GLM)
 
-1. Crie conta em [z.ai](https://z.ai) (ou [bigmodel.cn](https://bigmodel.cn)) e gere sua API key
-2. Adicione nas variáveis de ambiente:
+1. Create an account at [z.ai](https://z.ai) (or [bigmodel.cn](https://bigmodel.cn)) and generate your API key
+2. Add it to the environment variables:
 
    ```
-   ZAI_API_KEY=sua_chave
-   # opcionais:
+   ZAI_API_KEY=your_key
+   # optional:
    ZAI_BASE_URL=https://api.z.ai/api/paas/v4
    ZAI_MODEL=glm-4.5-flash
    ```
 
-   O modelo `glm-4.5-flash` tem **tier gratuito** com limites generosos — ideal para o tutor.
+   The `glm-4.5-flash` model has a **free tier** with generous limits — ideal for the tutor.
 
-> ℹ️ Sem nenhuma chave, o tutor ainda tenta o SDK Z-AI embutido, que **só funciona em desenvolvimento** (depende de credencial interna do ambiente sandbox). Em produção (Vercel) ele é ignorado silenciosamente — por isso uma chave acima é necessária.
+> ℹ️ With no key at all, the tutor still tries the built-in Z-AI SDK, which **only works in development** (it relies on a sandbox-internal credential). In production (Vercel) it is silently ignored — that's why one of the keys above is required.
 
-## ▲ Deploy na Vercel
+## ▲ Deploy to Vercel
 
-O projeto é 100% compatível com a Vercel — Next.js 16 App Router, sem banco em runtime, sem serviços externos além da OpenRouter:
+The project is 100% Vercel-compatible — Next.js 16 App Router, no runtime database, no external services beyond OpenRouter:
 
-1. **Importe o repositório** em [vercel.com/new](https://vercel.com/new) (framework detectado: Next.js, build `next build`, nada para ajustar).
-2. **Adicione a variável de ambiente** em *Settings → Environment Variables* (Opção A ou B acima):
+1. **Import the repository** at [vercel.com/new](https://vercel.com/new) (detected framework: Next.js, build `next build`, nothing to adjust).
+2. **Add the environment variable** in *Settings → Environment Variables* (Option A or B above):
 
-   | Nome | Valor | Ambientes |
+   | Name | Value | Environments |
    | --- | --- | --- |
-   | `OPENROUTER_API_KEY` | sua chave da [openrouter.ai/keys](https://openrouter.ai/keys) | Production, Preview, Development |
-   | *ou* `ZAI_API_KEY` | sua chave da [z.ai](https://z.ai) | Production, Preview, Development |
+   | `OPENROUTER_API_KEY` | your key from [openrouter.ai/keys](https://openrouter.ai/keys) | Production, Preview, Development |
+   | *or* `ZAI_API_KEY` | your key from [z.ai](https://z.ai) | Production, Preview, Development |
 
-3. **Deploy.** Pronto — o tutor responde pela cadeia de modelos gratuitos.
+3. **Deploy.** Done — the tutor answers through the free model chain.
 
-### Notas técnicas
+### Technical notes
 
-- `next.config.ts` usa `output: "standalone"` — a Vercel lida com isso nativamente.
-- `prisma/` + SQLite estão presentes como scaffold opcional; **nada no runtime os utiliza** e nenhuma configuração de banco é necessária.
-- Os PDFs das disciplinas e dados do curso são estáticos em `public/` e `src/data/`.
+- `next.config.ts` uses `output: "standalone"` — Vercel handles it natively.
+- `prisma/` + SQLite exist as an optional scaffold; **nothing at runtime uses them** and no database configuration is required.
+- Course PDFs and data are static in `public/` and `src/data/`.
 
-## 🗂️ Estrutura principal
+## 🗂️ Main structure
 
 ```
 src/
 ├── app/
-│   ├── page.tsx            # App principal (client-side)
-│   └── api/tutor/          # Tutor IA + flashcards (OpenRouter + fallback)
-├── components/hub/         # Dashboard, disciplinas, PDF viewer, tutor, pomodoro…
-├── data/course-data.ts     # Disciplinas, professores, avaliações com data oficial
-├── lib/                    # semester.ts (calendário), tutor-context.ts, progresso…
-└── public/pdfs/            # Materiais oficiais das disciplinas
+│   ├── page.tsx            # Main app (client-side)
+│   └── api/tutor/          # AI tutor + flashcards (OpenRouter + fallback)
+├── components/hub/         # Dashboard, courses, PDF viewer, tutor, pomodoro…
+├── data/course-data.ts     # Courses, professors, exams with official dates
+├── lib/                    # semester.ts (calendar), tutor-context.ts, progress…
+└── public/pdfs/            # Official course materials
 ```
 
 ---
 
-Feito com 💚 para a turma de ADS — IFPB Campus Cajazeiras.
+Made with 💚 for the ADS class — IFPB Campus Cajazeiras.
