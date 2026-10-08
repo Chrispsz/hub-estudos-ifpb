@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Dumbbell, Sparkles } from 'lucide-react';
 import { Header } from '@/components/hub/header';
@@ -15,6 +16,11 @@ import { useStudyProgress } from '@/lib/study-progress';
 import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenPracticeDetail, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
+
+// Painel da Fase 1 (núcleo novo) — SOMENTE em /?v2; o Hub antigo segue intocado.
+const Phase1Panel = dynamic(() => import('@/components/v2/phase1-panel'), {
+  ssr: false,
+});
 
 const VALID_TABS: TabKey[] = ['library', 'study', 'practice'];
 
@@ -137,6 +143,16 @@ export default function Page() {
     }
   }, []);
 
+  // Painel da Fase 1 (núcleo novo) em /?v2 — declarado antes do effect que o liga
+  const [showV2, setShowV2] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      setShowV2(new URLSearchParams(window.location.search).has('v2'));
+    } catch {
+      /* sem query string */
+    }
+  }, []);
+
   // Badge de conteúdos ainda não vistos
   const notViewedCount = React.useMemo(
     () =>
@@ -198,6 +214,9 @@ export default function Page() {
         return null;
     }
   })();
+
+  // Painel da Fase 1 (só com ?v2 na URL) — hooks acima preservados
+  if (showV2) return <Phase1Panel />;
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">

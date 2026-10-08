@@ -69,3 +69,4 @@ agent-ctx
 cron-logs
 # exemplo de env SIM vai para o repo (sem segredos)
 !.env.example
+backups/

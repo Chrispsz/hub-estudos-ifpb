@@ -34,16 +34,16 @@
   ],
   "shortcuts": [
     {
-      "name": "Cronograma de hoje",
-      "short_name": "Cronograma",
-      "description": "Ver o plano de estudos de hoje",
-      "url": "/?tab=cronograma"
+      "name": "Conteúdos",
+      "short_name": "Conteúdos",
+      "description": "Disciplinas e materiais do curso",
+      "url": "/#library"
     },
     {
-      "name": "Flashcards para revisar",
-      "short_name": "Flashcards",
-      "description": "Revisão espaçada do dia",
-      "url": "/?tab=praticar"
+      "name": "Praticar",
+      "short_name": "Praticar",
+      "description": "Exercícios e flashcards para revisar",
+      "url": "/#practice"
     }
   ]
 }

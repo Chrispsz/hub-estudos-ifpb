@@ -633,13 +633,6 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                       )}
                     </Section>
                   )}
-
-                  <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
-                    <p className="text-foreground/90">
-                      💡 Use a aba <span className="font-semibold">Calculadora de Médias</span> para
-                      simular suas notas e ver a situação.
-                    </p>
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="materials" className="mt-0 space-y-3 outline-none">

@@ -13,25 +13,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 // Memória do Tutor IA — conversas salvas por disciplina (leve: podadas em 40/disciplina)
+// Nota Fase 1: models de template (User/Post) removidos — nunca foram usados.
 model TutorMessage {
   id          String   @id @default(cuid())
   discipline  String // código da disciplina (ex.: TEC.1687) — chave estável
