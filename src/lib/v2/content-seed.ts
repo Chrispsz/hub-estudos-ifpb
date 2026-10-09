@@ -232,6 +232,9 @@ const b = (
   protectedBlock = false,
 ): RoutineBlock => ({ start, end, label, kind, protected: protectedBlock });
 
+// GRADE REDESENHADA (pedido do dono, out/2026): estudo começa 15:00, lanche da
+// tarde EXPLÍCITO, janta/banho mesclados na agenda, 1h de hobby/leitura, dormir
+// 22h. Estudo/dia útil = 4h00 (B1 90min + B2 75min + PNAAT 45min + flashcards 30min).
 export function buildRoutine(): RoutineConfig {
   const templates: RoutineTemplate[] = [
     {
@@ -240,15 +243,18 @@ export function buildRoutine(): RoutineConfig {
       blocks: [
         b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
         b('07:00', '08:00', 'Merenda fora', 'refeicao'),
+        b('08:00', '12:30', 'Aula IFPB — manhã', 'ocupado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:30', 'Descanso protegido — soneca + leitura', 'descanso-protegido', true),
-        b('14:30', '16:00', 'Bloco 1 — o mais pesado: kata ou quadro', 'estudo-pesado'),
-        b('16:00', '16:45', 'Merenda', 'refeicao'),
-        b('16:45', '17:45', 'Bloco 2 — revisões FSRS intercaladas', 'estudo-revisao'),
-        b('18:00', '19:00', 'Banho + jantar', 'pessoal'),
-        b('19:00', '20:30', 'PNAAT — bloco fixo, progresso próprio', 'pnaat', true),
-        b('20:30', '21:00', 'Flashcards do dia', 'flashcards'),
-        b('21:00', '22:00', 'Encerramento — dormir 22h', 'pessoal'),
+        b('14:30', '15:00', 'Banho + lanche + preparar a mesa', 'pessoal'),
+        b('15:00', '16:30', 'Bloco 1 · Ritmo — conteúdo atual, o mais pesado', 'estudo-pesado'),
+        b('16:30', '17:00', 'Lanche da tarde + respiro', 'refeicao'),
+        b('17:00', '18:15', 'Bloco 2 · Fundação — revisões FSRS intercaladas', 'estudo-revisao'),
+        b('18:15', '19:15', 'Livre — hobby, movimento, leitura', 'livre'),
+        b('19:15', '20:00', 'Janta + banho', 'refeicao'),
+        b('20:00', '20:45', 'PNAAT — bloco fixo, progresso próprio', 'pnaat', true),
+        b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
+        b('21:15', '22:00', 'Encerramento — leitura leve, telas off · dormir 22h', 'pessoal'),
       ],
     },
     {
@@ -257,15 +263,18 @@ export function buildRoutine(): RoutineConfig {
       blocks: [
         b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
         b('07:00', '08:00', 'Merenda fora', 'refeicao'),
+        b('08:00', '12:30', 'Aula IFPB — manhã', 'ocupado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:30', 'Descanso protegido', 'descanso-protegido', true),
-        b('14:30', '16:00', 'Bloco 1 — kata ou quadro', 'estudo-pesado'),
-        b('16:00', '16:45', 'Merenda', 'refeicao'),
-        b('16:45', '17:45', 'Bloco 2 — revisões FSRS', 'estudo-revisao'),
-        b('18:00', '19:00', 'Banho + jantar', 'pessoal'),
-        b('19:00', '20:30', 'PNAAT — bloco fixo', 'pnaat', true),
-        b('20:30', '21:00', 'Flashcards do dia', 'flashcards'),
-        b('21:00', '23:59', 'JOGO — protegido como descanso', 'jogo'),
+        b('14:30', '15:00', 'Banho + lanche + preparar a mesa', 'pessoal'),
+        b('15:00', '16:30', 'Bloco 1 · Ritmo — conteúdo atual, o mais pesado', 'estudo-pesado'),
+        b('16:30', '17:00', 'Lanche da tarde + respiro', 'refeicao'),
+        b('17:00', '18:15', 'Bloco 2 · Fundação — revisões FSRS', 'estudo-revisao'),
+        b('18:15', '19:15', 'Livre — hobby, movimento, leitura', 'livre'),
+        b('19:15', '20:00', 'Janta + banho', 'refeicao'),
+        b('20:00', '20:45', 'PNAAT — bloco fixo', 'pnaat', true),
+        b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
+        b('21:15', '23:59', 'JOGO — protegido como descanso (dormir desliza)', 'jogo'),
       ],
     },
     {
@@ -274,38 +283,52 @@ export function buildRoutine(): RoutineConfig {
       blocks: [
         b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
         b('07:00', '08:00', 'Merenda fora', 'refeicao'),
+        b('08:00', '12:30', 'Aula IFPB — manhã', 'ocupado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:10', 'Soneca (40 min)', 'soneca', true),
         b('14:10', '14:30', 'Leitura leve', 'descanso-protegido', true),
-        b('14:30', '16:00', 'Bloco 1 — kata ou quadro', 'estudo-pesado'),
-        b('16:00', '16:45', 'Merenda', 'refeicao'),
-        b('16:45', '17:45', 'Bloco 2 — revisões FSRS', 'estudo-revisao'),
-        b('18:00', '19:00', 'Banho + jantar', 'pessoal'),
-        b('19:00', '20:30', 'Revisão leve (noite pós-jogo)', 'estudo-revisao'),
-        b('20:30', '21:00', 'Flashcards do dia', 'flashcards'),
-        b('21:00', '22:00', 'Encerramento — dormir 22h', 'pessoal'),
+        b('14:30', '15:00', 'Banho + lanche + preparar a mesa', 'pessoal'),
+        b('15:00', '16:30', 'Bloco 1 · Ritmo — conteúdo atual, o mais pesado', 'estudo-pesado'),
+        b('16:30', '17:00', 'Lanche da tarde + respiro', 'refeicao'),
+        b('17:00', '18:15', 'Bloco 2 · Fundação — revisões FSRS', 'estudo-revisao'),
+        b('18:15', '19:15', 'Livre — hobby, movimento, leitura', 'livre'),
+        b('19:15', '20:00', 'Janta + banho', 'refeicao'),
+        b('20:00', '20:45', 'Revisão leve — noite pós-jogo', 'estudo-revisao'),
+        b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
+        b('21:15', '22:00', 'Encerramento — dormir 22h', 'pessoal'),
       ],
     },
     {
       id: 'saturday',
       label: 'Sábado',
       blocks: [
-        b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
+        b('05:00', '08:00', 'Manhã cedo — acordo', 'pessoal'),
         b('08:00', '12:30', 'Manhã livre', 'livre'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
-        b('14:00', '18:00', 'Slot de Projeto real', 'projeto'),
-        b('18:00', '23:00', 'Noite — ocupada', 'ocupado'),
+        b('13:30', '14:30', 'Descanso protegido', 'descanso-protegido', true),
+        b('14:30', '15:00', 'Banho + lanche + preparar a mesa', 'pessoal'),
+        b('15:00', '18:00', 'Slot de Projeto real', 'projeto'),
+        b('18:00', '19:15', 'Livre — hobby, movimento', 'livre'),
+        b('19:15', '20:00', 'Janta + banho', 'refeicao'),
+        b('20:00', '20:45', 'PNAAT — bloco fixo', 'pnaat', true),
+        b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
+        b('21:15', '23:00', 'Noite livre — jogo possível', 'livre'),
       ],
     },
     {
       id: 'sunday',
       label: 'Domingo',
       blocks: [
-        b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
+        b('05:00', '08:30', 'Manhã cedo — acordo devagar', 'pessoal'),
         b('08:30', '12:30', 'Fundação — bloco longo', 'estudo-pesado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
-        b('14:00', '19:00', 'Tarde leve', 'livre'),
-        b('20:30', '21:30', 'Sprint Review', 'sprint-review'),
+        b('13:30', '14:30', 'Descanso protegido', 'descanso-protegido', true),
+        b('14:30', '15:00', 'Banho + lanche', 'pessoal'),
+        b('15:00', '19:00', 'Tarde leve — hobby, leitura', 'livre'),
+        b('19:15', '20:00', 'Janta + banho', 'refeicao'),
+        b('20:00', '20:30', 'Fechamento da semana — flashcards soltos', 'flashcards'),
+        b('20:30', '21:30', 'Sprint Review — a semana vira relatório', 'sprint-review'),
+        b('21:30', '22:00', 'Encerramento — dormir 22h', 'pessoal'),
       ],
     },
   ];
@@ -359,8 +382,12 @@ export async function seedContent(): Promise<SeedCounts> {
       await db.units.bulkPut(units);
       await db.backlog.bulkPut(backlog);
       await db.exams.bulkPut(exams);
-      await db.routine.put(routine);
-      await db.meta.put({ key: 'content:seedVersion', value: '1' });
+      // ROTINA: a semente só sobrescreve a grade se o dono NUNCA editou a dele
+      // (meta 'routine:userEdited'). Respeita adaptações — a casa não apaga
+      // escolha humana por causa de re-migração.
+      const editedRoutine = await db.meta.get('routine:userEdited');
+      if (!editedRoutine) await db.routine.put(routine);
+      await db.meta.put({ key: 'content:seedVersion', value: '2' });
     },
   );
 
