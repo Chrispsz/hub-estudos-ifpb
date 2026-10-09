@@ -1,19 +1,23 @@
 /*
- * Service Worker do Hub de Estudos — estratégia ultra conservadora:
- *  - network-first para TUDO (o app é client-side e o dev server tem HMR,
- *    então NUNCA servimos cache sem antes tentar a rede);
- *  - cache só como fallback offline para navegações (a shell da SPA);
- *  - nunca cacheia nada que não seja a navegação principal e os ícones.
- * Assim o app é instalável como PWA sem quebrar HMR/updates.
+ * Service Worker — "O Projeto Principal" (offline-first, Fase 5).
+ *
+ * Estratégias:
+ *  - navegação (a shell do app): stale-while-revalidate — offline funciona,
+ *    online atualiza o cache em background;
+ *  - /pdfs/ e /data/ (o acervo): cache-first — depois do primeiro download,
+ *    o material abre sem rede (pedidos com Range passam direto para a rede);
+ *  - /_next/static e ícones: cache-first (imutáveis por hash);
+ *  - /api/*: SEMPRE rede (o tutor é vivo) — sem fallback enganoso;
+ *  - resto GET: network-first com cache como fallback honesto.
  */
-const CACHE = 'hub-estudos-ifpb-v1';
-const SHELL = ['/', '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.webmanifest'];
+const CACHE = 'hub-projeto-principal-v1';
+const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) => cache.addAll(SHELL).catch(() => {}))
       .then(() => self.skipWaiting())
   );
 });
@@ -29,17 +33,82 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  // Só tratamos GETs de navegação (a shell do app). Todo o resto passa direto.
-  if (req.method !== 'GET' || req.mode !== 'navigate') return;
+  if (req.method !== 'GET') return;
 
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Range (streaming de PDF) → rede direta; cache só guardaria a fatia errada
+  if (req.headers.has('range')) return;
+
+  // API viva (tutor SSE etc.) → rede sempre
+  if (url.pathname.startsWith('/api/')) return;
+
+  // acervo: cache-first (o material uma vez baixado abre offline para sempre)
+  if (url.pathname.startsWith('/pdfs/') || url.pathname.startsWith('/data/')) {
+    event.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ??
+          fetch(req).then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+            }
+            return res;
+          }),
+      )
+    );
+    return;
+  }
+
+  // estáticos imutáveis
+  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/')) {
+    event.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ??
+          fetch(req).then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+            }
+            return res;
+          }),
+      )
+    );
+    return;
+  }
+
+  // navegação: stale-while-revalidate (offline abre a shell; online renova)
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/').then((hit) => {
+        const network = fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((cache) => cache.put('/', copy)).catch(() => {});
+            }
+            return res;
+          })
+          .catch(() => hit);
+        return hit || network;
+      })
+    );
+    return;
+  }
+
+  // resto: network-first com fallback de cache
   event.respondWith(
     fetch(req)
       .then((res) => {
-        // Atualiza o cache da shell em background
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put('/', copy)).catch(() => {});
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+        }
         return res;
       })
-      .catch(() => caches.match('/').then((hit) => hit ?? caches.match(req)))
+      .catch(() => caches.match(req))
   );
 });

@@ -1,7 +1,7 @@
 {
-  "name": "Hub de Estudos • IFPB ADS 2026.2",
-  "short_name": "Hub IFPB",
-  "description": "Hub de estudos do 2º período de ADS (IFPB Campus Cajazeiras, 2026.2) — cronograma inteligente, Pomodoro, flashcards, simulados e tutor IA.",
+  "name": "O Projeto Principal • IFPB ADS 2026.2",
+  "short_name": "Projeto Principal",
+  "description": "Estudo como projeto de software: sessão = commit, erro = code review, prova = deploy. Offline-first com FSRS e rotina protegida.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
@@ -34,16 +34,22 @@
   ],
   "shortcuts": [
     {
-      "name": "Conteúdos",
-      "short_name": "Conteúdos",
-      "description": "Disciplinas e materiais do curso",
-      "url": "/#library"
+      "name": "Hoje",
+      "short_name": "Hoje",
+      "description": "O board dos blocos fixos de estudo",
+      "url": "/#hoje"
     },
     {
-      "name": "Praticar",
-      "short_name": "Praticar",
-      "description": "Exercícios e flashcards para revisar",
-      "url": "/#practice"
+      "name": "Revisão",
+      "short_name": "Revisão",
+      "description": "Fila FSRS do dia",
+      "url": "/#revisao"
+    },
+    {
+      "name": "Code Review",
+      "short_name": "Erros",
+      "description": "Log vivo de erros com o porquê",
+      "url": "/#code-review"
     }
   ]
 }

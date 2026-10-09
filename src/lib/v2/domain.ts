@@ -19,7 +19,8 @@ export type SessionKind =
   | 'projeto'
   | 'pnaat'
   | 'quadro'
-  | 'vagabond';
+  | 'vagabond'
+  | 'bloco';
 export type BacklogStatus = 'open' | 'converted' | 'wont';
 export type ExamStatus = 'awaiting' | 'registered';
 export type ExamKind = 'prova' | 'entrega';
@@ -162,6 +163,7 @@ export interface StudySession {
   id: string; // determinístico para dados migrados
   kind: SessionKind;
   startedAt: number;
+  /** 0 = sessão ABERTA (timer vivo) — honesto: sobrevive a reload via Dexie. */
   endedAt: number;
   dateKey: string; // 'yyyy-mm-dd' local
   disciplineId: string;
@@ -169,6 +171,12 @@ export interface StudySession {
   focusMinutes: number;
   /** XP só com guard-rail: sessão ≥ 15 min. Calculado na escrita. */
   xpAwarded: number;
+  /** Sessão da rotina (bloco do dia) — liga a sessão ao board do Hoje. */
+  blockId?: string;
+  /** Tópicos intercalados nesta sessão (2–3). */
+  topics?: string[];
+  /** Modo Vagabond: 0 XP, não conta streak nem acerto — estudo por prazer. */
+  vagabond?: boolean;
 }
 
 // ---------- Rotina (grade semanal fixa — o app nunca viola) ----------
@@ -222,9 +230,21 @@ export interface Quest {
   kind: 'daily' | 'weekly' | 'once';
   status: 'open' | 'done' | 'missed';
   dueDate?: string;
+  /** Guard-rail do dono: quest completa NÃO dá XP — XP vem do trabalho real.
+   *  Campo mantido por compatibilidade de schema; sempre 0. */
   xp: number;
   createdAt: number;
   doneAt?: number;
+  /** Sabor da issue: plain issue · Modo Quadro (foto) · leitura (recall 3 frases)
+   *  · slot Projeto · Modo Vagabond (0 XP). */
+  flavor?: 'issue' | 'quadro' | 'leitura' | 'projeto' | 'vagabond';
+  /** Modo Quadro — foto do quadro/resolução manuscrita (data URL comprimida). */
+  photo?: string;
+  /** Leitura — material de referência (backlog/legado). */
+  materialId?: string;
+  /** Leitura — as 3 frases recuperadas DE MEMÓRIA (recall ativo). */
+  recall?: string[];
+  notes?: string;
 }
 
 // ---------- Metadados e legado ----------

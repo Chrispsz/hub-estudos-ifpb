@@ -141,3 +141,26 @@
 ## 8. Conformidade com a "casa limpa" (pedido anterior)
 - A home **já está limpa**: 3 abas (Conteúdos · Tutor IA · Praticar) — o aparato de tracking (Plano de Recuperação, Fila de prioridades, cards do dia, 0/14) já saiu da UI em rodada anterior.
 - Sujeiras restantes estão catalogadas na seção 3 (DESCARTAR) — **nada foi mexido agora** (Fase 0 = somente leitura).
+
+---
+
+# RE-EXECUÇÃO INTEGRAL — 09/10/2026 (autorização do dono)
+
+O dono autorizou **todas as fases num único dia** ("faz as 5 etapas tudo conforme combinamos"),
+com cutover no fim: `main` sobe com o app novo, o app antigo preservado em branch `legacy/v1`
+e acessível em `/?legacy=1`.
+
+| Fase | Escopo | Status |
+|---|---|---|
+| 0 | Auditoria + plano (este documento) | ✅ (re-lida e reautorizada) |
+| 1 | Alicerce: backup + branch + núcleo Dexie/ts-fsrs + migração idempotente + legacy intacto | ✅ commit 661fbdf, verificada ao vivo (Task 199) |
+| 2 | Motor (planner Ritmo/Fundação + XP/ranks/streak + hooks) + aba **Hoje** (board, tipo de dia, interleaving, Acertei/Errei/Não tentei, timer) + **Revisão** (fila FSRS) | 🔨 hoje |
+| 3 | **Backlog** (conversão 5/dia assistida) + **Code Review** (error log vivo) | 🔨 hoje |
+| 4 | **Trilha** (escadinha/grafo) + **Rotina** (blocos protegidos, dias de jogo, véspera) | 🔨 hoje |
+| 5 | **Quests** (Quadro c/ foto, leitura recall 3 frases, Projeto, Vagabond) + **Perfil/ranks** + **Sprint Review** + **offline (SW cacheia /pdfs/ + /data/)** + **cutover** | 🔨 hoje |
+
+Decisões herdadas e respeitadas nesta execução: XP só de trabalho real (sessão ≥15min,
+unidade respondida, revisão do dia, conversão) · quest/Vagabond não dão XP · erro exige
+1 frase + categoria · cap de conversão 5/dia · véspera bloqueia jogo · teto 3 dias de
+jogo/semana · domínio semeado pelo legado é marcado como estimativa · histórico nunca
+é fabricado · backup antes de migração.

@@ -17,7 +17,11 @@ import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenPracticeDetail, type
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 
-// Painel da Fase 1 (núcleo novo) — SOMENTE em /?v2; o Hub antigo segue intocado.
+// CUTOVER (Fase 5): o app NOVO é o padrão em / · a casa antiga vive em /?legacy=1
+// · o console de migração da Fase 1 segue em /?v2. Zero rota nova — só query.
+const V2App = dynamic(() => import('@/components/v2/app').then((m) => m.V2App), {
+  ssr: false,
+});
 const Phase1Panel = dynamic(() => import('@/components/v2/phase1-panel'), {
   ssr: false,
 });
@@ -143,11 +147,14 @@ export default function Page() {
     }
   }, []);
 
-  // Painel da Fase 1 (núcleo novo) em /?v2 — declarado antes do effect que o liga
+  // Painel da Fase 1 (/?v2) e gate do legado (/?legacy=1) — hooks acima preservados
   const [showV2, setShowV2] = React.useState(false);
+  const [showLegacy, setShowLegacy] = React.useState(false);
   React.useEffect(() => {
     try {
-      setShowV2(new URLSearchParams(window.location.search).has('v2'));
+      const params = new URLSearchParams(window.location.search);
+      setShowV2(params.has('v2'));
+      setShowLegacy(params.has('legacy'));
     } catch {
       /* sem query string */
     }
@@ -215,8 +222,9 @@ export default function Page() {
     }
   })();
 
-  // Painel da Fase 1 (só com ?v2 na URL) — hooks acima preservados
+  // Cutover: ?v2 = console de migração · ?legacy=1 = casa antiga · padrão = app novo
   if (showV2) return <Phase1Panel />;
+  if (!showLegacy) return <V2App />;
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
