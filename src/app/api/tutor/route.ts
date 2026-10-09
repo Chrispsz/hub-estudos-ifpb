@@ -27,6 +27,18 @@
 //  ❌ google/gemma-4-31b-it:free              — provider error (removido)
 //  ❌ thinkingmachines/inkling:free           — exige harness agentic (removido)
 
+/** Import dinâmico do SDK Z-AI do sandbox (fora do package.json, pedido do dono).
+ *  O pacote é ESM-only sem campo "exports" — alguns loaders (Turbopack dev)
+ *  não resolvem o main pelo specificador nu; o fallback dist/index.js cobre. */
+async function importZaiSandbox(): Promise<any> {
+  const dyn = (s: string) => new Function(`return import(${JSON.stringify(s)})`)() as Promise<any>;
+  try {
+    return await dyn('z-ai-web-dev-sdk');
+  } catch {
+    return await dyn('z-ai-web-dev-sdk/dist/index.js');
+  }
+}
+
 export const runtime = 'nodejs';
 // Cadeia Gemini(35s) → OpenRouter(13s+) precisa de teto explícito: o padrão da
 // plataforma pode matar a função antes do fallback responder (504 pro usuário).
@@ -751,8 +763,9 @@ async function callZAI(
 ): Promise<string> {
   // new Function impede o bundler de resolver o pacote no build — se não existir
   // no ambiente (node_modules), cai no catch e devolve '' sem erro.
-  const dynamicImport = new Function("return import('z-ai-web-dev-sdk')") as () => Promise<any>;
-  const mod = await dynamicImport();
+  // (ESM-only sem "exports": alguns loaders não acham o entrypoint pelo main —
+  //  por isso o 2º Specificador dist/index.js, que o pacote sempre entrega.)
+  const mod = await importZaiSandbox();
   const ZAI = mod.default;
   const zai = await ZAI.create();
   const messages = [
@@ -1043,8 +1056,7 @@ async function callZAIVision(
  *  Pacote fora do package.json (pedido do dono) — em produção o import falha
  *  e a chamadora ignora este caminho (visão vem de Gemini/OpenRouter com key). */
 async function transcribeImageSandbox(dataUrl: string, userNote: string): Promise<string> {
-  const dynamicImport = new Function("return import('z-ai-web-dev-sdk')") as () => Promise<any>;
-  const mod = await dynamicImport();
+  const mod = await importZaiSandbox();
   const ZAI = mod.default;
   const zai = await ZAI.create();
   const instruction = buildTranscriptionInstruction(userNote);

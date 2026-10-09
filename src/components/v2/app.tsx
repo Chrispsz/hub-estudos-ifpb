@@ -13,6 +13,7 @@ import { accuracyOf, RANKS, rankFor, streakOf, totalXp } from '@/lib/v2/xp';
 import { useActiveSession, useAttempts, useCounts, useSessions, useSubjects, useTopics, useUnits } from '@/lib/v2/use-v2';
 import { Btn, Chip } from './ui';
 import { TabHoje } from './tab-hoje';
+import { TabTutor } from './tab-tutor';
 import { TabBacklog } from './tab-backlog';
 import { TabTrilha } from './tab-trilha';
 import { TabRevisao } from './tab-revisao';
@@ -24,6 +25,7 @@ import { TabPerfil } from './tab-perfil';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje' },
+  { id: 'tutor', label: 'Tutor' },
   { id: 'backlog', label: 'Backlog' },
   { id: 'trilha', label: 'Trilha' },
   { id: 'revisao', label: 'Revisão' },
@@ -78,7 +80,7 @@ export function V2App() {
     <div className="flex min-h-screen flex-col bg-[#0c0c0c] font-mono text-zinc-200">
       <Header />
       <nav aria-label="Abas do projeto" className="sticky top-0 z-40 border-b border-zinc-800 bg-[#0c0c0c]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-2 py-1.5 sm:px-4">
+        <div className="mx-auto flex max-w-4xl gap-1 overflow-x-auto px-2 py-1.5 [scrollbar-width:none] sm:px-4 [&::-webkit-scrollbar]:hidden">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -97,8 +99,9 @@ export function V2App() {
         </div>
       </nav>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-3 py-4 sm:px-4 sm:py-6">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-3 py-4 sm:px-4 sm:py-6">
         {tab === 'hoje' && <TabHoje onNavigate={go} />}
+        {tab === 'tutor' && <TabTutor />}
         {tab === 'backlog' && <TabBacklog />}
         {tab === 'trilha' && <TabTrilha />}
         {tab === 'revisao' && <TabRevisao />}

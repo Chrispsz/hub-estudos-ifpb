@@ -22,7 +22,21 @@ export function PwaRegister() {
       window.dispatchEvent(new Event('hub:pwa-installed'));
     });
 
-    // Registro tolerante: se falhar (ex.: dev instável), não derruba o app
+    // Registro tolerante: se falhar (ex.: dev instável), não derruba o app.
+    // EM DEV O SW NÃO REGISTRA (e se existir um velho, ele se desliga): offline-first
+    // servindo shell/JS cacheado mascara o código novo e envenena o HMR — o
+    // custo disso durante o desenvolvimento é maior que o valor do cache.
+    const isDevHost =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isDevHost) {
+      navigator.serviceWorker.getRegistrations().then((rs) => {
+        for (const r of rs) void r.unregister();
+      });
+      if (typeof caches !== 'undefined') {
+        caches.keys().then((ks) => ks.forEach((k) => void caches.delete(k)));
+      }
+      return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+    }
     navigator.serviceWorker.register('/sw.js').catch(() => {
       /* silencioso — PWA é progressive enhancement */
     });

@@ -236,14 +236,16 @@ const b = (
 // tarde EXPLÍCITO, janta/banho mesclados na agenda, 1h de hobby/leitura, dormir
 // 22h. Estudo/dia útil = 4h00 (B1 90min + B2 75min + PNAAT 45min + flashcards 30min).
 export function buildRoutine(): RoutineConfig {
+  // Semente GENÉRICA — a rotina de cada um é pessoal e vive nos dados DELE
+  // (editor da aba Rotina). O código nunca embute a agenda do dono: os rótulos
+  // abaixo são neutros; horários são defaults editáveis em 1 clique.
   const templates: RoutineTemplate[] = [
     {
       id: 'normal-weekday',
       label: 'Dia útil',
       blocks: [
-        b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
-        b('07:00', '08:00', 'Merenda fora', 'refeicao'),
-        b('08:00', '12:30', 'Aula IFPB — manhã', 'ocupado'),
+        b('06:30', '07:15', 'Acordar + café da manhã', 'pessoal'),
+        b('07:15', '12:30', 'Aula / compromissos da manhã', 'ocupado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:30', 'Descanso protegido — soneca + leitura', 'descanso-protegido', true),
         b('14:30', '15:00', 'Banho + lanche + preparar a mesa', 'pessoal'),
@@ -252,18 +254,17 @@ export function buildRoutine(): RoutineConfig {
         b('17:00', '18:15', 'Bloco 2 · Fundação — revisões FSRS intercaladas', 'estudo-revisao'),
         b('18:15', '19:15', 'Livre — hobby, movimento, leitura', 'livre'),
         b('19:15', '20:00', 'Janta + banho', 'refeicao'),
-        b('20:00', '20:45', 'PNAAT — bloco fixo, progresso próprio', 'pnaat', true),
+        b('20:00', '20:45', 'Bloco pessoal fixo 🔒 — renomeie como quiser', 'pnaat', true),
         b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
-        b('21:15', '22:00', 'Encerramento — leitura leve, telas off · dormir 22h', 'pessoal'),
+        b('21:15', '22:00', 'Encerramento — leitura leve, telas off · dormir', 'pessoal'),
       ],
     },
     {
       id: 'game-day',
       label: 'Dia de jogo (máx 3×/semana)',
       blocks: [
-        b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
-        b('07:00', '08:00', 'Merenda fora', 'refeicao'),
-        b('08:00', '12:30', 'Aula IFPB — manhã', 'ocupado'),
+        b('06:30', '07:15', 'Acordar + café da manhã', 'pessoal'),
+        b('07:15', '12:30', 'Aula / compromissos da manhã', 'ocupado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:30', 'Descanso protegido', 'descanso-protegido', true),
         b('14:30', '15:00', 'Banho + lanche + preparar a mesa', 'pessoal'),
@@ -272,7 +273,7 @@ export function buildRoutine(): RoutineConfig {
         b('17:00', '18:15', 'Bloco 2 · Fundação — revisões FSRS', 'estudo-revisao'),
         b('18:15', '19:15', 'Livre — hobby, movimento, leitura', 'livre'),
         b('19:15', '20:00', 'Janta + banho', 'refeicao'),
-        b('20:00', '20:45', 'PNAAT — bloco fixo', 'pnaat', true),
+        b('20:00', '20:45', 'Bloco pessoal fixo 🔒', 'pnaat', true),
         b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
         b('21:15', '23:59', 'JOGO — protegido como descanso (dormir desliza)', 'jogo'),
       ],
@@ -281,9 +282,8 @@ export function buildRoutine(): RoutineConfig {
       id: 'next-after-game',
       label: 'Dia seguinte ao jogo',
       blocks: [
-        b('05:00', '07:00', 'Manhã cedo — acordo', 'pessoal'),
-        b('07:00', '08:00', 'Merenda fora', 'refeicao'),
-        b('08:00', '12:30', 'Aula IFPB — manhã', 'ocupado'),
+        b('06:30', '07:15', 'Acordar + café da manhã', 'pessoal'),
+        b('07:15', '12:30', 'Aula / compromissos da manhã', 'ocupado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:10', 'Soneca (40 min)', 'soneca', true),
         b('14:10', '14:30', 'Leitura leve', 'descanso-protegido', true),
@@ -295,14 +295,14 @@ export function buildRoutine(): RoutineConfig {
         b('19:15', '20:00', 'Janta + banho', 'refeicao'),
         b('20:00', '20:45', 'Revisão leve — noite pós-jogo', 'estudo-revisao'),
         b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
-        b('21:15', '22:00', 'Encerramento — dormir 22h', 'pessoal'),
+        b('21:15', '22:00', 'Encerramento — dormir', 'pessoal'),
       ],
     },
     {
       id: 'saturday',
       label: 'Sábado',
       blocks: [
-        b('05:00', '08:00', 'Manhã cedo — acordo', 'pessoal'),
+        b('06:30', '08:00', 'Manhã — acordar devagar', 'pessoal'),
         b('08:00', '12:30', 'Manhã livre', 'livre'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:30', 'Descanso protegido', 'descanso-protegido', true),
@@ -310,7 +310,7 @@ export function buildRoutine(): RoutineConfig {
         b('15:00', '18:00', 'Slot de Projeto real', 'projeto'),
         b('18:00', '19:15', 'Livre — hobby, movimento', 'livre'),
         b('19:15', '20:00', 'Janta + banho', 'refeicao'),
-        b('20:00', '20:45', 'PNAAT — bloco fixo', 'pnaat', true),
+        b('20:00', '20:45', 'Bloco pessoal fixo 🔒', 'pnaat', true),
         b('20:45', '21:15', 'Flashcards do dia', 'flashcards'),
         b('21:15', '23:00', 'Noite livre — jogo possível', 'livre'),
       ],
@@ -319,7 +319,7 @@ export function buildRoutine(): RoutineConfig {
       id: 'sunday',
       label: 'Domingo',
       blocks: [
-        b('05:00', '08:30', 'Manhã cedo — acordo devagar', 'pessoal'),
+        b('06:30', '08:30', 'Manhã — acordar devagar', 'pessoal'),
         b('08:30', '12:30', 'Fundação — bloco longo', 'estudo-pesado'),
         b('12:30', '13:30', 'Almoço', 'refeicao'),
         b('13:30', '14:30', 'Descanso protegido', 'descanso-protegido', true),
@@ -328,7 +328,7 @@ export function buildRoutine(): RoutineConfig {
         b('19:15', '20:00', 'Janta + banho', 'refeicao'),
         b('20:00', '20:30', 'Fechamento da semana — flashcards soltos', 'flashcards'),
         b('20:30', '21:30', 'Sprint Review — a semana vira relatório', 'sprint-review'),
-        b('21:30', '22:00', 'Encerramento — dormir 22h', 'pessoal'),
+        b('21:30', '22:00', 'Encerramento — dormir', 'pessoal'),
       ],
     },
   ];
@@ -387,7 +387,7 @@ export async function seedContent(): Promise<SeedCounts> {
       // escolha humana por causa de re-migração.
       const editedRoutine = await db.meta.get('routine:userEdited');
       if (!editedRoutine) await db.routine.put(routine);
-      await db.meta.put({ key: 'content:seedVersion', value: '2' });
+      await db.meta.put({ key: 'content:seedVersion', value: '3' });
     },
   );
 

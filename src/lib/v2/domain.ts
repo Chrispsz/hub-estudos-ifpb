@@ -254,6 +254,25 @@ export interface MetaEntry {
   value: string;
 }
 
+// ---------- Tutor (thread persistida no núcleo, não no localStorage) ----------
+
+export interface TutorMessage {
+  id: string; // cuid
+  role: 'user' | 'assistant';
+  content: string;
+  at: number; // epoch ms
+  /** Print anexado — rótulo de procedência (a doutrina t170 da casa antiga). */
+  imageLabel?: string;
+  /** Tópico ativo quando a mensagem nasceu (contexto do acompanhamento automático). */
+  topicId?: string;
+  /** true → o aluno parou a geração; o parcial é a resposta honesta. */
+  interrupted?: boolean;
+  /** Modelo que respondeu (transparência da cadeia). */
+  model?: string;
+  /** Flashcards gerados por esta resposta (ligação com o deck). */
+  cardIds?: string[];
+}
+
 export interface LegacySnapshot {
   id: 'legacy:latest';
   capturedAt: number;
@@ -276,6 +295,7 @@ export const V2_TABLES = [
   'quests',
   'meta',
   'legacySnapshots',
+  'tutorMessages',
 ] as const;
 
 export type V2TableName = (typeof V2_TABLES)[number];

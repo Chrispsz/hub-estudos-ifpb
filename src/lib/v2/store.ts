@@ -16,10 +16,11 @@ import type {
   StudySession,
   Subject,
   Topic,
+  TutorMessage,
 } from './domain';
 
 export const DB_NAME = 'hub-projeto-principal';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export class HubV2Db extends Dexie {
   subjects!: Table<Subject, string>;
@@ -34,6 +35,7 @@ export class HubV2Db extends Dexie {
   quests!: Table<Quest, string>;
   meta!: Table<MetaEntry, string>;
   legacySnapshots!: Table<LegacySnapshot, string>;
+  tutorMessages!: Table<TutorMessage, string>;
 
   constructor() {
     super(DB_NAME);
@@ -51,6 +53,8 @@ export class HubV2Db extends Dexie {
       quests: 'id, status, kind',
       meta: 'key',
       legacySnapshots: 'id',
+      // v2 — thread do tutor (ordenada em memória pelo 'at'; volume é pequeno)
+      tutorMessages: 'id, role',
     });
   }
 }
