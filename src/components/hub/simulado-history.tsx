@@ -1,0 +1,846 @@
+'use client';
+
+// Histórico de simulados — evolução das notas ao longo do semestre.
+// Alimentado pelo Simulado Pro (cada tentativa finalizada grava um SimuladoRun).
+// Tentativas são ANALISÁVEIS pela IA: chip por corrida (debriefing) e botão
+// de evolução (série completa) — o histórico deixa de ser um gráfico morto.
+
+import * as React from 'react';
+import { motion } from 'framer-motion';
+import { AlarmClock, Award, ChevronDown, ChevronUp, Dumbbell, History, Hourglass, Medal, Minus, Play, Sparkles, Target, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { useStudyProgress, type RunQuestionDetail, type SimuladoRun } from '@/lib/study-progress';
+import { normalizeMode } from '@/lib/simulado-resume';
+import {
+  buildRunDebriefQuestion,
+  buildTrendQuestion,
+  computeTopicTrends,
+  fmtClockSec,
+  isSimuladoDayToday,
+  pacingChipTitle,
+  pacingFor,
+  runQuestionsOf,
+  timeSecsOfRun,
+} from '@/lib/simulado-debrief';
+import { openSimulado, openTutor } from '@/lib/hub-events';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_TOPICO_CURTO, drillTopicOf, findMathSimuladoRunOficial, mathDrillFeedbackFor, simuladoVerdictFor } from '@/lib/math-exam-prep';
+
+function runPct(r: SimuladoRun): number {
+  return r.total > 0 ? Math.round((r.solved / r.total) * 100) : 0;
+}
+
+function pctTone(pct: number): string {
+  if (pct >= 80) return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+  if (pct >= 60) return 'border-teal-500/40 bg-teal-500/10 text-teal-600 dark:text-teal-400';
+  if (pct >= 40) return 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400';
+  return 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400';
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(d);
+}
+
+function fmtDur(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  return `${m}min`;
+}
+
+/** Cor sólida da barra por faixa de pct — mesma régua da tela de resultado. */
+function trendBarTone(pct: number): string {
+  if (pct >= 60) return 'bg-emerald-500';
+  if (pct >= 40) return 'bg-amber-500';
+  return 'bg-rose-500';
+}
+
+/** Acento lateral das tentativas — mesma régua dos badges (pctTone). */
+function accentTone(pct: number): string {
+  if (pct >= 80) return 'border-l-emerald-500';
+  if (pct >= 60) return 'border-l-teal-500';
+  if (pct >= 40) return 'border-l-amber-500';
+  return 'border-l-rose-500';
+}
+
+/** O tópico pertence ao escopo REAL da Av1 (onde a meta de aprovação se aplica)? */
+function isAv1Topic(disciplineCode: string, topic: string): boolean {
+  return (
+    disciplineCode === MATH_EXAM.disciplineCode &&
+    (MATH_EXAM.topicosEscopo as readonly string[]).includes(topic)
+  );
+}
+
+/** Disciplina "dono" da tentativa: a mais atingida pelos erros, senão o filtro usado. */
+function runDisciplineCode(r: SimuladoRun): string | undefined {
+  if (r.questions && r.questions.length > 0) {
+    const byDisc = new Map<string, number>();
+    for (const q of r.questions) {
+      if (q.status === 'solved' || !q.disciplineCode) continue;
+      byDisc.set(q.disciplineCode, (byDisc.get(q.disciplineCode) ?? 0) + 1);
+    }
+    const worst = [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (worst) return worst;
+  }
+  return r.filters?.discipline;
+}
+
+/**
+ * Rótulo de MODO da tentativa no histórico — só os EXCEPCIONAIS ganham badge:
+ * prova é o default e fica sem rótulo (a ausência É o padrão, a linha respira);
+ * treino (rose) e treino de tópico (sky) usam o MESMO código de cores do
+ * diálogo (rodada 73) — a cor continua sendo o rótulo, em toda superfície.
+ * (107) O treino de tópico agora DIZ O TÓPICO: na véspera, três 'Treino de
+ * tópico' anônimos não dizem o que foi treinado — o run carrega o tópico
+ * (drillTopicOf: todas as questões do mesmo bloco), o badge fala o nome
+ * curto da casa. Run antigo sem detalhes/misto volta ao rótulo genérico —
+ * nada adivinhado.
+ */
+function runModeBadge(r: SimuladoRun) {
+  const mode = normalizeMode(r.mode);
+  if (mode === 'prova') return null;
+  if (mode === 'treino') {
+    return (
+      <Badge
+        variant="outline"
+        title="Treino do Caderno de Erros — repetição dos erros, não conta como simulado da prova"
+        className="gap-0.5 border-rose-300/60 bg-rose-500/[0.07] px-1.5 text-[10px] font-semibold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-400"
+      >
+        <Dumbbell className="size-2.5" aria-hidden /> Treino
+      </Badge>
+    );
+  }
+  const topic = drillTopicOf(r);
+  const label = topic ? (MATH_TOPICO_CURTO[topic] ?? topic) : null;
+  return (
+    <Badge
+      variant="outline"
+      title={
+        label
+          ? `Treino curto só de ${label} — não conta como simulado da prova`
+          : 'Treino curto de um único tópico (replay) — não conta como simulado da prova'
+      }
+      className="gap-0.5 border-sky-300/60 bg-sky-500/[0.07] px-1.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-400"
+    >
+      <Target className="size-2.5" aria-hidden /> {label ? `Treino: ${label}` : 'Treino de tópico'}
+    </Badge>
+  );
+}
+
+// Estado vazio estável (mesma referência) — evita re-render do memo quando não há runs.
+const NO_RUNS: SimuladoRun[] = [];
+
+// Mapa local de nomes curtos (mantido autossuficiente, sem importar course-data aqui).
+const DISC_SHORT: Record<string, string> = {
+  'TEC.1687': 'Algoritmos',
+  'TEC.1632': 'Ling. Marcação',
+  'TEC.1984': 'Matemática',
+  '53647': 'Fundamentos',
+  'TEC.0953': 'RHT',
+  'ING.001': 'Inglês',
+  'PORT.001': 'Português',
+};
+
+function getDiscShort(code: string): string {
+  return DISC_SHORT[code] ?? code;
+}
+
+/** Barra de distribuição da tentativa: emerald=consegui, rose=não consegui, muted=pulada. */
+function DistributionBar({ r, className }: { r: SimuladoRun; className?: string }) {
+  if (r.total === 0) return null;
+  const seg = (n: number) => `${(n / r.total) * 100}%`;
+  return (
+    <span
+      className={cn('flex h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted', className)}
+      title={`${r.solved} consegui · ${r.missed} não consegui · ${r.skipped} puladas`}
+      aria-hidden
+    >
+      <span className="h-full bg-emerald-500/80" style={{ width: seg(r.solved) }} />
+      <span className="h-full bg-rose-500/80" style={{ width: seg(r.missed) }} />
+      <span className="h-full bg-muted-foreground/30" style={{ width: seg(r.skipped) }} />
+    </span>
+  );
+}
+
+/**
+ * O REPLAY DO TEMPO (t193) — o painel questão a questão de uma tentativa do
+ * histórico. O strip "Onde o tempo foi" reusa a MESMA gramática visual do
+ * debrief fresco (t192): chip por questão com o dot do desfecho, a mais
+ * lenta em amber e a confissão do FONTE ÚNICA (pacingChipTitle) — duas
+ * superfícies, uma voz. Corrida sem tempo medido (pré-t192) mostra as linhas
+ * sem o strip: o que não foi registrado não é inventado (regra 88).
+ */
+function RunReplayPanel({ run }: { run: SimuladoRun }) {
+  const details = runQuestionsOf(run)!;
+  const times = timeSecsOfRun(run);
+  const pacing = pacingFor(times ?? []);
+  const statusLabel = (s: RunQuestionDetail['status']) =>
+    s === 'solved' ? 'consegui' : s === 'missed' ? 'não consegui' : 'pulada';
+  const statusTone = (s: RunQuestionDetail['status']) =>
+    s === 'solved'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : s === 'missed'
+        ? 'text-rose-600 dark:text-rose-400'
+        : 'text-zinc-500 dark:text-zinc-400';
+  const statusDot = (s: RunQuestionDetail['status']) =>
+    s === 'solved'
+      ? 'bg-emerald-500'
+      : s === 'missed'
+        ? 'bg-rose-500'
+        : 'bg-zinc-400 dark:bg-zinc-600';
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="overflow-hidden"
+    >
+      <div className="rounded-lg border border-border/80 bg-gradient-to-b from-muted/40 to-muted/20 px-3 py-2.5">
+        {/* O STRIP do pacing — só quando há tempo medido; o footer compara
+            "nas questões" vs "no relógio" com a MESMA régua do debrief fresco
+            (diferença ≥ 3s confessa o que ficou fora das questões). */}
+        {times && (
+          <div className="mb-2">
+            <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Hourglass className="size-3" aria-hidden /> Onde o tempo foi
+              </p>
+              <p className="text-[10px] tabular-nums text-muted-foreground/80">
+                {fmtClockSec(Math.round(pacing.totalSec))} nas questões
+                {run.durationSec - pacing.totalSec >= 3 && (
+                  <>
+                    {' '}· {fmtClockSec(run.durationSec)} no relógio (a diferença ficou fora das
+                    questões)
+                  </>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {times.map((raw, i) => {
+                const secs = Math.max(0, Math.round(raw));
+                const q = details[i];
+                const solved =
+                  q.status === 'solved' ? true : q.status === 'missed' ? false : null;
+                return (
+                  <span
+                    key={i}
+                    title={pacingChipTitle({
+                      idx: i,
+                      secs,
+                      totalSec: Math.round(pacing.totalSec),
+                      slowestIdx: pacing.slowestIdx,
+                      topic: q?.topic,
+                      solved,
+                    })}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
+                      i === pacing.slowestIdx
+                        ? 'border-amber-500/50 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-400'
+                        : 'border-border bg-muted/50 text-muted-foreground',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn('size-1.5 shrink-0 rounded-full', statusDot(q.status))}
+                    />
+                    Q{i + 1} {fmtClockSec(secs)}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {/* A LINHA por questão — status, tópico, enunciado e o tempo na tela.
+            O tempo cala quando não há registro ('—'), nunca um 00:00 falso. */}
+        <div className="space-y-0.5">
+          {details.map((q, i) => (
+            <div
+              key={i}
+              className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-background/70"
+            >
+              <span
+                aria-hidden
+                className={cn('size-1.5 shrink-0 translate-y-[-1px] rounded-full', statusDot(q.status))}
+              />
+              <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground">
+                Q{i + 1}
+              </span>
+              <span className={cn('text-[10px] font-medium', statusTone(q.status))}>
+                {statusLabel(q.status)}
+              </span>
+              <span className="text-[10px] text-muted-foreground/80">{q.topic ?? '—'}</span>
+              {q.statement && (
+                <span
+                  className="min-w-0 basis-48 flex-1 truncate text-[11px] text-muted-foreground/90"
+                  title={q.statement}
+                >
+                  {q.statement}
+                </span>
+              )}
+              <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+                {typeof q.timeSec === 'number' && q.timeSec > 0
+                  ? fmtClockSec(Math.round(q.timeSec))
+                  : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/70">
+          Tempo que cada questão passou na tela — a pausa não entra (o cronômetro congela). '—' =
+          sem registro (corrida antiga ou questão fora da tela): nunca um zero inventado.
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+export function SimuladoHistory() {
+  const sp = useStudyProgress();
+  const runs = sp.progress.simuladoRuns ?? NO_RUNS;
+
+  // O REPLAY DO TEMPO (t193): a tentativa expandida (uma por vez — abrir outra
+  // fecha a anterior; a tela não vira um acordeão de barulho).
+  const [replayId, setReplayId] = React.useState<string | null>(null);
+
+  // A TENTATIVA OFICIAL do plano (29/09, prova de Matemática) — a MESMA fonte
+  // única do hero e do card da prova (85). No histórico ela era anônima:
+  // prova-mode não ganha badge por design, então o run que o app inteiro
+  // reconhece como marco aparecia idêntico a qualquer prova de treino.
+  const runOficial = React.useMemo(() => findMathSimuladoRunOficial(runs), [runs]);
+  // O veredito do oficial alimenta o delta dos drills (fonte única da 95):
+  // a taxa POR TÓPICO é o 'de onde subiu' do chip do histórico.
+  const runOficialVerdict = React.useMemo(() => simuladoVerdictFor(runOficial), [runOficial]);
+
+  const stats = React.useMemo(() => {
+    if (runs.length === 0) return null;
+    const pcts = runs.map(runPct);
+    return {
+      best: Math.max(...pcts),
+      avg: Math.round(pcts.reduce((a, b) => a + b, 0) / runs.length),
+      count: runs.length,
+    };
+  }, [runs]);
+
+  const chartRuns = runs.slice(0, 8).reverse(); // mais antigo → mais novo
+  const bestChartPct = React.useMemo(
+    () => (chartRuns.length > 0 ? Math.max(...chartRuns.map(runPct)) : 0),
+    [chartRuns],
+  );
+
+  /** Tendência por tópico entre tentativas (só runs com detalhes por questão). */
+  const topicTrends = React.useMemo(() => computeTopicTrends(runs), [runs]);
+  const visibleTrends = topicTrends.slice(0, 6);
+
+  /** Disciplina de contexto para a análise de evolução: a mais recorrente nas tentativas. */
+  const trendDiscipline = React.useMemo(() => {
+    const byDisc = new Map<string, number>();
+    for (const r of runs) {
+      const code = runDisciplineCode(r);
+      if (!code) continue;
+      byDisc.set(code, (byDisc.get(code) ?? 0) + 1);
+    }
+    return [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  }, [runs]);
+
+  return (
+    <Card className="rounded-xl bg-card p-4 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-base font-semibold">
+          <span className="grid size-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-500">
+            <History className="size-4" />
+          </span>
+          Histórico de simulados
+        </h3>
+        {stats && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400">
+              <Trophy className="size-2.5" /> melhor {stats.best}%
+            </Badge>
+            <Badge variant="outline" className="border-teal-500/40 bg-teal-500/10 text-[10px] text-teal-600 dark:text-teal-400">
+              <TrendingUp className="size-2.5" /> média {stats.avg}%
+            </Badge>
+          </div>
+        )}
+      </div>
+
+      {!stats ? (
+        <div className="mt-4 flex flex-col items-center gap-2.5 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-center">
+          <History className="size-5 text-muted-foreground/50" aria-hidden />
+          {/* O estado vazio sabe que dia é hoje: na VÉSPERA DO ENSAIO (29/09) a
+              frase muda de convite para chamada — o resultado desta noite é o
+              que alimenta o debrief da IA e a revisão da véspera. Nos outros
+              dias, o texto estável de sempre (nada de urgência emprestada). */}
+          {isSimuladoDayToday() ? (
+            <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+              O ensaio real é <strong className="text-emerald-500">HOJE</strong>. Rode o{' '}
+              <strong className="text-emerald-500">Simulado Pro</strong> da Av1 — o resultado desta
+              noite vira o debrief da IA e decide o que a véspera revisa.
+            </p>
+          ) : (
+            <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+              Nenhum simulado ainda. Rode o <strong className="text-emerald-500">Simulado Pro</strong> na aba
+              Praticar — cada tentativa aparece aqui para acompanhar sua evolução. 🎯
+            </p>
+          )}
+          <Button
+            size="sm"
+            onClick={() => openSimulado({ preset: 'math_exam' })}
+            className="h-8 gap-1.5 bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 hover:bg-emerald-700"
+          >
+            <Target className="size-3.5" /> Rodar Simulado da Av1 (escopo real)
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Mini gráfico de evolução (últimas 8 tentativas) — com a linha da meta.
+              A coluna da TENTATIVA OFICIAL do plano ganha Medal + anel emerald
+              (prioridade sobre o Trophy de melhor nota — o marco importa mais). */}
+          <div className="mt-4 flex items-end justify-start gap-2 sm:justify-between" aria-hidden>
+            {chartRuns.map((r, i) => {
+              const pct = runPct(r);
+              const isOficial = !!runOficial && r.id === runOficial.id;
+              const isBest = !isOficial && pct === bestChartPct && bestChartPct > 0;
+              return (
+                <div
+                  key={r.id}
+                  title={`${fmtDate(r.date)} — ${pct}% (${r.solved}/${r.total}) · ${fmtDur(r.durationSec)}${isOficial ? ' · TENTATIVA OFICIAL do plano (29/09)' : ''}`}
+                  className="flex max-w-[56px] flex-1 flex-col items-center gap-1 transition-transform hover:scale-[1.06]"
+                >
+                  {isOficial ? (
+                    <Medal
+                      className="size-3 text-emerald-500"
+                      aria-label={`Tentativa oficial do plano: ${pct}%`}
+                    />
+                  ) : isBest ? (
+                    <Trophy
+                      className="size-3 text-amber-500"
+                      aria-label={`Melhor tentativa: ${pct}%`}
+                    />
+                  ) : (
+                    <span className="inline-block size-3" aria-hidden />
+                  )}
+                  <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{pct}%</span>
+                  <div
+                    className={cn(
+                      'relative flex h-16 w-full items-end overflow-hidden rounded-md bg-muted/50',
+                      isOficial && 'ring-1 ring-emerald-500/50 ring-offset-1 ring-offset-background',
+                      isBest && 'ring-1 ring-amber-500/50 ring-offset-1 ring-offset-background',
+                    )}
+                  >
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${Math.max(6, pct)}%` }}
+                      transition={{ duration: 0.5, delay: i * 0.05, ease: 'easeOut' }}
+                      className={cn(
+                        'w-full rounded-md',
+                        pct >= 80
+                          ? 'bg-gradient-to-t from-emerald-600 to-emerald-400'
+                          : pct >= 60
+                            ? 'bg-gradient-to-t from-teal-600 to-teal-400'
+                            : pct >= 40
+                              ? 'bg-gradient-to-t from-amber-600 to-amber-400'
+                              : 'bg-gradient-to-t from-rose-600 to-rose-400',
+                      )}
+                    />
+                    {/* Linha da meta de aprovação — segmento em cada coluna, ao nível de 70% */}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 border-t border-dashed border-amber-500/50"
+                      style={{ bottom: `${MATH_META}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-muted-foreground/70">{fmtDate(r.date)}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
+            <span aria-hidden className="inline-block w-5 border-t border-dashed border-amber-500/60" />
+            meta de aprovação ({MATH_META}%)
+          </p>
+
+          {/* Tendência POR TÓPICO — quem sobe, quem desce entre tentativas (pior atual primeiro) */}
+          {visibleTrends.length > 0 && (
+            <div className="mt-4 rounded-lg border border-border bg-muted/10 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium">
+                  <TrendingUp className="size-3.5 text-emerald-500" /> Tendência por tópico
+                </p>
+                {(topicTrends[0].last === null || topicTrends[0].last < 60) && (
+                  <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
+                    <Target className="mr-1 size-2.5" /> foco: {topicTrends[0].topic}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-2.5 space-y-2.5">
+                {visibleTrends.map((t, i) => (
+                  <div
+                    key={`${t.disciplineCode}:${t.topic}`}
+                    className="group -mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="shrink-0 text-[9px] uppercase tracking-wide text-muted-foreground/60">
+                          {getDiscShort(t.disciplineCode)}
+                        </span>
+                        <span className="min-w-0 truncate text-[11px] font-medium">{t.topic}</span>
+                      </div>
+                      {/* Micro-série: uma barrinha por tentativa em que o tópico apareceu.
+                          Tópicos do escopo da Av1 ganham a linha da meta (≥ 70) —
+                          o olho vê na hora quem está abaixo dela. */}
+                      <div
+                        className={cn(
+                          'mt-1 flex h-7 items-end gap-[3px]',
+                          isAv1Topic(t.disciplineCode, t.topic) && 'relative pr-6',
+                        )}
+                        aria-hidden
+                      >
+                        {t.series.map((p, j) => (
+                          <motion.span
+                            key={j}
+                            title={`${fmtDate(p.date)} — ${p.pct === null ? 'pulou tudo (sem taxa)' : `${p.pct}%`}`}
+                            initial={{ height: 0 }}
+                            animate={{
+                              height: `${p.pct === null ? 10 : Math.max(10, Math.round(p.pct * 0.28))}px`,
+                            }}
+                            transition={{ duration: 0.4, delay: 0.15 + i * 0.06 + j * 0.05, ease: 'easeOut' }}
+                            className={cn(
+                              'w-1.5 rounded-sm opacity-80 transition-opacity group-hover:opacity-100',
+                              // A BARRA OCA DO PULADO (t190): tentativa com o
+                              // bloco inteiro pulado não tem taxa — contorno
+                              // zinc vazio, nunca a barra cheia do erro.
+                              p.pct === null
+                                ? 'border border-dashed border-zinc-400/70 bg-transparent dark:border-zinc-500/70'
+                                : trendBarTone(p.pct),
+                            )}
+                          />
+                        ))}
+                        {isAv1Topic(t.disciplineCode, t.topic) && (
+                          <span
+                            className="pointer-events-none absolute inset-y-0 left-0 right-0 border-b border-dashed border-amber-500/50"
+                            style={{ bottom: `${Math.max(10, Math.round(MATH_META * 0.28))}px` }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span
+                        className={cn(
+                          'text-xs font-bold tabular-nums',
+                          t.last === null && 'text-zinc-500 dark:text-zinc-400',
+                        )}
+                      >
+                        {t.last === null ? 'pulou tudo' : `${t.last}%`}
+                      </span>
+                      {/* Gap até a meta de aprovação da Av1 — só nos tópicos do escopo COM taxa */}
+                      {isAv1Topic(t.disciplineCode, t.topic) &&
+                        (t.last === null ? (
+                          <span
+                            title={`O bloco inteiro foi pulado na última tentativa — sem taxa para comparar com a meta (${MATH_META}%)`}
+                            className="rounded-full border border-zinc-400/60 bg-zinc-500/10 px-1.5 py-px text-[9px] font-medium text-zinc-600 dark:text-zinc-300"
+                          >
+                            sem taxa
+                          </span>
+                        ) : t.last >= MATH_META ? (
+                          <span
+                            title={`Meta de aprovação da Av1 (${MATH_META}%) batida — folga de ${t.last - MATH_META}pp`}
+                            className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-px text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"
+                          >
+                            meta ✓
+                          </span>
+                        ) : (
+                          <span
+                            title={`Faltam ${MATH_META - t.last}pp para a meta de aprovação da Av1 (${MATH_META}%)`}
+                            className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-px text-[9px] font-semibold tabular-nums text-amber-600 dark:text-amber-400"
+                          >
+                            −{MATH_META - t.last} p/ meta
+                          </span>
+                        ))}
+                      {t.series.length >= 2 ? (
+                        t.delta === null ? (
+                          // Sem taxas dos DOIS lados para comparar (pulou numa
+                          // das pontas) — o Δ honesto não existe.
+                          <Badge
+                            variant="outline"
+                            title="Sem variação comparável: o bloco foi pulado em uma das pontas (sem taxa)"
+                            className="gap-0.5 border-zinc-400/60 bg-zinc-500/10 px-1.5 text-[10px] text-zinc-600 dark:text-zinc-300"
+                          >
+                            <Minus className="size-2.5" /> sem Δ
+                          </Badge>
+                        ) : t.delta > 0 ? (
+                          <Badge
+                            variant="outline"
+                            title={`Subiu ${t.delta} ponto(s) percentual(is) da 1ª para a última tentativa`}
+                            className="gap-0.5 border-emerald-500/40 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-600 dark:text-emerald-400"
+                          >
+                            <TrendingUp className="size-2.5" /> +{t.delta}pp
+                          </Badge>
+                        ) : t.delta < 0 ? (
+                          <Badge
+                            variant="outline"
+                            title={`Caiu ${Math.abs(t.delta)} ponto(s) percentual(is) da 1ª para a última tentativa`}
+                            className="gap-0.5 border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                          >
+                            <TrendingDown className="size-2.5" /> {t.delta}pp
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            title="Mesma nota na 1ª e na última tentativa"
+                            className="gap-0.5 border-border px-1.5 text-[10px] text-muted-foreground"
+                          >
+                            <Minus className="size-2.5" /> estável
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          title="Este tópico apareceu em uma só tentativa com detalhes"
+                          className="border-border px-1.5 text-[10px] text-muted-foreground"
+                        >
+                          1ª tentativa
+                        </Badge>
+                      )}
+                      {/* Replay do tópico: prova curta com SÓ este tópico no sorteio.
+                          Revela no hover e por teclado (padrão das micro-ações). */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openSimulado({ disciplineCode: t.disciplineCode, topicScope: t.topic })
+                        }
+                        title={`Treinar só ${t.topic} no Simulado Pro (prova curta de 5 questões)`}
+                        aria-label={`Treinar só ${t.topic} no Simulado Pro`}
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-teal-700 opacity-0 transition-opacity hover:border-teal-300 hover:bg-teal-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40 group-focus-within:opacity-100 group-hover:opacity-100 dark:border-teal-800/70 dark:bg-teal-950/50 dark:text-teal-300 dark:hover:bg-teal-900/50"
+                      >
+                        <Play className="size-3" aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {topicTrends.length > visibleTrends.length && (
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  + {topicTrends.length - visibleTrends.length} outro(s) tópico(s) nas tentativas
+                </p>
+              )}
+              <p className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                <Sparkles className="size-2.5 shrink-0" />
+                Barras = aproveitamento em cada tentativa (antiga → recente); barra OCA = bloco inteiro pulado (sem taxa); linha tracejada = meta de aprovação da Av1 (≥ {MATH_META}). A IA recebe esta série no botão abaixo.
+              </p>
+            </div>
+          )}
+
+          {/* Análise de EVOLUÇÃO — a série inteira (agora COM tópicos) para o tutor ler a tendência */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              openTutor({
+                disciplineCode: trendDiscipline,
+                question: buildTrendQuestion(runs),
+              })
+            }
+            aria-label="Enviar minha evolução de simulados para a IA analisar a tendência"
+            className="mt-4 w-full border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/60"
+          >
+            <Sparkles className="size-3.5" /> Analisar evolução com IA
+          </Button>
+
+          {/* Últimas tentativas */}
+          <div className="mt-4 space-y-1.5">
+            {runs.slice(0, 5).map((r) => {
+              const pct = runPct(r);
+              // O DELTA DO DRILL NO HISTÓRICO (107): treino de tópico do escopo
+              // DEPOIS do oficial e com ganho real — o mesmo leitor do kit
+              // (fonte única), com a taxa POR TÓPICO do oficial como 'de onde
+              // subiu'. Antes do oficial = preparo, sem delta (a ordem do
+              // tempo manda); sem taxa dos dois lados = nada inventado.
+              const drillTopic = normalizeMode(r.mode) === 'topico' ? drillTopicOf(r) : null;
+              const drillDelta = (() => {
+                if (!drillTopic || !runOficial) return null;
+                const oficialPct =
+                  runOficialVerdict?.porTopico.find((t) => t.topic === drillTopic)?.pct ?? null;
+                const d = mathDrillFeedbackFor([r], drillTopic, oficialPct, runOficial.date);
+                if (!d || d.melhorou !== true || oficialPct === null) return null;
+                return { from: oficialPct, to: d.pct ?? 0 };
+              })();
+              const replayOpen = replayId === r.id;
+              const replayDetalhes = runQuestionsOf(r);
+              return (
+                <div key={r.id} className="space-y-0.5">
+                <div
+                  className={cn(
+                    'group flex flex-wrap items-center gap-2 rounded-lg border border-border border-l-2 bg-muted/20 px-3 py-2 text-xs transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/[0.03]',
+                    accentTone(pct),
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'grid size-6 shrink-0 place-items-center rounded-md font-bold text-[10px]',
+                      pct >= 80
+                        ? 'bg-emerald-500/15 text-emerald-500'
+                        : pct >= 60
+                          ? 'bg-teal-500/15 text-teal-500'
+                          : pct >= 40
+                            ? 'bg-amber-500/15 text-amber-500'
+                            : 'bg-rose-500/15 text-rose-500',
+                    )}
+                  >
+                    {pct >= 80 ? <Award className="size-3" /> : `${pct}`}
+                  </span>
+                  <span className="font-medium tabular-nums">
+                    {r.solved}/{r.total} resolvidas
+                  </span>
+                  <DistributionBar r={r} />
+                  <Badge variant="outline" className={cn('border text-[10px]', pctTone(pct))}>
+                    {pct}%
+                  </Badge>
+                  {/* A OFICIAL tem nome: prova-mode fica sem rótulo por design
+                      (a ausência É o padrão), então este é o ÚNICO badge que
+                      uma prova ganha na lista — impossível confundir com treino. */}
+                  {runOficial && r.id === runOficial.id && (
+                    <Badge
+                      title={`A tentativa oficial do plano (${MATH_SIMULADO_DATE.split('-').reverse().slice(0, 2).join('/')}) — é este registro que os marcos do painel, o kit da véspera e o plano reconhecem como "feito"`}
+                      className="gap-0.5 border-emerald-600 bg-emerald-600 px-1.5 text-[10px] font-semibold text-white shadow-sm shadow-emerald-600/25 dark:border-emerald-500 dark:bg-emerald-500"
+                    >
+                      <Medal className="size-2.5" aria-hidden /> Oficial da Av1
+                    </Badge>
+                  )}
+                  {runModeBadge(r)}
+                  {/* O chip do GANHO REAL — a mesma voz do recibo do kit ('subiu
+                      de 40% para 80%'), enxuta: a linha já mostra o % do drill
+                      no badge de taxa; aqui falta só o DE ONDE. */}
+                  {drillDelta && (
+                    <span
+                      className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 tabular-nums dark:text-emerald-400"
+                      title={`Treino depois do oficial: a taxa sobre respondidos subiu de ${drillDelta.from}% para ${drillDelta.to}%`}
+                    >
+                      <TrendingUp className="size-2.5" aria-hidden /> subiu de {drillDelta.from}%
+                    </span>
+                  )}
+                  <span className="text-muted-foreground">
+                    {fmtDate(r.date)} · {fmtDur(r.durationSec)}
+                  </span>
+                  {/* O SINO NO ACERVO (t192): a tentativa que o relógio encerrou
+                      carrega a marca — no dia da prova, a diferença entre "acabou
+                      o tempo" e "desisti" é o diagnóstico do pacing (estratégia ×
+                      conteúdo). Runs que terminaram antes calam (sem chip). */}
+                  {r.endedByClock && (
+                    <Badge
+                      variant="outline"
+                      title="O relógio chegou a 00:00 e encerrou a prova — o que ficou em branco ficou em branco"
+                      className="gap-0.5 border-amber-300/60 bg-amber-500/[0.07] px-1.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                    >
+                      <AlarmClock className="size-2.5" aria-hidden /> pelo relógio
+                    </Badge>
+                  )}
+                  {r.filters?.difficulty && (
+                    <Badge variant="outline" className="border-border text-[10px] capitalize text-muted-foreground">
+                      {r.filters.difficulty}
+                    </Badge>
+                  )}
+                  {r.filters?.discipline && (
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {getDiscShort(r.filters.discipline)}
+                    </span>
+                  )}
+                  {/* O REPLAY DO TEMPO (t193): a tentativa com detalhes ganha a
+                      lupa questão a questão — status, tópico, enunciado e o
+                      tempo na tela. Corrida antiga sem detalhes nem mostra o
+                      botão (sem registro não há linha — regra 88). Uma aberta
+                      por vez: abrir outra fecha a anterior. */}
+                  {replayDetalhes && (
+                    <button
+                      type="button"
+                      onClick={() => setReplayId(replayOpen ? null : r.id)}
+                      aria-expanded={replayOpen}
+                      aria-pressed={replayOpen}
+                      title={
+                        replayOpen
+                          ? 'Fechar o replay da tentativa'
+                          : 'Ver o replay da tentativa — questão por questão, com o tempo que cada uma comeu'
+                      }
+                      aria-label={`${replayOpen ? 'Fechar' : 'Abrir'} o replay questão a questão da tentativa de ${fmtDate(r.date)}`}
+                      className={cn(
+                        'inline-flex size-6 shrink-0 items-center justify-center rounded-full border transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40 focus-visible:ring-offset-1 dark:focus-visible:ring-zinc-400/40',
+                        replayOpen
+                          ? 'border-zinc-400 bg-zinc-200 text-zinc-900 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100'
+                          : 'border-zinc-200 bg-zinc-50 text-zinc-600 opacity-0 hover:border-zinc-300 hover:bg-zinc-100 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800',
+                      )}
+                    >
+                      {replayOpen ? (
+                        <ChevronUp className="size-3" aria-hidden />
+                      ) : (
+                        <ChevronDown className="size-3" aria-hidden />
+                      )}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openTutor({
+                        disciplineCode: runDisciplineCode(r),
+                        question: buildRunDebriefQuestion(r),
+                      })
+                    }
+                    title={
+                      r.questions && r.questions.length > 0
+                        ? 'Perguntar à IA para analisar esta tentativa (debriefing completo, questão a questão)'
+                        : 'Perguntar à IA para analisar esta tentativa (só totais — corrida antiga)'
+                    }
+                    aria-label={`Perguntar à IA para analisar a tentativa de ${fmtDate(r.date)}`}
+                    className="ml-auto inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-200"
+                  >
+                    <Sparkles className="size-3" aria-hidden />
+                  </button>
+                </div>
+                {replayOpen && replayDetalhes && <RunReplayPanel run={r} />}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Target className="size-3 shrink-0 text-emerald-500" />
+              {(() => {
+                // Contagem HONESTA: treinos não viram "simulados" na fala —
+                // a régua da meta se aplica às provas; treinos são repetição.
+                const provas = runs.filter((r) => normalizeMode(r.mode) === 'prova').length;
+                const treinos = runs.length - provas;
+                return (
+                  <>
+                    {stats.count} tentativa(s): {provas} simulado(s)
+                    {treinos > 0 ? ` · ${treinos} treino(s)` : ''}
+                    {runOficial && (
+                      <span className="whitespace-nowrap">
+                        {' '}· oficial da Av1 ({MATH_SIMULADO_DATE.split('-').reverse().slice(0, 2).join('/')}):{' '}
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {runPct(runOficial)}%
+                        </span>
+                      </span>
+                    )}
+                    {' '}· cada tentativa do Simulado Pro grava automaticamente aqui.
+                  </>
+                );
+              })()}
+            </p>
+            <p className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
+              <span className="flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-emerald-500/80" aria-hidden /> consegui
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-rose-500/80" aria-hidden /> não consegui
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-muted-foreground/30" aria-hidden /> puladas
+              </span>
+            </p>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}

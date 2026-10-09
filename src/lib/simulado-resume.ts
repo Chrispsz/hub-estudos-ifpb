@@ -25,6 +25,12 @@ export interface SavedSimuladoConfig {
   durationMin: number; // 0 = sem tempo
   aligned: boolean;
   topics?: string[];
+  /**
+   * t194 — prova de estrutura fixa (Simulado do Professor, t172): os ids das
+   * questões NA ORDEM ditada. Persistido junto do config — F5 no meio da
+   * prova não perde a estrutura fixa da retomada.
+   */
+  fixedIds?: string[];
 }
 
 /**
@@ -56,6 +62,12 @@ export interface InProgressRun {
   remaining: number;
   /** segundos decorridos até a pausa. */
   elapsed: number;
+  /**
+   * Tempo por questão (segundos, na ordem da prova) — o "onde o tempo foi"
+   * da retomada (t192). Opcional: saves anteriores não têm o campo, e a
+   * retomada de um save antigo simplesmente recomeça a contagem do zero.
+   */
+  timeByQ?: number[];
 }
 
 const KEY = 'hub-estudos-ifpb:simulado-inprogress';

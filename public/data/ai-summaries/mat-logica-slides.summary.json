@@ -64,5 +64,15 @@
     "Princípio do Terceiro Excluído: toda proposição ou é verdadeira ou é falsa",
     "Ordem de precedência: ∼, ∧, ∨, →, ↔",
     "Número de linhas na tabela-verdade: 2^n, onde n é o número de proposições simples"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a ordem de precedência dos conectivos? O que resolve primeiro: ∧ ou ∨? E ∼?",
+    "Enuncie de memória o princípio da Não Contradição e o do Terceiro Excluído.",
+    "Se p é FALSA, quanto vale p → q? Por que a condicional só \"quebra\" num caso?",
+    "O \"ou\" da lógica formal (∨) é inclusivo ou exclusivo? O que isso significa em V/F?",
+    "Quantas linhas tem a tabela-verdade de uma proposição com n proposições simples? (a fórmula)",
+    "Na tabela-verdade, como classifico a proposição composta pela coluna final (tautologia, contradição, contingência)?",
+    "O que a negação ∼p faz com o valor lógico? Negação de V é...?",
+    "Numa disjunção ∨ com uma proposição V e outra F, o valor lógico é V ou F? E na conjunção ∧?"
   ]
 }

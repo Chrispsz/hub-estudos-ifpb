@@ -243,6 +243,7 @@ export function CaptureCropDialog({ canvas, open, onOpenChange, onAttach, onRetr
             className="h-9 text-muted-foreground hover:text-foreground"
             onClick={onRetry}
             aria-label="Capturar a tela de novo"
+            title="Fecha o recorte, descarta este frame e abre o seletor de novo — o novo frame não carrega o overlay daqui (nada é salvo no seu computador)"
           >
             <RefreshCw className="size-3.5" aria-hidden /> De novo
           </Button>

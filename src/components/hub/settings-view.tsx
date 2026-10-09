@@ -1,0 +1,1067 @@
+'use client';
+
+import * as React from 'react';
+import { useTheme } from 'next-themes';
+import {
+  Activity,
+  AppWindow,
+  BellRing,
+  CircleCheck,
+  ShieldAlert,
+  DatabaseBackup,
+  Download,
+  ExternalLink,
+  ImagePlus,
+  Moon,
+  RotateCcw,
+  Settings2,
+  Smartphone,
+  Sparkles,
+  Sun,
+  Timer,
+  Trash2,
+  TriangleAlert,
+  RefreshCw,
+  Upload,
+  Volume2,
+  VolumeX,
+  XCircle,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { usePwaInstall } from '@/components/pwa';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { defaultProgress, exportProgressJSON, importProgressJSON, useStudyProgress } from '@/lib/study-progress';
+import { useFocusMode } from '@/lib/focus-mode';
+import { BACKUP_STAMP_KEY, backupStatus, progressWorthOf } from '@/lib/backup-guard';
+import { useLocalStorage } from '@/lib/use-local-storage';
+
+export function SettingsView() {
+  const sp = useStudyProgress();
+  const { theme, setTheme } = useTheme();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  // O SELO DO BACKUP (172): a data do último export mora numa chave PRÓPRIA (não
+  // dentro do progresso de propósito — importar um backup antigo não pode
+  // fingir que o backup é novo). O useLocalStorage é a régua da casa: default
+  // no primeiro render (sem mismatch), leitura pós-mount.
+  const [lastExport, setLastExport] = useLocalStorage<string | null>(BACKUP_STAMP_KEY, null);
+  // Confirmação de importação (172): substituir o progresso é destrutivo quando
+  // há algo a perder — o diálogo diz O QUÊ em números antes do ato.
+  const [pendingImport, setPendingImport] = React.useState<string | null>(null);
+
+  const backup = backupStatus(lastExport);
+  const worth = React.useMemo(() => progressWorthOf(sp.progress), [sp.progress]);
+
+  const cfg = sp.progress.preferences;
+
+  function handleExport() {
+    try {
+      const json = exportProgressJSON(sp.progress);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hub-estudos-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      // O selo é o gesto inteiro: o download concluiu, o medidor recomeça.
+      setLastExport(new Date().toISOString());
+      toast.success('Backup exportado com sucesso!');
+    } catch (e) {
+      toast.error('Erro ao exportar: ' + (e as Error).message);
+    }
+  }
+
+  function handleImportFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imported = importProgressJSON(String(reader.result));
+      if (!imported) {
+        toast.error('Arquivo inválido — não parece um backup do Hub de Estudos.');
+        return;
+      }
+      // NADA A PERDER = sem cerimônia (o estado vazio não tem o que destruir).
+      if (worth.total === 0) {
+        sp.replaceProgress(imported);
+        toast.success('Progresso restaurado com sucesso!');
+        return;
+      }
+      // HÁ ALGO A PERDER = o ato destrutivo passa pelo diálogo (o mesmo padrão
+      // da Zona de risco: ação destrói, diálogo confessa em números).
+      setPendingImport(String(reader.result));
+    };
+    reader.onerror = () => toast.error('Não foi possível ler o arquivo.');
+    reader.readAsText(file);
+  }
+
+  function confirmImport() {
+    if (!pendingImport) return;
+    const imported = importProgressJSON(pendingImport);
+    setPendingImport(null);
+    if (!imported) {
+      toast.error('Arquivo inválido — não parece um backup do Hub de Estudos.');
+      return;
+    }
+    sp.replaceProgress(imported);
+    toast.success('Progresso restaurado com sucesso!');
+  }
+
+  const pomodoroStats = React.useMemo(
+    () => ({
+      sessions: sp.progress.pomodoroSessions.length,
+      minutes: sp.progress.pomodoroSessions.reduce((acc, s) => acc + s.focusMinutes, 0),
+    }),
+    [sp.progress.pomodoroSessions],
+  );
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-5">
+      <div>
+        <h2 className="text-xl font-semibold">Configurações</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Aparência, Pomodoro, backup e dados — tudo fica no seu navegador.
+        </p>
+      </div>
+
+      {/* Aparência */}
+      <Card className="rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sun className="size-4 text-amber-500" aria-hidden />
+            Aparência
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Tema</p>
+              <p className="text-xs text-muted-foreground">
+                AMOLED usa preto puro (padrão em telas OLED).
+              </p>
+            </div>
+            <Select value={theme ?? 'dark'} onValueChange={setTheme}>
+              <SelectTrigger className="w-40" aria-label="Selecionar tema">
+                <SelectValue placeholder="Tema" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dark">
+                  <span className="flex items-center gap-2">
+                    <Moon className="size-3.5" /> Escuro (AMOLED)
+                  </span>
+                </SelectItem>
+                <SelectItem value="light">
+                  <span className="flex items-center gap-2">
+                    <Sun className="size-3.5" /> Claro
+                  </span>
+                </SelectItem>
+                <SelectItem value="system">Sistema</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Modo foco (navegação simples)</p>
+              <p className="text-xs text-muted-foreground">
+                Esconde <b>Método</b>, <b>Cronograma</b> e <b>Progresso</b> atrás do botão "Mais"
+                na barra lateral — só o estudo do dia a dia na frente. Nada é apagado; um toque
+                em "Mais" traz de volta.
+              </p>
+            </div>
+            <FocusModeSwitch />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* IA (OpenRouter) */}
+      <AiInfoCard />
+
+      {/* Instalar como app (PWA) */}
+      <InstallAppCard />
+
+      {/* Pomodoro */}
+      <Card className="rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Timer className="size-4 text-emerald-500" aria-hidden />
+            Pomodoro
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <NumberSetting
+              label="Foco (min)"
+              description="Duração de cada bloco"
+              ariaLabel="Minutos de foco"
+              value={cfg.pomodoroConfig.focus}
+              min={5}
+              max={90}
+              step={5}
+              fallback={25}
+              onCommit={(focus) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, focus },
+                })
+              }
+            />
+            <NumberSetting
+              label="Pausa curta (min)"
+              description="Entre focos"
+              ariaLabel="Minutos de pausa curta"
+              value={cfg.pomodoroConfig.shortBreak}
+              min={1}
+              max={30}
+              fallback={5}
+              onCommit={(shortBreak) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, shortBreak },
+                })
+              }
+            />
+            <NumberSetting
+              label="Pausa longa (min)"
+              description="A cada N ciclos"
+              ariaLabel="Minutos de pausa longa"
+              value={cfg.pomodoroConfig.longBreak}
+              min={5}
+              max={60}
+              step={5}
+              fallback={15}
+              onCommit={(longBreak) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, longBreak },
+                })
+              }
+            />
+            <NumberSetting
+              label="Ciclos p/ pausa longa"
+              description="Focos antes da longa"
+              ariaLabel="Ciclos antes da pausa longa"
+              value={cfg.pomodoroConfig.cyclesBeforeLong}
+              min={2}
+              max={8}
+              fallback={4}
+              onCommit={(cyclesBeforeLong) =>
+                sp.updatePreferences({
+                  pomodoroConfig: { ...cfg.pomodoroConfig, cyclesBeforeLong },
+                })
+              }
+            />
+            <NumberSetting
+              label="Meta diária"
+              description="Pomodoros por dia"
+              ariaLabel="Meta diária de pomodoros"
+              value={cfg.dailyGoal}
+              min={1}
+              max={12}
+              fallback={4}
+              onCommit={(dailyGoal) => sp.updatePreferences({ dailyGoal })}
+            />
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {cfg.silentMode ? (
+                  <VolumeX className="size-4 text-muted-foreground" aria-hidden />
+                ) : (
+                  <Volume2 className="size-4 text-emerald-500" aria-hidden />
+                )}
+                <div>
+                  <p className="text-sm font-medium">Som ao trocar de fase</p>
+                  <p className="text-xs text-muted-foreground">Beep discreto</p>
+                </div>
+              </div>
+              <Switch
+                checked={!cfg.silentMode}
+                onCheckedChange={(v) => sp.updatePreferences({ silentMode: !v })}
+                aria-label="Ativar som do Pomodoro"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ExternalLink
+                  className={
+                    cfg.backgroundTimer !== false
+                      ? 'size-4 text-emerald-500'
+                      : 'size-4 text-muted-foreground'
+                  }
+                  aria-hidden
+                />
+                <div>
+                  <p className="text-sm font-medium">Rodar em outra guia</p>
+                  <p className="text-xs text-muted-foreground">
+                    O foco segue contando enquanto você pesquisa fora do Hub
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={cfg.backgroundTimer !== false}
+                onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
+                aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BellRing
+                  className={
+                    cfg.notifyPhaseEnd ? 'size-4 text-emerald-500' : 'size-4 text-muted-foreground'
+                  }
+                  aria-hidden
+                />
+                <div>
+                  <p className="text-sm font-medium">Notificar fim das fases</p>
+                  <p className="text-xs text-muted-foreground">Aviso do sistema ao concluir</p>
+                </div>
+              </div>
+              <Switch
+                checked={cfg.notifyPhaseEnd}
+                onCheckedChange={(v) => {
+                  if (!v) {
+                    sp.updatePreferences({ notifyPhaseEnd: false });
+                    return;
+                  }
+                  if (!('Notification' in window)) {
+                    toast.error('Este navegador não suporta notificações.');
+                    return;
+                  }
+                  if (Notification.permission === 'granted') {
+                    sp.updatePreferences({ notifyPhaseEnd: true });
+                    toast.success('Notificações ativadas!');
+                    return;
+                  }
+                  if (Notification.permission === 'denied') {
+                    toast.error(
+                      'Notificações bloqueadas — libere o site nas permissões do navegador.',
+                    );
+                    return;
+                  }
+                  Notification.requestPermission().then((p) => {
+                    if (p === 'granted') {
+                      sp.updatePreferences({ notifyPhaseEnd: true });
+                      toast.success('Notificações ativadas!');
+                    } else {
+                      toast.info('Permissão não concedida — ative nas configurações do navegador.');
+                    }
+                  });
+                }}
+                aria-label="Ativar notificações do Pomodoro"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AppWindow
+                  className={
+                    cfg.tabTitleTimer ? 'size-4 text-teal-500' : 'size-4 text-muted-foreground'
+                  }
+                  aria-hidden
+                />
+                <div>
+                  <p className="text-sm font-medium">Timer no título da aba</p>
+                  <p className="text-xs text-muted-foreground">Ex.: “24:31 • Foco — Hub”</p>
+                </div>
+              </div>
+              <Switch
+                checked={cfg.tabTitleTimer}
+                onCheckedChange={(v) => sp.updatePreferences({ tabTitleTimer: v })}
+                aria-label="Mostrar timer no título da aba"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Backup */}
+      <Card className="rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <DatabaseBackup className="size-4 text-teal-500" aria-hidden />
+            Backup do progresso
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {pomodoroStats.sessions}{' '}
+            {pomodoroStats.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro (
+            {pomodoroStats.minutes} min de foco acumulados) salvos no navegador. Exporte um JSON
+            para não perder nada ao limpar o cache — um hábito semanal cobre o semestre inteiro.
+          </p>
+          {/* O MEDIDOR DO SEGURO (172): o export já existia; o que faltava era o
+              hábito ter um medidor. Cor = significado (a gramática da casa):
+              esmeralda em dia, âmbar semanal vencido, rosa mensal vencido, zinc
+              nunca exportou. O selo mora numa chave própria — importar um backup
+              antigo não finge que o backup é novo. */}
+          <div
+            className={cn(
+              'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium',
+              backup.tone === 'ok' && 'border-emerald-500/40 bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-300',
+              backup.tone === 'warn' && 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 dark:text-amber-300',
+              backup.tone === 'danger' && 'border-rose-500/40 bg-rose-500/[0.07] text-rose-700 dark:text-rose-300',
+              backup.tone === 'never' && 'border-border bg-muted/40 text-muted-foreground',
+            )}
+            data-testid="backup-status"
+          >
+            {backup.tone === 'ok' ? (
+              <CircleCheck className="size-4 shrink-0" aria-hidden />
+            ) : backup.tone === 'danger' ? (
+              <ShieldAlert className="size-4 shrink-0" aria-hidden />
+            ) : (
+              <DatabaseBackup className="size-4 shrink-0" aria-hidden />
+            )}
+            <span className="min-w-0 flex-1">{backup.label}</span>
+            {worth.total > 0 && (
+              <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
+                {worth.total === 1 ? '1 registro' : `${worth.total} registros`} no seguro
+              </span>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              variant="outline"
+              className="justify-start focus-visible:ring-emerald-500/60"
+              onClick={handleExport}
+            >
+              <Download className="size-4 text-emerald-500" />
+              Exportar progresso (JSON)
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start focus-visible:ring-amber-500/60"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="size-4 text-amber-500" />
+              Importar progresso (JSON)
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              aria-label="Arquivo de backup JSON"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportFile(f);
+                e.target.value = '';
+              }}
+            />
+          </div>
+          {/* A CONFIRMAÇÃO DA IMPORTAÇÃO (172): substituir o progresso é o mesmo
+              tipo de ato da Zona de risco — destrutivo e sem desfazer. Com algo
+              a perder, o diálogo confessa EM NÚMEROS o que vai embora; com o
+              estado vazio, a importação entra sem cerimônia (não há o que
+              destruir — pedir confirmação seria cerimônia disfarçada). */}
+          <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Substituir o progresso atual pelo backup?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>
+                      O progresso atual deste navegador será totalmente substituído pelo arquivo
+                      escolhido. Nesta hora existem:
+                    </p>
+                    <ul className="space-y-1 text-xs">
+                      <li className="tabular-nums">
+                        • {worth.sessions} {worth.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro
+                      </li>
+                      <li className="tabular-nums">
+                        • {worth.materials}{' '}
+                        {worth.materials === 1 ? 'material concluído' : 'materiais concluídos'}
+                      </li>
+                      <li className="tabular-nums">
+                        • {worth.flashcards} {worth.flashcards === 1 ? 'cartão' : 'cartões'} de
+                        flashcards
+                      </li>
+                      <li className="tabular-nums">
+                        • {worth.runs} {worth.runs === 1 ? 'corrida' : 'corridas'} de simulado
+                      </li>
+                    </ul>
+                    <p>Esta ação não pode ser desfeita — exporte o atual antes, se precisar.</p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmImport}
+                  className="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500/60"
+                >
+                  Substituir tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+      {/* Zona de risco */}
+      <Card className="rounded-xl border-rose-500/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base text-rose-500">
+            <Settings2 className="size-4" aria-hidden />
+            Zona de risco
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Isso apaga TODO o progresso local (sessões, tópicos, notas, cronograma). Exporte um
+            backup antes!
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="justify-start">
+                <Trash2 className="size-4" />
+                Apagar todos os dados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Apagar todos os dados?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Sessões de Pomodoro, tópicos concluídos, notas, preferências e cronograma serão
+                  permanentemente removidos deste navegador. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={() => {
+                    sp.replaceProgress({ ...defaultProgress });
+                    toast.success('Dados apagados. Começando do zero!');
+                  }}
+                >
+                  <RotateCcw className="size-4" />
+                  Sim, apagar tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Sobre — versão mínima */}
+      <p className="pb-2 text-center text-[11px] text-muted-foreground/70">
+        Hub de Estudos IFPB v2.0 • dados 100% no seu navegador • IA via OpenRouter (modelos free)
+      </p>
+    </div>
+  );
+}
+
+/** Linha repetida de configuração numérica do Pomodoro (rótulo + descrição + input com clamp). */
+function NumberSetting({
+  label,
+  description,
+  ariaLabel,
+  value,
+  min,
+  max,
+  step,
+  fallback,
+  onCommit,
+}: {
+  label: string;
+  description: string;
+  ariaLabel: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  fallback: number;
+  onCommit: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) =>
+          onCommit(Math.max(min, Math.min(max, Number(e.target.value) || fallback)))
+        }
+        className="h-11 w-20 text-center sm:h-9"
+        aria-label={ariaLabel}
+      />
+    </div>
+  );
+}
+
+/** Latência com cor semântica: verde < 1s, âmbar < 3s, vermelho acima. */
+function msTone(ms: number): string {
+  if (ms < 1000) return 'text-emerald-600 dark:text-emerald-400';
+  if (ms < 3000) return 'text-amber-600 dark:text-amber-400';
+  return 'text-destructive';
+}
+
+/** Linha de resultado do diagnóstico de IA (ping real de cada provedor). */
+function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
+  if (!r) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 text-[11px]">
+      <span className="flex min-w-0 items-center gap-1.5">
+        {r.ok ? (
+          <CircleCheck className="size-3 shrink-0 text-emerald-500" aria-hidden />
+        ) : (
+          <XCircle className="size-3 shrink-0 text-destructive" aria-hidden />
+        )}
+        <span className="font-medium">{label}</span>
+        {r.model ? <span className="truncate text-muted-foreground">· {r.model}</span> : null}
+      </span>
+      <span
+        className={cn(
+          'min-w-0 truncate text-right font-mono',
+          r.ok ? msTone(r.ms) : 'text-destructive',
+        )}
+        title={r.ok ? `${r.ms} ms` : r.error}
+      >
+        {r.ok ? `${r.ms} ms` : (r.error ?? 'falhou')}
+      </span>
+    </div>
+  );
+}
+
+type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string };
+type VisionTestState =
+  | { status: 'running' }
+  | { status: 'ok'; model?: string; ms: number; transcription: string }
+  | { status: 'fail'; error: string };
+type ProbeState = {
+  at: string;
+  firstToAnswer: string;
+  gemini: ProbeResult;
+  openrouter: ProbeResult;
+  zai: ProbeResult;
+};
+
+function AiInfoCard() {
+  const [chains, setChains] = React.useState<{
+    tutor: { id: string; label: string }[];
+    flashcards: { id: string; label: string }[];
+  } | null>(null);
+  const [providers, setProviders] = React.useState<{
+    gemini?: boolean;
+    openrouter?: boolean;
+    zaiPublic?: boolean;
+  } | null>(null);
+  const [vision, setVision] = React.useState<string | null>(null);
+  const [probe, setProbe] = React.useState<ProbeState | null>(null);
+  const [probing, setProbing] = React.useState(false);
+  const [visionTest, setVisionTest] = React.useState<VisionTestState | null>(null);
+  const visionInputRef = React.useRef<HTMLInputElement>(null);
+
+  const visionAtiva = Boolean(vision && !vision.startsWith('somente'));
+
+  React.useEffect(() => {
+    fetch('/api/tutor')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.chains) setChains(d.chains);
+        if (d?.providers) setProviders(d.providers);
+        if (typeof d?.vision === 'string') setVision(d.vision);
+      })
+      .catch(() => {});
+  }, []);
+
+  /** Diagnóstico: ping real de cada chave (GET ?probe=1) — roda ao abrir e no botão. */
+  const runProbe = React.useCallback(() => {
+    setProbing(true);
+    fetch('/api/tutor?probe=1')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.probe) setProbe(d.probe);
+        else toast.error('Diagnóstico indisponível agora.');
+      })
+      .catch(() => toast.error('Não foi possível testar a conexão.'))
+      .finally(() => setProbing(false));
+  }, []);
+
+  React.useEffect(() => {
+    runProbe();
+  }, [runProbe]);
+
+  /** Teste real de visão: lê uma imagem escolhida pelo usuário pela MESMA cadeia do tutor. */
+  const runVisionTest = React.useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Escolha um arquivo de imagem (print, foto do exercício…).');
+      return;
+    }
+    setVisionTest({ status: 'running' });
+    const reader = new FileReader();
+    reader.onload = () => {
+      const t0 = Date.now();
+      fetch('/api/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question:
+            'Transcreva EXATAMENTE o texto principal que aparece na imagem. Responda em uma linha curta, sem comentários.',
+          discipline: 'Diagnóstico',
+          disciplineCode: 'QA-VIS',
+          stream: false,
+          imageDataUrl: String(reader.result),
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          const ms = Date.now() - t0;
+          if (d?.answer) {
+            // Exibição limpa: modelos costumam responder prints com LaTeX ($$…$/$…$) —
+            // no diagnóstico mostramos o texto puro, sem delimitadores.
+            const clean = String(d.answer)
+              .trim()
+              .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
+              .replace(/\$([^$\n]+)\$/g, '$1')
+              .replace(/\\[a-zA-Z]+/g, '')
+              .replace(/\s{2,}/g, ' ')
+              .trim();
+            setVisionTest({
+              status: 'ok',
+              model: d.model,
+              ms,
+              transcription: clean,
+            });
+            toast.success('Visão funcionando — a imagem foi lida com sucesso.');
+          } else {
+            setVisionTest({
+              status: 'fail',
+              error: d?.error ?? 'A imagem não pôde ser lida agora. Tente outro print.',
+            });
+          }
+        })
+        .catch(() =>
+          setVisionTest({ status: 'fail', error: 'Falha de rede ao testar a leitura.' }),
+        );
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const anyKey = Boolean(providers?.gemini || providers?.openrouter || providers?.zaiPublic);
+
+  return (
+    <Card className="rounded-xl">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Sparkles className="size-4 text-violet-500" aria-hidden />
+          Tutor IA
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          O tutor, a leitura de prints e o gerador de flashcards rodam em modelos <b>gratuitos</b>{' '}
+          com fallback automático: se um atingir o limite diário, o próximo assume instantaneamente
+          — sem erro para você.
+        </p>
+
+        {providers && (
+          <div className="flex flex-wrap items-center gap-2" aria-label="Provedores de IA configurados">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                providers.gemini
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {providers.gemini ? <CircleCheck className="size-3" aria-hidden /> : null}
+              Gemini {providers.gemini ? 'ativo' : 'inativo'}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                providers.openrouter
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {providers.openrouter ? (
+                <CircleCheck className="size-3" aria-hidden />
+              ) : null}
+              OpenRouter {providers.openrouter ? 'ativo' : 'inativo'}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                providers.zaiPublic
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {providers.zaiPublic ? <CircleCheck className="size-3" aria-hidden /> : null}
+              Z.ai {providers.zaiPublic ? 'ativo' : 'inativo'}
+            </span>
+          </div>
+        )}
+
+        {providers && (
+          <p className="text-xs text-muted-foreground">
+            <b
+              className={
+                vision && !vision.startsWith('somente')
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : ''
+              }
+            >
+              Leitura de prints (visão):
+            </b>{' '}
+            {vision ?? 'verificando…'}
+          </p>
+        )}
+
+        {providers && visionAtiva && (
+          <div className="rounded-lg border p-3" aria-live="polite">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs font-semibold">
+                <ImagePlus className="size-3.5 text-violet-500" aria-hidden />
+                Testar leitura de prints
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2.5 text-[11px]"
+                onClick={() => visionInputRef.current?.click()}
+                disabled={visionTest?.status === 'running'}
+              >
+                {visionTest?.status === 'running' ? (
+                  <RefreshCw className="size-3 animate-spin" aria-hidden />
+                ) : (
+                  <ImagePlus className="size-3" aria-hidden />
+                )}
+                {visionTest?.status === 'running' ? 'Lendo imagem…' : 'Enviar imagem'}
+              </Button>
+            </div>
+            <input
+              ref={visionInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-label="Escolher imagem para testar a leitura"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) runVisionTest(f);
+                e.target.value = '';
+              }}
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Envie um print (foto do exercício ou do quadro) e veja em tempo real qual modelo lê e
+              o que entendeu — exatamente como será no chat.
+            </p>
+            {visionTest?.status === 'ok' && (
+              <div className="mt-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-[11px]">
+                <p className="flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+                  <CircleCheck className="size-3 shrink-0" aria-hidden />
+                  Lido por {visionTest.model ?? 'IA'} em {(visionTest.ms / 1000).toFixed(1)}s
+                </p>
+                <p
+                  className="mt-1 line-clamp-3 break-words text-muted-foreground"
+                  title={visionTest.transcription}
+                >
+                  “{visionTest.transcription}”
+                </p>
+              </div>
+            )}
+            {visionTest?.status === 'fail' && (
+              <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-[11px]">
+                <p className="flex items-start gap-1.5 font-medium text-destructive">
+                  <XCircle className="mt-0.5 size-3 shrink-0" aria-hidden />
+                  {visionTest.error}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {providers && (
+          <div className="rounded-lg border p-3" aria-live="polite">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs font-semibold">
+                <Activity className="size-3.5 text-emerald-500" aria-hidden />
+                Teste de conexão das chaves
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2.5 text-[11px]"
+                onClick={runProbe}
+                disabled={probing}
+              >
+                <RefreshCw className={cn('size-3', probing && 'animate-spin')} aria-hidden />
+                {probing ? 'Testando…' : 'Testar agora'}
+              </Button>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {probing && !probe ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Medindo latência de cada provedor…
+                </p>
+              ) : null}
+              {probe ? (
+                <>
+                  <ProbeRow label="Gemini (AI Studio)" r={probe.gemini} />
+                  <ProbeRow label="OpenRouter (cadeia free)" r={probe.openrouter} />
+                  <ProbeRow label="Z.ai (opcional)" r={probe.zai} />
+                  <p className="pt-0.5 text-[11px] text-muted-foreground">
+                    Quem responde primeiro nas dúvidas reais:{' '}
+                    <b className="font-semibold text-foreground">{probe.firstToAnswer}</b>
+                  </p>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {providers && !anyKey && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+            <p className="flex items-start gap-1.5 font-medium">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              Nenhuma chave de IA configurada — o tutor só funciona em desenvolvimento.
+            </p>
+            <p className="mt-1 leading-relaxed">
+              <b>Opção 1 (recomendada)</b>: key grátis do Google AI Studio em{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 underline underline-offset-2"
+              >
+                aistudio.google.com/app/apikey <ExternalLink className="size-3" aria-hidden />
+              </a>{' '}
+              → variável <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">GEMINI_API_KEY</code>.
+              Uma key só resolve texto <b>e</b> leitura de prints, com bom limite diário grátis.
+            </p>
+            <p className="mt-1 leading-relaxed">
+              <b>Opção 2</b>: key grátis na{' '}
+              <a
+                href="https://openrouter.ai/keys"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 underline underline-offset-2"
+              >
+                openrouter.ai/keys <ExternalLink className="size-3" aria-hidden />
+              </a>{' '}
+              → <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">OPENROUTER_API_KEY</code>.
+              Ambas vão nas Environment Variables da Vercel (Settings → Environment Variables).
+            </p>
+          </div>
+        )}
+
+        {chains ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-xs font-semibold">Chat do tutor</p>
+              <ol className="space-y-1 text-xs text-muted-foreground">
+                {chains.tutor.map((m, i) => (
+                  <li key={m.id} className="flex items-center gap-1.5">
+                    <span className="font-mono text-[10px] text-emerald-500">{i + 1}º</span>
+                    {m.label}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs font-semibold">Gerador de flashcards</p>
+              <ol className="space-y-1 text-xs text-muted-foreground">
+                {chains.flashcards.map((m, i) => (
+                  <li key={m.id} className="flex items-center gap-1.5">
+                    <span className="font-mono text-[10px] text-violet-500">{i + 1}º</span>
+                    {m.label}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        ) : (
+          <div className="h-12 animate-pulse rounded-lg bg-muted/50" aria-hidden />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Card "Instalar como app" — usa o prompt nativo do Chrome/Edge quando disponível. */
+function InstallAppCard() {
+  const [canInstall, install] = usePwaInstall();
+
+  return (
+    <Card className="rounded-xl">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Smartphone className="size-4 text-teal-500" aria-hidden />
+          Instalar como app
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {canInstall ? (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">O Hub pode virar um app no seu dispositivo</p>
+              <p className="text-xs text-muted-foreground">
+                Ícone na tela inicial, tela cheia e sem barra de navegador.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0 bg-teal-600 text-white hover:bg-teal-700"
+              onClick={async () => {
+                const ok = await install();
+                if (ok) toast.success('App instalado! Procure o ícone 📱 na sua tela inicial.');
+              }}
+            >
+              <AppWindow className="size-3.5" /> Instalar agora
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-1.5 text-xs text-muted-foreground">
+            <p className="text-sm font-medium text-foreground">Como instalar manualmente:</p>
+            <p>
+              <span className="font-semibold text-foreground/80">Android/Chrome:</span> menu ⋮ →{' '}
+              <em>Adicionar à tela inicial</em> (ou <em>Instalar app</em>).
+            </p>
+            <p>
+              <span className="font-semibold text-foreground/80">iPhone/Safari:</span> botão{' '}
+              <em>Compartilhar</em> → <em>Adicionar à Tela de Início</em>.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+/** Switch do Modo Foco — hook próprio isola re-render do card inteiro. */
+function FocusModeSwitch() {
+  const [focusMode, setFocusMode] = useFocusMode();
+  return (
+    <Switch
+      checked={focusMode}
+      onCheckedChange={setFocusMode}
+      aria-label="Ativar ou desativar o modo foco na navegação"
+    />
+  );
+}

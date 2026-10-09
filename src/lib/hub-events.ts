@@ -8,8 +8,12 @@ export const OPEN_SIMULADO_EVENT = 'hub:open-simulado';
 export interface OpenSimuladoDetail {
   /** Código da disciplina para pré-selecionar. */
   disciplineCode?: string;
-  /** Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10). */
-  preset?: 'math_exam';
+  /**
+   * Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10).
+   * t194 — 'math_exam_prof' = ESTRUTURA REAL ditada pelo professor no áudio
+   * de 30/09 (t172): as 6 questões fixas, na ordem e no tipo que ele descreveu.
+   */
+  preset?: 'math_exam' | 'math_exam_prof';
   /**
    * Escopo de UM tópico (ex.: replay do pior tópico da tendência no Histórico).
    * Abre o Simulado Pro com só esse tópico ativo — prova curta (5 questões,
@@ -72,6 +76,17 @@ export interface OpenTutorDetail {
    * morre junto com o anexo no envio.
    */
   imageLabel?: string;
+  /**
+   * t178 — O SILÊNCIO QUE RESPEITA A LEITURA: pedido com silent=true anexa
+   * pergunta/imagem no composer do chat SEM ABRIR o Sheet POR CIMA do que o
+   * aluno está lendo (o caso real: o instantâneo da barra do PDF em modo
+   * cheio — o chat abrindo sozinho escondia a página que o dono estava
+   * lendo). O anexo fica no composer esperando; o chip na BARRA do leitor
+   * confessa o destino e o "abrir" é um clique do dono, não uma decisão do
+   * app. Se o chat já estiver aberto, o flag é irrelevante (abrir um chat
+   * aberto é barulho sem efeito — a fiação trata os dois casos iguais).
+   */
+  silent?: boolean;
 }
 
 /** Dispara a troca para a aba Estudar com o tutor recebendo a pergunta pronta. */

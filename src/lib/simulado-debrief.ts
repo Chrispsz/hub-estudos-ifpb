@@ -13,7 +13,11 @@ import { getDisciplineByCode } from '@/data/course-data';
 import type { RunQuestionDetail, SimuladoRun } from '@/lib/study-progress';
 import { normalizeMode, type AttemptMode } from '@/lib/simulado-resume';
 import { capQuestion } from '@/lib/tutor-stream';
-import { MATH_SIMULADO_DATE, findMathSimuladoRunOficial } from '@/lib/math-exam-prep';
+import {
+  MATH_SIMULADO_DATE,
+  findMathSimuladoRunOficial,
+  topicRowsFor,
+} from '@/lib/math-exam-prep';
 
 export function fmtClockSec(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -32,6 +36,100 @@ function difficultyLabel(d?: string): string {
 
 function discShort(code?: string): string {
   return (code && getDisciplineByCode(code)?.shortName) || code || '—';
+}
+
+/**
+ * ONDE O TEMPO FOI (t192) — o resumo de pacing de uma tentativa.
+ *
+ * A Av1 real tem relógio: saber que a q3 comeu 18 dos 60 minutos muda a
+ * estratégia da prova (pular e voltar). A função lê os tempos por questão
+ * (segundos) e devolve o que o strip do debrief e a IA precisam:
+ *  - totalSec: a soma do tempo que passou EM questões (a pausa não entra —
+ *    o cronômetro congela fechado);
+ *  - slowestIdx: a questão mais lenta (0-based; −1 quando nada foi medido);
+ *  - measured: existe ao menos uma questão com tempo > 0 (runs antigos,
+ *    pré-t192, não têm o campo — e a superfície CALA: sem registro não há
+ *    linha, regra 88).
+ *
+ * PURA e honesta com lixo: undefined/null/NaN/negativo viram 0 — um tempo
+ * corrompido nunca inventa um "mais lento" falso. Empate no máximo fica com
+ * a PRIMEIRA (a mais antiga — a que travou primeiro merece o olhar).
+ */
+export interface PacingSummary {
+  totalSec: number;
+  slowestIdx: number;
+  measured: boolean;
+}
+
+export function pacingFor(times: ReadonlyArray<number | null | undefined>): PacingSummary {
+  const safe = times.map((t) =>
+    typeof t === 'number' && Number.isFinite(t) && t > 0 ? t : 0,
+  );
+  const totalSec = safe.reduce((acc, t) => acc + t, 0);
+  let slowestIdx = -1;
+  let slowest = 0;
+  safe.forEach((t, i) => {
+    if (t > slowest) {
+      slowest = t;
+      slowestIdx = i;
+    }
+  });
+  return { totalSec, slowestIdx, measured: totalSec > 0 };
+}
+
+/**
+ * O REPLAY DO TEMPO (t193) — o histórico deixa de ser uma nota morta. O
+ * pacing do t192 só aparecia no debrief FRESCO: a tentativa de ontem virava
+ * de novo um número seco (10% · 12min), e a pergunta "onde o tempo foi?"
+ * ficava sem resposta depois de fechar o diálogo. O gate é HONESTO: corridas
+ * antigas (pré-detail) não têm `questions` — sem registro não há linha
+ * (regra 88), e o botão de replay nem aparece para quem não tem o que
+ * mostrar. Pura: não muta o run.
+ */
+export function runQuestionsOf(run: SimuladoRun): RunQuestionDetail[] | null {
+  return run.questions && run.questions.length > 0 ? run.questions : null;
+}
+
+/**
+ * A matéria-prima do strip "Onde o tempo foi" no HISTÓRICO: os tempos por
+ * questão gravados no run. null quando a corrida não tem detalhes OU nada
+ * foi medido (pré-t192) — o strip cala; nunca inventa zeros para dizer
+ * que não sabe. Pura: não muta o run.
+ */
+export function timeSecsOfRun(run: SimuladoRun): number[] | null {
+  const qs = runQuestionsOf(run);
+  if (!qs) return null;
+  const times = qs.map((q) => q.timeSec ?? 0);
+  return pacingFor(times).measured ? times : null;
+}
+
+/**
+ * O title do chip de pacing — FONTE ÚNICA compartilhada pelo strip FRESCO
+ * (ResultsScreen, t192) e pelo strip do HISTÓRICO (t193): a confissão da
+ * questão mais lenta ("foi a que mais comeu o relógio… e ficou sem resposta")
+ * nasce daqui nos dois lugares — duas superfícies, uma voz, sem divergir.
+ *
+ * `solved` segue a convenção do run: true = consegui, false = não consegui,
+ * null = pulada (só a pulada confessa que é ELA a revisão de amanhã).
+ */
+export function pacingChipTitle(input: {
+  idx: number;
+  secs: number;
+  totalSec: number;
+  slowestIdx: number;
+  topic?: string;
+  solved?: boolean | null;
+}): string {
+  const { idx, secs, totalSec, slowestIdx, topic, solved } = input;
+  const label = `Q${idx + 1}`;
+  if (idx === slowestIdx) {
+    return `${label} foi a que mais comeu o relógio: ${fmtClockSec(secs)} de ${fmtClockSec(
+      totalSec,
+    )} (${topic ?? '—'})${
+      solved === null ? ' — e ficou sem resposta: é ELA a revisão de amanhã' : ''
+    }`;
+  }
+  return `${label}: ${fmtClockSec(secs)} na tela · ${topic ?? '—'}`;
 }
 
 /**
@@ -86,11 +184,26 @@ export function buildDebriefFromDetails(input: {
         : isOficial
           ? 'Acabei de terminar o SIMULADO OFICIAL da Av1 no Hub — o ensaio REAL da prova de Matemática, com meta de aprovação (≥ 70). Analisa meu desempenho como um professor faria na correção de um ensaio oficial e monta o plano de revisão CURTO e organizado para os dias que faltam até a prova.'
           : 'Acabei de terminar um simulado no Hub. Analisa meu desempenho como um professor faria na correção e monta um plano de revisão CURTO e organizado.';
+  // O PACING na linha (t192): corridas novas gravam timeSec; antigas não —
+  // a linha velha permanece idêntica (compatibilidade silenciosa, sem
+  // "— 00:00" inventado para quem não mediu).
   const lines = details.map((q, i) => {
     const status =
       q.status === 'solved' ? 'CONSEGUI' : q.status === 'missed' ? 'NÃO CONSEGUI' : 'PULADA';
-    return `- Q${i + 1} [${discShort(q.disciplineCode)} · ${q.topic || '—'} · ${difficultyLabel(q.difficulty)}] ${status} — ${(q.statement || '').slice(0, 110)}`;
+    const tempo =
+      typeof q.timeSec === 'number' && Number.isFinite(q.timeSec) && q.timeSec > 0
+        ? ` · ${fmtClockSec(Math.round(q.timeSec))}`
+        : '';
+    return `- Q${i + 1} [${discShort(q.disciplineCode)} · ${q.topic || '—'} · ${difficultyLabel(q.difficulty)}] ${status}${tempo} — ${(q.statement || '').slice(0, 110)}`;
   });
+  // O pedido de ritmo SÓ nasce quando há tempo medido — pedir análise de
+  // pacing sobre dados que não existem seria ensaiar adivinhação.
+  const temPacing = details.some(
+    (q) => typeof q.timeSec === 'number' && Number.isFinite(q.timeSec) && q.timeSec > 0,
+  );
+  const pedidos = temPacing
+    ? 'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão, (3) um exercício de treino por tópico fraco e (4) o RITMO — alguma questão comeu tempo demais para uma prova cronometrada (onde eu deveria ter pulado e voltado depois)?'
+    : 'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.';
   return capQuestion(
     [
       abertura,
@@ -98,7 +211,7 @@ export function buildDebriefFromDetails(input: {
       'Resultado por questão:',
       ...lines,
       '',
-      'Na resposta: (1) o padrão dos meus erros (tópicos recorrentes? dificuldade? descuido?), (2) a ordem certa de revisão e (3) um exercício de treino por tópico fraco.',
+      pedidos,
     ].join('\n'),
   );
 }
@@ -115,13 +228,19 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
   // precisa saber com o que está lidando sem ninguém lembrar de avisar.
   const oficial = isSimuladoRunOficial(run);
   if (run.questions && run.questions.length > 0) {
-    return buildDebriefFromDetails({
+    const pergunta = buildDebriefFromDetails({
       mode,
       pct: run.total > 0 ? Math.round((run.solved / run.total) * 100) : 0,
       elapsedSec: run.durationSec,
       details: run.questions,
       isOficial: oficial,
     });
+    // O SINO CONFESSA (t192): a tentativa que o relógio encerrou diz isso à
+    // IA — "acabou o tempo" e "desisti" são diagnósticos DIFERENTES (o
+    // primeiro pede estratégia de pacing, o segundo pede conteúdo).
+    return run.endedByClock
+      ? `${pergunta}\n\nObservação: a prova foi encerrada PELO RELÓGIO (00:00) — o que ficou em branco ficou em branco. Considere isso no diagnóstico de ritmo.`
+      : pergunta;
   }
   const natureza =
     mode === 'treino'
@@ -137,6 +256,7 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
     `${run.missed} que não consegui`,
     `${run.skipped} puladas`,
     `tempo ${fmtClockSec(run.durationSec)}`,
+    ...(run.endedByClock ? ['encerrada PELO RELÓGIO (00:00)'] : []),
   ];
   const filtros: string[] = [];
   if (run.filters?.discipline) filtros.push(discShort(run.filters.discipline));
@@ -154,14 +274,26 @@ export function buildRunDebriefQuestion(run: SimuladoRun): string {
  * `questions`, por disciplina::tópico, e devolve a sequência cronológica de
  * aproveitamento de cada tópico — quem sobe, quem desce, quem está estagnado.
  *
+ * A RÉGUA É A ÚNICA DA CASA (t190): a agregação por tentativa vem de
+ * topicRowsFor (math-exam-prep) — taxa sobre RESPONDIDAS, puladas contadas
+ * à parte, bloco inteiro pulado → pct null. A versão antiga desta função
+ * dividia solved/TOTAL e era a ÚLTIMA régua velha viva: vestia o bloco
+ * nunca tentado com o "0%" do tentou-e-errou nos chips "foco da prova" da
+ * home, na média do score de prontidão e na série que a IA do tutor lê.
+ *
  * Regras:
  *  - `runs` chega na ordem de gravação (mais recente PRIMEIRO) — aqui vira
  *    cronologia interna (reversa), então cada série é antiga → recente;
  *  - tentativas sem detalhes por questão (antigas) simplesmente não contribuem;
- *  - pior tópico ATUAL primeiro (o foco de revisão), tie-break: mais tentativas.
+ *  - first/last/delta são null quando a tentativa correspondente NÃO tem taxa
+ *    (bloco inteiro pulado — nunca inventa número);
+ *  - pior tópico ATUAL primeiro (o foco de revisão) — a MESMA regra da casa:
+ *    pulou-tudo vem ANTES de qualquer taxa (key −1, doutrina t189), depois a
+ *    menor taxa, tie-break: mais tentativas.
  */
 export interface TopicTrendPoint {
-  pct: number;
+  /** null = o tópico inteiro pulado NAQUELA tentativa (sem taxa honesta). */
+  pct: number | null;
   date: string;
 }
 
@@ -170,39 +302,45 @@ export interface TopicTrend {
   topic: string;
   /** Aproveitamento por tentativa em que o tópico apareceu (antiga → recente). */
   series: TopicTrendPoint[];
-  first: number;
-  last: number;
-  /** last − first em pontos percentuais; 0 quando só há 1 tentativa. */
-  delta: number;
+  /** Taxa da 1ª tentativa; null = a 1ª tentativa pulou o bloco inteiro. */
+  first: number | null;
+  /** Taxa da ÚLTIMA tentativa; null = a última pulou o bloco inteiro — é o
+   *  diagnóstico mais grave e a superfície que decide o foco trata null como
+   *  "pulou tudo" (nunca "0%"). */
+  last: number | null;
+  /** last − first em pontos percentuais; null quando não há taxas dos dois
+   *  lados para comparar (1 tentativa, ou pulado numa das pontas). */
+  delta: number | null;
 }
 
 export function computeTopicTrends(runs: SimuladoRun[]): TopicTrend[] {
   const chrono = [...runs].reverse().filter((r) => r.questions && r.questions.length > 0);
   const m = new Map<string, { disciplineCode: string; topic: string; series: TopicTrendPoint[] }>();
   for (const r of chrono) {
-    // Agrega por tópico DENTRO da tentativa (uma corrida pode repetir tópico).
-    const agg = new Map<string, { disc: string; topic: string; solved: number; total: number }>();
-    for (const q of r.questions!) {
-      if (!q.topic) continue;
-      const key = `${q.disciplineCode ?? ''}::${q.topic}`;
-      const rec = agg.get(key) ?? { disc: q.disciplineCode ?? '', topic: q.topic, solved: 0, total: 0 };
-      rec.total += 1;
-      if (q.status === 'solved') rec.solved += 1;
-      agg.set(key, rec);
-    }
-    for (const [key, rec] of agg) {
-      const cur = m.get(key) ?? { disciplineCode: rec.disc, topic: rec.topic, series: [] };
-      cur.series.push({ pct: Math.round((rec.solved / rec.total) * 100), date: r.date });
+    // A AGREGAÇÃO por tentativa vem da FONTE ÚNICA (t189/t190): topicRowsFor —
+    // taxa sobre respondidas, pulada sem taxa. Uma corrida pode repetir
+    // tópico; topicRowsFor já agrupa por disciplina::tópico dentro dela.
+    for (const row of topicRowsFor(r.questions!)) {
+      if (row.topic === '—') continue;
+      const key = `${row.disciplineCode}::${row.topic}`;
+      const cur = m.get(key) ?? { disciplineCode: row.disciplineCode, topic: row.topic, series: [] };
+      cur.series.push({ pct: row.pct, date: r.date });
       m.set(key, cur);
     }
   }
   return [...m.values()]
     .map((t) => {
-      const first = t.series[0]?.pct ?? 0;
-      const last = t.series[t.series.length - 1]?.pct ?? 0;
-      return { ...t, first, last, delta: t.series.length >= 2 ? last - first : 0 };
+      const first = t.series[0]?.pct ?? null;
+      const last = t.series[t.series.length - 1]?.pct ?? null;
+      const delta =
+        t.series.length >= 2 && first !== null && last !== null ? last - first : null;
+      return { ...t, first, last, delta };
     })
-    .sort((a, b) => a.last - b.last || b.series.length - a.series.length);
+    .sort(
+      (a, b) =>
+        (a.last === null ? -1 : a.last) - (b.last === null ? -1 : b.last) ||
+        b.series.length - a.series.length,
+    );
 }
 
 /**
@@ -228,11 +366,19 @@ export function buildTrendQuestion(runs: SimuladoRun[]): string {
   });
 
   // Tendência por tópico (só tentativas com detalhes por questão contribuem).
+  // A série fala a língua do pulado (t190): tentativa com bloco inteiro pulado
+  // aparece como "pulou" — nunca "0%", a IA não pode ler um erro que não houve.
   const trends = computeTopicTrends(runs).slice(0, 6);
   const topicLines = trends.map((t) => {
-    const seq = t.series.map((p) => `${p.pct}%`).join(' → ');
+    const seq = t.series.map((p) => (p.pct === null ? 'pulou' : `${p.pct}%`)).join(' → ');
     const delta =
-      t.series.length >= 2 ? ` (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp)` : ' (1ª tentativa)';
+      t.delta !== null
+        ? ` (Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp)`
+        : t.last === null
+          ? t.series.length >= 2
+            ? ' (última: bloco pulado — sem taxa)'
+            : ' (bloco pulado — sem taxa)'
+          : ' (1ª tentativa)';
     return `- ${discShort(t.disciplineCode)} · ${t.topic}: ${seq}${delta}`;
   });
 

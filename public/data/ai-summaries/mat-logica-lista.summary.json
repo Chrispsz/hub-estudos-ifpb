@@ -64,5 +64,15 @@
     "p ↔ q é verdadeira quando p e q têm o mesmo valor lógico",
     "∼(p ∨ q) ↔ ∼p ∧ ∼q (lei de De Morgan)",
     "∼(p ∧ q) ↔ ∼p ∨ ∼q (lei de De Morgan)"
+  ],
+  "perguntas_autoavaliacao": [
+    "\"Feche a porta!\" e \"Que horas são?\" são proposições? O que falta nelas para serem?",
+    "Quando p ∨ q é verdadeira? E p ∧ q — qual o único caso verdadeiro?",
+    "Qual o ÚNICO caso em que p → q é falsa? (decore este — a prova cobra)",
+    "Quando p ↔ q é verdadeira? E falsa?",
+    "Como nego p ∨ q? E p ∧ q? (as duas leis de De Morgan, de memória)",
+    "Quantas linhas tem a tabela-verdade com 3 proposições simples? E com 4?",
+    "O que distingue tautologia de contradição na coluna final da tabela-verdade? Onde a contingência entra?",
+    "Num argumento (Q13–15), o que torna a conclusão VÁLIDA — a veracidade das premissas ou a inferência?"
   ]
 }

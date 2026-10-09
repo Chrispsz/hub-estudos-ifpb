@@ -30,8 +30,10 @@ import {
   FileText,
   GripVertical,
   Image as ImageIcon,
+  Loader2,
   Search,
   X,
+  Zap,
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +54,13 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { pdfJumpSrc, clampPdfPage } from '@/lib/pdf-search';
 import { rememberPdfPage, recallPdfPage } from '@/lib/pdf-position';
+import {
+  instantPrintPage,
+  pagePrintLabel,
+  renderPdfPageToCanvas,
+} from '@/lib/pdf-print';
+import { downscaleCanvas } from '@/lib/tutor-image';
+import { instantChipAlive } from '@/lib/study-reader-door';
 import { TutorQuickPanel } from './tutor-quick-panel';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PdfSearchDialog } from './pdf-search-dialog';
@@ -61,12 +70,29 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
+   * t194 (porta da t177) — modo pedido por FORA na abertura (ex.: o card
+   * Tutor da prova abre os PDFs da Av1 JÁ em tela dividida — a integração
+   * que o dono ama). Honrado SÓ quando o localStorage não tem memória do
+   * dono (a escolha dele vence — o prop é um convite, não uma ordem).
+   */
+  initialMode?: 'pdf' | 'split';
+  /**
    * t162 — página pedida por um convite ACEITO FORA do diálogo (o botão
    * "continuar" do cartão na lista): abre JÁ saltado para ela, sem oferecer
    * a pill de retomada nesta abertura (o clique JÁ disse "continuar"). O
    * prop morre ao fechar — quem chama zera no onOpenChange.
    */
   initialPage?: number;
+  /**
+   * t183 — O ESPELHO DO ANEXO PENDENTE: o rótulo do que hoje espera no
+   * composer do tutor (chatImageLabel do StudyView — o dono do composer).
+   * É a fiação que ensina o chip do print rápido ("pág. N no tutor · abrir")
+   * a morrer quando a verdade sai de baixo dele: anexo enviado, descartado
+   * ou substituído por outra porta. undefined (montagens sem fiação) mantém
+   * a forma da t178; string | null é a verdade viva — instantChipAlive
+   * (study-reader-door) decide.
+   */
+  pendingAttachLabel?: string | null;
 }
 
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
@@ -104,10 +130,17 @@ const CAPTURE_HINT_JUMP = 'página do seu último salto';
 /** A pré-seleção vinda da BUSCA (t157 → t169): a página do trecho achado. */
 const CAPTURE_HINT_SEARCH = 'página do trecho buscado';
 
-export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: Props) {
+export function PdfViewerDialog({
+  material,
+  open,
+  onOpenChange,
+  initialPage,
+  initialMode,
+  pendingAttachLabel,
+}: Props) {
   const sp = useStudyProgress();
   /** Modo do workspace — 'split' é lembrado no localStorage (hidrata no mount). */
-  const [mode, setMode] = React.useState<'pdf' | 'split'>('pdf');
+  const [mode, setMode] = React.useState<'pdf' | 'split'>(initialMode ?? 'pdf');
   /** Largura do painel do MATERIAL em % (o tutor leva o resto). */
   const [splitPct, setSplitPct] = React.useState(58);
   /** Abas do mobile (< lg): o painel ocupa a tela INTEIRA, um por vez. */
@@ -136,6 +169,24 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
    * leitor ou o trecho da busca. A prévia do print confessa a origem
    * (doutrina da casa: nada é segredo) e morre junto com o diálogo. */
   const [captureHint, setCaptureHint] = React.useState<string | undefined>(undefined);
+  /** t175 — O PRINT RÁPIDO: o render da página aberta em curso (spinner no
+   * botão da barra, segundo clique recusado). */
+  const [instantPrinting, setInstantPrinting] = React.useState(false);
+  /** t178 — O CHIP NO LEITOR: o recibo do instantâneo ANCORADO na barra (o
+   * chat não abre mais por cima do PDF no modo cheio — o anexo fica no
+   * composer e o chip confessa o destino). Morre ao fechar o diálogo, ao
+   * abrir o chat pelo chip (o composer passa a mostrar o chip real) e no
+   * próximo anexo (que o substitui — o composer guarda UM anexo). */
+  const [instantAttached, setInstantAttached] = React.useState<{
+    page: number;
+    label: string;
+  } | null>(null);
+  /** t183 — A VERDADE DO CHIP: o recibo do instantâneo vive SÓ enquanto o
+   * anexo pendente no composer É o dele (instantChipAlive). O prop
+   * pendingAttachLabel é o espelho do composer; montagens sem fiação
+   * (undefined) mantêm a forma da t178. A computação (instantChip) fica no
+   * isSplit abaixo — a ordem das declarações é lei (TDZ). */
+  const chipWired = pendingAttachLabel !== undefined;
   /** Pergunta pedida pela BUSCA ao painel AO LADO (t158 — morre ao consumir). */
   const [panelQuestion, setPanelQuestion] = React.useState<string | null>(null);
   /** Convite de retomada (t161): a página do ÚLTIMO SALTO conhecido — morre
@@ -152,7 +203,7 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
   // com a hidratação; a escolha de uma sessão vale para as próximas.
   React.useEffect(() => {
     try {
-      if (localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
+      if (!initialMode && localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
       const p = Number(localStorage.getItem(SPLIT_PCT_KEY));
       if (p >= PCT_MIN && p <= PCT_MAX) setSplitPct(Math.round(p));
       if (localStorage.getItem(SPLIT_HINT_KEY) !== '1') setDragHint(true);
@@ -299,6 +350,15 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
   // Arquivos de exemplo (.html) não são PDF — rótulo do botão de download honesto.
   const isHtmlFile = material?.pdfPath?.endsWith('.html') ?? false;
   const isSplit = mode === 'split';
+  // t183 — o gate do chip do print rápido: só de pé quando o anexo pendente
+  // no composer É o que ELE despachou (modo cheio; no dividido o anexo vai
+  // direto ao painel, sem chip).
+  const instantChip =
+    !isSplit &&
+    instantAttached !== null &&
+    instantChipAlive(chipWired, pendingAttachLabel ?? null, instantAttached.label)
+      ? instantAttached
+      : null;
   /**
    * O PDF é BUSCÁVEL/SALTÁVEL (t157): arquivo real de PDF — imagem, página
    * web e exemplo .html não têm texto pdf.js para indexar nem página para
@@ -346,6 +406,50 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
     setCaptureHint(hint);
     setCaptureOpen(true);
   }, []);
+
+  /**
+   * t175 — O PRINT RÁPIDO (o pedido do dono: "o print deveria ser do pdf
+   * quando estou com um aberto"): UM clique na barra anexa a página ABERTA
+   * — pdf.js renderiza (nitidez 2×), a régua de 1400px encolhe o payload e
+   * o anexo entra no tubo do lado de quem vai ler: no painel AO LADO quando
+   * a tela está dividida; no chat principal (openTutor) no modo material
+   * cheio. Sem seletor de tela, sem recorte, sem arquivo no disco. A página
+   * é a HONESTA: o último salto despachado — sem salto, a 1ª que o leitor
+   * mostra (instantPrintPage).
+   *
+   * t178 — E O CHAT NÃO ABRE POR CIMA: no modo cheio o anexo viaja com
+   * silent=true (fica no composer esperando) e o recibo fica AQUI na barra
+   * (o chip esmeralda, a cor do print do Hub) — o dono continua lendo a
+   * página que pediu o print e abre o chat QUANDO quiser, pelo chip. O
+   * toast sumiu de propósito: recibo que some sozinho mentia sobre um
+   * anexo pendente; o chip fica até a intenção virar ação.
+   */
+  const instantPrint = React.useCallback(async () => {
+    if (!material?.pdfPath || instantPrinting) return;
+    const page = instantPrintPage(jumpPage, material.pages);
+    setInstantPrinting(true);
+    try {
+      const canvas = await renderPdfPageToCanvas(material.pdfPath, page);
+      const image = downscaleCanvas(canvas);
+      const label = pagePrintLabel(page, material.title);
+      if (isSplit) {
+        handleCaptureAttach(image, label); // painel AO LADO (+ aba Tutor no mobile)
+      } else {
+        openTutor({
+          image,
+          imageLabel: label,
+          disciplineCode: material.disciplineCode,
+          materialId: material.id,
+          silent: true, // o leitor é o dono do momento — o chat espera o clique
+        });
+        setInstantAttached({ page, label });
+      }
+    } catch {
+      toast.error('Não consegui renderizar a página. Use o print de página.');
+    } finally {
+      setInstantPrinting(false);
+    }
+  }, [material, instantPrinting, jumpPage, isSplit, handleCaptureAttach]);
 
   /** Pergunta vinda da BUSCA no MODO DIVIDIDO (t158): o texto entra no campo
    * do painel AO LADO — no mobile a aba Tutor abre sozinha (a pergunta está
@@ -539,6 +643,73 @@ export function PdfViewerDialog({ material, open, onOpenChange, initialPage }: P
                 </button>
               </div>
             </>
+          )}
+          {/* t175 — PRINT RÁPIDO: UM clique anexa a página aberta ao tutor
+              (painel ao lado em dividido; chat principal no modo cheio). O
+              irmão veloz do print de página — que segue ao lado dele para a
+              precisão (escolher outra página / recortar). */}
+          {pdfSearchable && (
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid="quick-print-page"
+              className={cn(touchBtn, 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300')}
+              onClick={() => void instantPrint()}
+              disabled={instantPrinting}
+              aria-busy={instantPrinting}
+              aria-label={
+                instantPrinting
+                  ? 'Renderizando a página para o tutor'
+                  : `Anexar a página ${instantPrintPage(jumpPage, material.pages)} do PDF ao tutor — um clique, sem recorte`
+              }
+              title={
+                instantPrinting
+                  ? 'Renderizando a página…'
+                  : `Print rápido da página ${instantPrintPage(jumpPage, material.pages)} (a aberta no leitor) — UM clique anexa ao tutor, sem escolher aba/tela e sem recorte (nada é salvo no seu computador)`
+              }
+            >
+              {instantPrinting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Zap className="size-3.5" />
+              )}{' '}
+              Print rápido
+            </Button>
+          )}
+          {/* t178 — O CHIP QUE FICA NO LEITOR: o recibo do instantâneo mora
+              AQUI, na barra — não numa janela por cima da página. A cor é a
+              do print do Hub (esmeralda), a contagem é tabular-nums e o
+              "abrir" é o ÚNICO gesto que traz o chat: o anexo já está no
+              composer (silent), abrir de novo não duplica. some no clique
+              (a intenção virou ação) e no próximo anexo (que substitui).
+              t183 — e AGORA ele fala a verdade do composer: enviado,
+              descartado ou substituído por outra porta, o chip morre junto
+              (instantChipAlive) — recibo que sobrevive à verdade é mentira. */}
+          {!isSplit && instantChip && (
+            <span
+              data-testid="instant-attach-chip"
+              title="A página anexada espera no campo de envio do tutor — o chat só abre quando você pedir"
+              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300"
+            >
+              <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+              <span className="tabular-nums">pág. {instantChip.page} no tutor</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!material) return;
+                  openTutor({
+                    disciplineCode: material.disciplineCode,
+                    materialId: material.id,
+                  });
+                  setInstantAttached(null);
+                }}
+                title="Abrir o tutor — a página anexada já está no campo de envio"
+                aria-label={`Abrir o tutor com a página ${instantChip.page} anexada`}
+                className="rounded-sm font-semibold underline-offset-2 transition-colors hover:text-emerald-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:hover:text-emerald-200"
+              >
+                abrir
+              </button>
+            </span>
           )}
           <Button
             size="sm"

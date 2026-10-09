@@ -1,0 +1,95 @@
+{
+  "titulo": "Av1 — As questões do professor (espelhos das listas)",
+  "conceitos_chave": [
+    {
+      "conceito": "Regras de valor lógico (∧, ∨, →, ↔)",
+      "explicacao": "∧ é V só se os dois forem V · ∨ é F só se os dois forem F · → só é F quando V→F · ↔ é V quando os lados são iguais. Decorar estas 4 regras resolve a Questão 1 da prova inteira.",
+      "exemplo": "3+2=6 (F) → π>3 (V) dá V, porque → só é F quando V→F."
+    },
+    {
+      "conceito": "Regras de inferência",
+      "explicacao": "Modus ponens (p→q, p ⊢ q) · modus tollens (p→q, ¬q ⊢ ¬p) · silogismo (p→q, q→r ⊢ p→r) · disjunção (p∨q, ¬p ⊢ q). É como se encadeia um argumento até a conclusão.",
+      "exemplo": "Carlos é executivo público (V) e Carlos→Cláudio eletricista, logo Cláudio é eletricista (modus ponens)."
+    },
+    {
+      "conceito": "Formalização de proposições compostas",
+      "explicacao": "Traduzir português para símbolos: 'e/mas' = ∧ · 'ou' = ∨ · 'se...então' = → · 'se e somente se' = ↔ · 'não/pobre/infeliz' = ¬.",
+      "exemplo": "Luciana é pobre, mas é feliz = ¬p ∧ q (o 'mas' é ∧)."
+    },
+    {
+      "conceito": "Tabela-verdade e classificação",
+      "explicacao": "n variáveis → 2ⁿ linhas, colunas construídas de dentro para fora. Coluna final toda V = tautologia; toda F = contradição; mista = contingência.",
+      "exemplo": "Com 2 proposições simples a tabela tem 4 linhas; X→X é sempre tautologia."
+    },
+    {
+      "conceito": "Lei de formação de matrizes",
+      "explicacao": "Aplicar a fórmula casa a casa: i = linha, j = coluna. i=j é a diagonal principal; i+j=n+1 é a secundária. Nas leis por partes, teste cada condição separadamente.",
+      "exemplo": "a_ij = 2+i+j em 2×2 dá [[4,5],[5,6]]."
+    },
+    {
+      "conceito": "Simétrica e antissimétrica",
+      "explicacao": "Simétrica: Aᵗ = A (espelho na diagonal principal, a_ij = a_ji). Antissimétrica: Aᵗ = −A, o que força a diagonal toda zero.",
+      "exemplo": "Em [[1,x,5],[2,7,−4],[y,z,−3]] simétrica: x=2, y=5, z=−4."
+    },
+    {
+      "conceito": "Produto de matrizes como situação-problema",
+      "explicacao": "Situação-problema (quantidades × preços) é PRODUTO de matrizes, NÃO sistema linear. Q(m×n)·P(n×1) = (m×1): cada linha do resultado é o faturamento daquele dia/loja.",
+      "exemplo": "c_ik = soma de (linha i de Q) × (coluna k de P), elemento a elemento."
+    },
+    {
+      "conceito": "Potência e combinação de matrizes",
+      "explicacao": "A² = A·A (nunca elevar elemento a elemento). Combos do tipo A² + 2A − 11I: primeiro A², depois os escalares, só então soma elemento a elemento.",
+      "exemplo": "Com A=[[1,1],[0,1]]: Aⁿ = [[1,n],[0,1]] — só o canto cresce."
+    },
+    {
+      "conceito": "Matriz inversa: isolar X e a definição",
+      "explicacao": "Definição: M é inversa de A ⇔ A·M = M·A = I. Para isolar X, multiplique pelos dois lados pela inversa na ordem certa (quem está à esquerda é desfeito primeiro). Propriedades: (AB)⁻¹ = B⁻¹A⁻¹ · (Aᵗ)⁻¹ = (A⁻¹)ᵗ.",
+      "exemplo": "(XA)⁻¹ = B ⇒ XA = B⁻¹ ⇒ X = B⁻¹A⁻¹."
+    }
+  ],
+  "pontos_importantes": [
+    "A prova tem 6 questões de 20 pts (100) e a Q6 é bônus (+20) — a nota trava em 100",
+    "Formato confirmado: só UMA questão é de marcar (alternativas); as demais são discursivas — treine escrevendo a resolução",
+    "Ordem recomendada pelo mapa do áudio: Q3 → Q1 → Q4 → Q2 → Q5 → Q6 (mecânico primeiro, bônus por último)",
+    "NÃO CAEM: determinantes e sistemas lineares (ainda não dados — confirmado 24/09)",
+    "A situação-problema da Q4 é produto de matrizes — o professor avisou EXPRESSAMENTE que não é sistema linear",
+    "Cada questão tem espelhos exatos nas listas: L7/L13, L3, M1, M2/M17, M19/M20, M34/M35",
+    "Escrever a fórmula padrão de memória antes de calcular vale metade da nota",
+    "Rascunho numerado por questão (Q1…Q6): resolver, conferir e só depois passar a limpo"
+  ],
+  "erros_comuns": [
+    "Confundir 'ou' inclusivo (∨) com exclusivo nos argumentos — o tipo da questão decide",
+    "Esquecer que → só é F no caso V→F (o erro nº 1 da Q1)",
+    "Pular linhas na tabela-verdade (2ⁿ linhas sempre, sem exceção)",
+    "Aplicar a lei de formação errando linha/coluna (i é linha, j é coluna)",
+    "Tentar montar SISTEMA na questão de produto (o professor avisou: é produto!)",
+    "Elevar matriz ao quadrado elemento a elemento em vez de multiplicar A·A",
+    "Inverter a ordem das inversas: (AB)⁻¹ = B⁻¹A⁻¹, nunca A⁻¹B⁻¹"
+  ],
+  "formulas_regras": [
+    "∧: V só se os dois V · ∨: F só se os dois F · →: F só quando V→F · ↔: V quando iguais",
+    "Modus ponens: p→q e p ⊢ q · Modus tollens: p→q e ¬q ⊢ ¬p",
+    "Silogismo: p→q e q→r ⊢ p→r · Disjunção: p∨q e ¬p ⊢ q",
+    "2ⁿ linhas na tabela-verdade para n proposições simples",
+    "Simétrica: Aᵗ = A · Antissimétrica: Aᵗ = −A (diagonal toda zero)",
+    "Produto: (m×n)·(n×p) = (m×p); c_ik = Σ a_ij · b_jk",
+    "Aⁿ = A·A·...·A (n fatores); nunca elemento a elemento",
+    "Inversa 2×2: det·A⁻¹ = [[d,−b],[−c,a]]",
+    "Definição de inversa: A·M = M·A = I_n",
+    "(AB)⁻¹ = B⁻¹A⁻¹ · (A⁻¹)⁻¹ = A · (Aᵗ)⁻¹ = (A⁻¹)ᵗ"
+  ],
+  "perguntas_autoavaliacao": [
+    "Quais são as 4 regras de valor lógico (∧, ∨, →, ↔) — de memória, sem olhar?",
+    "Qual o único caso em que p → q é falsa?",
+    "Recite os 4 modos de inferência (modus ponens, tollens, silogismo, disjunção) com um exemplo curtinho cada.",
+    "Como traduz 'pobre' e 'mas' para símbolos na formalização?",
+    "Quantas linhas tem a tabela-verdade de uma proposição com 3 variáveis? Como classificar pelo resultado final?",
+    "Na lei de formação, o que significa a condição i = j? E i + j = n + 1?",
+    "Como testar se uma matriz é simétrica? E antissimétrica — o que a diagonal obrigatoriamente vira?",
+    "Na situação-problema, como saber a ordem das matrizes antes de multiplicar? O que cada linha do resultado representa?",
+    "Como se calcula A²? Por que não é elevar cada elemento ao quadrado?",
+    "Recite as propriedades de inversa: (AB)⁻¹, (A⁻¹)⁻¹ e (Aᵗ)⁻¹.",
+    "Qual a definição de matriz inversa e como usá-la para verificar uma resposta?",
+    "Qual é a ordem recomendada de fazer as 6 questões da prova e por quê?"
+  ]
+}

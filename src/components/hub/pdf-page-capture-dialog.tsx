@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { downscaleCanvas } from '@/lib/tutor-image';
+import { shortMaterialTitle } from '@/lib/pdf-print';
 import { openTutor } from '@/lib/hub-events';
 import { clampPdfPage } from '@/lib/pdf-search';
 import type { Material } from '@/data/course-data';
@@ -331,10 +332,9 @@ export function PdfPageCaptureDialog({ material, open, onOpenChange, onAttach, i
       }
       const image = downscaleCanvas(out);
       // Procedência do print (t163): o chip do tutor diz ONDE ele nasceu.
-      // O título curto é a parte antes do primeiro travessão OU hífen do
-      // título ("Lista de Matrizes — Bloco 1 (Q1–16)" → "Lista de Matrizes";
-      // "Plano de Disciplina - Matemática" → "Plano de Disciplina").
-      const shortTitle = material.title.split(' — ')[0].split(' - ')[0];
+      // t175: a regra do título curto mora na lib (pdf-print) — a MESMA que
+      // o print instantâneo usa, uma verdade em dois lugares.
+      const shortTitle = shortMaterialTitle(material.title);
       const label = whole
         ? `página ${selected} · ${shortTitle}`
         : `recorte da página ${selected} · ${shortTitle}`;

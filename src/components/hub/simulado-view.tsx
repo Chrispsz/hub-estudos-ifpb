@@ -8,6 +8,8 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlarmClock,
+  Bot,
+  Hourglass,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -53,13 +55,27 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
-import { disciplines, getDisciplineByCode } from '@/data/course-data';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { disciplines, getDisciplineByCode, materials } from '@/data/course-data';
+import { TutorQuickPanel } from './tutor-quick-panel';
+import { MathText } from './math-text';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { useStudyProgress, type RunQuestionDetail } from '@/lib/study-progress';
-import { buildDebriefFromDetails, isSimuladoDayToday } from '@/lib/simulado-debrief';
-import { openPractice, openSimulado, openTutor } from '@/lib/hub-events';
-import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE } from '@/lib/math-exam-prep';
+import {
+  buildDebriefFromDetails,
+  isSimuladoDayToday,
+  pacingChipTitle,
+  pacingFor,
+} from '@/lib/simulado-debrief';
+import { openMethod, openPractice, openProgress, openSimulado, openTutor } from '@/lib/hub-events';
+import { MATH_EXAM, MATH_META, MATH_SIMULADO_DATE, MATH_SIMULADO_REGRA_REVISAO, simuladoRegraPlanoChip, sortWorstFirst, topicRowsFor } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
@@ -93,6 +109,13 @@ export interface SimuladoConfig {
    * Vazio/undefined = todos os tópicos da disciplina.
    */
   topics?: string[];
+  /**
+   * t194 (porta da t172) — PROVA DE ESTRUTURA FIXA: quando presente, o
+   * simulado NÃO sorteia — roda EXATAMENTE estas questões, nesta ordem (o
+   * "Simulado do Professor", ditado no áudio da véspera). A retomada
+   * persiste o campo junto do config, então F5 no meio não quebra nada.
+   */
+  fixedIds?: string[];
 }
 
 interface QuestionResult {
@@ -192,6 +215,21 @@ function pausedWhenLabel(iso: string): string {
   return mins % 60 > 0 ? `${h}h ${mins % 60} min` : `${h}h`;
 }
 
+/**
+ * t194 (porta da t177) — o pedido de dúvida DENTRO do simulado: o enunciado
+ * da questão atual vai pré-preenchido no painel do tutor. O prompt pede o
+ * MÉTODO sem entregar a resposta de primeira: treino para a prova real, não colar.
+ */
+function buildDoubtPrompt(ex: Exercise, n: number, total: number): string {
+  return [
+    `Estou no simulado (questão ${n} de ${total}). Minha dúvida é nesta questão:`,
+    '',
+    `"${ex.statement}"`,
+    '',
+    'Me guie pelo método SEM entregar a resposta de primeira — quero aprender para a prova real. Se eu travar, eu peço a resolução completa.',
+  ].join('\n');
+}
+
 export function SimuladoView({
   open,
   onOpenChange,
@@ -215,14 +253,83 @@ export function SimuladoView({
   const [idx, setIdx] = React.useState(0);
   const [results, setResults] = React.useState<QuestionResult[]>([]);
   const [hintVisible, setHintVisible] = React.useState(false);
+  /**
+   * t194 (porta da t177) — DÚVIDA DENTRO DA PROVA: a questão atual abre o
+   * TutorQuickPanel num Sheet lateral, com o enunciado pré-preenchido.
+   * O cronômetro NÃO pausa — honestidade de simulado: na prova real não tem
+   * tutor, então usar aqui é decisão do aluno (treinar com apoio ou não).
+   */
+  const [doubt, setDoubt] = React.useState<{ q: Exercise; n: number; total: number } | null>(null);
+  const [doubtPrompt, setDoubtPrompt] = React.useState<string | null>(null);
   const [remaining, setRemaining] = React.useState(0);
   const [elapsed, setElapsed] = React.useState(0);
+  /**
+   * ONDE O TEMPO FOI (t192): segundos acumulados POR QUESTÃO, na ordem da
+   * prova. A Av1 real tem relógio — o pacing é intel da prova real (saber
+   * que a q3 comeu 18 dos 60 min muda a estratégia: pular e voltar).
+   * Pausa não conta (o cronômetro congela fechado — o tempo aqui é o que
+   * passou EM questões, nunca o que passou longe delas).
+   */
+  const [timeByQ, setTimeByQ] = React.useState<number[]>([]);
+  /**
+   * O relógio encerrou a prova (00:00)? O debrief confessa — "acabou o
+   * tempo" e "desisti" são diagnósticos diferentes (estratégia × conteúdo).
+   */
+  const [endedByClock, setEndedByClock] = React.useState(false);
+  /**
+   * Instante (Date.now) em que a questão ATUAL ficou na tela — o efeito de
+   * pacing acumula o trecho na troca/pausa/fim. null = nada contando agora.
+   */
+  const qShownAtRef = React.useRef<number | null>(null);
+  /**
+   * Espelho SÍNCRONO de timeByQ — a fonte da verdade para PERSISTIR. O state
+   * só alimenta a renderização (assíncrono); o ref é lido no mesmo tick pelo
+   * efeito de persistência (a cada segundo) e pelo recordRun — F5, X e pausa
+   * nunca perdem o trecho em curso. Escrito SEMPRE junto com o state.
+   */
+  const timeByQRef = React.useRef<number[]>([]);
   /** Tentativa pausada encontrada no storage ao abrir (banner de retomada). */
   const [resumeRun, setResumeRun] = React.useState<InProgressRun | null>(null);
   /** Natureza da tentativa EM CURSO — rotula todas as superfícies com honestidade. */
   const [attemptMode, setAttemptMode] = React.useState<AttemptMode>('prova');
   /** Confirmação de entrega: revisão das questões antes de encerrar (prova real tem). */
   const [confirmingFinish, setConfirmingFinish] = React.useState(false);
+
+  // ---- PACING: os três gestos do tempo por questão (t192) ----
+  /** Acumula `seg` na questão `i` — espelho ref (síncrono) + state (tela). */
+  function addTimeTo(i: number, seg: number) {
+    const next = [...timeByQRef.current];
+    next[i] = (next[i] ?? 0) + seg;
+    timeByQRef.current = next;
+    setTimeByQ(next);
+  }
+  /** Leitura PURA: o acumulado + o trecho em curso, sem fechar nada — o
+   *  efeito de persistência lê a verdade inteira a cada gravação. */
+  function peekMergedTimes(): number[] {
+    if (qShownAtRef.current == null) return timeByQRef.current;
+    const seg = (Date.now() - qShownAtRef.current) / 1000;
+    const next = [...timeByQRef.current];
+    next[idx] = (next[idx] ?? 0) + seg;
+    return next;
+  }
+  /** Fecha o trecho em curso na questão atual (ref + state) e devolve o
+   *  array final — o recordRun lê a última questão também (inclusive a que
+   *  estava na tela quando o sino tocou). O ref zera para o cleanup do
+   *  efeito de pacing não dobrar a conta. */
+  function closeInFlightForRecord(): number[] {
+    if (qShownAtRef.current == null) return timeByQRef.current;
+    const seg = (Date.now() - qShownAtRef.current) / 1000;
+    qShownAtRef.current = null;
+    addTimeTo(idx, seg);
+    return timeByQRef.current;
+  }
+  /** Zera o pacing para uma corrida NOVA (espelho + tela + relógio). */
+  function resetPacing(n: number) {
+    timeByQRef.current = new Array(n).fill(0);
+    setTimeByQ(timeByQRef.current);
+    qShownAtRef.current = null;
+    setEndedByClock(false);
+  }
 
   // Reset quando abre o diálogo (e aplica pré-config externa, se houver)
   React.useEffect(() => {
@@ -234,6 +341,10 @@ export function SimuladoView({
       setResults([]);
       setRemaining(0);
       setElapsed(0);
+      setTimeByQ([]); // o pacing da tentativa anterior nunca vaza para a próxima
+      timeByQRef.current = [];
+      setEndedByClock(false); // o sino de uma prova passada não toca de novo
+      qShownAtRef.current = null;
       // Config SEMPRE reconstruída na abertura: sem config externa, volta ao
       // padrão — evita escopo/preset de uma abertura anterior vazando na próxima
       // (o estado do componente sobrevive ao fechamento do diálogo).
@@ -275,10 +386,30 @@ export function SimuladoView({
     return () => clearInterval(t);
   }, [phase, open, config.durationMin]);
 
+  // PACING POR QUESTÃO (t192) — o trecho em curso acumula na questão que está
+  // na tela quando ela SAI da tela: troca de questão, pausa (fechamento) ou
+  // fim. O cleanup do efeito é o relógio: roda com o idx da questão que ESTAVA
+  // visível (a closure guarda o valor certo) e ANTES dos efeitos do mesmo
+  // commit (ordem do React: cleanups primeiro), então o saveInProgress já
+  // nasce com o trecho fechado — a pausa e o X não deixam segundo órfão.
+  // Revisar uma questão respondida soma nela: tempo na tela é tempo honesto.
+  React.useEffect(() => {
+    if (phase !== 'running' || !open) return;
+    if (qShownAtRef.current == null) qShownAtRef.current = Date.now();
+    return () => {
+      if (qShownAtRef.current == null) return;
+      const seg = (Date.now() - qShownAtRef.current) / 1000;
+      qShownAtRef.current = null;
+      addTimeTo(idx, seg);
+    };
+  }, [idx, phase, open]);
+
   // Persistência da tentativa em andamento — sobrevive a F5, queda de aba e
   // X acidental. Grava a cada mudança relevante (inclui o tick do cronômetro;
   // payload pequeno, escrita local — barata). Deps incluem `open`: o fechamento
-  // dispara a última gravação (com o cronômetro já congelado).
+  // dispara a última gravação (com o cronômetro já congelado). O timeByQ
+  // viaja MESCLADO com o trecho em curso (t192): o espelho ref + o cleanup
+  // do efeito de pacing garantem que a pausa/X/F5 salve a verdade inteira.
   React.useEffect(() => {
     if (phase !== 'running' || questions.length === 0) return;
     saveInProgress({
@@ -289,8 +420,9 @@ export function SimuladoView({
       idx,
       remaining,
       elapsed,
+      timeByQ: peekMergedTimes(),
     });
-  }, [phase, open, attemptMode, config, questions, results, idx, remaining, elapsed]);
+  }, [phase, open, attemptMode, config, questions, results, idx, remaining, elapsed, timeByQ]);
 
   // Guarda de saída da PÁGINA durante a prova — SÓ com o diálogo aberto:
   // depois de Pausar (X ou botão), a tentativa está salva no storage e o
@@ -442,13 +574,26 @@ export function SimuladoView({
   }, [config.discipline]);
 
   function start(cfg: SimuladoConfig = config) {
-    // Sorteio com seed diferente a cada tentativa (evita repetir o mesmo conjunto)
+    // t194 — PROVA FIXA: com fixedIds, NÃO há sorteio — as questões do
+    // professor entram EXATAMENTE na ordem ditada (a estrutura da prova real).
     let picked: Exercise[] = [];
-    const seedBase = Date.now();
-    // pickRandomExercises sortea do acervo completo — filtramos antes re-implementando
-    // a escolha com seed determinística no pool filtrado:
-    const shuffled = shuffle(pool, seedBase);
-    picked = shuffled.slice(0, Math.min(cfg.quantity, shuffled.length));
+    if (cfg.fixedIds && cfg.fixedIds.length > 0) {
+      const byId = new Map(exercises.map((e) => [e.id, e] as const));
+      picked = cfg.fixedIds
+        .map((id) => byId.get(id))
+        .filter((e): e is Exercise => Boolean(e));
+      if (picked.length === 0) {
+        toast.error('As questões da prova não estão mais no acervo.');
+        return;
+      }
+    } else {
+      // Sorteio com seed diferente a cada tentativa (evita repetir o mesmo conjunto)
+      const seedBase = Date.now();
+      // pickRandomExercises sortea do acervo completo — filtramos antes re-implementando
+      // a escolha com seed determinística no pool filtrado:
+      const shuffled = shuffle(pool, seedBase);
+      picked = shuffled.slice(0, Math.min(cfg.quantity, shuffled.length));
+    }
     if (picked.length === 0) {
       toast.error('Nenhum exercício com esses filtros. Ajuste a seleção.');
       return;
@@ -460,6 +605,7 @@ export function SimuladoView({
     setHintVisible(false);
     setRemaining(cfg.durationMin * 60);
     setElapsed(0);
+    resetPacing(picked.length); // o relógio de cada questão começa do zero
     setPhase('running');
   }
 
@@ -480,8 +626,13 @@ export function SimuladoView({
     }
   }
 
-  function finish() {
-    recordRun();
+  function finish(byClock = false) {
+    // A ÚLTIMA questão também é tempo de prova — inclusive a que estava na
+    // tela quando o sino tocou (byClock). O trecho fecha ANTES do registro:
+    // o strip e a IA leem a verdade inteira.
+    const times = closeInFlightForRecord();
+    setEndedByClock(byClock); // o sino tocou → a tela confessa (o run grava idem)
+    recordRun(times, byClock);
     clearInProgress(); // tentativa registrada no histórico — o rascunho se aposenta
     beep(3);
     setConfirmingFinish(false); // entrega confirmada — o próximo run começa limpo
@@ -508,6 +659,17 @@ export function SimuladoView({
     setIdx(Math.min(saved.idx, qs.length - 1));
     setRemaining(saved.remaining);
     setElapsed(saved.elapsed);
+    // O pacing viajou na pausa (t192): a retomada continua de onde parou.
+    // Save antigo (pré-t192) ou comprimento desalinhado → recomeça do zero
+    // (contar tempo que não foi medido seria inventar).
+    const savedTimes =
+      Array.isArray(saved.timeByQ) && saved.timeByQ.length === qs.length
+        ? saved.timeByQ.map((t) => (typeof t === 'number' && Number.isFinite(t) && t > 0 ? t : 0))
+        : new Array(qs.length).fill(0);
+    timeByQRef.current = savedTimes;
+    setTimeByQ(savedTimes);
+    qShownAtRef.current = null; // o efeito recomeça o relógio na questão atual
+    setEndedByClock(false); // retomada nunca nasce encerrada pelo sino
     setHintVisible(false);
     setResumeRun(null); // o efeito de persistência regrava já no próximo tick
     setPhase('running');
@@ -535,6 +697,7 @@ export function SimuladoView({
     setHintVisible(false);
     setRemaining(Math.max(5, Math.min(45, qty * 3)) * 60);
     setElapsed(0);
+    resetPacing(mistakeExercises.length); // treino de erros também tem relógio
     setPhase('running');
   }
 
@@ -546,10 +709,12 @@ export function SimuladoView({
   }
 
   /** Registra a tentativa no histórico (progress-view exibe a evolução). */
-  function recordRun() {
+  function recordRun(times: number[], byClock: boolean) {
     if (questions.length === 0) return;
     // Detalhes por questão: permitem "Analisar com IA" DEPOIS, no histórico,
     // com a mesma riqueza do debriefing ao vivo (padrão material-first de dados).
+    // timeSec (t192): o pacing é intel da prova real — pulada com tempo alto
+    // é a confissão mais valiosa (a questão que travou e não virou resposta).
     const details: RunQuestionDetail[] = questions.map((q, i) => ({
       status:
         results[i].solved === true ? 'solved' : results[i].solved === false ? 'missed' : 'skipped',
@@ -557,6 +722,7 @@ export function SimuladoView({
       topic: q.topic,
       difficulty: q.difficulty,
       statement: q.statement.slice(0, 160),
+      timeSec: Math.max(0, Math.round(times[i] ?? 0)),
     }));
     sp.addSimuladoRun({
       mode: attemptMode, // o histórico sabe o que foi: prova, treino ou tópico
@@ -571,13 +737,16 @@ export function SimuladoView({
         durationMin: config.durationMin || undefined,
       },
       questions: details,
+      endedByClock: byClock || undefined, // ausente = terminou antes do sino
     });
   }
 
-  // Tempo esgotado → encerra automaticamente
+  // Tempo esgotado → encerra automaticamente — e CONFESSA (t192): a corrida
+  // gravada sabe que foi o relógio, não uma desistência (o debrief e a IA
+  // diagnosticam "acabou o tempo" diferente de "desisti").
   React.useEffect(() => {
     if (phase === 'running' && config.durationMin > 0 && remaining === 0 && elapsed > 0) {
-      finish();
+      finish(true);
       toast.warning(MODE_INFO[attemptMode].expiredToast);
     }
   }, [remaining, phase]);
@@ -659,7 +828,7 @@ export function SimuladoView({
           <SetupScreen
             config={config}
             setConfig={setConfig}
-            poolCount={pool.length}
+            poolCount={config.fixedIds?.length ?? pool.length}
             topicOptions={topicOptions}
             onStart={() => start()}
             resume={resumeRun}
@@ -694,6 +863,14 @@ export function SimuladoView({
               setHintVisible(false);
             }}
             onFinish={() => setConfirmingFinish(true)}
+            // t194 — a dúvida ANCORADA na questão atual: enunciado pré-preenchido
+            // no painel do tutor (o aluno revisa e envia). O cronômetro continua.
+            onAskDoubt={() => {
+              const q = questions[idx];
+              if (!q) return;
+              setDoubt({ q, n: idx + 1, total: questions.length });
+              setDoubtPrompt(buildDoubtPrompt(q, idx + 1, questions.length));
+            }}
             onPause={() => {
               // A tentativa já está salva (o efeito de persistência grava no
               // fechamento) — avisar ONDE retomar é o que falta para o aluno.
@@ -730,6 +907,8 @@ export function SimuladoView({
             skippedCount={skippedCount}
             pct={pct}
             elapsed={elapsed}
+            timeByQ={timeByQ}
+            endedByClock={endedByClock}
             mode={attemptMode}
             onOpenChange={onOpenChange}
             onRetryMissed={(topic) => {
@@ -746,6 +925,7 @@ export function SimuladoView({
               setHintVisible(false);
               setRemaining(config.durationMin * 60);
               setElapsed(0);
+              resetPacing(missed.length); // corrida nova: relógio por questão do zero
               setPhase('running');
             }}
             onNew={() => {
@@ -755,6 +935,55 @@ export function SimuladoView({
             }}
           />
         )}
+
+        {/* t194 (porta da t177) — DÚVIDA NO SIMULADO: o dono pediu "conseguir
+            tirar dúvida nesse modo simulado". Sheet lateral com o MESMO painel
+            do PDF+Tutor (TutorQuickPanel): pergunta pré-preenchida com o
+            enunciado da questão atual, respostas salvas no histórico da
+            disciplina (a dúvida vira estudo). Cronômetro continua — o rótulo
+            confessa isso. */}
+        <Sheet
+          open={doubt !== null}
+          onOpenChange={(v) => {
+            if (!v) {
+              setDoubt(null);
+              setDoubtPrompt(null);
+            }
+          }}
+        >
+          <SheetContent
+            side="right"
+            className="flex w-full flex-col gap-0 p-0 sm:max-w-lg"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <SheetHeader className="border-b pr-12">
+              <SheetTitle className="flex items-center gap-2 text-base">
+                <Bot className="size-4 text-violet-500" aria-hidden />
+                Tutor — dúvida da questão {doubt?.n ?? '…'}
+              </SheetTitle>
+              <SheetDescription className="truncate">
+                O cronômetro da prova continua · a dúvida vai para o histórico de estudo
+              </SheetDescription>
+            </SheetHeader>
+            {doubt && (
+              <TutorQuickPanel
+                className="min-h-0 flex-1"
+                discipline={getDisciplineByCode(doubt.q.disciplineCode)?.name ?? 'Matemática'}
+                disciplineCode={doubt.q.disciplineCode}
+                materialId={doubt.q.linkedMaterials?.[0]}
+                materialTitle={materials.find((m) => m.id === doubt.q.linkedMaterials?.[0])?.title}
+                suggestions={[
+                  'Me dê SÓ uma dica do caminho, sem resolver',
+                  'Me explique o método passo a passo',
+                  'Tem uma questão parecida para eu treinar depois?',
+                ]}
+                showHeader={false}
+                externalQuestion={doubtPrompt}
+                onExternalQuestionConsumed={() => setDoubtPrompt(null)}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </DialogContent>
     </Dialog>
   );
@@ -866,8 +1095,7 @@ function SetupScreen({
                   </p>
                   <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                     Se esta for a tentativa oficial, condições de prova: sem
-                    consultar nada antes de responder — o bloco com mais erros
-                    vira a revisão de amanhã.
+                    consultar nada antes de responder — {MATH_SIMULADO_REGRA_REVISAO}.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {['Sem consulta', 'Meta ≥ 70%', 'Erro vira revisão de amanhã'].map((c) => (
@@ -1223,6 +1451,7 @@ function ExamScreen({
   onMark,
   onNavigate,
   onFinish,
+  onAskDoubt,
   onPause,
 }: {
   questions: Exercise[];
@@ -1240,6 +1469,8 @@ function ExamScreen({
   onMark: (solved: boolean) => void;
   onNavigate: (i: number) => void;
   onFinish: () => void;
+  /** t194: abre o Tutor ao lado com esta questão pré-preenchida (Sheet). */
+  onAskDoubt: () => void;
   /** Pausa explícita: salva e fecha — a retomada espera no banner do setup. */
   onPause: () => void;
 }) {
@@ -1358,7 +1589,9 @@ function ExamScreen({
                 do Radix usa display:table, que em telas estreitas impede o wrap
                 do texto e estourava o diálogo (548px num viewport de 390). */}
             <div className="max-h-[30vh] min-w-0 overflow-y-auto pr-2">
-              <p className="text-sm leading-relaxed text-foreground/90">{ex.statement}</p>
+              <p className="text-sm leading-relaxed text-foreground/90">
+                <MathText text={ex.statement} />
+              </p>
             </div>
 
             {ex.hint && hintVisible && (
@@ -1367,7 +1600,7 @@ function ExamScreen({
                 animate={{ opacity: 1, height: 'auto' }}
                 className="mt-3 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400"
               >
-                <Lightbulb className="mt-0.5 size-3 shrink-0" /> {ex.hint}
+                <Lightbulb className="mt-0.5 size-3 shrink-0" /> <MathText text={ex.hint ?? ''} className="min-w-0 flex-1" />
               </motion.p>
             )}
           </motion.div>
@@ -1412,6 +1645,19 @@ function ExamScreen({
           >
             {hintVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {hintVisible ? 'Esconder dica' : 'Ver dica'}
+          </Button>
+          {/* t194 — TIRAR DÚVIDA NA PROVA: abre o Tutor ao lado com o enunciado
+              desta questão pré-preenchido. O cronômetro segue rodando (o title
+              confessa — na prova real não existe tutor, então é escolha do
+              aluno treinar com apoio ou não). */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAskDoubt}
+            title="Abre o Tutor com esta questão — o cronômetro continua rodando"
+            className="h-11 border-violet-500/40 text-violet-600 hover:bg-violet-500/10 hover:text-violet-600 dark:text-violet-400 sm:h-8"
+          >
+            <Bot className="size-3.5" /> Tirar dúvida
           </Button>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
@@ -1601,7 +1847,7 @@ function FinishReview({
       {/* Entrega — decisão em duas portas, mobile em coluna cheia */}
       <div className="space-y-2 border-t bg-muted/30 px-4 py-4 sm:flex sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-2 sm:space-y-0 sm:px-6">
         <Button
-          onClick={onConfirm}
+          onClick={() => onConfirm()}
           className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:h-9 sm:w-auto"
         >
           <Flag className="size-3.5" /> Encerrar e ver resultado
@@ -1634,6 +1880,8 @@ function ResultsScreen({
   skippedCount,
   pct,
   elapsed,
+  timeByQ,
+  endedByClock,
   mode,
   onRetryMissed,
   onNew,
@@ -1646,6 +1894,10 @@ function ResultsScreen({
   skippedCount: number;
   pct: number;
   elapsed: number;
+  /** Tempo por questão (t192) — a matéria-prima do strip "Onde o tempo foi". */
+  timeByQ: number[];
+  /** O relógio encerrou a prova (00:00)? O debrief confessa o sino. */
+  endedByClock: boolean;
   /** Natureza da tentativa — o resultado declara o que foi (prova/treino). */
   mode: AttemptMode;
   /** Reinicia com as erradas/puladas — com tópico, só as daquele tópico. */
@@ -1656,6 +1908,11 @@ function ResultsScreen({
   const info = MODE_INFO[mode];
   const missedList = questions.filter((q, i) => results[i].solved !== true);
   const hasMissed = missedList.length > 0;
+  // ONDE O TEMPO FOI (t192): o resumo de pacing vem da FUNÇÃO PURA da casa
+  // (mesma régua do prompt da IA). Runs antigos (pré-t192) chegam sem tempo
+  // → measured false → o strip CALA (sem registro não há linha, regra 88).
+  const pacing = pacingFor(timeByQ);
+  const stripSecs = timeByQ.map((t) => Math.max(0, Math.round(t ?? 0)));
   // A rodada FRESCA sabe que foi o ENSAIO OFICIAL quando é prova de Matemática
   // no dia marcado (mesmo critério do findMathSimuladoRunOficial, aqui local:
   // o ResultsScreen pode renderizar antes do histórico reler o localStorage).
@@ -1673,31 +1930,43 @@ function ResultsScreen({
           ? { label: 'Continue praticando', tone: 'text-amber-500', icon: Target }
           : { label: 'Hora de revisar', tone: 'text-rose-500', icon: RotateCcw };
 
-  // Desempenho por tópico: onde o foco deve estar antes da prova (pior primeiro).
+  // Desempenho por tópico: onde o foco deve estar antes da prova (pior
+  // primeiro). A AGREGAÇÃO é a FONTE ÚNICA da casa (t189): topicRowsFor —
+  // a MESMA régua do veredito/kit/folha (taxa sobre RESPONDIDAS; bloco
+  // inteiro pulado → pct null, sem taxa inventada) + sortWorstFirst (a
+  // MESMA regra do foco: pulouTudo vem primeiro). A régua local antiga
+  // (resolvidas/total — puladas no denominador) fazia a tabela divergir do
+  // veredito no MESMO diálogo (2S+1M+1P = 50% na tabela, 67% no veredito)
+  // e pintava o bloco nunca visto como "0%" (falso "tentou e errou").
   const topicStats = React.useMemo(() => {
-    const m = new Map<
-      string,
-      { disciplineCode: string; topic: string; solved: number; total: number }
-    >();
-    questions.forEach((q, i) => {
-      const key = `${q.disciplineCode}::${q.topic}`;
-      const rec =
-        m.get(key) ??
-        { disciplineCode: q.disciplineCode, topic: q.topic, solved: 0, total: 0 };
-      rec.total += 1;
-      if (results[i].solved === true) rec.solved += 1;
-      m.set(key, rec);
-    });
-    return [...m.values()]
-      .map((v) => ({ ...v, pct: Math.round((v.solved / v.total) * 100) }))
-      .sort((a, b) => a.pct - b.pct || b.total - a.total);
+    const rows = topicRowsFor(
+      questions.map((q, i) => ({
+        disciplineCode: q.disciplineCode,
+        topic: q.topic,
+        // QuestionResult: true=consegui, false=não consegui, null=pulado/não vista
+        status:
+          results[i]?.solved === true
+            ? ('solved' as const)
+            : results[i]?.solved === false
+              ? ('missed' as const)
+              : ('skipped' as const),
+      })),
+    );
+    return sortWorstFirst(rows);
   }, [questions, results]);
   const multiTopic = topicStats.length > 1;
+  // O ENDEREÇO DA REGRA (t188): o chip do dia do simulado lido do PRÓPRIO
+  // plano — 'pelo plano D-7' era rótulo de memória que o PLANO REFEITO
+  // deixou velho (a regra vive no D-2). Plano sem dia de simulado → chip
+  // cala e a frase segue honesta ('pelo plano, ...').
+  const regraChip = simuladoRegraPlanoChip();
 
   // VEREDITO DA META: corrida 100% Matemática = corrida do escopo da Av1 —
   // compara direto com a nota de aprovação (≥ 70, MATH_META). Abaixo da meta,
-  // aplica a regra do PRÓPRIO plano D-7 ("o bloco com mais erros vira a
-  // revisão de amanhã") e oferece o drill do pior tópico a 1 clique.
+  // aplica a regra do plano (MATH_SIMULADO_REGRA_REVISAO, a tarefa do dia do
+  // simulado — t188: o ENDEREÇO do plano é derivado via simuladoRegraPlanoChip,
+  // o rótulo velho 'D-7' do plano antigo morreu) e oferece o drill do pior
+  // tópico a 1 clique.
   const isAv1Run =
     questions.length > 0 &&
     questions.every((q) => q.disciplineCode === MATH_EXAM.disciplineCode);
@@ -1718,6 +1987,19 @@ function ResultsScreen({
             <span className={cn('font-semibold', verdict.tone)}>{verdict.label}</span> ·{' '}
             {info.resultsDesc}
           </DialogDescription>
+          {/* O SINO CONFESSA (t192): acabou o tempo ≠ desisti — o primeiro
+              pede ESTRATÉGIA (pular e voltar), o segundo pede CONTEÚDO. A
+              voz é a da casa: fato seco, sem drama, família amber (a atenção). */}
+          {endedByClock && (
+            <DialogDescription className="mt-1 flex items-start gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/[0.07] px-2 py-1 text-[11px] text-amber-700 dark:text-amber-400">
+              <AlarmClock className="mt-0.5 size-3 shrink-0" aria-hidden />
+              <span>
+                Encerrada <span className="font-semibold">pelo relógio</span> (00:00) — o que
+                ficou em branco ficou em branco. Na prova real: marque o chute educado e
+                volte se sobrar minuto.
+              </span>
+            </DialogDescription>
+          )}
         </DialogHeader>
       </div>
 
@@ -1757,7 +2039,8 @@ function ResultsScreen({
         </div>
       </div>
 
-      {/* VEREDITO DA META — a regra do plano D-7 ("Meta: ≥ 70%") aplicada na hora */}
+      {/* VEREDITO DA META — a regra do plano (a tarefa do dia do simulado,
+          "Meta: ≥ 70%") aplicada na hora; o endereço do dia lê o plano */}
       {isAv1Run && (
         <div className="px-6 pb-1">
           {pct >= MATH_META ? (
@@ -1790,7 +2073,12 @@ function ResultsScreen({
                   </span>
                   {multiTopic && (
                     <span className="text-muted-foreground">
-                      {' '}— pelo plano D-7, o bloco com mais erros vira a revisão de amanhã.
+                      {' '}— pelo plano
+                      {regraChip && (
+                        <span className="font-semibold tabular-nums"> {regraChip}</span>
+                      )}
+                      {', '}
+                      {MATH_SIMULADO_REGRA_REVISAO}.
                     </span>
                   )}
                 </p>
@@ -1824,7 +2112,7 @@ function ResultsScreen({
             <p className="text-xs font-medium text-muted-foreground">
               Desempenho por tópico
             </p>
-            {topicStats[0].pct < 60 && (
+            {(topicStats[0].pct === null || topicStats[0].pct < 60) && (
               <Badge className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400">
                 <Target className="mr-1 size-2.5" /> foco: {topicStats[0].topic}
               </Badge>
@@ -1841,15 +2129,27 @@ function ResultsScreen({
                       <span
                         className={cn(
                           'font-semibold',
-                          t.pct >= 60
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : t.pct >= 40
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-rose-600 dark:text-rose-400',
+                          // COR = SIGNIFICADO (t189): bloco inteiro pulado não
+                          // veste a tinta do erro (nunca tentou ≠ tentou e
+                          // errou) — zinc, a cor do neutro honesto.
+                          t.pct === null
+                            ? 'text-zinc-500 dark:text-zinc-400'
+                            : t.pct >= 60
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : t.pct >= 40
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-rose-600 dark:text-rose-400',
                         )}
                       >
-                        {t.pct}%
+                        {t.pct === null ? 'pulou tudo' : `${t.pct}%`}
                       </span>
+                      {/* A voz honesta do MISTO: puladas à parte (a taxa não
+                          pune o pulado — o número confessa as duas verdades). */}
+                      {t.pct !== null && t.skipped > 0 && (
+                        <span className="ml-1 text-[10px] text-muted-foreground/80">
+                          {t.skipped} pulada{t.skipped === 1 ? '' : 's'}
+                        </span>
+                      )}
                     </span>
                     {/* Micro-ações do tópico: aparecem no hover, sempre acessíveis por teclado.
                         1º Refazer as erradas DESTE tópico (só quando existe erro nele). */}
@@ -1858,7 +2158,7 @@ function ResultsScreen({
                         <button
                           type="button"
                           onClick={() => onRetryMissed(t.topic)}
-                          title={`Refazer agora as ${t.total - t.solved} que não consegui em ${t.topic}`}
+                          title={`Refazer agora as ${t.total - t.solved} que não consegui ou pulei em ${t.topic}`}
                           aria-label={`Refazer as questões erradas de ${t.topic}`}
                           className="inline-flex size-6 items-center justify-center rounded-full border border-violet-200 bg-violet-50 text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 dark:border-violet-800/70 dark:bg-violet-950/50 dark:text-violet-300 dark:hover:bg-violet-900/50"
                         >
@@ -1905,19 +2205,88 @@ function ResultsScreen({
                   <motion.div
                     className={cn(
                       'h-full rounded-full',
-                      t.pct >= 60
-                        ? 'bg-emerald-500'
-                        : t.pct >= 40
-                          ? 'bg-amber-500'
-                          : 'bg-rose-500',
+                      // A barra LÊ O DIAGNÓSTICO (t189): bloco inteiro pulado
+                      // fica vazia e neutra (nada tentado — nada pintado de
+                      // erro); respondido segue na família da taxa.
+                      t.pct === null
+                        ? 'bg-zinc-400/60 dark:bg-zinc-600'
+                        : t.pct >= 60
+                          ? 'bg-emerald-500'
+                          : t.pct >= 40
+                            ? 'bg-amber-500'
+                            : 'bg-rose-500',
                     )}
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.max(t.pct, 4)}%` }}
+                    animate={{ width: t.pct === null ? '0%' : `${Math.max(t.pct, 4)}%` }}
                     transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 + i * 0.1 }}
                   />
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ONDE O TEMPO FOI (t192) — o pacing é intel da prova real: a Av1 tem
+          relógio, e saber que a q3 comeu 18 dos 60 min muda a estratégia
+          (pular e voltar). O dot segue a gramática do resultado (emerald/
+          rose/zinc) — tempo × desfecho na MESMA linha; a mais lenta veste
+          amber (a atenção da casa) com a confissão no hover. Runs sem tempo
+          medido calam — sem registro não há linha (regra 88). */}
+      {pacing.measured && (
+        <div className="px-6 pb-2">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Hourglass className="size-3" aria-hidden /> Onde o tempo foi
+            </p>
+            <p className="text-[10px] tabular-nums text-muted-foreground/80">
+              {fmtClock(Math.round(pacing.totalSec))} nas questões
+              {elapsed - pacing.totalSec >= 3 && (
+                <> · {fmtClock(elapsed)} no relógio (a diferença ficou fora das questões)</>
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {stripSecs.map((secs, i) => {
+              const isSlowest = i === pacing.slowestIdx;
+              const solved = results[i]?.solved;
+              const q = questions[i];
+              return (
+                <span
+                  key={q?.id ?? i}
+                  title={pacingChipTitle({
+                    idx: i,
+                    secs,
+                    totalSec: Math.round(pacing.totalSec),
+                    slowestIdx: pacing.slowestIdx,
+                    topic: q?.topic,
+                    solved: solved ?? null,
+                  })}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
+                    isSlowest
+                      ? 'border-amber-500/50 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-400'
+                      : 'border-border bg-muted/50 text-muted-foreground',
+                  )}
+                >
+                  {/* O DOT do desfecho (a gramática da casa): tempo × resultado
+                      na mesma linha — a q que travou E errou fica visível num
+                      olhar (amber + rose juntos contam a história completa). */}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'size-1.5 shrink-0 rounded-full',
+                      solved === true
+                        ? 'bg-emerald-500'
+                        : solved === false
+                          ? 'bg-rose-500'
+                          : 'bg-zinc-400 dark:bg-zinc-600',
+                    )}
+                  />
+                  Q{i + 1} {fmtClock(secs)}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1934,14 +2303,14 @@ function ResultsScreen({
               }
               const worst = [...byDisc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
               onOpenChange(false);
-              openTutor({
+              openMethod({
                 disciplineCode: worst,
-                question: `Revisão de erros do simulado: ${missedList[0].topic}. Explica o que errei e me dá o método para não errar de novo.`,
+                topic: `Revisão de erros do simulado: ${missedList[0].topic}`,
               });
             }}
             className="w-full rounded-lg border border-violet-300 bg-violet-50/70 px-3 py-2.5 text-xs font-medium text-violet-800 transition-colors hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-900/40"
           >
-            Fechar o ciclo: revisar esses erros com o Tutor IA →
+            🎯 Fechar o ciclo: revisar esses erros com uma Sessão guiada do Protocolo HUB →
           </button>
           {/* A PROMESSA CUMPRIDA (131): a tela de entrega promete "o que faltou
               alimenta o Caderno de Erros automaticamente" — mas o resultado
@@ -1950,7 +2319,7 @@ function ResultsScreen({
               duas vias — exerciseProgress.tried e o run.questions — são
               escritas ANTES de setPhase('results'), o recibo nunca mente).
               A janela de 48h é a MESMA régua do caderno (frescas); a porta é
-              a MESMA do recibo do simulado (openPractice → aba Praticar). Família
+              a MESMA do card da prova (openProgress → aba Progresso). Família
               amber: revisão é "a espera" da casa (a gramática do kit/fila/
               mapa). Run perfeito cala — sem registro não há linha (regra 88). */}
           <div className="mt-2.5 flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/[0.07] px-3.5 py-3">
@@ -1970,10 +2339,10 @@ function ResultsScreen({
                 type="button"
                 onClick={() => {
                   onOpenChange(false);
-                  openPractice({});
+                  openProgress();
                 }}
-                title="Abrir o Caderno de Erros na aba Praticar"
-                aria-label="Abrir o Caderno de Erros na aba Praticar"
+                title="Abrir o Caderno de Erros na aba Progresso"
+                aria-label="Abrir o Caderno de Erros na aba Progresso"
                 className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 dark:text-amber-400"
               >
                 Abrir o caderno
@@ -2083,6 +2452,10 @@ function ResultsScreen({
                     topic: q.topic,
                     difficulty: q.difficulty,
                     statement: q.statement,
+                    // O PACING na análise (t192): a IA lê "onde o tempo foi"
+                    // junto com o desfecho — pulada com 18 min é a história
+                    // mais importante da prova cronometrada.
+                    timeSec: stripSecs[i] ?? 0,
                   })),
                 }),
               });

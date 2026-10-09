@@ -32,45 +32,38 @@ function nodeText(node: React.ReactNode): string {
   return '';
 }
 
-/**
- * Emojis (🚀 🎯 ✅ …) que o modelo às vezes insere apesar da regra do prompt —
- * removidos no render. setas (→) e símbolos matemáticos (π × ÷ ≥ ²) ficam:
- * não são emoji, são conteúdo.
- */
-const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}]/gu;
+// t198 — COSTURA DO LATEX DE IA: visto em produção, o modelo de turno às vezes
+// solta uma matriz com \end{pmatrix} mas sem o \begin{pmatrix} correspondente
+// (a abertura ficou fora do trecho que o parser enxergou) — o KaTeX estoura
+// "Expected 'EOF', got '&'" e o aluno leva um span vermelho no meio da aula.
+// Costura: para cada \end{env} sem \begin{env} pareado, se existir $$ ABERTO
+// (nº ímpar de $$ antes dele), injeta \begin{env} logo depois dessa abertura.
+// Construção manual por matchAll — o replace() só troca o trecho casado e
+// NÃO deixaria editar o texto anterior ao match (a abertura $$ vem antes).
+// Regra de segurança: sem $$ aberto, não inventa ponto ( LaTeX sã intocado).
+const MATH_ENV_RE =
+  /\\end\{(pmatrix|bmatrix|vmatrix|Bmatrix|Vmatrix|matrix|cases|array|aligned|align)\}/g;
 
-/**
- * O modelo às vezes HTML-escapa o LaTeX (& → &amp;) e o KaTeX não sabe ler
- * &amp; como separador de colunas de \begin{pmatrix} — era o ParseError
- * "Expected 'EOF', got '&amp;'" no console. Corrige DENTRO dos trechos math
- * ($$…$$ e $…$), sem tocar no texto normal nem nos blocos de código.
- */
-function unescapeMathEntities(s: string): string {
-  return s.replace(/(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$|(?<!\\)\$[^$\n]+(?<!\\)\$/g, (m) =>
-    m
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'"),
-  );
-}
-
-/**
- * Sanitização defensiva do texto do tutor ANTES do markdown:
- * 1. desescapa entidades HTML dentro de math (fix do KaTeX);
- * 2. remove emojis (regra do tutor forçada no render — o prompt sozinho
- *    não bastou em produção);
- * 3. remove réguas horizontais (---/___/***) e excesso de linhas vazias —
- *    o muro com separador decorativo some da tela.
- */
-function sanitizeTutorContent(raw: string): string {
-  let s = raw.replace(/R\$/g, 'R\\$');
-  s = unescapeMathEntities(s);
-  s = s.replace(EMOJI_RE, '');
-  s = s.replace(/^[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*$/gm, '');
-  s = s.replace(/\n{3,}/g, '\n\n');
-  return s.trim();
+function repairOrphanMathEnds(src: string): string {
+  const matches = [...src.matchAll(MATH_ENV_RE)];
+  if (matches.length === 0) return src;
+  let out = '';
+  let cursor = 0;
+  for (const m of matches) {
+    const offset = m.index;
+    if (offset === undefined || offset < cursor) continue;
+    const env = m[1];
+    const before = src.slice(0, offset);
+    const opens = before.split(`\\begin{${env}}`).length - 1;
+    const closes = before.split(`\\end{${env}}`).length - 1;
+    if (opens > closes) continue; // pareado — nada a fazer
+    const delimCount = before.split('$$').length - 1;
+    if (delimCount % 2 !== 1) continue; // sem $$ aberto — não inventa ponto
+    const injectAt = before.lastIndexOf('$$') + 2;
+    out += src.slice(cursor, injectAt) + `\\begin{${env}} `;
+    cursor = injectAt; // o corpo e o \end seguem no fluxo normal
+  }
+  return out + src.slice(cursor);
 }
 
 interface TutorMarkdownProps {
@@ -96,10 +89,13 @@ function TutorMarkdownImpl({
   enableCards = false,
   disciplineCode,
 }: TutorMarkdownProps) {
-  // Sanitização (KaTeX/emojis/réguas) + protege o cifrão do "R$" do pareamento
-  // de math ($...$): vira escape markdown (R\$) que o remark-math ignora e o
-  // CommonMark renderiza como "$" literal.
-  const prepared = React.useMemo(() => sanitizeTutorContent(content), [content]);
+  // Protege o cifrão do "R$" do pareamento de math ($...$): vira escape markdown
+  // (R\$) que o remark-math ignora e o CommonMark renderiza como "$" literal.
+  // Depois, costura LaTeX de IA mal formado (t198) — matriz órfã sem \begin.
+  const prepared = React.useMemo(
+    () => repairOrphanMathEnds(content.replace(/R\$/g, 'R\\$')),
+    [content],
+  );
 
   const remarkPlugins = React.useMemo<PluggableList>(() => [remarkGfm, remarkMath], []);
   // Opções do plugin em TUPLA aninhada ([plugin, options]) — no formato plano o
@@ -155,6 +151,9 @@ function TutorMarkdownImpl({
           {children}
         </blockquote>
       ),
+      // Mensagens antigas podem trazer "---" decorativo — renderiza como
+      // divisor quase invisível em vez de uma régua pesada no meio da conversa.
+      hr: () => <hr className="my-2 border-border/30" />,
       table: ({ children }) => (
         <div className="mb-2 overflow-x-auto [scrollbar-width:thin]">
           <table className="w-full border-collapse text-xs">{children}</table>

@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
-      "worklog": false
+      "worklog": false,
+      "tests": false
     }
   },
   "headers": [

@@ -1,0 +1,1813 @@
+[
+ {
+  "conceito": "HTML",
+  "explicacao": "Linguagem de marcação para estruturar conteúdo na web",
+  "exemplo": "<h1>Título</h1>",
+  "summaryFile": "LM-ementa.summary.json",
+  "titulo": "LM-ementa.summary.json"
+ },
+ {
+  "conceito": "CSS",
+  "explicacao": "Linguagem de estilo para formatar e estilizar páginas HTML",
+  "exemplo": "body { background-color: lightblue; }",
+  "summaryFile": "LM-ementa.summary.json",
+  "titulo": "LM-ementa.summary.json"
+ },
+ {
+  "conceito": "Acessibilidade",
+  "explicacao": "Prática de tornar sites utilizáveis por todas as pessoas",
+  "exemplo": "Uso de atributos alt em imagens",
+  "summaryFile": "LM-ementa.summary.json",
+  "titulo": "LM-ementa.summary.json"
+ },
+ {
+  "conceito": "Box Model",
+  "explicacao": "Conceito CSS que descreve como elementos são renderizados",
+  "exemplo": "margin, border, padding, content",
+  "summaryFile": "LM-ementa.summary.json",
+  "titulo": "LM-ementa.summary.json"
+ },
+ {
+  "conceito": "Relações Humanas no Trabalho",
+  "explicacao": "Estudo das interações entre pessoas no ambiente profissional, considerando aspectos psicológicos, sociais e organizacionais.",
+  "exemplo": "Como a comunicação eficaz entre colegas de equipe pode melhorar a produtividade.",
+  "summaryFile": "RHT-ementa.summary.json",
+  "titulo": "RHT-ementa.summary.json"
+ },
+ {
+  "conceito": "Soft Skills",
+  "explicacao": "Habilidades comportamentais e interpessoais que facilitam a interação e o trabalho em grupo.",
+  "exemplo": "Liderança, empatia e resolução de conflitos.",
+  "summaryFile": "RHT-ementa.summary.json",
+  "titulo": "RHT-ementa.summary.json"
+ },
+ {
+  "conceito": "Ética no Trabalho",
+  "explicacao": "Princípios morais que regem o comportamento profissional e as relações interpessoais no ambiente de trabalho.",
+  "exemplo": "A importância da honestidade na comunicação com colegas e superiores.",
+  "summaryFile": "RHT-ementa.summary.json",
+  "titulo": "RHT-ementa.summary.json"
+ },
+ {
+  "conceito": "Uberização do Trabalho",
+  "explicacao": "Novas formas de trabalho flexíveis e precarizadas, como o trabalho por aplicativos.",
+  "exemplo": "Entregadores de aplicativos que não têm vínculo empregatício tradicional.",
+  "summaryFile": "RHT-ementa.summary.json",
+  "titulo": "RHT-ementa.summary.json"
+ },
+ {
+  "conceito": "Seção 1 — entrada, processamento, saída (Q1–57)",
+  "explicacao": "Padrão de todos os exercícios: ler dados (scanf), processar com operadores e fórmulas, imprimir resultado formatado (printf). Inclui médias simples/ponderada, áreas e perímetros, conversões (°C→°F/K, km/h→m/s, USD/BRL, polegada→cm,…",
+  "exemplo": "printf(\"Digite o lado do quadrado: \"); scanf(\"%f\", &lado); area = lado * lado; printf(\"Area = %.2f\\n\", area);",
+  "summaryFile": "alg-lista.summary.json",
+  "titulo": "Lista de Exercícios completa (289 questões) — entrada/saída até ponteiros"
+ },
+ {
+  "conceito": "Seção 2 — desvios condicionais (Q58–97)",
+  "explicacao": "if/else, if encadeado e switch para decisões: par/ímpar, positivo/negativo, maior/menor entre valores, faixas de IMC, validação de datas, classificação de triângulos e situações com condições compostas (&&, ||, !). É o coração da Prova 1…",
+  "exemplo": "if (n1 > n2 && n1 > n3) printf(\"Maior: %d\\n\", n1); else if (n2 > n3) printf(\"Maior: %d\\n\", n2); else printf(\"Maior: %d\\n\", n3);",
+  "summaryFile": "alg-lista.summary.json",
+  "titulo": "Lista de Exercícios completa (289 questões) — entrada/saída até ponteiros"
+ },
+ {
+  "conceito": "Seção 3 — repetição (Q98–157)",
+  "explicacao": "for (quando o total é conhecido), while e do-while (validação de entrada). Somatórios, contadores, fatorial, séries (Fibonacci), primos, tabuadas e menus interativos. Acumular com soma += x e contar com cont++ são os dois padrões…",
+  "summaryFile": "alg-lista.summary.json",
+  "titulo": "Lista de Exercícios completa (289 questões) — entrada/saída até ponteiros"
+ },
+ {
+  "conceito": "Seção 4 — vetores e matrizes (Q158–208)",
+  "explicacao": "Vetores unidimensionais (ler N valores, maior/menor, média, busca, inverter posição) e matrizes (percorrer linhas×colunas, soma de linhas/colunas, diagonal). O índice vai de 0 a N-1 — confundir é erro clássico.",
+  "summaryFile": "alg-lista.summary.json",
+  "titulo": "Lista de Exercícios completa (289 questões) — entrada/saída até ponteiros"
+ },
+ {
+  "conceito": "Seção 5 — subprogramas e ponteiros (Q209–289)",
+  "explicacao": "Dividir o programa em funções/procedimentos (protótipo, chamada, parâmetros, retorno) reaproveitando os problemas das seções anteriores. Fecha com ponteiros: endereços de memória, * e &, base do que vem depois na disciplina.",
+  "summaryFile": "alg-lista.summary.json",
+  "titulo": "Lista de Exercícios completa (289 questões) — entrada/saída até ponteiros"
+ },
+ {
+  "conceito": "Sessão de Tira-Dúvidas — Segunda-feira, 19h às 21h",
+  "explicacao": "Espaço semanal para levar suas dúvidas de algoritmos/C (listas, Questões da Semana, código que não compila) e resolver ao vivo com o monitor.",
+  "summaryFile": "alg-monitoria-discord.summary.json",
+  "titulo": "Monitoria de Algoritmos — Servidor no Discord"
+ },
+ {
+  "conceito": "Resolução de Questões da Semana — Quarta-feira, 19h às 21h",
+  "explicacao": "O monitor resolve as questões postadas pelo prof. Fábio na semana — ideal para conferir sua solução DEPOIS de tentar sozinho.",
+  "summaryFile": "alg-monitoria-discord.summary.json",
+  "titulo": "Monitoria de Algoritmos — Servidor no Discord"
+ },
+ {
+  "conceito": "Monitor Everton",
+  "explicacao": "Monitor da disciplina neste semestre; anúncios, informações adicionais e formas de contato ficam todas no servidor do Discord.",
+  "summaryFile": "alg-monitoria-discord.summary.json",
+  "titulo": "Monitoria de Algoritmos — Servidor no Discord"
+ },
+ {
+  "conceito": "Receita padrão dominada: scanf → fórmula → printf",
+  "explicacao": "Todos os 19 programas seguem a mesma estrutura do professor: ler variáveis (com & no scanf), calcular em variável intermediária com nome descritivo, imprimir com formato. O dono já usa scanf múltiplo (%f%f) para ler 2 valores numa linha —…",
+  "exemplo": "scanf(\"%f%f\", &comprimento, &largura);",
+  "summaryFile": "alg-programas-c-autorais.summary.json",
+  "titulo": "Programas C do autor — aula + Questões da Semana 1 (resolvidos)"
+ },
+ {
+  "conceito": "Conversões de unidades",
+  "explicacao": "Km/h→m/s em 2 passos (×1000, ×3600), polegadas→cm (×2.54), Celsius→Fahrenheit (9.0/5.0 — divisão REAL, não inteira!) e →Kelvin (+273.15). Padrão de prova: decorar os fatores.",
+  "exemplo": "float Fahrenheit = celsius * 9.0 / 5.0 + 32;",
+  "summaryFile": "alg-programas-c-autorais.summary.json",
+  "titulo": "Programas C do autor — aula + Questões da Semana 1 (resolvidos)"
+ },
+ {
+  "conceito": "Decomposição de dígitos com / e % (reverso de 4 dígitos)",
+  "explicacao": "A técnica mais importante do arquivo: milhar = n/1000; resto = n%1000; centena = resto/100; ... e remonta invertendo os pesos. Serve para soma de dígitos, CPF, capicua — cai em prova.",
+  "exemplo": "int unidade = resto % 10; int reverso = unidade*1000 + dezena*100 + centena*10 + milhar;",
+  "summaryFile": "alg-programas-c-autorais.summary.json",
+  "titulo": "Programas C do autor — aula + Questões da Semana 1 (resolvidos)"
+ },
+ {
+  "conceito": "Casts e tabela ASCII",
+  "explicacao": "O autor domina char↔int: (int)'A' dá o código, (char)65 dá a letra, e maiúscula = minúscula − 32 (diferença fixa na tabela ASCII). Pair ascii/caractere/letra_m_M mostram os 3 sentidos.",
+  "exemplo": "char maiuscula = (char)((int)minuscula - 32);",
+  "summaryFile": "alg-programas-c-autorais.summary.json",
+  "titulo": "Programas C do autor — aula + Questões da Semana 1 (resolvidos)"
+ },
+ {
+  "conceito": "math.h na prática: pow() e sqrt()",
+  "explicacao": "Hipotenusa = sqrt(pow(c1,2)+pow(c2,2)); cubo = pow(n,3); cosseno via identidade sen²+cos²=1 → sqrt(1 − seno²). Em Linux compilar com -lm (o autor já fez — os binários estão na pasta output/).",
+  "exemplo": "float cos_abs = sqrt(1.0 - seno * seno);",
+  "summaryFile": "alg-programas-c-autorais.summary.json",
+  "titulo": "Programas C do autor — aula + Questões da Semana 1 (resolvidos)"
+ },
+ {
+  "conceito": "Estrutura padrão dos programas",
+  "explicacao": "Todos os exercícios seguem: declarar variáveis → scanf para ler → calcular a fórmula → printf para mostrar. Domine esse esqueleto e resolve os 8.",
+  "exemplo": "int main(void) { int n; scanf(\"%d\", &n); printf(\"%d %d\\n\", n - 1, n + 1); return 0; }",
+  "summaryFile": "alg-questoes-semana1.summary.json",
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Tipos: int vs float/double",
+  "explicacao": "Q1 usa int (antecessor/sucessor). As demais (área, temperatura, terreno, velocidade) precisam de float/double porque envolvem divisão e casas decimais.",
+  "summaryFile": "alg-questoes-semana1.summary.json",
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Divisão inteira pega de surpresa",
+  "explicacao": "Em C, 9/5 vale 1 (inteiros!). Nas fórmulas use constantes decimais: C * 9.0 / 5.0 + 32. É o erro nº 1 da Q3.",
+  "summaryFile": "alg-questoes-semana1.summary.json",
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Conversão de unidades",
+  "explicacao": "Q4 pede velocidade em m/s a partir de km e horas: multiplique km por 1000 e horas por 3600 antes de dividir. Q5 é direta: polegadas × 2,54.",
+  "summaryFile": "alg-questoes-semana1.summary.json",
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Relação fundamental (Q6)",
+  "explicacao": "Com o seno, o cosseno vem da identidade sen²(x) + cos²(x) = 1 → cos = sqrt(1 - sen*sen); o valor absoluto usa fabs() de math.h (compile com -lm).",
+  "summaryFile": "alg-questoes-semana1.summary.json",
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Laço simples (Q8)",
+  "explicacao": "A PA imprime 5 termos: termo n = a1 + (n-1)*r, com um for de 1 a 5 — primeiro contato leve com repetição.",
+  "summaryFile": "alg-questoes-semana1.summary.json",
+  "titulo": "Questões da Semana 1 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Porcentagem em C",
+  "explicacao": "Percentual = parte × 100.0 / total. Aspas em Q3 (acertos/erros), Q5 (votos por candidato) e Q1 (taxa de serviço é 10% FIXO: total × 1.10). Nunca faça parte/total com dois inteiros — force a divisão real.",
+  "exemplo": "percAcertos = (float)acertos / totalQuestoes * 100.0;",
+  "summaryFile": "alg-questoes-semana2.summary.json",
+  "titulo": "Questões da Semana 2 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Distância euclidiana (Q4)",
+  "explicacao": "distancia = sqrt((x1-x2)² + (y1-y2)²). Eleve ao quadrado com multiplicação ou pow(), e use sqrt() de math.h (compile com -lm).",
+  "exemplo": "d = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));",
+  "summaryFile": "alg-questoes-semana2.summary.json",
+  "titulo": "Questões da Semana 2 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Decomposição de tempo (Q6)",
+  "explicacao": "Tempo total em segundos → horas = t/3600; resto vira minutos = (t%3600)/60; segundos finais = t%60. Divisão inteira + módulo fazem a mágica.",
+  "summaryFile": "alg-questoes-semana2.summary.json",
+  "titulo": "Questões da Semana 2 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Juros compostos por parcela (Q9)",
+  "explicacao": "1ª parcela = 20% do valor; cada seguinte = anterior × 1.07 (juros de 7% SOBRE a parcela anterior). Um for de 5 iterações acumula o total pago e os juros = total − valor financiado.",
+  "summaryFile": "alg-questoes-semana2.summary.json",
+  "titulo": "Questões da Semana 2 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Fila e módulo (Q10)",
+  "explicacao": "Posição p na fila com 5 guichês (cada check-in 15 min): guichê = ((p - 1) % 5) + 1 e espera = (p - 1) / 5 × 15 minutos. Teste com p=6 → guichê 1, 15 min.",
+  "summaryFile": "alg-questoes-semana2.summary.json",
+  "titulo": "Questões da Semana 2 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Tabuada com laço (Q2)",
+  "explicacao": "for (i = 1; i <= 10; i++) printf(\"%d X %d = %d\\n\", i, n, i * n); — primeiro uso pesado de repetição nas questões da semana.",
+  "summaryFile": "alg-questoes-semana2.summary.json",
+  "titulo": "Questões da Semana 2 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Valor absoluto sem função (Q1)",
+  "explicacao": "abs(x) = x quando x >= 0, e -x quando x < 0. A questão PROÍBE fabs()/abs() da linguagem — o objetivo é você escrever a decisão: if (n < 0) n = -n;. Negar um número é multiplicar por -1.",
+  "exemplo": "if (n < 0) { n = -n; } printf(\"|n| = %d\\n\", n);",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Cadeia if / else if / else (Q2 e Q3)",
+  "explicacao": "Quando só UMA faixa pode ser verdadeira, encadeie: o else if só é testado se o if anterior falhou. Na Q3 (0-12 criança, 13-17 adolescente, 18-59 adulta, acima de 60 idosa) a ordem natural já evita sobreposição — e o else final pega o que…",
+  "exemplo": "if (idade <= 12) ... else if (idade <= 17) ... else if (idade <= 59) ... else ...",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Ano bissexto (Q4)",
+  "explicacao": "A regra completa tem 3 divisibilidades: é bissexto se (ano % 400 == 0) OU (ano % 4 == 0 E ano % 100 != 0). O %100 é o pegador dedescuidados: 2000 é bissexto (%400), 2100 NÃO é (divisível por 100 mas não por 400), 2024 é (%4 e não %100).",
+  "exemplo": "if (ano % 400 == 0 || (ano % 4 == 0 && ano % 100 != 0))",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Ponto nos quadrantes (Q5)",
+  "explicacao": "A questão pede a QUANTIDADE de quadrantes a que o ponto pertence — ou seja, os casos de borda importam: x≠0 e y≠0 → 1 quadrante; sobre um eixo (x==0 ou y==0) → pertence a 2 quadrantes; na origem (0,0) → pertence a todos (4). Teste o zero…",
+  "exemplo": "if (x == 0 && y == 0) qtd = 4; else if (x == 0 || y == 0) qtd = 2; else qtd = 1;",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Maior de três distintos (Q6)",
+  "explicacao": "O enunciado GARANTE que os três são distintos — não precisa tratar empate (==). Encadeie comparações: suponha o primeiro é o maior e vá trocando quando achar alguém maior.",
+  "exemplo": "maior = a; if (b > maior) maior = b; if (c > maior) maior = c;",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Triângulo retângulo pelos ângulos (Q7)",
+  "explicacao": "Dois testes: (1) VALIDADE — os três ângulos somam 180; (2) RETÂNGULO — algum deles é 90. O ângulo reto pode ser QUALQUER um dos três (a1, a2 ou a3), então use OU entre os três testes. Atenção à comparação de igualdade com números.",
+  "exemplo": "if (a1 + a2 + a3 == 180 && (a1 == 90 || a2 == 90 || a3 == 90))",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Regra do 0,7 — álcool ou gasolina (Q8)",
+  "explicacao": "O carro flex rende ~70% com álcool: o preço 'equivalente' da gasolina é gasolina × 0,7. A dica do amigo é literal: se gasolina × 0,7 for MENOR OU IGUAL ao preço do álcool → abasteça com GASOLINA; caso contrário → ÁLCOOL. Siga o enunciado à…",
+  "exemplo": "if (gasolina * 0.7 <= alcool) printf(\"Gasolina\\n\"); else printf(\"Alcool\\n\");",
+  "summaryFile": "alg-questoes-semana3.summary.json",
+  "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Algoritmo",
+  "explicacao": "Sequência finita e não ambígua de instruções para resolver um problema.",
+  "exemplo": "Receita de bolo, manual de instruções para trocar um pneu.",
+  "summaryFile": "alg-slides-geral.summary.json",
+  "titulo": "alg-slides-geral"
+ },
+ {
+  "conceito": "Lógica",
+  "explicacao": "Ciência do raciocínio, usada para deduzir conclusões a partir de argumentos.",
+  "exemplo": "Todo homem é mortal. Socrates é homem. Portanto, Socrates é mortal.",
+  "summaryFile": "alg-slides-geral.summary.json",
+  "titulo": "alg-slides-geral"
+ },
+ {
+  "conceito": "Entrada, Processamento e Saída",
+  "explicacao": "Elementos fundamentais de um algoritmo: dados de entrada, o processamento que transforma esses dados e o resultado obtido (saída).",
+  "exemplo": "Calcular a média de notas: notas das provas (entrada), cálculo da média (processamento), valor da média (saída).",
+  "summaryFile": "alg-slides-geral.summary.json",
+  "titulo": "alg-slides-geral"
+ },
+ {
+  "conceito": "Representação de Algoritmos",
+  "explicacao": "Formas de descrever um algoritmo, como narrativa, fluxograma e pseudocódigo.",
+  "exemplo": "Fluxograma usa símbolos gráficos para representar passos; pseudocódigo usa uma linguagem de programação híbrida.",
+  "summaryFile": "alg-slides-geral.summary.json",
+  "titulo": "alg-slides-geral"
+ },
+ {
+  "conceito": "Tipos de Variáveis",
+  "explicacao": "Classificação dos dados que uma variável pode armazenar na linguagem C, determinando o tipo de informação e o espaço de memória ocupado.",
+  "exemplo": "int idade (para números inteiros), float preco (para números reais), char letra (para um único caractere)",
+  "summaryFile": "alg-tipos-operadores.summary.json",
+  "titulo": "alg-tipos-operadores"
+ },
+ {
+  "conceito": "Operadores Aritméticos",
+  "explicacao": "Símbolos utilizados para realizar cálculos matemáticos, como adição, subtração, multiplicação e divisão.",
+  "exemplo": "+ (adição), - (subtração), * (multiplicação), / (divisão)",
+  "summaryFile": "alg-tipos-operadores.summary.json",
+  "titulo": "alg-tipos-operadores"
+ },
+ {
+  "conceito": "Precedência de Operadores",
+  "explicacao": "A ordem na qual as operações aritméticas são executadas em uma expressão, seguindo regras definidas para garantir um resultado correto.",
+  "exemplo": "Em 10 + 2 * 5, a multiplicação é feita primeiro (2 * 5 = 10), resultando em 10 + 10 = 20. Parênteses alteram a ordem: (10 + 2) * 5 = 60.",
+  "summaryFile": "alg-tipos-operadores.summary.json",
+  "titulo": "alg-tipos-operadores"
+ },
+ {
+  "conceito": "Operadores Relacionais",
+  "explicacao": "Símbolos usados para comparar dois valores, resultando em um valor booleano (verdadeiro ou falso), fundamental em estruturas de decisão.",
+  "exemplo": "== (igual a), != (diferente de), > (maior que), < (menor que)",
+  "summaryFile": "alg-tipos-operadores.summary.json",
+  "titulo": "alg-tipos-operadores"
+ },
+ {
+  "conceito": "Operadores Lógicos",
+  "explicacao": "Operadores que combinam expressões relacionais para formar condições mais complexas, com base na lógica booleana.",
+  "exemplo": "&& (AND - E), || (OR - OU), ! (NOT - NÃO)",
+  "summaryFile": "alg-tipos-operadores.summary.json",
+  "titulo": "alg-tipos-operadores"
+ },
+ {
+  "conceito": "Algoritmo",
+  "explicacao": "Sequência finita de passos para resolver um problema.",
+  "exemplo": "Receita de bolo: 1) Misturar ingredientes, 2) Assar por 40 minutos.",
+  "summaryFile": "algoritmo-ementa.summary.json",
+  "titulo": "algoritmo-ementa.summary.json"
+ },
+ {
+  "conceito": "Variável",
+  "explicacao": "Espaço na memória para armazenar dados que podem mudar durante a execução do programa.",
+  "exemplo": "int idade = 25;",
+  "summaryFile": "algoritmo-ementa.summary.json",
+  "titulo": "algoritmo-ementa.summary.json"
+ },
+ {
+  "conceito": "Estrutura Condicional",
+  "explicacao": "Comandos que executam blocos de código diferentes com base em condições.",
+  "exemplo": "if (idade >= 18) { printf('Maior de idade'); }",
+  "summaryFile": "algoritmo-ementa.summary.json",
+  "titulo": "algoritmo-ementa.summary.json"
+ },
+ {
+  "conceito": "Laço de Repetição",
+  "explicacao": "Estrutura que permite repetir um bloco de código várias vezes.",
+  "exemplo": "for (int i = 0; i < 10; i++) { printf('%d', i); }",
+  "summaryFile": "algoritmo-ementa.summary.json",
+  "titulo": "algoritmo-ementa.summary.json"
+ },
+ {
+  "conceito": "Função",
+  "explicacao": "Bloco de código reutilizável que executa uma tarefa específica.",
+  "exemplo": "int somar(int a, int b) { return a + b; }",
+  "summaryFile": "algoritmo-ementa.summary.json",
+  "titulo": "algoritmo-ementa.summary.json"
+ },
+ {
+  "conceito": "Competências do Tecnólogo em ADS",
+  "explicacao": "Habilidades técnicas e profissionais definidas pelo INEP para o profissional de Análise e Desenvolvimento de Sistemas.",
+  "exemplo": "Analizar, projetar, documentar, especificar, testar, implantar e manter sistemas computacionais de informação.",
+  "summaryFile": "apresentacao-curso-2026.summary.json",
+  "titulo": "apresentacao-curso-2026.summary.json"
+ },
+ {
+  "conceito": "ENADE",
+  "explicacao": "Exame Nacional de Desempenho de Estudantes que avalia a qualidade dos cursos de graduação no Brasil.",
+  "exemplo": "O curso de ADS do IFPB obteve conceito 5 no ENADE de 2021, ficando em 19º lugar no país.",
+  "summaryFile": "apresentacao-curso-2026.summary.json",
+  "titulo": "apresentacao-curso-2026.summary.json"
+ },
+ {
+  "conceito": "Pilares da Aprendizagem",
+  "explicacao": "Três pilares fundamentais para o sucesso dos estudos no curso.",
+  "exemplo": "1) Foco, 2) Prática, 3) Grupo.",
+  "summaryFile": "apresentacao-curso-2026.summary.json",
+  "titulo": "apresentacao-curso-2026.summary.json"
+ },
+ {
+  "conceito": "CAEST",
+  "explicacao": "Coordenação de Apoio ao Estudante, setor do IFSPB que visa promover a permanência e o êxito dos estudantes.",
+  "exemplo": "Localização: Bloco 4A - Térreo, Campus Cajazeiras.",
+  "summaryFile": "caest-apoio-estudante.summary.json",
+  "titulo": "caest-apoio-estudante.summary.json"
+ },
+ {
+  "conceito": "IVS",
+  "explicacao": "Índice de Vulnerabilidade Social, um indicador que detalha as condições de vida do estudante para análise de assistência.",
+  "exemplo": "Pontuação de 0 a 10, com validade de 2 anos.",
+  "summaryFile": "caest-apoio-estudante.summary.json",
+  "titulo": "caest-apoio-estudante.summary.json"
+ },
+ {
+  "conceito": "PAPE",
+  "explicacao": "Programa de Apoio à Permanência do Estudante, um auxílio financeiro mensal para alunos em vulnerabilidade socioeconômica.",
+  "exemplo": "Valores entre R$ 100 e R$ 300, priorizando alunos da rede pública ou com renda familiar per capita de até um salário mínimo.",
+  "summaryFile": "caest-apoio-estudante.summary.json",
+  "titulo": "caest-apoio-estudante.summary.json"
+ },
+ {
+  "conceito": "Programa de Alimentação",
+  "explicacao": "Programa que oferece acesso a refeições no restaurante estudantil do campus.",
+  "exemplo": "Voltado para estudantes de cursos presenciais com atividades no contraturno escolar.",
+  "summaryFile": "caest-apoio-estudante.summary.json",
+  "titulo": "caest-apoio-estudante.summary.json"
+ },
+ {
+  "conceito": "Semestre Letivo",
+  "explicacao": "Período de ensino e aprendizagem com dias letivos definidos, dividido em dois semestres durante o ano.",
+  "exemplo": "2026.1 inicia em 02/03 e termina em 07/08 com 100 dias letivos.",
+  "summaryFile": "calendario.summary.json",
+  "titulo": "Calendário Acadêmico IF Sertão-PB 2026"
+ },
+ {
+  "conceito": "Feriados",
+  "explicacao": "Dias não letivos comemorativos de caráter nacional, estadual ou municipal.",
+  "exemplo": "Confraternização Universal (01/01), Carnaval (16-17/02), Paixão de Cristo (03/04).",
+  "summaryFile": "calendario.summary.json",
+  "titulo": "Calendário Acadêmico IF Sertão-PB 2026"
+ },
+ {
+  "conceito": "Ponto Facultativo",
+  "explicacao": "Dia em que a frequência não é obrigatória, mas as atividades administrativas podem funcionar normalmente.",
+  "exemplo": "Cinzas (18/02), Corpus Christi (04/06).",
+  "summaryFile": "calendario.summary.json",
+  "titulo": "Calendário Acadêmico IF Sertão-PB 2026"
+ },
+ {
+  "conceito": "Sábado Letivo",
+  "explicacao": "Sábados programados como dias letivos, com aulas substituindo dias da semana úteis.",
+  "exemplo": "14/03 (ref. Sexta), 28/03 (ref. Segunda).",
+  "summaryFile": "calendario.summary.json",
+  "titulo": "Calendário Acadêmico IF Sertão-PB 2026"
+ },
+ {
+  "conceito": "Férias dos Docentes",
+  "explicacao": "Período de descanso para os professores, sem atividades letivas.",
+  "exemplo": "1ª etapa: 12-16/02, 2ª etapa: 22-30/06, 3ª etapa: 21-31/12.",
+  "summaryFile": "calendario.summary.json",
+  "titulo": "Calendário Acadêmico IF Sertão-PB 2026"
+ },
+ {
+  "conceito": "IVS — Índice de Vulnerabilidade Social",
+  "explicacao": "Instrumento utilizado pela assistência estudantil para avaliar a vulnerabilidade socioeconômica de estudantes e priorizar benefícios e auxílios.",
+  "exemplo": "O preenchimento correto dos dados na inscrição (01/09 a 15/09/2026) determina a análise posterior.",
+  "summaryFile": "cronograma-ivs.summary.json",
+  "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Período de inscrição",
+  "explicacao": "Fase em que o estudante se cadastra no processo. Fora dela não é possível participar.",
+  "exemplo": "01/09 a 15/09/2026.",
+  "summaryFile": "cronograma-ivs.summary.json",
+  "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Análise socioeconômica",
+  "explicacao": "A comissão avalia as informações e documentos enviados na inscrição para calcular a vulnerabilidade.",
+  "exemplo": "16/09 a 02/10/2026.",
+  "summaryFile": "cronograma-ivs.summary.json",
+  "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Entrevistas",
+  "explicacao": "Etapa presencial ou virtual de confirmação das informações, para uma amostra ou todos os inscritos.",
+  "exemplo": "05 a 06/10/2026.",
+  "summaryFile": "cronograma-ivs.summary.json",
+  "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Resultado preliminar e recursos",
+  "explicacao": "A lista prévia pode ser contestada pelo estudante na fase de interposição de recursos, antes do resultado definitivo.",
+  "exemplo": "Preliminar em 07/10; recursos de 08 a 11/10; análise dos recursos de 13 a 22/10/2026.",
+  "summaryFile": "cronograma-ivs.summary.json",
+  "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Resultado final",
+  "explicacao": "Publicação definitiva da classificação, após julgados todos os recursos.",
+  "exemplo": "23/10/2026.",
+  "summaryFile": "cronograma-ivs.summary.json",
+  "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Hardware",
+  "explicacao": "Componente física do computador, como processador, memória e periféricos.",
+  "exemplo": "O teclado, o monitor e a CPU são exemplos de hardware.",
+  "summaryFile": "fundamentos-ementa.summary.json",
+  "titulo": "fundamentos-ementa.summary.json"
+ },
+ {
+  "conceito": "Software",
+  "explicacao": "Programas e sistemas operacionais que instruem o hardware a realizar tarefas.",
+  "exemplo": "Windows, Linux e um editor de texto são softwares.",
+  "summaryFile": "fundamentos-ementa.summary.json",
+  "titulo": "fundamentos-ementa.summary.json"
+ },
+ {
+  "conceito": "Lógica Digital",
+  "explicacao": "Estudo de portas lógicas e circuitos digitais que formam a base do computador.",
+  "exemplo": "Portas AND, OR e NAND são fundamentais para processamento binário.",
+  "summaryFile": "fundamentos-ementa.summary.json",
+  "titulo": "fundamentos-ementa.summary.json"
+ },
+ {
+  "conceito": "Representação Binária",
+  "explicacao": "Sistema de numeração base 2 usado por computadores para processar dados.",
+  "exemplo": "O número 5 em decimal é representado como 101 em binário.",
+  "summaryFile": "fundamentos-ementa.summary.json",
+  "titulo": "fundamentos-ementa.summary.json"
+ },
+ {
+  "conceito": "Parte do corpo que vira verbo",
+  "explicacao": "Exemplos clássicos: hand (mão → to hand, entregar), eye (olho → to eye, observar com atenção), head (cabeça → to head, liderar/encabeçar), elbow (cotovelo → to elbow, dar cotoveladas), shoulder (ombro → to shoulder, assumir um…",
+  "summaryFile": "ing-video-corpo-verbos.summary.json",
+  "titulo": "Vídeo: 15 partes do corpo que também são VERBOS"
+ },
+ {
+  "conceito": "Por que importa para leitura instrumental",
+  "explicacao": "Ao ler, a mesma palavra pode ser substantivo ou verbo dependendo da posição na frase — reconhecer o padrão evita traduzir errado frases como 'she shouldered the blame' (assumiu a culpa).",
+  "summaryFile": "ing-video-corpo-verbos.summary.json",
+  "titulo": "Vídeo: 15 partes do corpo que também são VERBOS"
+ },
+ {
+  "conceito": "Estratégia de glossário",
+  "explicacao": "Ao anotar um termo novo no glossário pessoal, inclua as duas classes (n./v.) — duplica o vocabulário com o mesmo esforço.",
+  "summaryFile": "ing-video-corpo-verbos.summary.json",
+  "titulo": "Vídeo: 15 partes do corpo que também são VERBOS"
+ },
+ {
+  "conceito": "Falsos Cognatos",
+  "explicacao": "Palavras que parecem semelhantes em inglês e português, mas possuem significados diferentes. É crucial identificá-los para evitar mal-entendidos.",
+  "exemplo": "Actually (adv) = na verdade, não 'atualmente'. Library (n) = biblioteca, não 'livraria'.",
+  "summaryFile": "ing-vocabulario.summary.json",
+  "titulo": "ing-vocabulario"
+ },
+ {
+  "conceito": "Comparativos e Superlativos",
+  "explicacao": "Formas de comparar adjetivos, variando conforme o número de sílabas e a terminação da palavra.",
+  "exemplo": "Comparativo: 'tall' (1 sílaba) -> 'taller'. 'expensive' (3 sílabas) -> 'more expensive'. Irregular: 'good' -> 'better'.",
+  "summaryFile": "ing-vocabulario.summary.json",
+  "titulo": "ing-vocabulario"
+ },
+ {
+  "conceito": "Advérbios de Frequência",
+  "explicacao": "Palavras que indicam a frequência com que uma ação ocorrem, variando de 0% a 100%.",
+  "exemplo": "Always (sempre), Sometimes (às vezes), Never (nunca).",
+  "summaryFile": "ing-vocabulario.summary.json",
+  "titulo": "ing-vocabulario"
+ },
+ {
+  "conceito": "Formação do Plural",
+  "explicacao": "Regras para transformar substantivos no plural em inglês, incluindo casos especiais e irregularidades.",
+  "exemplo": "Terminados em -f/-fe: 'leaf' -> 'leaves'. Irregulares: 'child' -> 'children'.",
+  "summaryFile": "ing-vocabulario.summary.json",
+  "titulo": "ing-vocabulario"
+ },
+ {
+  "conceito": "Skimming",
+  "explicacao": "Estratégia de leitura rápida para obter a ideia geral de um texto.",
+  "exemplo": "Ler rapidamente o título, subtítulos e a primeira frase de cada parágrafo para entender o tema principal.",
+  "summaryFile": "ingles-ementa.summary.json",
+  "titulo": "ingles-ementa.summary.json"
+ },
+ {
+  "conceito": "Scanning",
+  "explicacao": "Estratégia de leitura para encontrar informações específicas em um texto.",
+  "exemplo": "Procurar por datas, nomes ou números em um artigo técnico para localizar dados precisos.",
+  "summaryFile": "ingles-ementa.summary.json",
+  "titulo": "ingles-ementa.summary.json"
+ },
+ {
+  "conceito": "Cognatos",
+  "explicacao": "Palavras em diferentes línguas que possuem grafia e significado semelhantes.",
+  "exemplo": "A palavra 'computer' em inglês é um cognato direto de 'computador' em português.",
+  "summaryFile": "ingles-ementa.summary.json",
+  "titulo": "ingles-ementa.summary.json"
+ },
+ {
+  "conceito": "Falsos cognatos",
+  "explicacao": "Palavras que parecem semelhantes em duas línguas, mas possuem significados diferentes.",
+  "exemplo": "A palavra 'actually' em inglês significa 'na verdade', e não 'actualmente' como em português.",
+  "summaryFile": "ingles-ementa.summary.json",
+  "titulo": "ingles-ementa.summary.json"
+ },
+ {
+  "conceito": "Gêneros textuais",
+  "explicacao": "Tipos de textos com características estruturais e de linguagem específicas.",
+  "exemplo": "Artigos de blog, manuais de usuário e relatórios técnicos são exemplos de gêneros textuais abordados na disciplina.",
+  "summaryFile": "ingles-ementa.summary.json",
+  "titulo": "ingles-ementa.summary.json"
+ },
+ {
+  "conceito": "Linguagem de Marcação",
+  "explicacao": "Sistema que utiliza marcas (tags) para descrever a estrutura lógica ou semântica de um documento e fornecer instruções sobre como apresentar o conteúdo.",
+  "exemplo": "HTML, onde tags como <b> e </b> formatam texto em negrito.",
+  "summaryFile": "lm-00-introducao.summary.json",
+  "titulo": "Introdução a Linguagens de Marcação"
+ },
+ {
+  "conceito": "Tag",
+  "explicacao": "Código que delimita um texto ou elemento, definindo seu formato ou significado dentro de uma linguagem de marcação.",
+  "exemplo": "No WhatsApp, texto entre *asteriscos* é exibido em negrito.",
+  "summaryFile": "lm-00-introducao.summary.json",
+  "titulo": "Introdução a Linguagens de Marcação"
+ },
+ {
+  "conceito": "Semântica",
+  "explicacao": "Significado atribuído ao conteúdo por meio de marcações, indo além da formatação visual para传达 lógica e importância.",
+  "exemplo": "A tag <strong> indica grande importância, enquanto <b> apenas formata em negrito.",
+  "summaryFile": "lm-00-introducao.summary.json",
+  "titulo": "Introdução a Linguagens de Marcação"
+ },
+ {
+  "conceito": "Padronização",
+  "explicacao": "Processo de estabelecimento de regras comuns para garantir compatibilidade entre diferentes sistemas e interpretadores.",
+  "exemplo": "O W3C define padrões como HTML, CSS e XML para garantir que browsers exibam conteúdo consistentemente.",
+  "summaryFile": "lm-00-introducao.summary.json",
+  "titulo": "Introdução a Linguagens de Marcação"
+ },
+ {
+  "conceito": "W3C",
+  "explicacao": "World Wide Web Consortium, organização responsável por desenvolver e manter padrões para a web desde 1994.",
+  "exemplo": "O W3C criou as especificações de HTML5 que todos os browsers modernos seguem.",
+  "summaryFile": "lm-00-introducao.summary.json",
+  "titulo": "Introdução a Linguagens de Marcação"
+ },
+ {
+  "conceito": "Estrutura: cada campo em uma <div> com <label>",
+  "explicacao": "O exemplo segue as considerações gerais dos slides: cada campo fica dentro de uma <div> e possui uma <label> associada (for apontando para o id do campo).",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "Campos de texto e data",
+  "explicacao": "Nome usa type=\"text\" e data de nascimento usa type=\"date\" — o navegador renderiza um seletor de calendário automaticamente.",
+  "exemplo": "<input id=\"input-nome\" name=\"nome\" type=\"text\" /> <input id=\"input-dtnascimento\" name=\"dtnascimento\" type=\"date\" />",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "Select de cursos",
+  "explicacao": "O curso é escolhido em um <select> com quatro <option> (ADS, Eng. Controle e Automação, Eng. Civil, Licenciatura em Matemática), cada uma com seu value.",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "Radios agrupados por name",
+  "explicacao": "O turno (Manhã/Tarde/Noite/Integral) usa quatro <input type=\"radio\"> com o MESMO name=\"turno\" — assim só um pode ser marcado por vez.",
+  "exemplo": "<input type=\"radio\" name=\"turno\" value=\"manha\" id=\"input-turno-manha\" /> Manhã <input type=\"radio\" name=\"turno\" value=\"tarde\" id=\"input-turno-tarde\" /> Tarde",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "Checkboxes para múltipla escolha",
+  "explicacao": "Necessidades especiais usa <input type=\"checkbox\"> — diferente do radio, permite marcar vários ao mesmo tempo (cadeira de rodas e/ou acompanhamento psicológico).",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "Os 3 tipos de botão em ação",
+  "explicacao": "O exemplo tem os três: <button type=\"submit\">Enviar</button> (envia ao action), <button type=\"reset\">Restaurar valores</button> (limpa os campos) e <button type=\"button\" onclick=\"alert('Alerta com Javascript')\">Exibir alerta</button> (ação…",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "method GET com action=\"#\"",
+  "explicacao": "O form usa method=\"GET\" e action=\"#\" — como é só demonstração, o envio recarrega a própria página. Em um site real, action apontaria para um servidor que processa os dados.",
+  "summaryFile": "lm-exemplo-formularios.summary.json",
+  "titulo": "Exemplo de Formulário da aula (index.html)"
+ },
+ {
+  "conceito": "Elemento <audio> básico",
+  "explicacao": "O src recebe a URL do arquivo de áudio ou o caminho no sistema local; o <p> interno aparece só se o navegador não der suporte (computadores/celulares mais antigos).",
+  "exemplo": "<audio src=\"musica.mp3\"> <p>Seu navegador não suporta o elemento audio.</p> </audio>",
+  "summaryFile": "lm-gitbook-audio.summary.json",
+  "titulo": "Áudio — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "controls",
+  "explicacao": "Mostra os controles padrão do áudio na página (play, pause, volume). Sem ele, o som fica invisível para o usuário.",
+  "summaryFile": "lm-gitbook-audio.summary.json",
+  "titulo": "Áudio — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "autoplay",
+  "explicacao": "Faz o áudio reproduzir automaticamente ao carregar a página. Não funciona em alguns navegadores por questões de permissão.",
+  "summaryFile": "lm-gitbook-audio.summary.json",
+  "titulo": "Áudio — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "loop",
+  "explicacao": "Faz o áudio repetir automaticamente ao terminar.",
+  "summaryFile": "lm-gitbook-audio.summary.json",
+  "titulo": "Áudio — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Formatos e compatibilidade",
+  "explicacao": "Além do .mp3, formatos como .ogg também são suportados. Teste em vários navegadores antes de publicar para garantir suporte à maioria.",
+  "summaryFile": "lm-gitbook-audio.summary.json",
+  "titulo": "Áudio — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Atributos comuns aos widgets",
+  "explicacao": "autofocus (booleano: elemento com foco ao carregar a página), disabled (booleano: usuário não interage), name (nome do elemento — enviado com os dados; não obrigatório, mas recomendado) e value (valor inicial do elemento).",
+  "summaryFile": "lm-gitbook-formularios.summary.json",
+  "titulo": "Formulários — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Estrutura: div + label por campo",
+  "explicacao": "Todos os campos ficam cada um dentro de uma <div> e acompanhadados de uma <label> (legenda que descreve o objetivo do item na interface). Encare a div, por hora, como uma divisão sem significado.",
+  "summaryFile": "lm-gitbook-formularios.summary.json",
+  "titulo": "Formulários — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Campos de texto de uma linha",
+  "explicacao": "<input type=\"text\"> aceita texto simples sem formatação; colar texto com várias linhas remove as quebras. Outros types mantêm uma linha mas validam o dado: email, date, tel, url, search e password.",
+  "summaryFile": "lm-gitbook-formularios.summary.json",
+  "titulo": "Formulários — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Textarea (várias linhas)",
+  "explicacao": "<textarea> preserva quebras de linha e tem atributos cols (colunas visíveis) e rows (linhas visíveis). Diferente do <input>, precisa de tag de abertura E fechamento.",
+  "exemplo": "<textarea name=\"mensagem\" cols=\"30\" rows=\"10\"></textarea>",
+  "summaryFile": "lm-gitbook-formularios.summary.json",
+  "titulo": "Formulários — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Drop-down: select, option, optgroup e multiple",
+  "explicacao": "<select> com um ou mais <option>. Valor padrão com o atributo selected; opções agrupáveis em <optgroup label=\"...\">; o atributo multiple no select permite escolher várias opções segurando Ctrl/Command.",
+  "summaryFile": "lm-gitbook-formularios.summary.json",
+  "titulo": "Formulários — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Os 3 botões",
+  "explicacao": "Submit envia os dados para o que está definido em action; Reset limpa o formulário devolvendo os componentes ao estado padrão; Anônimo (type=\"button\") não tem efeito, dando espaço para ações via JavaScript. Botão é criado com <button> ou…",
+  "summaryFile": "lm-gitbook-formularios.summary.json",
+  "titulo": "Formulários — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Elemento <a> e href",
+  "explicacao": "Envolve o texto (ou qualquer conteúdo) que virará link; o atributo href (Hypertext Reference) recebe a URL de destino.",
+  "exemplo": "<p>Estou criando um link para <a href=\"https://www.ifpb.edu.br\">a página inicial do IFPB</a>.</p>",
+  "summaryFile": "lm-gitbook-hyperlinks.summary.json",
+  "titulo": "Hyperlinks — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Atributo title",
+  "explicacao": "Recomendado conter informações úteis sobre o link (que tipo de informação a página contém), exibido como dica pelo navegador.",
+  "exemplo": "<a href=\"https://www.ifpb.edu.br\" title=\"Página do IFPB, com informações sobre a oferta de cursos\">página inicial do IFPB</a>",
+  "summaryFile": "lm-gitbook-hyperlinks.summary.json",
+  "titulo": "Hyperlinks — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Qualquer conteúdo vira link",
+  "explicacao": "Literamente qualquer conteúdo da web pode ser convertido em link: ao clicar (ou ativar de outra forma), o navegador vai para a URL de destino.",
+  "summaryFile": "lm-gitbook-hyperlinks.summary.json",
+  "titulo": "Hyperlinks — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<img> é elemento vazio",
+  "explicacao": "Não possui conteúdo de texto nem tag de fechamento — diferente de <p> ou <a>. Toda a informação vai em atributos.",
+  "summaryFile": "lm-gitbook-imagens.summary.json",
+  "titulo": "Imagens — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Atributo src (obrigatório)",
+  "explicacao": "Contém o caminho (relativo ou absoluto) da imagem a incorporar — as mesmas regras de caminho dos hyperlinks valem aqui.",
+  "exemplo": "<img src=\"imagens/album.jpg\">",
+  "summaryFile": "lm-gitbook-imagens.summary.json",
+  "titulo": "Imagens — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Atributo alt",
+  "explicacao": "Descrição textual da imagem, usada quando a imagem não pode ser exibida (nome errado, conexão lenta) — essencial para acessibilidade.",
+  "exemplo": "<img src=\"imagens/album.jpg\" alt=\"A capa do primeiro álbum do Arctic Monkeys, fotografia em preto e branco com um homem fumando\">",
+  "summaryFile": "lm-gitbook-imagens.summary.json",
+  "titulo": "Imagens — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Como testar o alt",
+  "explicacao": "A maneira mais fácil é digitar incorretamente o nome do arquivo (ex.: albunn.jpg): o navegador não exibe a imagem e mostra o texto alternativo.",
+  "summaryFile": "lm-gitbook-imagens.summary.json",
+  "titulo": "Imagens — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "O que escrever no alt?",
+  "explicacao": "Depende do porquê da imagem estar ali — em outras palavras: o que você perde se a imagem não aparecer?",
+  "summaryFile": "lm-gitbook-imagens.summary.json",
+  "titulo": "Imagens — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<head> = controle do documento",
+  "explicacao": "Contém informações NÃO transpostas visivelmente para o usuário/leitor: dados implícitos de uso e controle — vinculação com outros arquivos, aplicação de lógica de programação e metadados. Tudo entre <head> e </head>.",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Metadados descrevem dados",
+  "explicacao": "Com metadados é possível compreender os dados através do tempo. As meta tags marcam essas informações no documento HTML; a descrição exibida em resultados de busca do Google é o exemplo visível do efeito delas.",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<title> vs <h1> (revisão)",
+  "explicacao": "<h1> aparece na página, uma vez por página, marcando o título do CONTEÚDO (a história, a notícia). <title> é metadado que representa o título de TODO o documento (não o conteúdo). São coisas diferentes — confundi-las é erro clássico.",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<meta>: a declaração oficial",
+  "explicacao": "A tag chamada de maneira 'oficial' de declarar metadados em HTML (outras, como <title>, também podem ser pensadas como metadados). Existem muitos tipos; o capítulo cobre os mais comuns.",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "charset, author, description, keywords",
+  "explicacao": "charset define a codificação (permite exibir caracteres de outros idiomas — acentos). author e description usam name+content; keywords leva as palavras-chave do site.",
+  "exemplo": "<meta name=\"author\" content=\"Diogo Moreira\"> <meta name=\"description\" content=\"Um site sobre música, principalmente indie rock\"> <meta name=\"keywords\"…",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<link> e recursos externos",
+  "explicacao": "A tag <link> especifica relações entre o documento atual e um recurso externo (arquivos .css, ícones e outros). É mais usada para vincular folhas de estilo CSS — próximo módulo da disciplina.",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Favicon",
+  "explicacao": "Abreviação de 'favorites icon' — referência aos favoritos dos navegadores; aparece também nas abas. Para adicionar: salve o .png no mesmo diretório da página índice e referencie no <head>. Para tamanhos/resoluções variados (celulares), use…",
+  "exemplo": "<link rel=\"shortcut icon\" href=\"favicon.png\" type=\"image/x-icon\">",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Open Graph e redes sociais",
+  "explicacao": "Metatags proprietárias criadas para redes sociais: o Open Graph Protocol do Facebook permite identificar o conteúdo de um link e criar pré-visualização (produto, vídeo, imagem); o Twitter tem as suas cards. A ferramenta metatags.io gera…",
+  "summaryFile": "lm-gitbook-metadados.summary.json",
+  "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "URL",
+  "explicacao": "Sequência de texto que define a localização de um recurso na web. Os URLs usam caminhos para encontrar arquivos, especificando onde o recurso está no explorador de arquivos.",
+  "exemplo": "https://www.ifpb.edu.br",
+  "summaryFile": "lm-gitbook-urls.summary.json",
+  "titulo": "URLs e caminhos de arquivos — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Mesmo diretório",
+  "explicacao": "Se o arquivo alvo está no mesmo diretório do documento atual, basta indicar o nome do arquivo.",
+  "exemplo": "<a href=\"contato.html\">página de contatos</a> (dentro de index.html)",
+  "summaryFile": "lm-gitbook-urls.summary.json",
+  "titulo": "URLs e caminhos de arquivos — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Descer em subdiretório",
+  "explicacao": "Indique o diretório, uma barra (/) e o nome do arquivo.",
+  "exemplo": "<a href=\"equipe/equipe.html\">equipe</a>",
+  "summaryFile": "lm-gitbook-urls.summary.json",
+  "titulo": "URLs e caminhos de arquivos — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Subir um nível (..)",
+  "explicacao": "Dois pontos (..) sobem um nível de diretório; depois desça para o diretório desejado.",
+  "exemplo": "<a href=\"../imagens/foto_perfil_diogo.jpg\">minha foto</a> (dentro de equipe/equipe.html)",
+  "summaryFile": "lm-gitbook-urls.summary.json",
+  "titulo": "URLs e caminhos de arquivos — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "index.html como página de entrada",
+  "explicacao": "Em um site real, index.html é a página inicial (ponto de entrada do site ou de uma seção). Vários index.html podem coexistir em diretórios diferentes — muitos sites fazem isso.",
+  "summaryFile": "lm-gitbook-urls.summary.json",
+  "titulo": "URLs e caminhos de arquivos — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Elemento <video> básico",
+  "explicacao": "src recebe a URL do arquivo de vídeo ou o caminho local; o <p> interno aparece apenas se o browser não der suporte a vídeos em HTML.",
+  "exemplo": "<video src=\"videos/arcticmonkeys.mp4\" controls autoplay loop> <p>Seu browser não dá suporte a vídeos em HTML</p> </video>",
+  "summaryFile": "lm-gitbook-video.summary.json",
+  "titulo": "Vídeo — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "controls, autoplay e loop",
+  "explicacao": "Mesmo comportamento do <audio>: controls mostra os controles padrão, autoplay reproduz ao carregar (pode ser bloqueado por permissões) e loop repete automaticamente.",
+  "summaryFile": "lm-gitbook-video.summary.json",
+  "titulo": "Vídeo — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Atributo poster",
+  "explicacao": "Define uma imagem estática a ser mostrada antes que o vídeo seja carregado — semelhante ao que o YouTube faz com as miniaturas dos vídeos.",
+  "exemplo": "<video src=\"video.mp4\" poster=\"capa.jpg\" controls>",
+  "summaryFile": "lm-gitbook-video.summary.json",
+  "titulo": "Vídeo — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "HTML",
+  "explicacao": "HyperText Markup Language (Linguagem de Marcação de Hipertexto), linguagem base da internet para estruturar conteúdo em páginas web.",
+  "exemplo": "<!DOCTYPE html><html><head><title>Página</title></head><body><h1>Título</h1><p>Parágrafo</p></body></html>",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Estrutura Básica",
+  "explicacao": "Estrutura fundamental de um documento HTML composta por DOCTYPE, head e body, que é quase imutável.",
+  "exemplo": "<!DOCTYPE html><html><head>...</head><body>...</body></html>",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Tags",
+  "explicacao": "Elementos de marcação que definem partes do documento, podendo ser de abertura/fechamento ou auto-fechamento.",
+  "exemplo": "<h1>Título</h1> (fechamento) <br> (auto-fechamento)",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Elementos",
+  "explicacao": "Combinação de tags e seu conteúdo, formando as estruturas lógicas do documento.",
+  "exemplo": "<p>Este é um parágrafo</p> é um elemento p",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Atributos",
+  "explicacao": "Informações adicionais fornecidas às tags para alterar seu comportamento ou fornecer metadados.",
+  "exemplo": "<img src=\"imagem.jpg\" alt=\"Descrição\">",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Títulos",
+  "explicacao": "Elementos que definem títulos e subtítulos em diferentes níveis de importância, de h1 a h6.",
+  "exemplo": "<h1>Título Principal</h1><h2>Subtítulo</h2>",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Parágrafos",
+  "explicacao": "Elemento que representa um bloco de texto separado verticalmente de outros blocos.",
+  "exemplo": "<p>Este é um parágrafo de texto.</p>",
+  "summaryFile": "lm-html-01-estrutura.summary.json",
+  "titulo": "HTML - Estrutura Básica, Títulos e Parágrafos"
+ },
+ {
+  "conceito": "Listas não-ordenadas",
+  "explicacao": "Listas cuja ordem dos itens não é relevante, exibidas com marcadores como pontos, círculos ou quadrados.",
+  "exemplo": "<ul><li>Item 1</li><li>Item 2</li></ul>",
+  "summaryFile": "lm-html-02-listas.summary.json",
+  "titulo": "HTML - Listas"
+ },
+ {
+  "conceito": "Listas ordenadas",
+  "explicacao": "Listas com itens que seguem uma sequência específica, exibidos com numeração, letras ou algarismos romanos.",
+  "exemplo": "<ol><li>Primeiro item</li><li>Segundo item</li></ol>",
+  "summaryFile": "lm-html-02-listas.summary.json",
+  "titulo": "HTML - Listas"
+ },
+ {
+  "conceito": "Listas de definição",
+  "explicacao": "Listas usadas para exibir termos e suas respectivas definições.",
+  "exemplo": "<dt>Termo</dt><dd>Definição do termo</dd>",
+  "summaryFile": "lm-html-02-listas.summary.json",
+  "titulo": "HTML - Listas"
+ },
+ {
+  "conceito": "Elemento <li>",
+  "explicacao": "Representa um item de lista, que deve estar contido em uma lista ordenada ou não-ordenada.",
+  "exemplo": "<li>Item da lista</li>",
+  "summaryFile": "lm-html-02-listas.summary.json",
+  "titulo": "HTML - Listas"
+ },
+ {
+  "conceito": "Listas aninhadas",
+  "explicacao": "Técnica de incluir uma lista dentro de outra, útil para criar hierarquias ou subcategorias.",
+  "exemplo": "<ul><li>Item principal<ol><li>Subitem</li></ol></li></ul>",
+  "summaryFile": "lm-html-02-listas.summary.json",
+  "titulo": "HTML - Listas"
+ },
+ {
+  "conceito": "Elemento <a> e atributo href",
+  "explicacao": "Um hyperlink é criado envolvendo o texto (ou outro conteúdo) que se quer transformar em link dentro de um elemento <a>, com o atributo href contendo a URL de destino.",
+  "exemplo": "<p>Link para <a href=\"https://ifpb.edu.br\">página do IFPB</a></p>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "Caminho no mesmo diretório",
+  "explicacao": "Se o arquivo vinculado está no mesmo diretório do documento atual, basta especificar o nome do arquivo.",
+  "exemplo": "<a href=\"gato.jpg\">Link para uma foto de gato</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "Caminho em subdiretório (abaixo)",
+  "explicacao": "Se o arquivo está em um diretório abaixo do documento atual, especifica-se o diretório e então o nome do arquivo, separados por /.",
+  "exemplo": "<a href=\"imagens/gato.jpg\">Link para uma foto de gato</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "Caminho em diretório paralelo (subir com ..)",
+  "explicacao": "Se o arquivo está em um diretório paralelo ao do documento atual, é preciso subir um nível com dois pontos (..), entrar no diretório do arquivo e então indicar o nome dele.",
+  "exemplo": "<a href=\"../imagens/gato.jpg\">Link para uma foto de gato</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "URL absolto",
+  "explicacao": "Aponta para um local definido por sua localização absoluta na web, a partir do nome do domínio (inclui o protocolo).",
+  "exemplo": "<a href=\"http://www.ifpb.edu.br\">IFPB</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "URL relativo",
+  "explicacao": "Aponta para um local relativo ao arquivo do qual você está vinculando. Ex.: contato.html faz o navegador buscar essa página no mesmo diretório da página exibida.",
+  "exemplo": "<a href=\"contato.html\">Contato</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "Atributo download",
+  "explicacao": "Quando o recurso vinculado deve ser baixado em vez de aberto no navegador, usa-se o atributo download para fornecer um nome de arquivo padrão.",
+  "exemplo": "<a href=\"https://code.visualstudio.com/...\" download=\"visual-studio-code.exe\">Visual Studio Code</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "Atributo target",
+  "explicacao": "Especifica ONDE o hyperlink deve abrir. Valores: _blank (nova aba), _self (padrão, mesma aba) e framename (qualquer nome escolhido).",
+  "exemplo": "<a href=\"https://ifpb.edu.br\" target=\"_blank\">Abrir em nova aba</a>",
+  "summaryFile": "lm-html-03-hyperlinks.summary.json",
+  "titulo": "HTML - Hyperlinks (Aula 03)"
+ },
+ {
+  "conceito": "Elemento <img>",
+  "explicacao": "O elemento HTML <img> representa a inserção de imagem no documento — uma referência para uma imagem que existe independentemente do documento HTML. É um elemento que NÃO necessita de fechamento e exibe o arquivo indicado em src, desde que…",
+  "exemplo": "<img src=\"gato.jpg\" />",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Atributo alt",
+  "explicacao": "Mostra um texto alternativo caso não seja possível exibir a imagem (arquivo ausente ou leitor de tela).",
+  "exemplo": "<img src=\"gato.jpg\" alt=\"Um gato\" />",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Atributos width e height",
+  "explicacao": "Definem largura e altura da imagem. Definindo apenas um deles, a imagem é redimensionada proporcionalmente.",
+  "exemplo": "<img src=\"gato.jpg\" alt=\"Um gato\" width=\"300\" />",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "<figure> e <figcaption>",
+  "explicacao": "<figure> marca uma unidade de conteúdo e, opcionalmente, uma legenda para o conteúdo; a legenda fica no <figcaption>. Deve ser utilizado junto com o <figcaption>.",
+  "exemplo": "<figure> <img src=\"gato.jpg\" alt=\"Um gato\" /> <figcaption>Um gato incrível</figcaption> </figure>",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Imagem como hyperlink",
+  "explicacao": "O elemento <img> pode ser usado com hyperlinks: basta envolvê-lo em um elemento <a> — ao clicar na imagem, o usuário vai para o link.",
+  "exemplo": "<a href=\"https://youtube.com/watch?v=ILQTZCb7-Uw\"> <img src=\"gato.jpg\" alt=\"Um gato\" /> </a>",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Elemento <source> dentro de <audio> e <video>",
+  "explicacao": "Cada elemento <audio> ou <video> tem dentro dele um elemento <source>, que indica qual arquivo de áudio ou vídeo deve ser reproduzido.",
+  "exemplo": "<video controls> <source src=\"bigbuckbunny.mp4\"> </video>",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Atributos do <video>",
+  "explicacao": "controls exibe os controles (play, pause, volume, tela cheia); autoplay inicia a reprodução ao carregar a página — atualmente só funciona junto com muted; muted inibe o som; poster define uma imagem fixa exibida enquanto o vídeo não…",
+  "exemplo": "<video controls poster=\"video_poster.jpg\"> <source src=\"video.mp4\"> </video>",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Atributos do <audio>",
+  "explicacao": "controls exibe o tocador de música (play, pause, volume); autoplay reproduz assim que a página carrega (com uma série de restrições nos navegadores); muted inibe o som.",
+  "exemplo": "<audio> <source src=\"dttm.mp3\"> </audio>",
+  "summaryFile": "lm-html-04-midias.summary.json",
+  "titulo": "HTML - Mídias: Imagens, Áudio e Vídeo (Aula 04)"
+ },
+ {
+  "conceito": "Tag <form>, action e method",
+  "explicacao": "Todo formulário começa e termina com <form>. O atributo action indica para onde os dados devem ser enviados (ex.: /pagina-processa-dados). O method define o modo de envio: GET ou POST.",
+  "exemplo": "<form method=\"post\" action=\"/pagina-processa-dados\"> </form>",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "GET vs POST",
+  "explicacao": "Use GET para buscas ou informações que não são sensíveis ou confidenciais (os dados aparecem na URL). Use POST quando as informações forem sensíveis/confidenciais (vão no corpo da requisição).",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Input e o atributo type",
+  "explicacao": "O <input> é o elemento mais importante dos formulários: serve de entrada para vários tipos de informação, e a exibição varia conforme o type — text, email, date, tel, url, search e password.",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Label e o atributo for",
+  "explicacao": "A <label> vincula uma descrição a um campo: o atributo for faz referência ao id do campo correspondente (ex.: <label for=\"email\"> referencia o campo com id=\"email\").",
+  "exemplo": "<label for=\"email\">E-mail:</label> <input id=\"email\" name=\"email\" type=\"email\" />",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Select e option (drop-down)",
+  "explicacao": "O <select> define uma lista de opções em componente drop-down, junto com a tag <option> (cada option tem um value e o texto exibido).",
+  "exemplo": "<select name=\"carros\"> <option value=\"bmw\">BMW</option> <option value=\"vw\">VW</option> <option value=\"fiat\">Fiat</option> <option value=\"audi\">Audi</option>…",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Textarea (várias linhas)",
+  "explicacao": "Define campo de texto de mais de uma linha (diferente do input type=\"text\"). O conteúdo entre a tag de abertura e fechamento já inicia a caixa com um texto predefinido (ou vazia).",
+  "exemplo": "<textarea name=\"message\"> Oi mãe, tudo bem? </textarea>",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Os 3 tipos de botão",
+  "explicacao": "submit envia os dados do formulário ao servidor — se o type for omitido dentro de um <form>, o botão é submit POR PADRÃO. reset limpa os campos restaurando os valores iniciais. button é genérico, sem comportamento padrão — fica a cargo de…",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Componentes checáveis",
+  "explicacao": "São os de estado alternável ao clicar: Checkbox e Radio Button. No Radio, TODOS os name devem ser iguais para que não seja possível selecionar dois do mesmo grupo (o checkbox permite múltiplas marcas).",
+  "summaryFile": "lm-html-06-formularios.summary.json",
+  "titulo": "HTML — Formulários (slides da aula 06)"
+ },
+ {
+  "conceito": "Metadados = dados sobre dados",
+  "explicacao": "Informações sobre a própria informação: estruturas que DESCREVEM características de uma fonte, sem ser o conteúdo dela. No HTML vivem no <head> e não são renderizados na página.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "HEAD vs BODY",
+  "explicacao": "O <head> contém informações que não são transpostas visivelmente para o usuário/leitor do documento. O <body> é exibido na página quando carregada no navegador. O trabalho do <head> é conter metadados sobre o documento.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "<h1> vs <title> (pegadinha nº 1)",
+  "explicacao": "O <h1> aparece NA página quando carregada — geralmente usado uma vez por página, marcando o título do conteúdo (da história, da notícia). O <title> é um metadado que representa o título de TODO o documento HTML (não do conteúdo). São…",
+  "exemplo": "Na busca 'portal do estudante ifpb': o link 'Portal do Estudante | IFPB' do Google vem do <title>; o título grande dentro da página do IFPB é o <h1>.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "<title> é dispensado dependendo do contexto",
+  "explicacao": "Dependendo de onde a página é visualizada, o elemento title é dispensado, pois não faz parte do corpo do texto — no Chrome Desktop ele só aparece na aba; no Safari iOS, no topo do navegador.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "O elemento <meta>",
+  "explicacao": "Maneira oficial de adicionar metadados a um documento HTML. Outras tags também podem ser pensadas como metadados, mas <meta> é o mecanismo dedicado.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "charset=\"utf-8\"",
+  "explicacao": "Especifica a codificação de caracteres do documento — o conjunto de caracteres autorizado. utf-8 é universal: inclui praticamente qualquer caractere de qualquer linguagem humana (acentos, emojis etc.).",
+  "exemplo": "<meta charset=\"utf-8\">",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "Par de atributos name + content",
+  "explicacao": "Muitos <meta> incluem name e content: o name especifica o TIPO de elemento meta (que tipo de informação contém) e o content especifica o CONTEÚDO real do meta.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "author e description",
+  "explicacao": "Dois meta-elementos úteis: definem o autor da página e fornecem uma descrição concisa da página (é a description que o Google costuma mostrar sob o título do resultado).",
+  "exemplo": "<meta name=\"author\" content=\"Diogo\"> <meta name=\"description\" content=\"Site da disciplina\">",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "Keywords",
+  "explicacao": "Metatag com as palavras-chave relativas ao assunto do site.",
+  "exemplo": "<meta name=\"keywords\" content=\"html, linguagens de marcação\">",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "Favicon",
+  "explicacao": "Pequeno ícone quadrado de, normalmente, 16×16 pixels, exibido na aba/marcações do navegador. Adicionado com <link> (rel=\"icon\"), não com <meta>.",
+  "exemplo": "<link rel=\"icon\" href=\"icone.png\">",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "Metadados e atividades integradas",
+  "explicacao": "Metadados são úteis para que OUTROS sites possam ler informações e realizar atividades integradas — ex.: colar um link do Spotify no Facebook gera um cartão com capa, título e artista, lidos dos metadados da página.",
+  "summaryFile": "lm-html-07-metadados.summary.json",
+  "titulo": "HTML — Metadados (slides da aula 07)"
+ },
+ {
+  "conceito": "Atributos e Valores",
+  "explicacao": "Propriedades adicionais fornecidas nas tags de início de elementos HTML para fornecer mais informações sobre eles, como formatação ou comportamento específico.",
+  "exemplo": "<html lang=\"pt-br\">",
+  "summaryFile": "lm-html-atributos.summary.json",
+  "titulo": "Atributos e Valores em HTML"
+ },
+ {
+  "conceito": "Atributos Globais",
+  "explicacao": "Atributos que podem ser usados em qualquer elemento HTML, como 'id' e 'class', que são comumente utilizados para estilização com CSS.",
+  "exemplo": "<div id=\"principal\" class=\"conteudo\">",
+  "summaryFile": "lm-html-atributos.summary.json",
+  "titulo": "Atributos e Valores em HTML"
+ },
+ {
+  "conceito": "Atributos data-",
+  "explicacao": "Atributos personalizados que permitem armazenar informações extras em elementos HTML padrão, sem representação visual na página.",
+  "exemplo": "<li data-origem=\"reino-unido\">Arctic Monkeys</li>",
+  "summaryFile": "lm-html-atributos.summary.json",
+  "titulo": "Atributos e Valores em HTML"
+ },
+ {
+  "conceito": "HTML (HyperText Markup Language)",
+  "explicacao": "Linguagem de marcação de hipertexto usada para estruturar conteúdo na web",
+  "exemplo": "<!DOCTYPE html>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Estrutura básica",
+  "explicacao": "Esqueleto mínimo de um documento HTML composto por declaração do documento, html, head e body",
+  "exemplo": "<!DOCTYPE html><html lang=\"pt-br\"><head><meta charset=\"utf-8\"/><title>Título</title></head><body></body></html>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Tag DOCTYPE",
+  "explicacao": "Declaração que informa ao navegador que o documento é HTML, não sendo uma tag HTML em si",
+  "exemplo": "<!DOCTYPE html>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Tag html",
+  "explicacao": "Elemento raiz que contém todo o conteúdo do documento HTML",
+  "exemplo": "<html lang=\"pt-br\"></html>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Tag head",
+  "explicacao": "Contém metadados e informações que não são exibidas diretamente no conteúdo visível",
+  "exemplo": "<head><meta charset=\"utf-8\"/><title>Título da página</title></head>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Tag body",
+  "explicacao": "Contém todo o conteúdo visível da página web que será exibido ao usuário",
+  "exemplo": "<body><h1>Título principal</h1><p>Conteúdo do parágrafo</p></body>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Meta tag charset",
+  "explicacao": "Define o conjunto de caracteres do documento, permitindo a exibição de diferentes idiomas e símbolos",
+  "exemplo": "<meta charset=\"utf-8\"/>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Tag title",
+  "explicacao": "Define o título do documento, geralmente exibido na aba do navegador",
+  "exemplo": "<title>Meu Site Pessoal</title>",
+  "summaryFile": "lm-html-introducao.summary.json",
+  "titulo": "Estrutura Básica de HTML"
+ },
+ {
+  "conceito": "Lista não ordenada",
+  "explicacao": "Lista onde a ordem dos itens não é relevante, marcada com círculos ou pontos na frente de cada item.",
+  "exemplo": "<ul><li>Item 1</li><li>Item 2</li></ul>",
+  "summaryFile": "lm-html-listas.summary.json",
+  "titulo": "Tipos de Listas em HTML"
+ },
+ {
+  "conceito": "Lista ordenada",
+  "explicacao": "Lista onde a ordem dos itens é importante, marcada com números ou sequência lógica.",
+  "exemplo": "<ol><li>Primeiro passo</li><li>Segundo passo</li></ol>",
+  "summaryFile": "lm-html-listas.summary.json",
+  "titulo": "Tipos de Listas em HTML"
+ },
+ {
+  "conceito": "Lista de definição",
+  "explicacao": "Lista usada para termos e suas descrições, funcionando como um glossário.",
+  "exemplo": "<dl><dt>Termo</dt><dd>Descrição do termo</dd></dl>",
+  "summaryFile": "lm-html-listas.summary.json",
+  "titulo": "Tipos de Listas em HTML"
+ },
+ {
+  "conceito": "Tags",
+  "explicacao": "Símbolos que delimitam diferentes tipos de conteúdo em um documento HTML, informando ao navegador como exibir esses elementos.",
+  "exemplo": "<title> para definir o título da página",
+  "summaryFile": "lm-html-tags.summary.json",
+  "titulo": "HTML: Tags e Elementos Básicos"
+ },
+ {
+  "conceito": "Elementos",
+  "explicacao": "Combinação de uma tag de início, conteúdo e tag de fechamento que formam uma unidade de significado no documento HTML.",
+  "exemplo": "<title>Conteúdo do título</title>",
+  "summaryFile": "lm-html-tags.summary.json",
+  "titulo": "HTML: Tags e Elementos Básicos"
+ },
+ {
+  "conceito": "Elementos vazios",
+  "explicacao": "Elementos que não possuem conteúdo e não requerem tag de fechamento, ou podem usar uma forma auto-fechada.",
+  "exemplo": "<br> ou <br /> para quebra de linha",
+  "summaryFile": "lm-html-tags.summary.json",
+  "titulo": "HTML: Tags e Elementos Básicos"
+ },
+ {
+  "conceito": "Títulos em HTML",
+  "explicacao": "Elementos que representam títulos e subtítulos, com seis níveis hierárquicos (h1 a h6), onde h1 é o mais importante e maior, e h6 é o menos importante e menor.",
+  "exemplo": "<h1>Top 3 bandas de indie rock</h1>",
+  "summaryFile": "lm-html-titulos.summary.json",
+  "titulo": "Títulos e Parágrafos em HTML"
+ },
+ {
+  "conceito": "Parágrafos em HTML",
+  "explicacao": "Elemento que representa um bloco de texto, separado de outros blocos por espaços verticais e/ou recuo de primeira linha.",
+  "exemplo": "<p>Indie rock é um gênero musical surgido na década de 1980.</p>",
+  "summaryFile": "lm-html-titulos.summary.json",
+  "titulo": "Títulos e Parágrafos em HTML"
+ },
+ {
+  "conceito": "Empresa Júnior",
+  "explicacao": "Organização sem fins lucrativos gerida por estudantes universitários, que oferece serviços reais para o mercado enquanto proporciona experiência profissional aos membros.",
+  "exemplo": "Loopis Jr, associada ao curso de Análise e Desenvolvimento de Sistemas do IFPB.",
+  "summaryFile": "loopis-empresa-junior.summary.json",
+  "titulo": "loopis-empresa-junior.summary.json"
+ },
+ {
+  "conceito": "Leads",
+  "explicacao": "Potenciais clientes ou interessados em adquirir os serviços da empresa.",
+  "exemplo": "O setor Comercial da Loopis é responsável por captar e analisar os leads.",
+  "summaryFile": "loopis-empresa-junior.summary.json",
+  "titulo": "loopis-empresa-junior.summary.json"
+ },
+ {
+  "conceito": "Consultor",
+  "explicacao": "Cargo efetivo de um membro da empresa júnior, após o período de experiência como Trainee.",
+  "exemplo": "João Batista, Victor Batista e José Wendell são exemplos de consultores na Loopis.",
+  "summaryFile": "loopis-empresa-junior.summary.json",
+  "titulo": "loopis-empresa-junior.summary.json"
+ },
+ {
+  "conceito": "Matriz",
+  "explicacao": "Uma matriz m × n é uma tabela de números reais com m linhas e n colunas.",
+  "exemplo": "A = [[3, 5, -1], [0, 4/5, √(2)]] é uma matriz 2 × 3.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Elemento de uma matriz",
+  "explicacao": "Cada elemento de uma matriz é indicado por a_{ij}, onde i é o número da linha e j é o número da coluna.",
+  "exemplo": "Na matriz [[1, 2], [3, 4]], o elemento a_{12} é 2.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz linha",
+  "explicacao": "É uma matriz com apenas uma linha, do tipo 1 × n.",
+  "exemplo": "A = [[0, -1, π]] é uma matriz linha.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz coluna",
+  "explicacao": "É uma matriz com apenas uma coluna, do tipo m × 1.",
+  "exemplo": "A = [[5], [1], [-3]] é uma matriz coluna.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz quadrada",
+  "explicacao": "É uma matriz com igual número de linhas e colunas (n × n).",
+  "exemplo": "A = [[-1, 5], [3, 2]] é uma matriz quadrada de ordem 2.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz diagonal",
+  "explicacao": "É uma matriz quadrada onde todos os elementos fora da diagonal principal são zero.",
+  "exemplo": "A = [[-1, 0], [0, 3]] é uma matriz diagonal.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz identidade",
+  "explicacao": "É uma matriz quadrada onde todos os elementos da diagonal principal são 1 e os demais são 0.",
+  "exemplo": "I_2 = [[1, 0], [0, 1]] é a matriz identidade de ordem 2.",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz transposta",
+  "explicacao": "A transposta de uma matriz A = (a_{ij})_{m×n} é A^t = (a_{ji})_{n×m}, onde as linhas se tornam colunas e vice-versa.",
+  "exemplo": "Se A = [[1, 2], [3, 4]], então A^t = [[1, 3], [2, 4]].",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz inversa",
+  "explicacao": "Para uma matriz quadrada A, sua inversa A^{-1} é tal que AA^{-1} = A^{-1}A = I_n.",
+  "exemplo": "A inversa de [[1, 3], [2, 7]] é [[7, -3], [-2, 1]].",
+  "summaryFile": "mat-00-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 00 (Slides)"
+ },
+ {
+  "conceito": "Matriz",
+  "explicacao": "Arranjo retangular de números dispostos em linhas e colunas, representado por (a_{ij})_{m×n}, onde m é o número de linhas e n o número de colunas.",
+  "exemplo": "A = [[1, 2], [3, 4]] é uma matriz 2×2",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Elemento de matriz",
+  "explicacao": "Cada número a_{ij} localizado na i-ésima linha e j-ésima coluna da matriz.",
+  "exemplo": "Na matriz [[1, 2], [3, 4]], o elemento a_{12} é 2",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Matriz transposta",
+  "explicacao": "Matriz obtida trocando linhas por colunas da matriz original, denotada por A^t ou A'.",
+  "exemplo": "Se A = [[1, 2], [3, 4]], então A^t = [[1, 3], [2, 4]]",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Matriz nula",
+  "explicacao": "Matriz onde todos os elementos são zero, denotada por 0_{m×n}.",
+  "exemplo": "0_{2×2} = [[0, 0], [0, 0]]",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Matriz identidade",
+  "explicacao": "Matriz quadrada com elementos na diagonal principal iguais a 1 e os demais iguais a 0, denotada por I_n.",
+  "exemplo": "I_2 = [[1, 0], [0, 1]]",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Matriz simétrica",
+  "explicacao": "Matriz quadrada onde a_{ij} = a_{ji} para todos i, j, ou seja, A = A^t.",
+  "exemplo": "A = [[1, 2], [2, 3]] é simétrica",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Matriz antissimétrica",
+  "explicacao": "Matriz quadrada onde a_{ij} = -a_{ji} para todos i, j, com elementos da diagonal principal nulos.",
+  "exemplo": "A = [[0, -2], [2, 0]] é antissimétrica",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Matriz diagonal",
+  "explicacao": "Matriz quadrada onde todos os elementos fora da diagonal principal são nulos.",
+  "exemplo": "A = [[2, 0], [0, 3]] é diagonal",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Inversa de matriz",
+  "explicacao": "Matriz A^{-1} tal que AA^{-1} = A^{-1}A = I_n, onde A é uma matriz quadrada inversível.",
+  "summaryFile": "mat-01-matrizes.summary.json",
+  "titulo": "Matrizes — Aula 01 (Lista)"
+ },
+ {
+  "conceito": "Proposição",
+  "explicacao": "Enunciado que pode ser classificado como verdadeiro (V) ou falso (F).",
+  "exemplo": "5 · 4 = 20 é uma proposição verdadeira.",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Conectivos lógicos",
+  "explicacao": "Operadores que combinam proposições formando novas proposições.",
+  "exemplo": "∼ (negação), ∧ (conjunção), ∨ (disjunção), → (condicional), ↔ (bicondicional).",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Tabela-verdade",
+  "explicacao": "Tabela que mostra o valor lógico de uma proposição composta para todas as combinações possíveis de valores das proposições simples.",
+  "exemplo": "Para p → q, tabela mostra F apenas quando p=V e q=F.",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Tautologia",
+  "explicacao": "Proposição que sempre é verdadeira, independentemente dos valores das proposições simples.",
+  "exemplo": "p ∨ ∼p é uma tautologia.",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Contradição",
+  "explicacao": "Proposição que sempre é falsa, independentemente dos valores das proposições simples.",
+  "exemplo": "p ∧ ∼p é uma contradição.",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Contingência",
+  "explicacao": "Proposição que pode ser verdadeira ou falsa dependendo dos valores das proposições simples.",
+  "exemplo": "p ∨ q pode ser V ou F dependendo de p e q.",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Negação de proposições",
+  "explicacao": "Operação que inverte o valor lógico de uma proposição.",
+  "exemplo": "Negação de 'p: 2+2=4' é '∼p: 2+2≠4'.",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Argumento lógico",
+  "explicacao": "Conjunto de premissas que levam a uma conclusão através de inferências válidas.",
+  "exemplo": "Se p→q e p, então q (modus ponens).",
+  "summaryFile": "mat-logica-lista.summary.json",
+  "titulo": "Lógica Matemática — Lista de Exercícios"
+ },
+ {
+  "conceito": "Proposição",
+  "explicacao": "É uma oração declarativa que pode ser classificada como verdadeira (V) ou falsa (F).",
+  "exemplo": "Nove é diferente de cinco (9 ≠ 5).",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Negação",
+  "explicacao": "É uma operação lógica que inverte o valor lógico de uma proposição, indicada por ∼p.",
+  "exemplo": "p: 7 > 3; ∼p: 7 ≤ 3.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Conjunção (∧)",
+  "explicacao": "Operação lógica que é verdadeira apenas quando ambas as proposições são verdadeiras.",
+  "exemplo": "p: 2 > 0; q: 2 ≠ 1; p ∧ q: 2 > 0 e 2 ≠ 1.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Disjunção (∨)",
+  "explicacao": "Operação lógica que é verdadeira quando pelo menos uma das proposições é verdadeira.",
+  "exemplo": "p: 5 > 0; q: 5 > 1; p ∨ q: 5 > 0 ou 5 > 1.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Condicional (→)",
+  "explicacao": "Operação lógica que é falsa apenas quando a primeira proposição é verdadeira e a segunda é falsa.",
+  "exemplo": "p: 2 é divisor de 4; q: 4 é divisor de 20; p → q: se 2 é divisor de 4, então 4 é divisor de 20.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Bicondicional (↔)",
+  "explicacao": "Operação lógica que é verdadeira quando ambas as proposições têm o mesmo valor lógico.",
+  "exemplo": "p: 6 = 12 : 3; q: 3 × 6 = 18; p ↔ q: 6 = 12 : 3 ↔ 3 × 6 = 18.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Tautologia",
+  "explicacao": "É uma proposição composta que é sempre verdadeira, independentemente dos valores lógicos de suas componentes.",
+  "exemplo": "p ∨ ∼p é sempre verdadeira.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Contradição",
+  "explicacao": "É uma proposição composta que é sempre falsa, independentemente dos valores lógicos de suas componentes.",
+  "exemplo": "p ∧ ∼p é sempre falsa.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Tabela-verdade",
+  "explicacao": "É uma tabela que mostra todos os valores lógicos possíveis de uma proposição composta.",
+  "exemplo": "Tabela para p ∧ q mostra V apenas quando p e q são ambos V.",
+  "summaryFile": "mat-logica-slides.summary.json",
+  "titulo": "Noções de Lógica"
+ },
+ {
+  "conceito": "Álgebra Matricial",
+  "explicacao": "Estudo de matrizes, operações entre elas, determinantes e sistemas lineares, utilizados para resolver problemas algébricos e geométricos.",
+  "exemplo": "Resolver um sistema de equações lineares usando a matriz aumentada e o método de Gauss-Jordan.",
+  "summaryFile": "matematica-ementa.summary.json",
+  "titulo": "matematica-ementa.summary.json"
+ },
+ {
+  "conceito": "Lógica Matemática",
+  "explicacao": "Fundamentos do raciocínio lógico, incluindo proposições, conectivos, tabelas verdade, tautologias e quantificadores.",
+  "exemplo": "Construir uma tabela verdade para a proposição composta '(P ∧ Q) → R'.",
+  "summaryFile": "matematica-ementa.summary.json",
+  "titulo": "matematica-ementa.summary.json"
+ },
+ {
+  "conceito": "Teoria dos Conjuntos",
+  "explicacao": "Conceitos básicos de conjuntos, relações entre elementos, operações com conjuntos e conjuntos numéricos.",
+  "exemplo": "Representar a união de dois conjuntos A = {1, 2, 3} e B = {3, 4, 5}, resultando em A ∪ B = {1, 2, 3, 4, 5}.",
+  "summaryFile": "matematica-ementa.summary.json",
+  "titulo": "matematica-ementa.summary.json"
+ },
+ {
+  "conceito": "Funções",
+  "explicacao": "Estudo de funções, incluindo definição, notação, gráficos, funções compostas, inversas e tipos específicas como polinomiais, exponenciais e trigonométricas.",
+  "exemplo": "Determinar o domínio e a imagem da função f(x) = x² + 2x + 1.",
+  "summaryFile": "matematica-ementa.summary.json",
+  "titulo": "matematica-ementa.summary.json"
+ },
+ {
+  "conceito": "PNAAT",
+  "explicacao": "Programa Nacional de Aprendizado Acelerado em Tecnologia, focado em capacitação em IoT e IA na borda.",
+  "summaryFile": "pnaat-parceiros-cajazeiras.summary.json",
+  "titulo": "pnaat-parceiros-cajazeiras.summary.json"
+ },
+ {
+  "conceito": "Trilha de Fundamentos Edge AI",
+  "explicacao": "Conjunto de cursos EaD sobre Python, Sistemas Embarcados e Inteligência Artificial, necessário para avançar nas fases presenciais.",
+  "exemplo": "Fundamentos em Python (8h), Análise Preditiva de Dados (5h)",
+  "summaryFile": "pnaat-parceiros-cajazeiras.summary.json",
+  "titulo": "pnaat-parceiros-cajazeiras.summary.json"
+ },
+ {
+  "conceito": "Residência Colaborativa",
+  "explicacao": "Fase de 3 meses onde o aluno trabalha em uma empresa PME, aplicando os conhecimentos em projetos reais com foco em IoT e IA.",
+  "exemplo": "Bolsa de R$ 3.600/mês por 3 meses",
+  "summaryFile": "pnaat-parceiros-cajazeiras.summary.json",
+  "titulo": "pnaat-parceiros-cajazeiras.summary.json"
+ },
+ {
+  "conceito": "5 Gerações de Computadores",
+  "explicacao": "Cada geração marcada por características, problemas e dispositivos específicos que evoluíram ao longo do tempo (válvulas → transistores → circuitos integrados → microprocessadores → IA/quantum).",
+  "exemplo": "1ª geração: ENIAC (válvulas, calor, tamanho); 2ª: transistores; 3ª: CI; 4ª: microprocessadores; 5ª: IA",
+  "summaryFile": "prova-fund-av1.summary.json",
+  "titulo": "Prova Av1 - Fundamentos da Computação (Prof. André)"
+ },
+ {
+  "conceito": "Pioneiros da Computação",
+  "explicacao": "Babbage (máquina analítica), Ada Lovelace (primeira programadora), Alan Turing (máquina de Turing, criptografia WWII), Von Neumann (arquitetura de computadores).",
+  "exemplo": "Arquitetura de Von Neumann: CPU + memória + entrada/saída - base de todos os computadores modernos",
+  "summaryFile": "prova-fund-av1.summary.json",
+  "titulo": "Prova Av1 - Fundamentos da Computação (Prof. André)"
+ },
+ {
+  "conceito": "Conversão de Bases",
+  "explicacao": "Converter números entre binário (base 2), octal (base 8), decimal (base 10) e hexadecimal (base 16). Cada base tem dígitos próprios.",
+  "exemplo": "14(hex) = 1×16 + 4 = 20(dec) = 10100(bin). CAFA(hex) = 12×4096 + 10×256 + 15×16 + 10 = 51962(dec)",
+  "summaryFile": "prova-fund-av1.summary.json",
+  "titulo": "Prova Av1 - Fundamentos da Computação (Prof. André)"
+ },
+ {
+  "conceito": "Aritmética Binária",
+  "explicacao": "Realizar operações aritméticas (multiplicação e divisão) convertendo de decimal para binário primeiro.",
+  "exemplo": "174 × 13: converter ambos para binário, multiplicar como decimal binário, obter resultado",
+  "summaryFile": "prova-fund-av1.summary.json",
+  "titulo": "Prova Av1 - Fundamentos da Computação (Prof. André)"
+ },
+ {
+  "conceito": "Operações com Bases Mistas",
+  "explicacao": "Resolver problemas que envolvem múltiplas bases: converter tudo para uma base comum (geralmente decimal), operar, e converter o resultado final.",
+  "exemplo": "1710(base 8) ÷ (1111001(base 2) + 2(base 10)) → converter tudo p/ decimal → dividir → resultado em hex",
+  "summaryFile": "prova-fund-av1.summary.json",
+  "titulo": "Prova Av1 - Fundamentos da Computação (Prof. André)"
+ },
+ {
+  "conceito": "Aproveitamento de competências",
+  "explicacao": "Processo que permite ao aluno obter dispensa de disciplinas por meio da comprovação de conhecimentos prévios.",
+  "exemplo": "Resolução AR Nº 79/2021",
+  "summaryFile": "regulamento-didatico.summary.json",
+  "titulo": "regulamento-didatico.summary.json"
+ },
+ {
+  "conceito": "SUAP",
+  "explicacao": "Sistema Universitário de Atividades Acadêmicas e Administrativas, plataforma para trâmites acadêmicos.",
+  "exemplo": "Primeiro acesso e tutorial disponíveis no portal IFPB",
+  "summaryFile": "regulamento-didatico.summary.json",
+  "titulo": "regulamento-didatico.summary.json"
+ },
+ {
+  "conceito": "PSE",
+  "explicacao": "Processo Seletivo Específico para ingresso em cursos superiores do IFPB.",
+  "exemplo": "Resolução AR Nº 16/2022",
+  "summaryFile": "regulamento-didatico.summary.json",
+  "titulo": "regulamento-didatico.summary.json"
+ },
+ {
+  "conceito": "CLAI",
+  "explicacao": "Comissão de Acessibilidade e Inclusão, apoio a alunos com necessidades específicas.",
+  "exemplo": "Resolução AR Nº 57/2023",
+  "summaryFile": "regulamento-didatico.summary.json",
+  "titulo": "regulamento-didatico.summary.json"
+ },
+ {
+  "conceito": "Conselho Disciplinar",
+  "explicacao": "Colegiado responsável por acompanhar e julgar processos disciplinares do corpo discente do IFPB, composto por representantes da coordenação, turma, COPED e CAEST.",
+  "exemplo": "Um discente que cometer uma falta disciplinar terá seu caso analisado pelo Conselho Disciplinar do respectivo campus.",
+  "summaryFile": "regulamento-disciplinar.summary.json",
+  "titulo": "regulamento-disciplinar.summary.json"
+ },
+ {
+  "conceito": "Direitos do Discente",
+  "explicacao": "Privilégios garantidos ao estudante, como tratamento igualitário, direito à defesa, acesso a serviços de apoio e participação em atividades acadêmicas.",
+  "exemplo": "Um discente pode recorrer de uma medida disciplinar garantindo seu direito de ampla defesa.",
+  "summaryFile": "regulamento-disciplinar.summary.json",
+  "titulo": "regulamento-disciplinar.summary.json"
+ },
+ {
+  "conceito": "Deveres do Discente",
+  "explicacao": "Obrigações do estudante, como cumprir os regulamentos, manter comportamento respeitoso e ser assíduo às aulas.",
+  "exemplo": "Faltar sem justificativa a aulas programadas configura descumprimento de dever.",
+  "summaryFile": "regulamento-disciplinar.summary.json",
+  "titulo": "regulamento-disciplinar.summary.json"
+ },
+ {
+  "conceito": "Medidas Disciplinares",
+  "explicacao": "Sanções aplicadas ao discente em casos de indisciplina, como advertência ou suspensão.",
+  "exemplo": "Um estudante que perturbar a ordem em sala de aula pode receber uma advertência do Conselho Disciplinar.",
+  "summaryFile": "regulamento-disciplinar.summary.json",
+  "titulo": "regulamento-disciplinar.summary.json"
+ },
+ {
+  "conceito": "Teletrabalho (definição do artigo)",
+  "explicacao": "Forma de organização do trabalho em que as atividades são desenvolvidas parcial ou totalmente fora do local convencional da empresa, com auxílio de ferramentas e serviços de telecomunicação (Konradt; Schmook; Malecke, 2000). Estudos…",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Arranjos flexíveis ≠ trabalho flexível",
+  "explicacao": "Arranjos flexíveis modificam local, tempo e organização do trabalho. Trabalho flexível/arranjos de empregos (Cappelli, 1995) se baseia em forças de mercado: subcontratação, trabalho temporário, contratação de grupos. Não confunda na…",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Contexto de trabalho (3 dimensões)",
+  "explicacao": "Ferreira (2017): condições de trabalho (equipamentos, ambiente físico) + organização do trabalho (metas, regras, divisão do trabalho, tempo) + relações socioprofissionais (chefes-subordinados, colegas, usuários).",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Bem-estar no trabalho = afetos",
+  "explicacao": "Paschoal e Tamayo (2008): percepção de realização pessoal + humores/emoções no trabalho. Medido por afeto positivo (alegre, tranquilo) e afeto negativo (irritado, deprimido) — escala 1 a 10 nos últimos 6 meses.",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Desempenho profissional autoavaliado (4 dimensões)",
+  "explicacao": "Coelho Jr. et al. (2010): regulação (contribui para a missão da organização), esforço (grau de esforço/ajustamento), execução/monitoramento (foco no processo) e autogerenciamento (administrar a própria execução).",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Infoproletariado / ciberproletariado",
+  "explicacao": "Antunes e Braga (2009): trabalhadores com tecnologia de ponta e 'suposta autonomia', mas sobrecarregados por excesso de trabalho e cobrança, com individualização e isolamento excessivo — o lado obscuro do trabalho virtual.",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Histórico do Serpro (pioneiro)",
+  "explicacao": "Projeto-Lar (1985, disquetes levados à empresa por falta de comunicação on-line), abandonado, repensado em 1997, piloto efetivo em 2005, normativo revisado em 2012 após a Lei 12.551/2011. ~100 teletrabalhadores regulares antes da pandemia.",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Método da pesquisa",
+  "explicacao": "Estudo de caso único, descritivo e explicativo, recorte transversal, quali+quanti. Questões abertas analisadas com Iramuteq (Classificação Hierárquica Descendente); questões fechadas com estatística descritiva, ANOVA e Testes de…",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ },
+ {
+  "conceito": "Amparo legal do teletrabalho no Brasil",
+  "explicacao": "Lei 12.551/2011 alterou o art. 6º da CLT: sem distinção entre trabalho presencial e a distância. Também: Portarias TCU 139/2009 e 99/2010, Resolução CNJ 227/2015, PL 2723/15.",
+  "summaryFile": "rht-teletrabalho-serpro.summary.json",
+  "titulo": "Teletrabalho na atualidade: impactos no desempenho, bem-estar e contexto de trabalho (RSP, 2021)"
+ }
+]

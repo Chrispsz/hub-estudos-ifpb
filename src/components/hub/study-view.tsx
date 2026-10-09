@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDown,
+  ArrowUpRight,
   Bot,
   BookOpen,
   CalendarCheck,
@@ -17,7 +18,9 @@ import {
   Clock3,
   Code2,
   Copy,
+  Crop,
   Download,
+  FileScan,
   FileText,
   History,
   ImagePlus,
@@ -28,6 +31,7 @@ import {
   Pause,
   PenLine,
   Play,
+  PlayCircle,
   RotateCcw,
   Search,
   SearchX,
@@ -105,19 +109,54 @@ import {
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
 import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
-import { downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
+import { daysUntilDate } from '@/lib/semester';
+import { downscaleCanvas, downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
+import {
+  instantPrintPage,
+  pagePrintLabel,
+  renderPdfPageToCanvas,
+} from '@/lib/pdf-print';
 import { looksFragmentedPaste, normalizePdfPaste } from '@/lib/paste-cleanup';
 import {
   screenCaptureSupported,
   useScreenCapture,
 } from '@/lib/screen-capture';
 import { CaptureCropDialog } from './capture-crop-dialog';
+import { CaptureTidyBanner } from './capture-tidy-banner';
+import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
+import { setEphemeralChatState } from '@/lib/ephemeral-registry';
+import {
+  composerDraftKey,
+  hasComposerDraft,
+  loadComposerDraft,
+  saveComposerDraft,
+} from '@/lib/composer-draft';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
+import { recallPdfPage } from '@/lib/pdf-position';
+import {
+  readerDoorLabel,
+  readerDoorTitle,
+  readerDoorVisible,
+  shouldAutoOpenReader,
+} from '@/lib/study-reader-door';
+import { materialDoorsFor } from '@/lib/study-material-doors';
+import { PdfViewerDialog } from './pdf-viewer-dialog';
+import { MaterialSummaryDialog } from './material-summary-dialog';
+import { VideoPlayerDialog, parseVideoUrl } from './video-player-dialog';
 import { TutorMarkdown } from './tutor-markdown';
+
+// t180 — ÚLTIMO nonce de porta JÁ consumido por esta sessão do navegador.
+// Fora do componente de propósito: o StudyView REMONTA a cada troca de aba,
+// e o nonce da porta persiste no page.tsx — dentro do componente, a volta
+// à aba Estudar reabriria o diálogo (diálogo que volta sozinho é popup,
+// não porta). Módulo sobrevive à remontagem: o MESMO clique não reabre,
+// um NOVO clique (nonce maior) abre de novo.
+let lastReaderNonceConsumed = 0;
 import { CodeLab } from './code-lab';
 
 // ---------- Tipos locais ----------
@@ -250,6 +289,23 @@ const CHAT_SUGGESTIONS = [
   'Como está meu progresso?',
 ];
 
+/** Sugestões da SEMANA DE PROVA (148): os chips do chat sabem do momento —
+ * na janela da Av1 de Matemática, o 1º gesto do aluno é o da prova (escopo,
+ * plano, estado), não o genérico. Fora da janela (passou/não é a disciplina)
+ * voltam os de sempre — depois da prova, é ruído (regra da casa). */
+const EXAM_CHAT_SUGGESTIONS = [
+  `O que cai na Av1 de ${MATH_EXAM_DATE_SHORT}?`,
+  'Monta meu plano de revisão até a prova',
+  'Como está meu progresso?',
+];
+
+/** Janela de prova viva (148): só Matemática, só ATÉ o dia — fonte única
+ * para welcome + chips + escopo do "Me testa" (mesma conta da casa). */
+function mathExamBriefFor(code: string): { daysLeft: number; dateShort: string } | null {
+  if (code !== MATH_EXAM.disciplineCode) return null;
+  const d = daysUntilDate(MATH_EXAM.date);
+  return d >= 0 ? { daysLeft: d, dateShort: MATH_EXAM_DATE_SHORT } : null;
+}
 /** Segundos restantes reais a partir do epoch do fim da fase. */
 function remainingFromEndsAt(endsAt: number): number {
   return Math.max(0, Math.round((endsAt - Date.now()) / 1000));
@@ -333,8 +389,23 @@ function playBeep(silent: boolean) {
   }
 }
 
-function buildWelcome(shortName: string): string {
-  return `Olá! Sou o tutor IA de ${shortName}.\n\nConheço **seu progresso** e os **materiais do Hub** — posso explicar o tópico atual, dar exemplos com código, resolver exercícios passo a passo ou responder o que você precisar. Toque em uma sugestão ou digite sua dúvida.`;
+function buildWelcome(
+  shortName: string,
+  examBrief?: { daysLeft: number; dateShort: string } | null,
+): string {
+  const base = `Olá! Sou o tutor IA de ${shortName}. 🤖\n\nConheço **seu progresso**, o **calendário do semestre** e os **materiais do Hub** — posso explicar o tópico atual, dar exemplos com código, lembrar as datas das provas ou responder o que você precisar. Toque em uma sugestão ou digite sua dúvida.`;
+  // A semana de prova fala primeiro (148): o welcome carrega a data e o
+  // escopo REAL — o aluno não precisa perguntar o que já é o momento dele.
+  if (examBrief) {
+    const quando =
+      examBrief.daysLeft === 0
+        ? 'É HOJE'
+        : examBrief.daysLeft === 1
+          ? 'é AMANHÃ'
+          : `faltam ${examBrief.daysLeft} dias`;
+    return `${base}\n\n🎯 Av1 de Matemática ${quando} (${examBrief.dateShort}) — escopo: **Matrizes + Lógica**. Posso montar seu plano de revisão ou te testar no escopo.`;
+  }
+  return base;
 }
 
 /** Indicador "Pensando" com cronômetro — modelos grátis podem levar até ~30s. */
@@ -367,10 +438,15 @@ function ThinkingBubble() {
 export function StudyView({
   initialDiscipline,
   initialMaterial,
+  initialOpenNonce,
   tutorReq,
 }: {
   initialDiscipline?: string;
   initialMaterial?: string;
+  /** t180 — nonce da porta (page.tsx bumpa a cada clique goStudy COM material):
+   *  presente e inédito → o leitor auto-abre UMA vez (a porta da S3 promete
+   *  "Abrir" — promessa cumprida). Porta sem material nunca bumpa. */
+  initialOpenNonce?: number;
   /** Pedido externo (evento hub:open-tutor — Caderno de Erros) → abre o chat
    *  com a pergunta pronta no campo e a disciplina certa selecionada. */
   tutorReq?: { detail: OpenTutorDetail; nonce: number };
@@ -422,22 +498,96 @@ export function StudyView({
       role: 'assistant',
       content: buildWelcome(
         getDisciplineByCode(disciplineCode)?.shortName ?? disciplines[0].shortName,
+        mathExamBriefFor(disciplineCode),
       ),
     },
   ]);
-  const [chatInput, setChatInput] = React.useState('');
+  // t176 — O RASCUNHO QUE SOBREVIVE: o composer renasce do que o aluno já
+  // tinha digitado nesta disciplina (cache de sessão — navegar para a
+  // Biblioteca desmonta esta view e ANTES matava o texto; agora volta).
+  // O anexo pendente e o bloco de código voltam junto: o gesto inteiro.
+  const mainDraftKey = composerDraftKey('main', disciplineCode);
+  const [chatInput, setChatInput] = React.useState(() => loadComposerDraft(mainDraftKey)?.input ?? '');
   // Bloco de código SEPARADO da mensagem (pedido do dono) — vai para a IA formatado em ```lang
-  const [chatCode, setChatCode] = React.useState('');
+  const [chatCode, setChatCode] = React.useState(() => loadComposerDraft(mainDraftKey)?.code ?? '');
+  /** true → o composer desta disciplina nasceu de um rascunho (a pill conta). */
+  const [draftRestored, setDraftRestored] = React.useState(() => hasComposerDraft(mainDraftKey));
   const [codeOpen, setCodeOpen] = React.useState(false);
   const [codeLang, setCodeLang] = React.useState<ChatCodeLang>('c');
   const chatTaRef = React.useRef<HTMLTextAreaElement>(null);
   const [chatLoading, setChatLoading] = React.useState(false);
-  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador). */
-  const [chatImage, setChatImage] = React.useState<string | null>(null);
+  /** Print/foto anexado à próxima mensagem (data URL reduzido no navegador).
+   *  t176: renasce do rascunho da sessão — navegar não mata mais o print
+   *  caro (página escolhida, recorte feito); recarregar a página sim. */
+  const [chatImage, setChatImage] = React.useState<string | null>(() => loadComposerDraft(mainDraftKey)?.image ?? null);
   /** Procedência do print pendente (t163): o chip diz ONDE ele nasceu —
    * "print de tela", "página 3 · Lista de Matrizes", "print do resumo"…
    * Só memória: morre no envio (ou no X do chip), nada toca o disco. */
-  const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(null);
+  const [chatImageLabel, setChatImageLabel] = React.useState<string | null>(() => loadComposerDraft(mainDraftKey)?.imageLabel ?? null);
+  // O ESPELHO DO CHIP (171): a raiz (page.tsx) não pode ler estado React de
+  // fora do mount — mas é ela quem vê o gesto de SAIR da aba Estudar, o gesto
+  // que desmonta esta view e mata o anexo pendente. O registro efêmero é o
+  // espelho só de leitura (mesma vida: memória, zero disco/storage) para o
+  // aviso honesto de descarte. O cleanup zera no unmount E a cada mudança do
+  // par — o registro nunca sobrevive à verdade do chip.
+  React.useEffect(() => {
+    setEphemeralChatState({ pendingImage: !!chatImage, pendingLabel: chatImageLabel });
+    return () => setEphemeralChatState({ pendingImage: false, pendingLabel: null });
+  }, [chatImage, chatImageLabel]);
+  // t176 — o espelho do rascunho: cada gesto do composer grava na memória de
+  // sessão da disciplina. Composer zerado → a lib APAGA a chave (o envio e o
+  // descarte limpam sem saber). Na TROCA de disciplina este efeito CALA (o
+  // espelho anterior já está salvo sob a chave antiga, tecla a tecla) — quem
+  // fala na troca é o restore abaixo, senão o texto velho sujaria a chave nova.
+  const prevDiscRef = React.useRef(disciplineCode);
+  React.useEffect(() => {
+    if (prevDiscRef.current !== disciplineCode) return; // troca: o restore fala
+    saveComposerDraft(composerDraftKey('main', disciplineCode), {
+      input: chatInput,
+      code: chatCode,
+      image: chatImage ?? undefined,
+      imageLabel: chatImageLabel ?? undefined,
+    });
+  }, [chatInput, chatCode, chatImage, chatImageLabel, disciplineCode]);
+  // t176 — trocou a disciplina, troca o rascunho: o composer acompanha a
+  // memória da conversa (a pergunta de Matemática não vaza para o chat de
+  // RHT). Pedido externo (tutorReq) vence rascunho: intenção nova é intenção
+  // nova — o efeito dele roda depois deste na montagem e sobrescreve.
+  // t178 — O DIA EM QUE A ORDEM TRAIU: a promessa "o request sobrescreve"
+  // só valia na MONTAGEM. Quando o pedido externo É quem TROCA a disciplina
+  // (print da Lista de Matrizes anexado com o chat parado em Algoritmos), a
+  // troca de disciplina cai num commit DEPOIS do nonce — este restore rodava
+  // por ÚLTIMO e APAGAVA o anexo/pergunta que o request acabou de aplicar
+  // (o rascunho da disciplina nova nasce vazio e por cima). A ordem de
+  // declaração não é dona da ordem dos commits: quem manda é a INTENÇÃO —
+  // o nonce que o efeito do request aplicou fica no appliedReqNonceRef e o
+  // restore, vendo o MESMO nonce vivo, recoloca OS CAMPOS DO PEDIDO por
+  // cima do rascunho (o que o pedido não trouxe segue vindo do rascunho).
+  const tutorReqRef = React.useRef(tutorReq);
+  React.useEffect(() => {
+    tutorReqRef.current = tutorReq;
+  }, [tutorReq]);
+  const appliedReqNonceRef = React.useRef(0);
+  React.useEffect(() => {
+    if (prevDiscRef.current === disciplineCode) return;
+    prevDiscRef.current = disciplineCode;
+    const key = composerDraftKey('main', disciplineCode);
+    const d = loadComposerDraft(key);
+    // O pedido externo aplicado NESTE nonce é a intenção mais nova — ele
+    // causou a troca; o rascunho não pode apagar o que ele trouxe.
+    const req = tutorReqRef.current;
+    const reqWins = !!req && appliedReqNonceRef.current === req.nonce;
+    setChatInput(reqWins && req.detail.question !== undefined ? req.detail.question : (d?.input ?? ''));
+    setChatCode(d?.code ?? '');
+    if (reqWins && req.detail.image) {
+      setChatImage(req.detail.image);
+      setChatImageLabel(req.detail.imageLabel ?? 'print do material');
+    } else {
+      setChatImage(d?.image ?? null);
+      setChatImageLabel(d?.imageLabel ?? null);
+    }
+    setDraftRestored(hasComposerDraft(key));
+  }, [disciplineCode]);
   // t160: o print que se lê de novo — bolha e chip abrem o lightbox (só visão).
   const [lightboxSrc, setLightboxSrc] = React.useState<string | null>(null);
   /** t166: o rótulo de procedência (t163) que o lightbox mostra no título — o chip SABE, a bolha enviada não carrega. */
@@ -509,7 +659,7 @@ export function StudyView({
   /** Captura de tela em recorte — o frame bruto vive só até o diálogo fechar. */
   const [captureCanvas, setCaptureCanvas] = React.useState<HTMLCanvasElement | null>(null);
   const [captureOpen, setCaptureOpen] = React.useState(false);
-  const { capturing, startCapture } = useScreenCapture(
+  const { capturing, tidying, tidySeconds, startCapture } = useScreenCapture(
     React.useCallback((canvas: HTMLCanvasElement) => {
       setCaptureCanvas(canvas);
       setCaptureOpen(true);
@@ -537,11 +687,107 @@ export function StudyView({
   // ----- Derivados -----
   const discipline = getDisciplineByCode(disciplineCode) ?? disciplines[0];
   const disciplineShortName = discipline.shortName;
+  // A janela de prova viva do momento (148) — alimenta welcome, chips e o
+  // escopo do "Me testa" numa fonte única (a mesma conta em todos).
+  const examBrief = mathExamBriefFor(discipline.code);
   const materials = React.useMemo(
     () => getMaterialsByDiscipline(disciplineCode),
     [disciplineCode],
   );
   const selectedMaterial = materials.find((m) => m.id === materialId);
+
+  // ----- t180 — A PORTA DO LEITOR NA ABA ESTUDAR -----
+  // O leitor que antes só existia na Biblioteca agora vive aqui também: o
+  // mesmo PdfViewerDialog (print de 1 clique da t175 incluído), aberto pela
+  // porta da S3 (auto, com guarda de nonce) ou pela porta manual sob o
+  // cronômetro (o material selecionado no Pomodoro deixa de ser texto morto).
+  const [readerOpen, setReaderOpen] = React.useState(false);
+  /** Página do convite aceito (retomada) — morre ao fechar, como na Biblioteca. */
+  const [readerInitialPage, setReaderInitialPage] = React.useState<number | undefined>(
+    undefined,
+  );
+  /** t180 — A LEITURA MUDA A PORTA: cada sessão de leitura fechada bumpa o
+   *  epoch e a porta RELÊ a memória. Sem isso, o rótulo congelava no valor
+   *  de quando o material foi selecionado — a porta mentia sobre a retomada
+   *  que ACABOU de acontecer (abri, saltei à pág. 12, fechei → a porta tem
+   *  que dizer pág. 12, não a de antes). */
+  const [readerPosEpoch, setReaderPosEpoch] = React.useState(0);
+  const readerMaterial = selectedMaterial ?? null;
+  // ----- t185 — AS PORTAS DO MATERIAL (resumo · vídeo · página) -----
+  // A linha sob o cronômetro deixa de ser gesto único do PDF: o resumo IA
+  // (com o print do resumo da t146 dentro), o vídeo (player da Biblioteca)
+  // e a página externa (âncora real) ganham a MESMA porta honesta. A decisão
+  // de QUEM tem porta é da lib pura study-material-doors; a verdade do embed
+  // do vídeo vem do parseVideoUrl (a lib não duplica parse de URL).
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
+  const [videoOpen, setVideoOpen] = React.useState(false);
+  const materialDoors = React.useMemo(
+    () =>
+      materialDoorsFor(selectedMaterial, {
+        videoCanEmbed: selectedMaterial?.externalUrl
+          ? parseVideoUrl(selectedMaterial.externalUrl).canEmbed
+          : null,
+      }),
+    [selectedMaterial],
+  );
+  const readerResumePage = React.useMemo(() => {
+    if (!readerMaterial?.pdfPath) return null;
+    return recallPdfPage(readerMaterial.id, readerMaterial.pages);
+    // readerPosEpoch nas deps de propósito: o fechar do leitor relê o storage.
+  }, [readerMaterial?.id, readerMaterial?.pdfPath, readerMaterial?.pages, readerPosEpoch]);
+  // AUTO-ABRIR DA PORTA: nonce inédito (> o consumido) + material com PDF.
+  // O ref-guard de módulo impede a remontagem de reabrir o mesmo clique —
+  // e um clique NOVO da porta (nonce maior) abre de novo, como deve.
+  /**
+   * t181 — O PRINT DE PÁGINA NO CHAT PRINCIPAL: a via da t175 (UM clique,
+   * página do PDF anexada sem seletor) agora mora TAMBÉM aqui — o dono com
+   * material aberto no Estudar não precisa mais abrir o leitor para printar
+   * o PDF, nem escolher aba/tela no seletor (a segunda metade da reclamação:
+   * "o print deveria ser do pdf quando estou com um aberto"). A página é a
+   * HONESTA da lib (instantPrintPage): a memória de retomada SÓ entra se o
+   * dono aceitou o convite — printar lembrança não aceita é printar página
+   * que não está na frente dos olhos (a doutrina da t175, intacta).
+   */
+  const [chatInstantPrinting, setChatInstantPrinting] = React.useState(false);
+  /** t181: a via de PRECISÃO (escolher página + recortar) no chat principal. */
+  const [chatPdfCaptureOpen, setChatPdfCaptureOpen] = React.useState(false);
+  const instantChatPdfPrint = React.useCallback(async () => {
+    if (!selectedMaterial?.pdfPath || chatInstantPrinting) return;
+    const page = instantPrintPage(readerResumePage, selectedMaterial.pages);
+    setChatInstantPrinting(true);
+    try {
+      const canvas = await renderPdfPageToCanvas(selectedMaterial.pdfPath, page);
+      const image = downscaleCanvas(canvas);
+      const label = pagePrintLabel(page, selectedMaterial.title);
+      setChatImage(image);
+      setChatImageLabel(label);
+      toast.success(
+        `Página ${page} anexada ao tutor — nada foi salvo no seu computador.`,
+      );
+    } catch {
+      toast.error(
+        'Não consegui renderizar a página. Use a captura de tela ou cole com Ctrl+V.',
+      );
+    } finally {
+      setChatInstantPrinting(false);
+    }
+  }, [selectedMaterial, chatInstantPrinting, readerResumePage]);
+  React.useEffect(() => {
+    if (!initialOpenNonce || initialOpenNonce <= lastReaderNonceConsumed) return;
+    if (!shouldAutoOpenReader(initialOpenNonce, !!selectedMaterial, readerDoorVisible(selectedMaterial))) {
+      // Porta sem par (material sem PDF ou sem material): o nonce é
+      // consumido mesmo assim — o clique aconteceu, não volta a abrir.
+      lastReaderNonceConsumed = initialOpenNonce;
+      return;
+    }
+    lastReaderNonceConsumed = initialOpenNonce;
+    setReaderInitialPage(recallPdfPage(selectedMaterial!.id, selectedMaterial!.pages) ?? undefined);
+    setReaderOpen(true);
+    // Deps mínimos de propósito: o nonce é o GATILHO; o material no clique
+    // é o que o lazy init já resolveu (initialMaterial → materialId).
+    // (o exhaustive-deps não reclama aqui: initialOpenNonce está na lista)
+  }, [initialOpenNonce]);
+
   const topicsSummary = React.useMemo(
     () => getDisciplineTopics(disciplineCode, sp.progress.topicProgress),
     [disciplineCode, sp.progress.topicProgress],
@@ -1078,7 +1324,7 @@ export function StudyView({
     setMessages([
       {
         role: 'assistant',
-        content: buildWelcome(disciplineShortName),
+        content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
       },
     ]);
     setChatLoading(false);
@@ -1091,6 +1337,10 @@ export function StudyView({
   // chat e pré-preenche a pergunta — o aluno revisa e envia.
   React.useEffect(() => {
     if (!tutorReq || tutorReq.nonce === 0) return;
+    // t178: o nonce aplicado fica registrado — se ESTE pedido for quem trocar
+    // a disciplina, o restore do rascunho (commit seguinte) vê o nonce vivo
+    // e recoloca os campos do pedido por cima do rascunho (nada apagado).
+    appliedReqNonceRef.current = tutorReq.nonce;
     const code = tutorReq.detail.disciplineCode;
     if (code && getDisciplineByCode(code) && code !== disciplineCode) {
       setDisciplineCode(code);
@@ -1115,7 +1365,14 @@ export function StudyView({
       setChatImage(tutorReq.detail.image);
       setChatImageLabel(tutorReq.detail.imageLabel ?? 'print do material');
     }
-    setChatOpen(true);
+    // O SILÊNCIO (t178): pedido silent com o chat fechado anexa e NÃO abre —
+    // o dono continua lendo o PDF; o chip na barra do leitor confessa o
+    // destino e a abertura vira clique DELE (o próximo openTutor normal, ou
+    // o próprio botão do chat, mostra o chip no composer). Chat já aberto:
+    // nada muda — a entrega é a mesma e a janela já está na frente.
+    if (!(tutorReq.detail.silent && !chatOpen)) {
+      setChatOpen(true);
+    }
   }, [tutorReq?.nonce]);
 
   // Memória: restaura a conversa salva da disciplina ao abrir o chat.
@@ -1149,7 +1406,7 @@ export function StudyView({
             return [
               {
                 role: 'assistant' as const,
-                content: buildWelcome(disciplineShortName),
+                content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
               },
               // t151: cada restaurada carrega QUANDO foi dita (savedAt ISO
               // → HH:MM) — o fio restaurado ganha o mesmo carimbo da viva.
@@ -1278,13 +1535,16 @@ export function StudyView({
    * que não é cancelável: 2º clique solta a UI) e nada é salvo no disco —
    * a pasta de prints do aluno fica limpa. */
 
-  // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha)
+  // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha).
+  // t176: chatOpen nos deps — o rascunho restaurado com o Sheet fechado monta
+  // o textarea DEPOIS; sem re-medir na abertura, um texto de 5 linhas nascia
+  // espremido em 1 linha (o effect antigo só media quando o texto mudava).
   React.useEffect(() => {
     const el = chatTaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
-  }, [chatInput]);
+  }, [chatInput, chatOpen]);
 
   const sendQuestion = async (
     question: string,
@@ -1427,7 +1687,7 @@ export function StudyView({
     setMessages([
       {
         role: 'assistant',
-        content: buildWelcome(disciplineShortName),
+        content: buildWelcome(disciplineShortName, mathExamBriefFor(discipline.code)),
       },
     ]);
     setChatInput('');
@@ -1681,6 +1941,93 @@ export function StudyView({
                     : 'Sem material específico'
                   : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}`}
               </p>
+              {/* t180 + t185 — A LINHA DAS PORTAS DO MATERIAL: o material
+                  selecionado no Pomodoro deixa de ser texto morto — UM clique
+                  abre o gesto que ele TEM: leitor (PDF, t180), resumo IA
+                  (com o print do resumo da t146 dentro), vídeo (player da
+                  Biblioteca) ou página externa (âncora real, nova aba).
+                  Sem porta nenhuma, a linha segue texto honesto: a casa não
+                  inventa porta. Na fase de break o foco é levantar — a linha
+                  inteira some. A decisão de quem tem porta é das libs puras
+                  (study-reader-door + study-material-doors). */}
+              {live.phase === 'focus' &&
+                selectedMaterial &&
+                (readerDoorVisible(selectedMaterial) || materialDoors.length > 0) && (
+                <div
+                  data-testid="study-material-doors"
+                  className="flex flex-wrap items-center justify-center gap-2"
+                >
+                  {readerDoorVisible(selectedMaterial) && (
+                    <button
+                      type="button"
+                      data-testid="study-reader-door"
+                      onClick={() => {
+                        setReaderInitialPage(readerResumePage ?? undefined);
+                        setReaderOpen(true);
+                      }}
+                      className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                      aria-label={`Abrir ${selectedMaterial?.title} no leitor — ${readerDoorLabel(readerResumePage)}`}
+                      title={readerDoorTitle(
+                        selectedMaterial?.title ?? '',
+                        readerResumePage,
+                        selectedMaterial?.pages,
+                      )}
+                    >
+                      <BookOpen className="size-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">{readerDoorLabel(readerResumePage)}</span>
+                      <ArrowUpRight
+                        className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                  {materialDoors.map((door) =>
+                    door.href ? (
+                      // t185 — A PORTA DE PÁGINA EXTERNA é âncora REAL: o gesto
+                      // é do navegador (nova aba), não do Hub (a doutrina da
+                      // t180 confessa: "outra porta, outro gesto").
+                      <a
+                        key={door.kind}
+                        data-testid="study-web-door"
+                        href={door.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                        aria-label={door.ariaLabel}
+                        title={door.title}
+                      >
+                        <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
+                        <span className="truncate">{door.label}</span>
+                        <ArrowUpRight
+                          className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </a>
+                    ) : (
+                      <button
+                        key={door.kind}
+                        type="button"
+                        data-testid={door.kind === 'video' ? 'study-video-door' : 'study-summary-door'}
+                        onClick={() => (door.kind === 'video' ? setVideoOpen(true) : setSummaryOpen(true))}
+                        className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                        aria-label={door.ariaLabel}
+                        title={door.title}
+                      >
+                        {door.kind === 'video' ? (
+                          <PlayCircle className="size-3.5 shrink-0" aria-hidden />
+                        ) : (
+                          <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                        )}
+                        <span className="truncate">{door.label}</span>
+                        <ArrowUpRight
+                          className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </button>
+                    ),
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Controles: só 3 botões */}
@@ -2439,19 +2786,29 @@ export function StudyView({
 
             {!chatSearchActive && messages.length <= 1 && !chatLoading && (
               <div className="flex flex-wrap gap-2 pt-2">
-                {/* Chip de INVERSÃO DE PAPEL: o tutor passa a perguntar (recall ativo). */}
+                {/* Chip de INVERSÃO DE PAPEL: o tutor passa a perguntar (recall ativo).
+                    Na janela da Av1 (148) o teste nasce COM O ESCOPO REAL da prova —
+                    o mesmo programa que o simulado usa (fonte única). */}
                 <Button
                   variant="outline"
                   size="sm"
                   className="rounded-full border-violet-400/50 bg-violet-500/10 text-xs text-violet-600 transition-colors hover:bg-violet-500/20 hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
                   onClick={() =>
-                    sendQuestion(buildQuizPrompt({ disciplineName: discipline.shortName }))
+                    sendQuestion(
+                      examBrief
+                        ? buildQuizPrompt({
+                            disciplineName: discipline.shortName,
+                            scope: MATH_EXAM.programa,
+                            count: 5,
+                          })
+                        : buildQuizPrompt({ disciplineName: discipline.shortName }),
+                    )
                   }
                 >
                   <Target className="size-3.5 text-violet-500" />{' '}
-                  Me testa — recall ativo
+                  {examBrief ? 'Me testa — escopo da Av1' : 'Me testa — recall ativo'}
                 </Button>
-                {CHAT_SUGGESTIONS.map((s) => (
+                {(examBrief ? EXAM_CHAT_SUGGESTIONS : CHAT_SUGGESTIONS).map((s) => (
                   <Button
                     key={s}
                     variant="outline"
@@ -2499,7 +2856,7 @@ export function StudyView({
                 quando o fio está em repouso. position:sticky ocupa o próprio
                 lugar no fluxo — quando o follow volta, ela some e o espaço
                 volta a ser do fio. */}
-            {!chatFollowing && (
+            {!chatFollowing && !chatSearchOpen && (
               <div className="sticky bottom-2 z-10 flex justify-center pt-1">
                 <button
                   type="button"
@@ -2519,8 +2876,37 @@ export function StudyView({
           </div>
 
           <div className="border-t border-white/10 p-4">
+            {draftRestored && !!(chatInput.trim() || chatCode.trim()) && (
+              <div
+                data-testid="chat-draft-pill"
+                className="mb-2 flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200"
+              >
+                <History
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Rascunho restaurado</span>{' '}
+                  · <span className="tabular-nums">{chatInput.length}</span> caracteres —
+                  continue de onde parou nesta sessão
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatInput('');
+                    setChatCode('');
+                    setDraftRestored(false);
+                  }}
+                  aria-label="Descartar o rascunho restaurado"
+                  title="Descarta o texto e o bloco de código restaurados — o anexo pendente segue pelo chip dele"
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:hover:text-rose-400"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            )}
             {chatImage && (
-              <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2">
+              <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-1.5 pr-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -2550,7 +2936,7 @@ export function StudyView({
                     setChatImageLabel(null);
                   }}
                   aria-label="Remover imagem anexada"
-                  className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:hover:text-rose-400"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -2656,6 +3042,55 @@ export function StudyView({
               >
                 <ImagePlus className="size-4" />
               </Button>
+              {/* t181 — O PRINT DE PÁGINA NO CHAT PRINCIPAL (a régua da t175
+                  no chat da aba Estudar): com material de PDF selecionado, o
+                  PRIMEIRO botão é o instantâneo — UM clique anexa a página do
+                  PDF, sem seletor de tela, sem recorte (o pedido do dono: o
+                  print é do PDF quando há um aberto). Esmeralda = print que
+                  nasce do conteúdo do Hub (a gramatura das portas irmãs). */}
+              {selectedMaterial && readerDoorVisible(selectedMaterial) && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    data-testid="chat-instant-pdf-print"
+                    className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    onClick={() => void instantChatPdfPrint()}
+                    disabled={chatLoading || chatInstantPrinting}
+                    aria-busy={chatInstantPrinting}
+                    aria-label={`Anexar a página ${instantPrintPage(readerResumePage, selectedMaterial.pages)} do PDF ao tutor`}
+                    title={
+                      chatInstantPrinting
+                        ? 'Renderizando a página…'
+                        : `Print da página ${instantPrintPage(readerResumePage, selectedMaterial.pages)} — UM clique anexa a página do PDF "${selectedMaterial.title}". Sem escolher aba/tela, sem seletor do navegador (nada é salvo no seu computador)`
+                    }
+                  >
+                    {chatInstantPrinting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <FileScan className="size-4" />
+                    )}
+                  </Button>
+                  {/* A via de PRECISÃO (t152): escolher outra página na
+                      prévia e recortar só a questão — o irmão lento. */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    onClick={() => setChatPdfCaptureOpen(true)}
+                    disabled={chatLoading || chatInstantPrinting}
+                    aria-label="Escolher página do PDF e recortar trecho para o tutor"
+                    title="Print de página com recorte — escolha a página na prévia, arraste para recortar só a questão e anexe (nada é salvo no seu computador)"
+                  >
+                    <Crop className="size-4" />
+                  </Button>
+                  {/* O divisor separa o print de FORA — a tela livre, que
+                      continua aqui (o dono pediu para manter as duas vias). */}
+                  <div aria-hidden className="h-6 w-px shrink-0 bg-border" />
+                </>
+              )}
               <Button
                 type="button"
                 variant="ghost"
@@ -2795,7 +3230,17 @@ export function StudyView({
         }}
       />
 
-      {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints. */}
+      {/* t181 — O AVISO DE ARRUMAÇÃO do chat: entre o dono escolher a
+          superfície e a régua v3 começar, o aviso fica de pé ~2s (janela
+          garantida da capture-clean) — o seletor morre de verdade e o frame
+          final não carrega overlay. pointer-events-none: bloquear clique
+          seria mentir sobre "a captura acontece sozinha". */}
+      <CaptureTidyBanner active={tidying} seconds={tidySeconds} />
+
+      {/* Recorte da captura de tela do chat — anexa no MESMO chatImage dos prints.
+          t175 — O DE NOVO SEM OVERLAY: o "De novo" fecha o diálogo e limpa o
+          frame ANTES de capturar — o frame novo não nasce com o overlay do
+          recorte anterior assado nele (a reclamação do dono com print). */}
       <CaptureCropDialog
         canvas={captureCanvas}
         open={captureOpen}
@@ -2807,8 +3252,31 @@ export function StudyView({
           setChatImage(image);
           setChatImageLabel('print de tela');
         }}
-        onRetry={() => void startCapture()}
+        onRetry={() => {
+          setCaptureOpen(false);
+          setCaptureCanvas(null);
+          void startCapture();
+        }}
       />
+
+      {/* t181 — A VIA DE PRECISÃO no chat principal: o MESMO diálogo de
+          páginas da Biblioteca/painel (prévia 2×, recorte dos pixels
+          ORIGINAIS, procedência t169) — o anexo entra no MESMO chatImage
+          dos prints. Pré-seleção honesta: a página da memória de leitura
+          SÓ entra se existir (o hint confessa a origem, t169). */}
+      {selectedMaterial && readerDoorVisible(selectedMaterial) && (
+        <PdfPageCaptureDialog
+          material={selectedMaterial}
+          open={chatPdfCaptureOpen}
+          onOpenChange={setChatPdfCaptureOpen}
+          initialPage={readerResumePage ?? undefined}
+          presetHint={readerResumePage ? 'página do seu último salto' : undefined}
+          onAttach={(image, label) => {
+            setChatImage(image);
+            setChatImageLabel(label);
+          }}
+        />
+      )}
 
       {/* ===== Modo Foco (Zen) — overlay tela-cheia com o timer ===== */}
       <AnimatePresence>
@@ -2936,6 +3404,44 @@ export function StudyView({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ===== t180 — O LEITOR DA ABA ESTUDAR =====
+          O MESMO diálogo da Biblioteca (modo dividido, print instantâneo da
+          t175, pill de retomada): aberto pela porta da S3 (auto), pela porta
+          manual sob o cronômetro ou pelo chip do print. O markAccessed é do
+          próprio diálogo — abrir por aqui conta atividade como lá. */}
+      <PdfViewerDialog
+        material={readerMaterial}
+        open={readerOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReaderOpen(false);
+            setReaderInitialPage(undefined); // o convite morre com a abertura (t162)
+            setReaderPosEpoch((e) => e + 1); // a leitura mudou a memória — a porta relê (t180)
+          }
+        }}
+        initialPage={readerInitialPage}
+        pendingAttachLabel={chatImageLabel}
+      />
+
+      {/* ===== t185 — AS PORTAS DO RESUMO E DO VÍDEO =====
+          O MESMO diálogo da Biblioteca (resumo IA + print do resumo da t146;
+          player com embed honesto + fallback), abertos pela linha de portas
+          sob o cronômetro. O markAccessed é do próprio diálogo — abrir por
+          aqui conta atividade como lá. UMA tela por vez com o leitor: os
+          diálogos são irmãos, nunca empilhados (a doutrina do drill-down). */}
+      <MaterialSummaryDialog
+        material={selectedMaterial ?? null}
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+      />
+      <VideoPlayerDialog
+        material={selectedMaterial ?? null}
+        open={videoOpen}
+        onOpenChange={(o) => {
+          if (!o) setVideoOpen(false);
+        }}
+      />
     </div>
   );
 }

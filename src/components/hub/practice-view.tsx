@@ -46,12 +46,18 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { MathText } from './math-text';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
+import {
+  findMathSimuladoRunOficial,
+  practiceExamBriefFor,
+  type PracticeExamBrief,
+} from '@/lib/math-exam-prep';
 import type { AttemptMode } from '@/lib/simulado-resume';
-import { openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { openSimulado, openTutor, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { captureElementToDataUrl } from '@/lib/dom-capture';
 import type { OpenPracticeDetail } from '@/lib/hub-events';
 import { FlashcardsView } from '@/components/hub/flashcards-view';
@@ -156,6 +162,150 @@ export function PracticeView({
   );
 }
 
+/**
+ * PRESET DA AV1 (29/09 simulado · 01/10 prova) — escopo REAL da prova:
+ * Álgebra Matricial (matrizes) + Lógica Matemática. Determinantes e Sistemas
+ * Lineares NÃO entram (tópicos "—" do acervo ficam de fora do sorteio).
+ */
+const MATH_EXAM_PRESET = {
+  discipline: 'TEC.1984',
+  difficulty: 'all' as const,
+  quantity: 10,
+  durationMin: 60,
+  aligned: true,
+  topics: ['Álgebra Matricial', 'Lógica Matemática'],
+};
+
+/**
+ * t194 (porta da t172) — SIMULADO DO PROFESSOR (áudio de 30/09, véspera): a
+ * ESTRUTURA REAL da Av1, ditada por ele questão a questão. 6 questões FIXAS,
+ * na ordem, sem sorteio; 50 min como a prova oficial. A retomada persiste os
+ * ids junto do config — F5 no meio não perde nada.
+ */
+const MATH_EXAM_PROF_PRESET = {
+  discipline: 'TEC.1984',
+  difficulty: 'all' as const,
+  quantity: 6,
+  durationMin: 50,
+  aligned: true,
+  fixedIds: [
+    'prof-av1-q1', // lógica — valores lógicos + conclusão do argumento
+    'prof-av1-q2', // lógica — proposição composta + tabela-verdade (≈ Lista Q3)
+    'prof-av1-q3', // matriz quadrada (≈ Lista de Matrizes Q1)
+    'prof-av1-q4', // situação-problema com produto de matrizes (NÃO sistema)
+    'prof-av1-q5', // transformação geométrica + potência/soma/produto (≈ Q26)
+    'prof-av1-q6', // inversa: isolar X + definição (≈ Q34–Q35)
+  ],
+};
+
+/**
+ * A GRAMÁTICA DE COR DO HUB na faixa da semana (mesma família do caderno da
+ * 91 e dos flashcards da 90): sólido + pulso nos "é hoje" (âmbar simulado,
+ * rose prova), emerald sólido no REGISTRO (sem pulso — feito é calmo) e tinta
+ * translúcida na espera (véspera). Cor = significado, em toda superfície.
+ */
+const PRACTICE_EXAM_VISUAL: Record<
+  PracticeExamBrief['kind'],
+  {
+    shell: string;
+    text: string;
+    sub: string;
+    iconBox: string;
+    icon: React.ReactNode;
+    btn: string;
+  }
+> = {
+  'simulado-hoje': {
+    shell:
+      'border-amber-500 bg-amber-500 shadow-md shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <CalendarCheck className="size-4 animate-pulse" aria-hidden />,
+    btn: 'bg-white text-amber-600 hover:bg-amber-50 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-zinc-800',
+  },
+  'simulado-feito': {
+    shell: 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <CheckCircle2 className="size-4" aria-hidden />,
+    btn: 'bg-white text-emerald-600 hover:bg-emerald-50 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-zinc-800',
+  },
+  vespera: {
+    shell:
+      'border-amber-500/40 bg-amber-500/[0.07] dark:border-amber-400/40 dark:bg-amber-400/[0.06]',
+    text: 'text-amber-600 dark:text-amber-300',
+    sub: 'text-amber-700/80 dark:text-amber-300/75',
+    iconBox: 'bg-amber-500/15 dark:bg-amber-400/15',
+    icon: <Zap className="size-4" aria-hidden />,
+    btn: 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300',
+  },
+  'prova-hoje': {
+    shell:
+      'border-rose-500 bg-rose-500 shadow-md shadow-rose-500/30 dark:border-rose-400 dark:bg-rose-400',
+    text: 'text-white dark:text-zinc-900',
+    sub: 'text-white/90 dark:text-zinc-900/80',
+    iconBox: 'bg-white/20 dark:bg-zinc-900/15',
+    icon: <GraduationCap className="size-4 animate-pulse" aria-hidden />,
+    btn: 'bg-white text-rose-600 hover:bg-rose-50 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-zinc-800',
+  },
+};
+
+/**
+ * Faixa da semana da Av1 no TOPO da aba Exercícios — o palco aprende o dia
+ * dele: no simulado anuncia e abre o run já configurado; com o run flipa
+ * "feito ✓" e aponta a fila guiada desta mesma aba; na véspera promove a
+ * revisão leve; na prova manda descansar. CTA opcional (brief.cta null = sem
+ * botão — e o pai cala o CTA do "feito" quando a fila guiada está vazia).
+ */
+function PracticeExamStrip({
+  brief,
+  ctaLabel,
+  onCta,
+}: {
+  brief: PracticeExamBrief;
+  /** Rótulo final do CTA (o pai decide se existe — null esconde o botão). */
+  ctaLabel: string | null;
+  onCta?: () => void;
+}) {
+  const v = PRACTICE_EXAM_VISUAL[brief.kind];
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
+        v.shell,
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          className={cn(
+            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+            v.iconBox,
+          )}
+        >
+          {v.icon}
+        </span>
+        <div className="min-w-0">
+          <p className={cn('text-sm font-semibold leading-tight', v.text)}>{brief.titulo}</p>
+          <p className={cn('mt-1 text-xs leading-snug', v.sub)}>{brief.chamada}</p>
+        </div>
+      </div>
+      {ctaLabel && onCta ? (
+        <Button
+          size="sm"
+          onClick={onCta}
+          className={cn('shrink-0 gap-1.5 font-semibold', v.btn)}
+          aria-label={ctaLabel}
+        >
+          <Target className="size-3.5" aria-hidden />
+          <span className="tabular-nums">{ctaLabel}</span>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function ExercisesPanel({
   simuladoReq,
   practiceReq,
@@ -228,9 +378,12 @@ function ExercisesPanel({
     if (!simuladoReq || simuladoReq.nonce === 0) return;
     const d = simuladoReq.detail;
     if (d.preset === 'math_exam') {
-      // Prova real de Matemática — abertura genérica (escopo segue o acervo).
       setSimuladoInitialMode('prova');
-      setSimuladoInitialConfig({ discipline: 'TEC.1984' });
+      setSimuladoInitialConfig(MATH_EXAM_PRESET);
+    } else if (d.preset === 'math_exam_prof') {
+      // t194 — a estrutura REAL ditada pelo professor: 6 questões fixas, 50 min.
+      setSimuladoInitialMode('prova');
+      setSimuladoInitialConfig(MATH_EXAM_PROF_PRESET);
     } else if (d.topicScope) {
       // Drill de 1 tópico (ex.: replay do pior tópico da tendência no Histórico):
       // prova curta, no ritmo da turma, cronômetro leve — ajustável no setup.
@@ -304,8 +457,42 @@ function ExercisesPanel({
     [sp.progress.exerciseProgress],
   );
 
+  // Semana da Av1 no TOPO da aba — RENDER-TIME no corpo do componente (lição
+  // 79: sem memo nem interval, reage a mock de relógio no próximo render e a
+  // StorageEvent quando o run é registrado). O run oficial vem da FONTE
+  // ÚNICA findMathSimuladoRunOficial (85/86/88/89/90/91) — o REGISTRO vence
+  // o relógio. reviewCount já é a fila guiada real (★ + caderno) — o CTA do
+  // "feito"/véspera só existe com fila real (fila vazia = botão cala).
+  const simuladoRunOficial = findMathSimuladoRunOficial(sp.progress.simuladoRuns);
+  const examBrief = practiceExamBriefFor(
+    new Date(),
+    reviewCount,
+    simuladoRunOficial
+      ? { solved: simuladoRunOficial.solved, total: simuladoRunOficial.total }
+      : null,
+  );
+  const examOnCta =
+    examBrief?.kind === 'simulado-hoje'
+      ? () => openSimulado({ preset: 'math_exam' })
+      : examBrief?.kind === 'simulado-feito' || examBrief?.kind === 'vespera'
+        ? () => setReviewOpen(true)
+        : undefined;
+  const examCtaLabel =
+    examBrief?.cta == null
+      ? null
+      : examBrief.kind === 'simulado-hoje'
+        ? examBrief.cta
+        : reviewCount > 0
+          ? `${examBrief.cta} (${reviewCount})`
+          : null;
+
   return (
     <div className="space-y-4">
+      {/* Semana da Av1 no topo — o palco abre o dia (fora da janela: null). */}
+      {examBrief ? (
+        <PracticeExamStrip brief={examBrief} ctaLabel={examCtaLabel} onCta={examOnCta} />
+      ) : null}
+
       {/* Banner material-first: estado da turma */}
       <Card className="rounded-xl border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent p-3.5 shadow-sm">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -349,9 +536,14 @@ function ExercisesPanel({
             title="Revisão guiada: suas ★ marcadas + Caderno de Erros, uma por vez"
             className={cn(
               'group h-9 gap-2 border text-xs font-medium shadow-sm transition-all',
-              reviewCount > 0
-                ? 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 hover:bg-amber-500/15 hover:shadow-md dark:text-amber-400'
-                : 'text-muted-foreground',
+              // COR = SIGNIFICADO na fila de ações: na véspera a revisão guiada
+              // é O plano do dia (offset 1, kind 'revisao') — com fila real ela
+              // sobe de tinta translúcida para sólida (o mesmo salto do hero).
+              examBrief?.kind === 'vespera' && reviewCount > 0
+                ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/25 hover:bg-amber-600 dark:border-amber-400 dark:bg-amber-400 dark:text-zinc-900 dark:hover:bg-amber-300'
+                : reviewCount > 0
+                  ? 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 hover:bg-amber-500/15 hover:shadow-md dark:text-amber-400'
+                  : 'text-muted-foreground',
             )}
           >
             <NotebookPen className="size-3.5 transition-transform group-hover:scale-110" />
@@ -372,8 +564,14 @@ function ExercisesPanel({
               setSimuladoInitialMode('prova');
               setSimuladoOpen(true);
             }}
-            className="group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl"
-
+            className={cn(
+              'group gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-emerald-600/40 hover:shadow-xl',
+              // COR = SIGNIFICADO: no dia do simulado sem run, ESTE é o botão
+              // da manhã — o halo âmbar marca a ação do dia sem mudar a marca
+              // esmeralda (a faixa acima conta o porquê; o halo só aponta).
+              examBrief?.kind === 'simulado-hoje' &&
+                'ring-2 ring-amber-400/60 ring-offset-2 ring-offset-background dark:ring-amber-300/50',
+            )}
           >
             <Target className="size-3.5 transition-transform group-hover:scale-110" /> Simulado Pro
           </Button>
@@ -736,7 +934,9 @@ function MistakeNotebook({ onFocar }: { onFocar: (code: string, topic: string) =
                     );
                   })()}
                 </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">{ex.statement}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-foreground/85">
+                  <MathText text={ex.statement} />
+                </p>
               </div>
               <div className="flex shrink-0 gap-1.5">
                 <Button
@@ -881,10 +1081,12 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             <Star className={cn('size-4', progress?.marked && 'fill-current')} />
           </button>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-foreground/90">{exercise.statement}</p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+            <MathText text={exercise.statement} />
+          </p>
           {exercise.hint && (
             <p className="mt-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
-              <Lightbulb className="mt-0.5 size-3 shrink-0" /> {exercise.hint}
+              <Lightbulb className="mt-0.5 size-3 shrink-0" /> <MathText text={exercise.hint ?? ''} className="min-w-0 flex-1" />
             </p>
           )}
         </div>

@@ -30,12 +30,35 @@ export const MATH_EXAM = {
 } as const;
 
 /**
+ * Data da prova em 'dd/mm' — a voz da casa cita o dia sem hardcode (t183:
+ * movida para logo após a fonte MATH_EXAM para que o PLANO e os FLASHCARDS
+ * também deriven — o título 'DIA DA PROVA — 01/10' virou fóssil quando a
+ * doutrina da data única foi escrita; mudou a prova, a cópia derivada muda
+ * junto em vez de mentir na tinta).
+ */
+export const MATH_EXAM_DATE_SHORT = `${MATH_EXAM.date.slice(8, 10)}/${MATH_EXAM.date.slice(5, 7)}`;
+
+/**
  * META DA AV1 — nota de aprovação (≥ 70 na escala 0-100). Fonte única do
  * número: notaPeso acima. Aparece no veredito do resultado do simulado,
  * nas linhas de meta dos gráficos do Histórico e no score de prontidão —
  * um número só, para nunca divergir entre telas.
  */
 export const MATH_META = 70;
+
+/**
+ * A REGRA DO SIMULADO — a promessa que o plano faz na tarefa 2 do dia do
+ * simulado e que o debrief, o setup e o prompt do tutor CITAM. Fonte única
+ * da frase (t188): antes, a frase vivia copiada em quatro lugares e o
+ * endereço do plano no debrief era um rótulo HARDCODED ('plano D-7') que o
+ * PLANO REFEITO (24/09) deixou velho — a regra mora no D-2, o dia do
+ * simulado, e a citação apontava o dono para o dia errado na noite dele.
+ * Voz na FONTE: o plano compõe a tarefa com esta constante; superfícies
+ * que falam noutro dia (o kit na véspera, o slot da folha antes do run)
+ * mantêm a voz ADAPTADA ao dia delas — a regra é citada inteira só onde
+ * 'amanhã' é a véspera de verdade.
+ */
+export const MATH_SIMULADO_REGRA_REVISAO = 'o bloco com mais erros vira a revisão de amanhã';
 
 /**
  * DATA DO SIMULADO OFICIAL — o dia offset 2 do plano (29/09), derivado da
@@ -81,6 +104,69 @@ export const MATH_VESPERA_DATE = (() => {
   return localDateKey(d);
 })();
 
+// ---------- A PORTA DA FOLHA (t182) ----------
+
+/**
+ * A rota da folha de revisão — FONTE ÚNICA do endereço: a porta do card,
+ * o atalho do comando rápido e o link do diálogo de travadas abrem a MESMA
+ * folha pelo MESMO caminho (mudou a rota, muda em um lugar).
+ */
+export const FOLHA_REVISAO_PATH = '/folha-revisao';
+
+/**
+ * A PORTA DA FOLHA existe SÓ no dia do compromisso dela — a mesma régua da
+ * porta da S3 (t179): porta fora do dia é ruído de véspera eterna. A folha
+ * é a ferramenta da VÉSPERA (D-1: imprimir, refazer as travadas, reler o
+ * checklist) e da MANHÃ DA PROVA (D-0: o kit do dia em papel, última
+ * olhada). Nos outros dias o card segue limpo — o link profundo no diálogo
+ * das travadas continua servindo para quem caça fora de hora.
+ */
+export function folhaDoorVisible(daysLeft: number): boolean {
+  return daysLeft === 1 || daysLeft === 0;
+}
+
+/**
+ * O rótulo honesto da porta: o dia muda, o nome da folha na boca da casa
+ * muda junto — "Folha da véspera" no D-1, "Folha do dia" na manhã da
+ * prova. Nunca "Folha de revisão" genérica: a porta diz PARA QUE serve
+ * HOJE.
+ */
+export function folhaDoorLabel(daysLeft: number): string {
+  return daysLeft === 0 ? 'Folha do dia' : 'Folha da véspera';
+}
+
+/**
+ * O title que confessa a fronteira (a doutrina das portas da casa): o Hub
+ * ABRE a folha — o papel, a impressora e o gesto de imprimir são do dono.
+ * O checklist continua sincronizado (mesma chave do card) e as travadas
+ * das listas saem na tinta; nada é enviado para lugar nenhum.
+ */
+export function folhaDoorTitle(daysLeft: number): string {
+  return daysLeft === 0
+    ? `Abre a folha de revisão para imprimir (A4) — o kit do dia da prova e o checklist em papel. O Hub abre a folha; o gesto de imprimir é seu.`
+    : `Abre a folha de revisão para imprimir (A4) — fórmulas, checklist sincronizado com este card e as travadas das listas para refazer hoje. O Hub abre a folha; o gesto de imprimir é seu.`;
+}
+
+/**
+ * A FOLHA LÊ O DIA (t183) — a linha que a folha CONFESSA sobre si mesma
+ * conforme o dia da impressão. A folha era cega ao próprio dia: impressa na
+ * véspera ou na manhã da prova, o papel dizia sempre a mesma coisa — e o
+ * dono tinha de lembrar para que dia ela serve. A mesma língua da porta
+ * (folhaDoorLabel): "Folha da véspera" no D-1, "Folha do dia" no D-0 — o
+ * papel agora diz PARA QUÊ serve HOJE. Fora dos dois dias, null: a folha
+ * não mente sobre o dia que não é (o carimbo "Impresso em" já confessa a
+ * data; a linha do dia é só para os dias que têm promessa).
+ */
+export function folhaDayLine(daysLeft: number): string | null {
+  if (daysLeft === 1) {
+    return 'Folha da véspera — a prova é amanhã: revisão leve, as travadas refazidas no papel e o checklist do kit em dia.';
+  }
+  if (daysLeft === 0) {
+    return 'Folha do dia — a prova é HOJE: o kit da manhã em papel, última olhada nas fórmulas. Boa prova!';
+  }
+  return null;
+}
+
 // ---------- Marcos da semana da Av1 (agenda) ----------
 
 /**
@@ -104,6 +190,15 @@ export interface ExamWeekMilestone {
   subtitulo?: string;
   /** O que fazer no dia (dica honesta, 1 linha). */
   detalhe: string;
+  /**
+   * t179 — A PORTA DO MARCO (material-first): o marco que MENCIONA uma
+   * entrega carrega o id do material que a entrega exige — a menção que
+   * abre o conteúdo, não a que só nomeia. Hoje só o simulado tem (a S3
+   * de Algoritmos é entregue NO dia do ensaio — fonte: dono, linha do
+   * marcos no card da prova); a prova e as vésperas não mencionam
+   * material nenhum, então não têm porta.
+   */
+  materialId?: string;
 }
 
 export function examWeekMilestoneFor(date: Date): ExamWeekMilestone | null {
@@ -126,6 +221,10 @@ export function examWeekMilestoneFor(date: Date): ExamWeekMilestone | null {
       titulo: 'Simulado da Av1',
       subtitulo: '+ S3 de Algoritmos',
       detalhe: 'prova completa no Praticar — o ensaio real da Av1',
+      // A PORTA DA S3 (t179): a menção “+ S3 de Algoritmos” abre o material
+      // real (Questões da Semana 3, Classroom) — a entrega é DE programas,
+      // e programas se conferem no PDF da lista, não na memória.
+      materialId: 'alg-questoes-semana3',
     };
   }
   if (key === MATH_VESPERA_DATE) {
@@ -376,13 +475,98 @@ type VerdictRunLike = {
   questions?: { status?: 'solved' | 'missed' | 'skipped'; topic?: string }[];
 };
 
+// ---------- A AGREGAÇÃO POR TÓPICO (fonte única da régua) ----------
+
+export interface TopicRow {
+  disciplineCode: string;
+  topic: string;
+  solved: number;
+  /** Não-puladas — o denominador HONESTO da taxa (pulada não pune a taxa). */
+  answered: number;
+  total: number;
+  skipped: number;
+  /** null = bloco inteiro pulado (sem taxa inventada — nunca "0% falso"). */
+  pct: number | null;
+}
+
+export type TopicStatusLike = {
+  disciplineCode?: string;
+  topic?: string;
+  status?: 'solved' | 'missed' | 'skipped';
+};
+
+/**
+ * A AGREGAÇÃO ÚNICA (t189) — transforma as questões de qualquer corrida nas
+ * linhas por tópico com a RÉGUA ÚNICA da casa: taxa = resolvidas/RESPONDIDAS
+ * (pulada não pune a taxa — o aluno que pulou não acertou, mas também não
+ * errou no papel); bloco inteiro pulado → pct null (sem taxa, o diagnóstico
+ * verdadeiro). Nasceu da divisão honesta do trabalho: o debrief precisa das
+ * linhas para QUALQUER disciplina (o Simulado Pro não é só da Av1), mas a
+ * régua era do veredito da Av1 — a duplicação fez a tabela do debrief e o
+ * veredito divergirem no MESMO diálogo (2 solved + 1 missed + 1 skipped =
+ * 50% na tabela, 67% no veredito). Agora simuladoVerdictFor também agrega
+ * AQUI (o filtro do escopo Av1 fica na camada dele). Pura — sem React, sem
+ * storage, sem fetch.
+ */
+export function topicRowsFor(items: TopicStatusLike[]): TopicRow[] {
+  const m = new Map<string, TopicRow>();
+  for (const it of items) {
+    const disc = it.disciplineCode ?? '—';
+    const topic = it.topic ?? '—';
+    const key = `${disc}::${topic}`;
+    const rec =
+      m.get(key) ??
+      {
+        disciplineCode: disc,
+        topic,
+        solved: 0,
+        answered: 0,
+        total: 0,
+        skipped: 0,
+        pct: null as number | null,
+      };
+    rec.total += 1;
+    if (it.status === 'skipped') rec.skipped += 1;
+    else {
+      rec.answered += 1;
+      if (it.status === 'solved') rec.solved += 1;
+    }
+    m.set(key, rec);
+  }
+  return [...m.values()].map((r) => ({
+    ...r,
+    pct: r.answered > 0 ? Math.round((r.solved / r.answered) * 100) : null,
+  }));
+}
+
+/**
+ * A ORDENAÇÃO "pior primeiro" (t189) — a MESMA régua do foco
+ * (pulouTudo ?? worst): bloco inteiro pulado É o pior diagnóstico e vem
+ * PRIMEIRO (sem taxa — key -1); depois a menor taxa; empate → o tópico
+ * maior (mais questões no run manda mais atenção). Estável: tópicos na
+ * mesma chave mantêm a ordem de chegada. O debrief usa para a tabela e
+ * para o CTA do drill — topicStats[0] vira o foco DE VERDADE (antes, o
+ * bloco inteiro pulado podia ficar de fora do CTA enquanto o tópico
+ * RESPONDIDO pior levava o treino).
+ */
+export function sortWorstFirst(rows: TopicRow[]): TopicRow[] {
+  return [...rows].sort((a, b) => {
+    const ka = a.pct === null ? -1 : a.pct;
+    const kb = b.pct === null ? -1 : b.pct;
+    return ka - kb || b.total - a.total;
+  });
+}
+
 /**
  * O VEREDITO DO SIMULADO OFICIAL — o plano promete (offset 2, tarefa 2):
  * "o bloco com mais erros vira a revisão de amanhã". A promessa era só
  * TEXTO: o run guarda questões com tópico e status, mas o kit da véspera
  * não lia. Esta função transforma o run oficial em números por tópico do
  * escopo (MATH_EXAM.topicosEscopo) — fonte única para o badge do kit, a
- * linha do bloco fraco e a ordem da recitação. Puladas contam no total mas
+ * linha do bloco fraco, a ordem da recitação e o FOCO DO PAPEL (a folha
+ * /folha-revisao consumia uma derivação PRÓPRIA com régua diferente —
+ * pct sobre o total, puladas no denominador — e o papel divergia do kit
+ * na mesma corrida; t188 trouxe o papel para esta fonte). Puladas contam no total mas
  * não na taxa (aluno que pulou não acertou — e não errou no papel: sem
  * taxa inventada). Run antigo sem detalhes → porTopico vazio, worst null —
  * o badge do % geral ainda fala, a linha do bloco não inventa. Módulo
@@ -391,21 +575,25 @@ type VerdictRunLike = {
 export function simuladoVerdictFor(run?: VerdictRunLike | null): SimuladoVerdict | null {
   if (!run || run.total <= 0) return null;
   const pct = Math.round((run.solved / run.total) * 100);
-  const porTopico = (MATH_EXAM.topicosEscopo as readonly string[])
-    .map((topic) => {
-      const qs = (run.questions ?? []).filter((q) => q.topic === topic);
-      const solved = qs.filter((q) => q.status === 'solved').length;
-      const skipped = qs.filter((q) => q.status === 'skipped').length;
-      const answered = qs.filter((q) => q.status !== 'skipped').length;
-      return {
-        topic,
-        solved,
-        total: qs.length,
-        pct: answered > 0 ? Math.round((solved / answered) * 100) : null,
-        skipped,
-      };
-    })
-    .filter((t) => t.total > 0);
+  // A AGREGAÇÃO vem da FONTE ÚNICA (t189): topicRowsFor — a MESMA régua que
+  // a tabela do debrief usa (taxa sobre respondidas, pulada sem taxa). O
+  // filtro do ESCOPO da Av1 é a camada desta função: só os tópicos do
+  // topicosEscopo entram, na ordem do escopo.
+  const escopo = MATH_EXAM.topicosEscopo as readonly string[];
+  const porTopico = topicRowsFor(
+    (run.questions ?? []).map((q) => ({ topic: q.topic, status: q.status })),
+  )
+    .filter((r) => escopo.includes(r.topic))
+    .sort(
+      (a, b) => escopo.indexOf(a.topic) - escopo.indexOf(b.topic),
+    )
+    .map((r) => ({
+      topic: r.topic,
+      solved: r.solved,
+      total: r.total,
+      pct: r.pct,
+      skipped: r.skipped,
+    }));
   const comTaxa = porTopico.filter((t): t is SimuladoTopicScore & { pct: number } => t.pct !== null);
   const worst = comTaxa.length
     ? comTaxa.reduce((a, b) => (b.pct < a.pct ? b : a))
@@ -1135,6 +1323,22 @@ export interface PlanTask {
   texto: string;
   materialId?: string; // abre na Biblioteca (openMethod)
   exercisePool?: string[]; // ids no Praticar
+  /**
+   * t187 — O DEEP-LINK DA AUTOAVALIAÇÃO: tarefas cujo gesto termina DENTRO
+   * do resumo IA, na seção das perguntas. Cada entrada é um resumo REAL do
+   * acervo (o id existe em course-data; as perguntas existem desde a t186) —
+   * o chip do card abre o diálogo do resumo DIRETO nas perguntas, com a
+   * contagem viva de respondidas ao lado. A casa não inventa porta para
+   * resumo sem pergunta: quem preenche este campo responde pelo conteúdo.
+   */
+  autoavaliacao?: AutoavaliacaoLink[];
+}
+
+export interface AutoavaliacaoLink {
+  /** id do material no acervo (a fonte da verdade é course-data). */
+  id: string;
+  /** Rótulo curto do chip — voz do plano, não título completo do acervo. */
+  label: string;
 }
 
 export interface PlanDay {
@@ -1143,6 +1347,45 @@ export interface PlanDay {
   titulo: string;
   minutos: number;
   tarefas: PlanTask[];
+}
+
+/**
+ * t187 — OS QUATRO RESUMOS DA TAREFA 3 DA VÉSPERA (a promessa da t186, agora
+ * com porta): os resumos IA de Matemática do escopo da Av1, cada um com 8
+ * perguntas de autoavaliação REAIS (scripts/fix-186-perguntas.py + autorais).
+ * O rótulo é voz do PLANO (curto, para o chip), não título de acervo.
+ */
+export const MATH_AUTOAVALIACAO_TAREFA: AutoavaliacaoLink[] = [
+  { id: 'mat-00-matrizes', label: 'Matrizes · Aula 00' },
+  { id: 'mat-01-matrizes', label: 'Matrizes · Aula 01' },
+  { id: 'mat-logica-lista', label: 'Lógica · Lista' },
+  { id: 'mat-logica-slides', label: 'Lógica · Slides' },
+];
+
+/**
+ * t187 — A CONTAGEM VIVA DOS CHIPS (PURA — zero DOM/storage/fetch/react):
+ * lê o mapa de checks do progresso (autoavaliacaoChecks) e devolve, para os
+ * ids pedidos, quantas perguntas estão marcadas em CADA material e o total.
+ * Estruturas ausentes, lixo e índices não-booleanos contam ZERO — a contagem
+ * nunca inventa respondida. Fonte única: o mesmo mapa que o diálogo usa.
+ */
+export function autoavaliacaoAnswered(
+  checksByMaterial: { [materialId: string]: { [questionIndex: number]: boolean } } | undefined | null,
+  ids: string[],
+): { answered: number; byId: Record<string, number> } {
+  const map = checksByMaterial ?? {};
+  const byId: Record<string, number> = {};
+  let answered = 0;
+  for (const id of ids) {
+    const checks = map[id];
+    let count = 0;
+    if (checks && typeof checks === 'object') {
+      for (const v of Object.values(checks)) if (v === true) count++;
+    }
+    byId[id] = count;
+    answered += count;
+  }
+  return { answered, byId };
 }
 
 /**
@@ -1216,7 +1459,7 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
     minutos: 75,
     tarefas: [
       { texto: 'Simulado Pro: 10 questões de Matemática, 60 min, sem consultar nada antes de responder', },
-      { texto: 'Meta: ≥ 70% (nota de aprovação). Abaixo disso → o bloco com mais erros vira a revisão de amanhã', },
+      { texto: `Meta: ≥ 70% (nota de aprovação). Abaixo disso → ${MATH_SIMULADO_REGRA_REVISAO}`, },
       { texto: 'Refazer no papel as que erraram, com o card de fórmulas fechado ao lado', },
     ],
   },
@@ -1228,13 +1471,14 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
     tarefas: [
       { texto: 'Recitar os cards de fórmulas de memória (abaixo) — Matrizes primeiro, Lógica depois', },
       { texto: 'Refazer SOMENTE as questões que travaram nas duas listas — o Hub guarda as travadas marcadas (na folha impressa elas vêm listadas)', },
-      { texto: 'Perguntas de autoavaliação dos resumos IA dos 4 materiais de Matemática (leve, antes de dormir)', materialId: 'mat-01-matrizes' },
+      { texto: 'Perguntas de autoavaliação dos resumos IA dos 4 materiais de Matemática (leve, antes de dormir)',
+        autoavaliacao: MATH_AUTOAVALIACAO_TAREFA },
     ],
   },
   {
     offset: 0, // 01/10
     kind: 'prova',
-    titulo: 'DIA DA PROVA — 01/10',
+    titulo: `DIA DA PROVA — ${MATH_EXAM_DATE_SHORT}`,
     minutos: 20,
     tarefas: [
       { texto: 'Manhã: reler só os cards de fórmulas e a tabela da implicação (15 min, sem exercício novo)', },
@@ -1243,6 +1487,51 @@ export const MATH_EXAM_PLAN: PlanDay[] = [
     ],
   },
 ];
+
+/**
+ * A COLUNA DO PLANO LÊ O DIA (t184) — a folha sempre mostrou a VÉSPERA na
+ * coluna do plano, mesmo impressa NO DIA da prova: o papel da manhã falava
+ * das tarefas da noite anterior (recitar, refazer as travadas) enquanto o
+ * plano do DIA (reler os cards, conferir o kit, a conduta na prova) nunca
+ * saía da tela. A doutrina da 183 ("a folha lê o dia") chega à coluna: no
+ * D-0 o papel mostra o plano do dia; em qualquer outro dia — e antes de o
+ * cliente saber a hora (daysLeft null, o primeiro render do servidor) — a
+ * véspera segue sendo o alvo do papel (a folha nasce PARA a véspera; zero
+ * flash vazio no SSR). FONTE ÚNICA: MATH_EXAM_PLAN para o plano,
+ * MATH_EXAM/MATH_VESPERA_DATE para a data — zero segunda derivação.
+ * (A função vive DEPOIS do MATH_EXAM_PLAN — a lição da 183 sobre TDZ.)
+ */
+export function folhaPlanForPaper(daysLeft: number | null): {
+  plan: PlanDay;
+  label: string;
+  dateISO: string;
+} | null {
+  const offset = daysLeft === 0 ? 0 : 1;
+  const plan = MATH_EXAM_PLAN.find((d) => d.offset === offset) ?? null;
+  if (!plan) return null;
+  return {
+    plan,
+    label: offset === 0 ? 'Dia da prova' : 'Véspera',
+    dateISO: offset === 0 ? MATH_EXAM.date : MATH_VESPERA_DATE,
+  };
+}
+
+/**
+ * O ENDEREÇO DA REGRA (t188) — o chip do dia do simulado LIDO DO PRÓPRIO
+ * PLANO: o debrief citava 'plano D-7' de memória e o PLANO REFEITO (24/09)
+ * moveu o simulado para o D-2 — a citação envelheceu e ninguém viu. Agora o
+ * endereço é DERIVADO: acha o dia de kind 'simulado' no plano e devolve
+ * 'D-{offset}' — o plano mudou de dia, a citação muda junto (nunca mais um
+ * rótulo velho). null = o plano não tem dia de simulado (não deveria — e a
+ * superfície que compõe cala o chip em vez de inventar endereço). O parâmetro
+ * plan existe para o contrato executar o fallback sem tocar no acervo real
+ * (PUREZA testável — padrão da casa). Vive DEPOIS do MATH_EXAM_PLAN (lição
+ * 183/TDZ), ao lado de folhaPlanForPaper.
+ */
+export function simuladoRegraPlanoChip(plan?: PlanDay[]): string | null {
+  const dia = (plan ?? MATH_EXAM_PLAN).find((d) => d.kind === 'simulado');
+  return dia ? `D-${dia.offset}` : null;
+}
 
 export interface FormulaCard {
   grupo: 'Matrizes' | 'Lógica';
@@ -1476,7 +1765,7 @@ export const MATH_FLASHCARDS: { front: string; back: string }[] = [
     back: 'Ponens: $p \\rightarrow q,\\; p \\vdash q$\nTollens: $p \\rightarrow q,\\; \\neg q \\vdash \\neg p$\nSilogismo: $p \\rightarrow q,\\; q \\rightarrow r \\vdash p \\rightarrow r$',
   },
   {
-    front: 'O que NÃO cai na Av1 de Matemática (01/10)?',
+    front: `O que NÃO cai na Av1 de Matemática (${MATH_EXAM_DATE_SHORT})?`,
     back: 'Determinantes como TÓPICO (1.3) e Sistemas Lineares (1.4) — o professor ainda não deu (confirmado 24/09).\nO $ad - bc$ aparece só por dentro da fórmula da inversa 2×2.',
   },
 ];
@@ -1595,8 +1884,6 @@ export interface RealGradeRecordLike {
 /** Chave do registro da nota real da Av1 — a MESMA gramática da Calculadora. */
 export const MATH_NOTA_REAL_KEY = `${MATH_EXAM.disciplineCode}-${MATH_EXAM.evaluationName}`;
 
-/** Data da prova em 'dd/mm' — a voz da calculadora cita o dia sem hardcode. */
-export const MATH_EXAM_DATE_SHORT = `${MATH_EXAM.date.slice(8, 10)}/${MATH_EXAM.date.slice(5, 7)}`;
 
 /** Dias até a prova a partir de now (âncora local 00:00, mesma regra do daysUntilDate). */
 function daysToExamFrom(now: Date): number {
@@ -1621,6 +1908,113 @@ export function notaRealAv1Valida(
   if (daysToExamFrom(now) >= 0) return false; // a prova ainda não aconteceu
   if (!registro.doneAt) return true;
   return new Date(registro.doneAt).getTime() >= new Date(`${MATH_EXAM.date}T00:00:00`).getTime();
+}
+
+// ---------------------------------------------------------------------------
+// O DEBRIEF DA PROVA REAL (t191) — a nota mora na Calculadora (t77), mas a
+// NOITE da prova (01/10) tem um ritual que faltava: registrar COMO FOI por
+// tópico, com a memória fresca. A autoavaliação alimenta a Recuperação (os
+// tópicos marcados "travei" são exatamente onde a retomada começa — os gates
+// pós-prova, determinantes e sistemas, se apoiam em Matrizes) e o próprio
+// dono (a próxima folha nasce com a confissão da prova anterior). Regra da
+// casa: dado que o dono não deu não existe — três níveis honestos por tópico
+// do escopo REAL (MATH_EXAM.topicosEscopo), nada inventado, nada obrigatório.
+// ---------------------------------------------------------------------------
+
+/** Nível honesto da autoavaliação — a gramática de cor da casa em três peças. */
+export type ProvaRealLevel = 'tranquilo' | 'travei' | 'nao-caiu';
+
+/**
+ * Chave do debrief da prova real — a MESMA família do kit (hub:math-exam:v1:recite)
+ * e do plano (hub:math-exam:v1:*). Lida pelo card pós-prova (escreve) e pela
+ * Recuperação (confessa) via useLocalStorage — o storage event sincroniza as
+ * duas superfícies na mesma aba sem reload.
+ */
+export const MATH_PROVA_REAL_KEY = 'hub:math-exam:v1:prova-real';
+
+export interface ProvaRealEntry {
+  /** ISO do último toque (o recibo é a última escrita — mesma doutrina do recorte). */
+  registeredAt: string;
+  /** Tópico → nível. Só entra tópico com nível válido (o parser é a régua). */
+  perTopic: Record<string, ProvaRealLevel>;
+}
+
+const PROVA_REAL_LEVELS: readonly ProvaRealLevel[] = ['tranquilo', 'travei', 'nao-caiu'];
+
+/** Rótulo na voz do dono — fonte única dos chips do card e da confissão da Recuperação. */
+export const PROVA_REAL_LABEL: Record<ProvaRealLevel, string> = {
+  tranquilo: 'Tranquilo',
+  travei: 'Travei',
+  'nao-caiu': 'Não caiu',
+};
+
+/**
+ * Parser/normalizador (a doutrina do recibo da recitação, t178): lixo, dado
+ * parcial ou corrompido → null (o card fica calmo, sem debrief — nunca um
+ * meio-registro vestido de dado). Tópico sem nível conhecido não mata o
+ * registro: sai do mapa e o resto vale (dados antigos não são apagados —
+ * são honestamente ignorados). Sem nenhum nível válido → null (registro
+ * vazio não é debrief).
+ */
+export function provaRealRead(raw: unknown): ProvaRealEntry | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const typed = raw as Record<string, unknown>;
+  const perTopicRaw = typed.perTopic;
+  if (perTopicRaw == null || typeof perTopicRaw !== 'object' || Array.isArray(perTopicRaw)) {
+    return null;
+  }
+  const perTopic: Record<string, ProvaRealLevel> = {};
+  for (const [topic, level] of Object.entries(perTopicRaw as Record<string, unknown>)) {
+    if (typeof topic !== 'string' || topic.trim() === '') continue;
+    if (typeof level !== 'string') continue;
+    if (!(PROVA_REAL_LEVELS as readonly string[]).includes(level)) continue;
+    perTopic[topic] = level as ProvaRealLevel;
+  }
+  if (Object.keys(perTopic).length === 0) return null;
+  const registeredAt =
+    typeof typed.registeredAt === 'string' && !Number.isNaN(new Date(typed.registeredAt).getTime())
+      ? typed.registeredAt
+      : '';
+  return { registeredAt, perTopic };
+}
+
+/**
+ * Tópicos agrupados por nível, na ORDEM do escopo (a voz da casa lê na ordem
+ * da prova, nunca na ordem do toque); tópicos fora do escopo (registro
+ * antigo/parcial) entram no fim dos seus grupos — honestos, nunca apagados.
+ */
+export function provaRealSummary(entry: ProvaRealEntry | null): Record<ProvaRealLevel, string[]> {
+  const summary: Record<ProvaRealLevel, string[]> = { tranquilo: [], travei: [], 'nao-caiu': [] };
+  if (!entry) return summary;
+  const fora = new Set(Object.keys(entry.perTopic));
+  for (const topic of MATH_EXAM.topicosEscopo) {
+    const level = entry.perTopic[topic];
+    if (level) {
+      summary[level].push(topic);
+      fora.delete(topic);
+    }
+  }
+  for (const topic of fora) summary[entry.perTopic[topic]].push(topic);
+  return summary;
+}
+
+/** Existe tópico "travei"? — o gatilho honesto da confissão na Recuperação. */
+export function provaRealTemTravei(entry: ProvaRealEntry | null): boolean {
+  return !!entry && Object.values(entry.perTopic).some((l) => l === 'travei');
+}
+
+/**
+ * A confissão da Recuperação (fonte única da voz): cita SOMENTE os tópicos
+ * marcados "travei" na ordem do escopo — é onde a retomada começa. Sem
+ * travei → null (a linha cala — tranquilidade não pede plano; o card
+ * celebra por si).
+ */
+export function provaRealConfessionFor(entry: ProvaRealEntry | null): string | null {
+  if (!entry || !provaRealTemTravei(entry)) return null;
+  const { travei } = provaRealSummary(entry);
+  if (travei.length === 0) return null;
+  const voz = travei.map((t) => MATH_TOPICO_CURTO[t] ?? t).join(' e ');
+  return `autoavaliação da prova: ${voz} — travei`;
 }
 
 export interface GradeTableExamStrip {

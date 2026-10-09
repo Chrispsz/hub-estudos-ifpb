@@ -49,7 +49,7 @@
     "alg-aut-q2: reutilize sua técnica do reverso.c para SOMAR os 4 dígitos de um número (mesma decomposição, resultado diferente).",
     "alg-aut-q3: ajuste seu VelocidadeMedia.c para imprimir com 2 decimais (%.2f) e teste com 90 km/h em 1 h → deve dar 25.00 m/s."
   ],
-  "perguntas_autoavaliação": [
+  "perguntas_autoavaliacao": [
     "Por que %d no scanf do antecessor_e_sucessor corrige o bug? (R: %c lê 1 byte/caractere; %d lê o número inteiro digitado)",
     "Qual a diferença entre scanf(\"%f\", &x) duas vezes e scanf(\"%f%f\", &a, &b)? (R: nenhuma na lógica — a segunda lê os dois de uma vez, separados por espaço/Enter)",
     "Como você decomporia um número de 5 dígitos com a sua técnica do reverso.c? (R: mesma ideia: /10000, %10000, /1000... um dígito por vez)",

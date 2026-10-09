@@ -1,0 +1,358 @@
+% Av1 de Matemática — as questões do professor (espelhos das listas)
+% Fonte: áudio do professor (30/09, transcrito no Hub) + listas oficiais em PDF.
+% Compilar: python3 skills/pdf/scripts/pdf.py convert.latex <este arquivo>
+\documentclass[11pt]{article}
+
+\usepackage{geometry}
+\geometry{a4paper, top=2.2cm, bottom=2.3cm, left=2.2cm, right=2.2cm}
+
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\setlist{itemsep=2pt, topsep=4pt, parsep=0pt}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+\usepackage[portuguese]{babel}
+
+% hyperref por último
+\usepackage[colorlinks=true, linkcolor=violetdark, urlcolor=violetdark,
+  bookmarks=true, unicode=true]{hyperref}
+\hypersetup{
+  pdftitle={Av1 de Matemática — As questões do professor (espelhos das listas)},
+  pdfauthor={Hub de Estudos IFPB},
+  pdfsubject={Matrizes e Lógica — preparação para a Av1 de 01/10},
+  pdfcreator={Z.ai},
+}
+
+\definecolor{violetdark}{HTML}{6D28D9}   % violet-700
+\definecolor{violetfill}{HTML}{F5F3FF}   % violet-50
+\definecolor{tealdeep}{HTML}{0F766E}     % teal-700
+\definecolor{tealfill}{HTML}{F0FDFA}     % teal-50
+\definecolor{inkgray}{HTML}{52525B}      % zinc-600
+\definecolor{amberdeep}{HTML}{B45309}    % amber-700
+\definecolor{amberfill}{HTML}{FFFBEB}    % amber-50
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{inkgray}Av1 · Matemática — questões do professor}
+\fancyhead[R]{\small\color{inkgray}01/10 · 50\,min}
+\fancyfoot[C]{\small\color{inkgray}\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\setlength{\headheight}{14pt}
+
+\widowpenalty=10000
+\clubpenalty=10000
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+
+% Caixa de questão (título colorido)
+\newtcolorbox{questaobox}[1]{
+  enhanced, breakable,
+  colback=violetfill, colframe=violetdark,
+  boxrule=0.6pt, arc=2mm, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  title={#1}, fonttitle=\bfseries, coltitle=white,
+  colbacktitle=violetdark,
+}
+% Caixa de espelho (enunciado real da lista)
+\newtcolorbox{espelhobox}[1]{
+  enhanced, breakable,
+  colback=white, colframe=inkgray!55,
+  boxrule=0.5pt, arc=1.5mm, left=8pt, right=8pt, top=5pt, bottom=5pt,
+  title={#1}, fonttitle=\bfseries\small, coltitle=inkgray,
+  colbacktitle=inkgray!8,
+}
+% Citação do professor
+\newtcolorbox{profquote}{
+  enhanced, breakable, blanker,
+  borderline west={2pt}{0pt}{violetdark!60},
+  left=10pt, right=4pt, top=2pt, bottom=2pt,
+}
+% Gabarito / método
+\newtcolorbox{metodobox}{
+  enhanced, breakable,
+  colback=tealfill, colframe=tealdeep,
+  boxrule=0.6pt, arc=2mm, left=8pt, right=8pt, top=6pt, bottom=6pt,
+}
+\newtcolorbox{strategiabox}{
+  enhanced,
+  colback=amberfill, colframe=amberdeep,
+  boxrule=0.6pt, arc=2mm, left=8pt, right=8pt, top=6pt, bottom=6pt,
+}
+
+\newcommand{\meta}[1]{{\small\color{inkgray}#1}}
+
+\begin{document}
+
+% ================= CABEÇALHO =================
+{\Large\bfseries Av1 de Matemática — as questões do professor}\\[3pt]
+{\small\color{inkgray}Mapa feito do áudio do professor (30/09) · enunciados copiados 1\,:\,1 das listas oficiais · núcleo: Matrizes e Lógica}
+
+\vspace{6pt}
+\begin{strategiabox}
+\textbf{\color{amberdeep}Como usar esta folha} — (1)~Resolva no papel, com o rascunho numerado por questão. (2)~Trave? Confira a receita no bloco ``Método e gabarito'' (páginas finais). (3)~No site, este PDF abre \textbf{com o tutor do lado}: mande sua resolução e peça a correção.
+
+\vspace{4pt}
+\textbf{\color{amberdeep}O que cai:} Matrizes (operações, transposta, simétrica/antissimétrica, inversa) e Lógica (proposições, conectivos, tabelas-verdade, equivalências, argumentos). \textbf{Não cai:} determinantes e sistemas lineares (ainda não dados).
+
+\vspace{4pt}
+\textbf{\color{amberdeep}Formato:} só \textbf{uma} questão é de marcar (alternativas); as demais são de resolver e \emph{escrever} a resposta — treine escrevendo, não só escolhendo.
+
+\vspace{4pt}
+\textbf{\color{amberdeep}Pontuação e ordem:} 6 questões, 20 pts cada (100). A Q6 é bônus (+20 — a nota trava em 100). Ordem recomendada: \textbf{Q3 $\to$ Q1 $\to$ Q4 $\to$ Q2 $\to$ Q5 $\to$ Q6} — primeiro o que é automático, por último o bônus difícil. Antes de calcular, escreva a fórmula padrão de memória: fórmula certa no papel é metade da nota.
+\end{strategiabox}
+
+% ================= PARTE 1 — QUESTÕES =================
+\vspace{4pt}
+{\large\bfseries\color{violetdark}Parte 1 — As questões, na ordem da prova}
+
+\vspace{2pt}
+\meta{Cada questão abaixo é o \textbf{espelho exato} que o professor citou na lista. Depois de resolver no papel, treine as ``questões irmãs'' indicadas — mesmo músculo, números diferentes.}
+
+% ---------- QUESTÃO 1 ----------
+\begin{questaobox}{Questão 1 — Lógica: valores lógicos e conclusão do argumento}
+\meta{6\,min · 20 pts · fazer em \textbf{2º} na prova (regras decoradas = piloto automático)}
+\end{questaobox}
+
+\begin{profquote}
+\small\itshape ``Vai ter uma questão de lógica matemática: umas proposições lógicas, você diz os valores lógicos e, a partir das premissas, chega a uma conclusão — bem de boa, já chegamos em alguns parecidos com os exemplos de aula.''
+\end{profquote}
+
+\begin{espelhobox}{Espelho exato — Lista de Lógica, Q7}
+Considere as proposições:
+$p$: $3+2=6$ \quad $q$: $\pi>3$ \quad $r$: Cajazeiras é a capital da Paraíba.
+Determine o valor lógico (V ou F) das expressões:
+\begin{enumerate}[label=\alph*), leftmargin=2em]
+  \item $p \to q$
+  \item $\lnot(p \lor r) \land q$
+  \item $\lnot(q \to p) \land p$
+  \item $(r \leftrightarrow p) \lor \lnot q$
+\end{enumerate}
+\end{espelhobox}
+
+\begin{espelhobox}{Espelho exato — Lista de Lógica, Q13 (argumento com alternativas)}
+Se Carlos é executivo público, então Cláudio é eletricista e André médico. Se Márcia é enfermeira ou Carolina é nutricionista, então André não é médico. Constata-se que Márcia é enfermeira ou que Ana é advogada. Sabe-se, ainda, que Carlos é executivo público. Logo, é verdade que:
+\begin{enumerate}[label=\Alph*), leftmargin=2em]
+  \item Ana é advogada
+  \item André não é médico
+  \item Márcia é enfermeira
+  \item Cláudio não é eletricista
+  \item Carolina é nutricionista
+\end{enumerate}
+\end{espelhobox}
+
+\meta{Treine também (mesmo músculo): Lista de Lógica, Q5, Q6, Q14 e Q15.}
+
+% ---------- QUESTÃO 2 ----------
+\needspace{6\baselineskip}
+\begin{questaobox}{Questão 2 — Lógica: formalizar, tabela-verdade e classificar}
+\meta{10\,min · 20 pts · fazer em \textbf{4º} (é fórmula pura, mas a tabela come tempo — deixe para depois dos pontos mecânicos)}
+\end{questaobox}
+
+\begin{profquote}
+\small\itshape ``Na segunda vou colocar uma proposição composta. Na letra A: identificar as proposições simples e traduzir para a linguagem formal. Depois: construir a tabela-verdade e classificar — tautologia, contradição ou contingência. É parecida com a questão 3 da lista de lógica.''
+\end{profquote}
+
+\begin{espelhobox}{Espelho exato — Lista de Lógica, Q3 (citada pelo professor)}
+Sejam as proposições $p$: Luciana é rica \quad e \quad $q$: Luciana é feliz.
+Traduza para a linguagem simbólica:
+\begin{enumerate}[label=\alph*), leftmargin=2em]
+  \item Luciana é pobre, mas é feliz
+  \item Luciana é rica ou infeliz
+  \item Luciana é pobre e infeliz
+  \item Luciana é pobre ou rica, mas é infeliz
+\end{enumerate}
+\end{espelhobox}
+
+\meta{Treine também (mesmo músculo): Lista de Lógica, Q4, Q8, Q10 e Q11 — tabelas-verdade completas e classificação.}
+
+% ---------- QUESTÃO 3 ----------
+\needspace{6\baselineskip}
+\begin{questaobox}{Questão 3 — Matrizes: matriz por lei de formação}
+\meta{6\,min · 20 pts · fazer em \textbf{1º} (a mais mecânica: aplica a lei casa a casa e aquece a mão)}
+\end{questaobox}
+
+\begin{profquote}
+\small\itshape ``A terceira é para vocês: uma matriz quadrada de formação\ldots{} algo parecido, talvez, com a primeira questão da lista de matrizes.''
+\end{profquote}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q1 (citada pelo professor)}
+Construa as seguintes matrizes:
+\begin{enumerate}[label=\alph*), leftmargin=2em]
+  \item $A=(a_{ij})_{2\times 2}$ tal que $a_{ij}=2+i+j$
+  \item $A=(a_{ij})_{3\times 3}$ tal que $a_{ij}=\begin{cases} 1, & \text{se } i=j \\ 0, & \text{se } i\neq j \end{cases}$
+  \item $B=(b_{ij})_{3\times 3}$ tal que $b_{ij}=\begin{cases} 1, & \text{se } i+j=4 \\ 0, & \text{se } i+j\neq 4 \end{cases}$
+  \item $B=(b_{ij})_{4\times 3}$ tal que $b_{ij}=\begin{cases} 2i-j, & \text{se } i>j \\ \pi, & \text{se } i=j \\ ij-3, & \text{se } i<j \end{cases}$
+\end{enumerate}
+\end{espelhobox}
+
+\meta{Treine também (mesmo músculo): Lista de Matrizes, Q3 (igualdade casa a casa), Q7 (soma por lei), Q28 (simétrica) e Q29 (antissimétrica).}
+
+% ---------- QUESTÃO 4 ----------
+\needspace{6\baselineskip}
+\begin{questaobox}{Questão 4 — Matrizes: situação-problema é PRODUTO (não é sistema!)}
+\meta{8\,min · 20 pts · fazer em \textbf{3º} (montou as matrizes, linha $\times$ coluna é automático)}
+\end{questaobox}
+
+\begin{profquote}
+\small\itshape ``A quarta é boa, a quarta é bonita. Vai ter uma situação-problema\ldots{} queijo, frango, biscoito\ldots{} Vai representar por sistemas lineares? NÃO! É o produto de matrizes: quantidades de um lado, preços do outro.''
+\end{profquote}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q2 (leitura de matriz de situação)}
+A matriz $D$ representa as distâncias (em km) entre as cidades X, Y e Z:
+$D=\begin{bmatrix} 0 & 15 & 27 \\ 15 & 0 & 46 \\ 27 & 46 & 0 \end{bmatrix}$.
+Cada elemento $a_{ij}$ fornece a distância entre as cidades $i$ e $j$.
+\begin{enumerate}[label=\alph*), leftmargin=2em]
+  \item Determine as distâncias entre X e Y, entre Z e X, e entre Y e Z.
+  \item Qual é a transposta da matriz $D$?
+\end{enumerate}
+\end{espelhobox}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q17 (a mecânica do produto)}
+Calcule os seguintes produtos:
+\begin{enumerate}[label=\alph*), leftmargin=2em]
+  \item $\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \begin{bmatrix} 4 & 7 \\ 2 & 3 \end{bmatrix}$
+  \item Coluna $\times$ linha (produto externo): $\begin{bmatrix} 1 \\ 2 \\ 3 \end{bmatrix} \begin{bmatrix} 3 & 1 & 1 & 2 \end{bmatrix}$
+  \item $\begin{bmatrix} -2 & 1 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} -2 & 3 & 2 & -1 \\ -1 & 0 & 0 & -4 \end{bmatrix}$
+  \item $\begin{bmatrix} 0 & 1 & 2 \\ 1 & 1 & 3 \\ -3 & -2 & -7 \end{bmatrix} \begin{bmatrix} 4 & -1 & 1 \\ 0 & 3 & -2 \\ 2 & 1 & 3 \end{bmatrix}$
+\end{enumerate}
+\end{espelhobox}
+
+\meta{Treine também (mesmo músculo): Lista de Matrizes, Q9 (soma/subtração), Q18 (elemento $c_{23}$ do produto) e Q22 (produto por diagonal).}
+
+% ---------- QUESTÃO 5 ----------
+\needspace{6\baselineskip}
+\begin{questaobox}{Questão 5 — Matrizes: transformação no plano e potência}
+\meta{10\,min · 20 pts · fazer em \textbf{5º} (multiplicações maiores — com a nota encaminhada, faça com calma)}
+\end{questaobox}
+
+\begin{profquote}
+\small\itshape ``Vai ter uma figurinha formada no plano cartesiano — figura poligonal por vértices. As transformações geométricas podem ser representadas por uma operação matricial — e essa operação é a MULTIPLICAÇÃO. E tem letra de operação: potenciação, adição, multiplicação — achei parecida com a vinte e seis da lista.''
+\end{profquote}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q19 (potência de matriz)}
+Se $n\in\mathbb{N}^{*}$ e $A$ é matriz quadrada, definimos $A^{n}=A\cdot A\cdot A \cdots A$ ($n$ fatores).
+Sendo $A=\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$, determine:
+\begin{enumerate}[label=\alph*), itemsep=0pt, leftmargin=2em]
+  \item $A^{2}$
+  \item $A^{3}$
+  \item $A^{4}$
+  \item $A^{25}$
+  \item $A^{n}$
+\end{enumerate}
+\end{espelhobox}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q20 (combo de operações)}
+Se $A=\begin{bmatrix} 1 & 2 \\ 4 & -3 \end{bmatrix}$, determine $A^{2}+2A-11\cdot I$, em que $I$ é a identidade $2\times 2$.
+\end{espelhobox}
+
+\meta{Treine também (mesmo músculo): Lista de Matrizes, Q26 (transposta em equação), Q17d (produto $3\times3$ — a mecânica do vértice novo) e Q12 (escalar e combinação).}
+
+% ---------- QUESTÃO 6 ----------
+\needspace{6\baselineskip}
+\begin{questaobox}{Questão 6 — Matrizes: inversa — isolar $X$ e usar a definição (BÔNUS)}
+\meta{10\,min · 20 pts de bônus (a nota trava em 100) · fazer em \textbf{último} — garanta as 100 primeiro}
+\end{questaobox}
+
+\begin{profquote}
+\small\itshape ``A sexta vai ter uma definição. Se compreenderem a definição, vai pedir para usar — e usar é muito mais fácil. É só isolar a matriz $X$, lembrando das propriedades da inversa e da transposta\ldots{} na questão trinta e quatro, por exemplo, na trinta e cinco. E a letra B usa a definição do que é uma matriz tal coisa.''
+\end{profquote}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q34 (citada pelo professor)}
+Sendo $A$ e $B$ matrizes inversíveis de ordem $n$, isole $X$ a partir de cada equação:
+\begin{enumerate}[label=\alph*), leftmargin=2em]
+  \item $AXB = I_{n}$
+  \item $(AX)^{-1} = B$
+  \item $BAX = A$
+  \item $(AX)^{t} = B$
+  \item $(A+X)^{t} = B$
+\end{enumerate}
+\end{espelhobox}
+
+\begin{espelhobox}{Espelho exato — Lista de Matrizes, Q35 (citada pelo professor)}
+Dadas as matrizes $A=\begin{bmatrix} 3 & 4 \\ -2 & 1 \end{bmatrix}$ e $B=\begin{bmatrix} 5 & -2 \\ 0 & 3 \end{bmatrix}$,
+determine a matriz $X$ tal que $(XA)^{-1}=B$.
+\end{espelhobox}
+
+\meta{Treine também (mesmo músculo): Lista de Matrizes, Q31 (inversas), Q32 (inversa por igualdade) e Q33 (equação matricial).}
+
+% ================= PARTE 2 — MÉTODO E GABARITO =================
+\newpage
+{\large\bfseries\color{tealdeep}Parte 2 — Método e gabarito}
+
+\vspace{2pt}
+\meta{Receita de prova = os passos mecânicos para não travar no tempo. Gabarito relâmpago = a resposta curta para conferir na hora. Errou? Releia a receita, refaça e depois pergunte ao tutor.}
+
+\vspace{4pt}
+\begin{metodobox}
+\textbf{\color{tealdeep}Questão 1 — valores lógicos e conclusão}
+\begin{enumerate}[label=\arabic*., leftmargin=1.6em]
+  \item Valorize primeiro cada proposição simples (com números, calcule: $3+2=6$ é F; $\pi>3$ é V; ``Cajazeiras é a capital da Paraíba'' é F — capital é João Pessoa).
+  \item Regras de ouro: $\land$ é V só se os dois forem V \quad $\lor$ é F só se os dois forem F \quad $\to$ só é F quando V$\to$F \quad $\leftrightarrow$ é V quando os lados são iguais.
+  \item Encadeie as premissas: modus ponens $(p\to q,\ p \vdash q)$ \quad modus tollens $(p\to q,\ \lnot q \vdash \lnot p)$ \quad silogismo $(p\to q,\ q\to r \vdash p\to r)$ \quad disjunção $(p\lor q,\ \lnot p \vdash q)$.
+  \item Conclusão = a única alternativa que não contraria a cadeia. Teste as outras até quebrar.
+\end{enumerate}
+\textbf{Gabarito:} \textbf{Q7} — $p=$ F, $q=$ V, $r=$ F $\Rightarrow$ a) V \; b) V \; c) F \; d) V. \quad \textbf{Q13} — alternativa \textbf{A} (Carlos V $\Rightarrow$ André médico e Cláudio eletricista; a 2ª condicional força ``Márcia ou Carolina'' = F; da disjunção com Márcia = F sobra Ana advogada).
+\end{metodobox}
+
+\begin{metodobox}
+\textbf{\color{tealdeep}Questão 2 — formalizar e classificar}
+\begin{enumerate}[label=\arabic*., leftmargin=1.6em]
+  \item Sublinhe as proposições simples e nomeie ($p$, $q$). Vocabulário: ``e/mas'' $=\land$ \quad ``ou'' $=\lor$ \quad ``se\ldots{}então'' $=\to$ \quad ``se e somente se'' $=\leftrightarrow$ \quad ``não/pobre/infeliz'' $=\lnot$.
+  \item $n$ variáveis $\to 2^{n}$ linhas (2 variáveis = 4 linhas; 3 = 8). Construa as colunas de dentro para fora (primeiro os parênteses e $\lnot$ internos).
+  \item Classifique pela coluna final: toda V = tautologia \quad toda F = contradição \quad mista = contingência.
+  \item Atalhos: achou $\lnot p \land p$ em qualquer lugar = F garantido. Proposição do tipo $X \to X$ = tautologia.
+\end{enumerate}
+\textbf{Gabarito (Q3):} a) $\lnot p \land q$ (``mas'' é $\land$ e ``pobre'' é $\lnot p$) \; b) $p \lor \lnot q$ \; c) $\lnot p \land \lnot q$ \; d) $(\lnot p \lor p)\land\lnot q = \lnot q$, pois $\lnot p \lor p$ é tautologia.
+\end{metodobox}
+
+\begin{metodobox}
+\textbf{\color{tealdeep}Questão 3 — lei de formação}
+\begin{enumerate}[label=\arabic*., leftmargin=1.6em]
+  \item Leia a lei casa a casa: $i$ = linha, $j$ = coluna. Condição $i=j$ = diagonal principal \quad $i+j=n+1$ = diagonal secundária.
+  \item Monte linha por linha, aplicando a regra certa em cada casa (nas leis por partes, teste $i>j$, $i=j$ e $i<j$ separadamente).
+  \item Simétrica: $A^{t}=A$ (espelho na diagonal principal). Antissimétrica: $A^{t}=-A$ $\Rightarrow$ a diagonal é toda zero.
+  \item Igualdade de matrizes = casa a casa igual — vira um sistema simples (some ou subtraia as equações).
+\end{enumerate}
+\textbf{Gabarito (Q1):} a) $\begin{bmatrix} 4 & 5 \\ 5 & 6 \end{bmatrix}$ \; b) é a identidade $I_{3}$ \; c) 1 na diagonal \textbf{secundária}: $\begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & 0 \\ 1 & 0 & 0 \end{bmatrix}$ \; d) aplique a regra certa em cada casa (abaixo da diagonal, na diagonal, acima).
+\end{metodobox}
+
+\begin{metodobox}
+\textbf{\color{tealdeep}Questão 4 — situação-problema por produto}
+\begin{enumerate}[label=\arabic*., leftmargin=1.6em]
+  \item Monte as matrizes do enunciado: QUANTIDADES $=Q$ (linhas = dias/lojas, colunas = produtos) e PREÇOS $=P$ (matriz coluna).
+  \item Teste a ordem: $Q_{(m\times n)}\cdot P_{(n\times 1)} \to (m\times 1)$. O produto só existe se colunas da 1ª = linhas da 2ª.
+  \item $c_{ik}$ = soma de (linha $i$ de $Q$) $\times$ (coluna $k$ de $P$), elemento a elemento.
+  \item Interprete: cada linha do resultado é o faturamento daquele dia/loja. O professor avisou: é produto, NÃO sistema linear.
+\end{enumerate}
+\textbf{Gabarito:} \textbf{Q2} — a) $d(\text{X},\text{Y})=a_{12}=15$ \; $d(\text{Z},\text{X})=a_{31}=27$ \; $d(\text{Y},\text{Z})=a_{23}=46$ \; b) $D^{t}=D$ (é simétrica — distância não muda de direção). \quad \textbf{Q17} — a) $\begin{bmatrix} 2 & 3 \\ 7 & 4 \end{bmatrix}$ (a 1ª matriz troca as linhas — permutação) \; b) produto externo $3\times 4$ \; c) ordem $2\times 4$ \; d) ordem $3\times 3$; confira sempre colunas da 1ª = linhas da 2ª.
+\end{metodobox}
+
+\begin{metodobox}
+\textbf{\color{tealdeep}Questão 5 — transformação e potência}
+\begin{enumerate}[label=\arabic*., leftmargin=1.6em]
+  \item Cada vértice $(x, y)$ vira matriz coluna $\begin{bmatrix} x \\ y \end{bmatrix}$. O vértice novo é $M\cdot\begin{bmatrix} x \\ y \end{bmatrix}$ — uma multiplicação por vértice (linha de $M$ $\times$ coluna do vértice).
+  \item Reconheça o efeito de $M$: $\begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$ = rotação $90^{\circ}$ \quad $\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$ = espelho no eixo $x$ \quad $\begin{bmatrix} k & 0 \\ 0 & k \end{bmatrix}$ = escala $k$.
+  \item Potência: $A^{2}=A\cdot A$ (multiplique de novo o resultado) — nunca eleve elemento a elemento.
+  \item Combo do tipo Q20: primeiro $A^{2}$, depois $2A$ e $11I$, somente então some/subtraia elemento a elemento.
+\end{enumerate}
+\textbf{Gabarito:} \textbf{Q19} — $A^{2}=\begin{bmatrix} 1 & 2 \\ 0 & 1 \end{bmatrix}$ \; $A^{3}=\begin{bmatrix} 1 & 3 \\ 0 & 1 \end{bmatrix}$ \; $A^{4}=\begin{bmatrix} 1 & 4 \\ 0 & 1 \end{bmatrix}$ \; $A^{25}=\begin{bmatrix} 1 & 25 \\ 0 & 1 \end{bmatrix}$ \; $A^{n}=\begin{bmatrix} 1 & n \\ 0 & 1 \end{bmatrix}$ (o 1 da diagonal sempre volta; só o canto cresce). \quad \textbf{Q20} — $A^{2}=\begin{bmatrix} 9 & -4 \\ -8 & 17 \end{bmatrix}$; $2A=\begin{bmatrix} 2 & 4 \\ 8 & -6 \end{bmatrix}$; somando e subtraindo $11I$ dá a \textbf{matriz nula} — se não deu zero, refaça a multiplicação.
+\end{metodobox}
+
+\begin{metodobox}
+\textbf{\color{tealdeep}Questão 6 — inversa: isolar $X$ e a definição (bônus)}
+\begin{enumerate}[label=\arabic*., leftmargin=1.6em]
+  \item Definição (a letra B cobra na linha): $M$ é a inversa de $A \Leftrightarrow A\cdot M = M\cdot A = I_{n}$. Para verificar pela definição, multiplique e mostre que dá a identidade.
+  \item Para isolar $X$: multiplique pelos dois lados pela inversa, na ordem certa — quem está do lado esquerdo é o primeiro a ser desfeito. Ex.: $BAX=A \to AX=B^{-1}A \to X=A^{-1}B^{-1}A$.
+  \item Propriedades que caem: $(AB)^{-1}=B^{-1}A^{-1}$ \quad $(A^{-1})^{-1}=A$ \quad $(A^{t})^{-1}=(A^{-1})^{t}$ \quad $(A+X)^{t}=B$ começa tirando a transposta ($A+X=B^{t}$).
+  \item A ordem não comuta: $A^{-1}B^{-1}\neq B^{-1}A^{-1}$ em geral. Escreva os passos no papel — a nota mora nos detalhes.
+\end{enumerate}
+\textbf{Gabarito:} \textbf{Q34} — a) $X=A^{-1}B^{-1}$ \; b) $AX=B^{-1}\Rightarrow X=A^{-1}B^{-1}$ \; c) $X=A^{-1}B^{-1}A$ \; d) $AX=B^{t}\Rightarrow X=A^{-1}B^{t}$ \; e) $A+X=B^{t}\Rightarrow X=B^{t}-A$. \quad \textbf{Q35} — $(XA)^{-1}=B \Rightarrow XA=B^{-1} \Rightarrow X=B^{-1}A^{-1} = \tfrac{1}{165}\begin{bmatrix} 7 & -6 \\ 10 & 15 \end{bmatrix}$.
+\end{metodobox}
+
+\vspace{6pt}
+\begin{strategiabox}
+\textbf{\color{amberdeep}Depois de resolver} — marque as questões que travaram e pergunte ao tutor (no site, este PDF abre com ele do lado). Refaça as questões irmãs indicadas na Parte 1. Quando estiver fluindo, ensaie no \textbf{Simulado do Professor} (6 questões, cronômetro real, na aba Praticar).
+\end{strategiabox}
+
+\end{document}

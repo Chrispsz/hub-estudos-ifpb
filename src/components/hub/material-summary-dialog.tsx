@@ -48,7 +48,9 @@ import {
 } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
 import { captureElementToDataUrl } from '@/lib/dom-capture';
+import { normalizeAiSummary } from '@/lib/ai-summary-schema';
 import { cn } from '@/lib/utils';
+import { MathText } from './math-text';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 
 interface AiSummary {
@@ -74,6 +76,15 @@ interface Props {
   material: Material | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * t187 — O DEEP-LINK DA AUTOAVALIAÇÃO: quando o diálogo é aberto por uma
+   * tarefa do plano (chip do card/Kit), o gesto termina DENTRO da seção das
+   * perguntas — não no topo de um resumo longo. O pai pede 'autoavaliacao'
+   * e o diálogo rola até a seção (uma vez, por abertura) e a acende por um
+   * instante: o olho chega onde a tarefa manda chegar. Padrão null = abrir
+   * no topo, como sempre (Biblioteca/Estudar não mudam de hábito).
+   */
+  focusSection?: 'autoavaliacao' | null;
 }
 
 const typeLabel: Record<Material['type'], string> = {
@@ -95,12 +106,36 @@ const summaryCache = new Map<string, AiSummary>();
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
 const touchBtn = 'h-11 sm:h-8';
 
-export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
+export function MaterialSummaryDialog({ material, open, onOpenChange, focusSection = null }: Props) {
   const sp = useStudyProgress();
   const [loading, setLoading] = React.useState(false);
   const [summary, setSummary] = React.useState<AiSummary | null>(null);
   const [available, setAvailable] = React.useState<boolean | null>(null);
   const [message, setMessage] = React.useState<string>('');
+
+  // t187 — O FAROL DA SEÇÃO: a âncora rola UMA vez por abertura (o efeito
+  // lê a epoch do material, não o clique — trocar de chip dentro do diálogo
+  // aberto re-ancora honesto) e o destaque morre sozinho (estado de TELA,
+  // o MESMO contrato da recitação: recarregou, a rodada recomeça).
+  const [sectionLit, setSectionLit] = React.useState(false);
+  const litOff = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (!open || focusSection !== 'autoavaliacao' || loading || !summary) {
+      setSectionLit(false);
+      return;
+    }
+    const settle = window.setTimeout(() => {
+      const el = document.getElementById('resumo-autoavaliacao');
+      if (!el) return;
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      setSectionLit(true);
+      litOff.current = window.setTimeout(() => setSectionLit(false), 2400); // o farol apaga
+    }, 150); // espera o conteúdo do Dialog assentar (o padrão da casa)
+    return () => {
+      window.clearTimeout(settle);
+      if (litOff.current) window.clearTimeout(litOff.current);
+    };
+  }, [open, focusSection, loading, summary, material?.id]);
 
   // Drill-down PDF: em vez de empilhar o viewer SOBRE este diálogo (telas
   // sobrepostas), este diálogo se oculta enquanto o PDF está aberto e volta
@@ -186,7 +221,11 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
           setSummary(null);
           return;
         }
-        const data = (await res.json()) as AiSummary;
+        // t186 — A PORTA DE ENTRADA NORMALIZA: os dados do acervo já foram
+        // consertados na fonte (a chave acentuada virou canônica em 13
+        // arquivos), e a lib defende o futuro — resumo regenerado que volte
+        // a trazer "perguntas_autoavaliação" continua renderizando.
+        const data = normalizeAiSummary(await res.json()) as AiSummary;
         summaryCache.set(mat.summaryFile, data);
         setAvailable(true);
         setSummary(data);
@@ -375,6 +414,7 @@ export function MaterialSummaryDialog({ material, open, onOpenChange }: Props) {
                 onAskAi={handleAskAi}
                 answeredCount={answeredCount}
                 totalQuestions={totalQuestions}
+                sectionLit={sectionLit}
               />
             ) : null}
           </div>
@@ -503,14 +543,28 @@ function Section({
   icon,
   color,
   children,
+  id,
+  highlight,
 }: {
   title: string;
   icon: React.ReactNode;
   color: string;
   children: React.ReactNode;
+  /** t187 — âncora do deep-link (resumo-autoavaliacao): o farol do diálogo
+   * rola até ela quando a abertura vem do plano. */
+  id?: string;
+  /** t187 — o destaque temporário do deep-link: a seção acende no momento
+   * em que o olho chega (esmeralda da casa) e apaga sozinho. */
+  highlight?: boolean;
 }) {
   return (
-    <section className="space-y-2">
+    <section
+      id={id}
+      className={cn(
+        'space-y-2 rounded-lg scroll-mt-3 transition-all duration-700',
+        highlight && 'ring-2 ring-emerald-500/50 bg-emerald-500/[0.05] px-2 py-2 -mx-2',
+      )}
+    >
       <h3 className={cn('flex items-center gap-2 text-sm font-semibold', color)}>
         {icon}
         {title}
@@ -531,6 +585,7 @@ const SummaryBody = React.memo(function SummaryBody({
   onAskAi,
   answeredCount,
   totalQuestions,
+  sectionLit,
 }: {
   summary: AiSummary;
   color: ReturnType<typeof getColorClasses>;
@@ -542,6 +597,8 @@ const SummaryBody = React.memo(function SummaryBody({
   onAskAi: (question: string) => void;
   answeredCount: number;
   totalQuestions: number;
+  /** t187 — o farol do deep-link: acende a seção das perguntas na chegada. */
+  sectionLit?: boolean;
 }) {
   const conceitos = summary.conceitos_chave ?? [];
   const pontos = summary.pontos_importantes ?? [];
@@ -556,7 +613,7 @@ const SummaryBody = React.memo(function SummaryBody({
       {summary.resumo_geral && (
         <Section icon={<BookOpenText className="size-4" />} title="Resumo Geral" color={color.text}>
           <p className="text-sm leading-relaxed text-foreground/90">
-            {summary.resumo_geral}
+            <MathText text={summary.resumo_geral} />
           </p>
           {typeof summary.tempo_estudo_minutos === 'number' && (
             <Badge variant="outline" className="mt-2 border-border text-muted-foreground">
@@ -571,14 +628,16 @@ const SummaryBody = React.memo(function SummaryBody({
           <div className="grid gap-2 sm:grid-cols-2">
             {conceitos.map((c, i) => (
               <div key={i} className="rounded-md border border-border bg-muted/30 p-3">
-                <p className={cn('text-sm font-semibold', color.text)}>{c.conceito}</p>
+                <p className={cn('text-sm font-semibold', color.text)}>
+                  <MathText text={c.conceito} />
+                </p>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/85">
-                  {c.explicacao}
+                  <MathText text={c.explicacao} />
                 </p>
                 {c.exemplo && (
                   <p className="mt-2 rounded bg-card p-2 text-xs italic text-muted-foreground">
                     <span className="font-medium not-italic">Ex.: </span>
-                    {c.exemplo}
+                    <MathText text={c.exemplo} />
                   </p>
                 )}
               </div>
@@ -593,7 +652,7 @@ const SummaryBody = React.memo(function SummaryBody({
             {pontos.map((p, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
                 <CheckCircle2 className={cn('mt-0.5 size-4 shrink-0', color.text)} />
-                {p}
+                <MathText text={p} className="min-w-0 flex-1" />
               </li>
             ))}
           </ul>
@@ -605,9 +664,10 @@ const SummaryBody = React.memo(function SummaryBody({
           <div className="overflow-hidden rounded-md border border-border bg-muted/40">
             {formulas.map((f, i) => (
               <div key={i} className="border-b border-border p-2.5 last:border-b-0">
-                <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground/90">
-                  {f}
-                </pre>
+                {/* t194: fórmulas da IA em KaTeX (era <pre> mono — matriz vivia torta) */}
+                <div className="overflow-x-auto [scrollbar-width:thin]">
+                  <MathText text={f} className="block text-xs leading-relaxed text-foreground/90" />
+                </div>
               </div>
             ))}
           </div>
@@ -623,7 +683,7 @@ const SummaryBody = React.memo(function SummaryBody({
                 className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900 transition-colors hover:bg-amber-100/70 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/60"
               >
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <span className="flex-1">{e}</span>
+                <MathText text={e} className="min-w-0 flex-1" />
                 <AskAiChip
                   onAsk={() =>
                     onAskAi(
@@ -650,7 +710,7 @@ const SummaryBody = React.memo(function SummaryBody({
                 className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-2.5 text-sm text-foreground/85 transition-colors hover:bg-muted/50"
               >
                 <span className={cn('font-semibold', color.text)}>{i + 1}.</span>
-                <span className="flex-1">{ex}</span>
+                <MathText text={ex} className="min-w-0 flex-1" />
                 <AskAiChip
                   onAsk={() =>
                     onAskAi(
@@ -671,7 +731,7 @@ const SummaryBody = React.memo(function SummaryBody({
             {proximos.map((p, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
                 <Plus className={cn('mt-0.5 size-4 shrink-0', color.text)} />
-                {p}
+                <MathText text={p} className="min-w-0 flex-1" />
               </li>
             ))}
           </ul>
@@ -679,14 +739,33 @@ const SummaryBody = React.memo(function SummaryBody({
       )}
 
       {perguntas.length > 0 && (
-        <Section icon={<CircleHelp className="size-4" />} title="Perguntas de Autoavaliação" color={color.text}>
+        <Section
+          id="resumo-autoavaliacao"
+          highlight={sectionLit}
+          icon={<CircleHelp className="size-4" />}
+          title="Perguntas de Autoavaliação"
+          color={color.text}
+        >
           <p className="mb-2 text-xs text-muted-foreground">
             Marque quando souber responder com confiança. O botão de estrelas envia a pergunta ao tutor. Suas respostas ficam salvas.
           </p>
           <ul className="grid gap-1.5">
             {perguntas.map((p, i) => (
               <li key={i} className="flex items-start gap-2">
-                <label className="flex flex-1 cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/30 p-3 text-sm hover:bg-muted/50 sm:p-2.5">
+                <label
+                  className={cn(
+                    // t186 (④) — a pergunta RESPONDIDA veste a família do
+                    // acerto (esmeralda): o check marca, a borda confirma —
+                    // mesmo verniz das portas de material (t185) e dos chips
+                    // IA desta seção. focus-within ring: navegar por teclado
+                    // acende a linha inteira, não só o quadradinho.
+                    'flex flex-1 cursor-pointer items-start gap-3 rounded-md border bg-muted/30 p-3 text-sm transition-colors hover:bg-muted/50 sm:p-2.5',
+                    'focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-500/40 focus-within:ring-offset-1',
+                    checks[i]
+                      ? 'border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15'
+                      : 'border-border',
+                  )}
+                >
                   <Checkbox
                     checked={!!checks[i]}
                     onCheckedChange={() => onToggle(i)}
@@ -698,7 +777,7 @@ const SummaryBody = React.memo(function SummaryBody({
                       checks[i] && 'text-muted-foreground line-through',
                     )}
                   >
-                    {p}
+                    <MathText text={p} />
                   </span>
                 </label>
                 <AskAiChip
@@ -718,11 +797,22 @@ const SummaryBody = React.memo(function SummaryBody({
 
       <Separator />
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <ClipboardList className="size-3.5" />
-          {answeredCount} / {totalQuestions} perguntas respondidas
-        </span>
+      {/* t186 — O RODAPÉ HONESTO: o contador "N / M perguntas respondidas"
+          só existe quando há perguntas (M > 0) — material sem perguntas não
+          mostra "0 / 0" (contagem sem pergunta é ruído, não confissão). O
+          Recarregar fica FORA do guard: recarregar resumo é gesto de sempre. */}
+      <div
+        className={cn(
+          'flex items-center text-xs text-muted-foreground',
+          totalQuestions > 0 ? 'justify-between' : 'justify-end',
+        )}
+      >
+        {totalQuestions > 0 && (
+          <span className="inline-flex items-center gap-1.5">
+            <ClipboardList className="size-3.5" />
+            {answeredCount} / {totalQuestions} perguntas respondidas
+          </span>
+        )}
         <Button size="sm" variant="ghost" onClick={onReload} className="h-11 text-xs sm:h-7">
           <RefreshCw className="size-3" aria-hidden /> Recarregar
         </Button>

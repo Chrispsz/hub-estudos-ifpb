@@ -69,5 +69,15 @@
     "Multiplicação de matrizes: (AB)_{ij} = Σ_{k=1}^{n} A_{ik}·B_{kj}",
     "Matriz inversa: A·A^{-1} = A^{-1}·A = I_n",
     "Distância entre matrizes: d(A,B) = máx|a_{ij} - b_{ij}|"
+  ],
+  "perguntas_autoavaliacao": [
+    "Para somar A + B, o que as duas matrizes precisam ter em comum? Como calculo (A + B)_{ij}?",
+    "O que acontece com cada elemento quando multiplico a matriz inteira por um escalar k?",
+    "No produto AB, que conta produz o elemento da linha i, coluna j? (fale em linha de A e coluna de B)",
+    "Quando uma matriz quadrada é simétrica? E antissimétrica — o que a diagonal principal tem de especial?",
+    "Antes de calcular A² ou A⁻¹, o que preciso conferir na matriz A?",
+    "Qual verificação entre A e A⁻¹ confirma que a inversa está certa? Escreva a igualdade de memória.",
+    "Na equação matricial X + A = B, como isolo o X? (pense no que \"somar −A\" faz nos dois lados)",
+    "Duas matrizes iguais exigem o quê? O que acontece se UMA posição divergir?"
   ]
 }

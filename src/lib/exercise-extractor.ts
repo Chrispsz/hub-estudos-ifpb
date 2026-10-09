@@ -1156,6 +1156,91 @@ export const exercises: Exercise[] = [
     unit: '2. Lógica Matemática',
     linkedMaterials: ['mat-logica-lista'],
   },
+
+  // ===== SIMULADO DO PROFESSOR — Av1 de Matemática (01/10) =====
+  // Estrutura REAL da prova, ditada pelo professor em áudio de 30/09 (10 min,
+  // WhatsApp Ptt 08:34 — transcrito e interpretado pelo Hub, t172). Ele descreve
+  // as 6 questões UMA POR UMA e diz em qual questão da lista cada uma se espelha:
+  //   Q1 lógica (valores lógicos → conclusão) · Q2 proposição composta ≈ Lista de
+  //   Lógica Q3 (identificar proposições + formalizar + tabela-verdade +
+  //   tautologia/contradição/contingência) · Q3 matriz quadrada ≈ Lista de
+  //   Matrizes Q1 · Q4 situação-problema (ele diz NÃO ser sistema linear) ·
+  //   Q5 figura no plano cartesiano (transformação geométrica = multiplicação
+  //   de matrizes → novos vértices) + operações (potência/soma/produto) ≈ Q26 ·
+  //   Q6 definição de matriz inversa + isolar X (inversa/transposta) ≈ Q34–Q35.
+  // Determinantes e sistemas lineares continuam FORA (ele reforça no áudio).
+  {
+    id: 'prof-av1-q1',
+    disciplineCode: 'TEC.1984',
+    topic: 'Lógica Matemática',
+    statement:
+      'Q1 (estrutura do professor): dadas as proposições p: "a lista foi resolvida", q: "o aluno tira nota boa na Av1" e r: "o simulado foi feito", atribua valores lógicos a p, q e r no SEU caso e conclua o argumento: p → q, r → p, r. Logo, ___? Escreva a conclusão e justifique com a regra usada em cada passo.',
+    difficulty: 'medio',
+    source: 'material_professor',
+    hint: 'Encadeie: r V e r → p dão p (modus ponens); p V e p → q dão q. Duas regras de inferência em cadeia = silogismo hipotético disfarçado.',
+    unit: '2. Lógica Matemática',
+    linkedMaterials: ['mat-logica-lista', 'mat-logica-slides'],
+  },
+  {
+    id: 'prof-av1-q2',
+    disciplineCode: 'TEC.1984',
+    topic: 'Lógica Matemática',
+    statement:
+      'Q2 (estrutura do professor — parecida com a Q3 da Lista de Lógica): considere a proposição composta "João é capital do planeta e o número 2 é par, ou o número 2 não é par". a) Identifique as proposições simples, os conectivos usados e traduza a sentença para a linguagem formal (com negação onde houver). b) Construa a tabela-verdade completa e classifique a proposição como tautologia, contradição ou contingência, justificando pela coluna final.',
+    difficulty: 'medio',
+    source: 'material_professor',
+    hint: 'a) Duas simples ligadas por ∧, tudo sob ∨ com uma negação: (p ∧ q) ∨ ¬q. b) 2 variáveis = 4 linhas; a coluna final repete o valor de p em todas as linhas ⇒ contingência.',
+    unit: '2. Lógica Matemática',
+    linkedMaterials: ['mat-logica-lista'],
+  },
+  {
+    id: 'prof-av1-q3',
+    disciplineCode: 'TEC.1984',
+    topic: 'Álgebra Matricial',
+    statement:
+      'Q3 (estrutura do professor — parecida com a Q1 da Lista de Matrizes): construa a matriz quadrada A de ordem 3 tal que aij = i + j. Depois: a) identifique a13 e a31 — A é simétrica? b) construa B trocando as linhas de A por suas colunas (B = Aᵀ) e verifique se Aᵀ = A. c) calcule a soma da diagonal principal de A.',
+    difficulty: 'facil',
+    source: 'material_professor',
+    hint: 'aij = i + j: a13 = 1+3 = 4 e a31 = 3+1 = 4 — iguais em posições espelhadas ⇒ A = Aᵀ (simétrica). Diagonal: a11+a22+a33 = 2+4+6 = 12.',
+    unit: '1. Álgebra Matricial',
+    linkedMaterials: ['mat-01-matrizes'],
+  },
+  {
+    id: 'prof-av1-q4',
+    disciplineCode: 'TEC.1984',
+    topic: 'Álgebra Matricial',
+    statement:
+      'Q4 (estrutura do professor — situação-problema; NÃO é sistema linear): a cantina da faculdade vende pastel (R$ 6), esfiha de frango (R$ 5) e biscoito (R$ 3). Na segunda foram vendidos 30 pastéis, 20 esfihas e 40 biscoitos; na terça, 25 pastéis, 30 esfihas e 35 biscoitos. a) Represente as quantidades como matriz Q (2×3) e os preços como matriz P (3×1). b) Calcule Q·P e interprete o que cada elemento do resultado significa. c) Qual dia faturou mais e quanto?',
+    difficulty: 'medio',
+    source: 'material_professor',
+    hint: 'Q·P só existe quando colunas de Q (3) = linhas de P (3). Cada linha do produto (2×1) é o faturamento de um dia: segunda 30·6+20·5+40·3 = 420; terça 25·6+30·5+35·3 = 405.',
+    unit: '1. Álgebra Matricial',
+    linkedMaterials: ['mat-01-matrizes', 'mat-00-matrizes'],
+  },
+  {
+    id: 'prof-av1-q5',
+    disciplineCode: 'TEC.1984',
+    topic: 'Álgebra Matricial',
+    statement:
+      'Q5 (estrutura do professor — parecida com a Q26 da Lista): o triângulo do plano cartesiano tem vértices A(1,1), B(3,1), C(2,4). Cada vértice é a matriz coluna [x; y]. a) Aplique a transformação M = [[0, -1], [1, 0]] multiplicando M por cada vértice e descubra os novos vértices do polígono. b) Usando A = [[1, 2], [0, 1]], calcule A² (potência), depois 2A e por fim A² + 2A − I, onde I é a identidade 2×2.',
+    difficulty: 'medio',
+    source: 'material_professor',
+    hint: 'a) M·[x; y] = [-y; x]: rotação de 90° — A(1,1)→(-1,1), B(3,1)→(-1,3), C(2,4)→(-4,2). b) A² = [[1,4],[0,1]]; 2A = [[2,4],[0,2]]; subtraia I elemento a elemento: [[2,8],[0,2]].',
+    unit: '1. Álgebra Matricial',
+    linkedMaterials: ['mat-01-matrizes'],
+  },
+  {
+    id: 'prof-av1-q6',
+    disciplineCode: 'TEC.1984',
+    topic: 'Álgebra Matricial',
+    statement:
+      'Q6 (estrutura do professor — parecida com as Q34–Q35 da Lista): seja a matriz A quadrada e invertível e as equações matriciais (I) A·X = B e (II) A·X·Aᵀ = C. a) Na (I), isole X usando a matriz inversa de A e escreva a solução em função de A⁻¹ e B. b) Na (II), isole X passo a passo usando as propriedades da inversa e da transposta. c) Usando a DEFINIÇÃO de matriz inversa, mostre como verificar que uma matriz M é a inversa de A (o que deve valer depois da multiplicação?).',
+    difficulty: 'dificil',
+    source: 'material_professor',
+    hint: 'a) X = A⁻¹B (multiplique ambos os lados à esquerda por A⁻¹). b) X = A⁻¹·C·(Aᵀ)⁻¹ — isole na ordem: esquerda primeiro. c) Pela definição, M é inversa de A se e somente se A·M = M·A = I.',
+    unit: '1. Álgebra Matricial',
+    linkedMaterials: ['mat-01-matrizes'],
+  },
 ];
 
 /**

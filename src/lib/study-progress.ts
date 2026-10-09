@@ -347,6 +347,13 @@ export interface RunQuestionDetail {
   difficulty?: string;
   /** Enunciado truncado no momento da gravação (economia de localStorage). */
   statement?: string;
+  /**
+   * Segundos que a questão ficou na tela (t192 — "onde o tempo foi").
+   * Opcional: corridas antigas não têm o campo e a IA lê sem ele;
+   * pulada com tempo alto é a confissão de pacing mais valiosa
+   * (a questão que travou e não virou resposta).
+   */
+  timeSec?: number;
 }
 
 export interface SimuladoRun {
@@ -362,6 +369,12 @@ export interface SimuladoRun {
   filters?: { discipline?: string; difficulty?: string; durationMin?: number };
   /** Presente em tentativas novas; antigas têm só os agregados acima. */
   questions?: RunQuestionDetail[];
+  /**
+   * O relógio encerrou a prova (chegou a 00:00 — t192). Diferente de
+   * "Encerrar" (escolha do aluno): o pacing da prova real depende de saber
+   * que o tempo ACABOU, não que o aluno desistiu. Ausente = terminou antes.
+   */
+  endedByClock?: boolean;
 }
 
 // ---------- Protocolo HUB (sessão guiada + Kaizen) ----------
