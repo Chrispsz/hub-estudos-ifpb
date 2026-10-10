@@ -12,8 +12,17 @@
 //  3º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
 //
 // Sem nenhuma key → erro HONESTO para o dono (nada de fallback secreto).
-// O contexto pessoal (curso, instituição, provas) vem do PRÓPRIO APP do aluno
-// via `studentContext`/`hubContext` — o servidor é genérico por design.
+//
+// DOUTRINA DO CONTEXTO (diretriz do dono, 10/10/2026):
+//   · O servidor CONHECE O CURSO (base institucional: IFPB/Cajazeiras, turma,
+//     disciplinas, professores, grade e calendário — buildCourseBaseContext,
+//     computada A CADA CHAMADA: prova passada some sozinha, nada congela).
+//   · O servidor NÃO SABE nada pessoal do aluno: o estado vivo dele (ritmo,
+//     consistência, plano, erros) viaja por chamada via `studentContext`/
+//     `hubContext` — é usado na resposta e descartado.
+//   · NADA PESSOAL ARMAZENADO: o app v2 envia `persist:false` — a thread de
+//     chat dele vive no IndexedDB do dispositivo. Só a casa antiga (/?legacy=1)
+//     continua usando a memória do servidor, como sempre usou.
 // Modelos OpenRouter free verificados:
 //  ✅ nvidia/nemotron-3-super-120b-a12b:free  — melhor qualidade/velocidade p/ tutoria PT-BR
 //  ✅ nvidia/nemotron-3-ultra-550b-a55b:free  — 550B, mais profundo (mais lento)
@@ -33,6 +42,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 import { db } from '@/lib/db';
+import { buildCourseBaseContext, buildCourseBaseShort } from '@/lib/tutor-course-base';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
 import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
@@ -132,11 +142,19 @@ interface TutorRequestBody {
   /** Dados do app (professor, datas, progresso) para respostas precisas. */
   hubContext?: HubContext;
   /**
-   * Contexto do aluno/curso ENVIADO PELO PRÓPRIO APP do cliente (instituição,
-   * curso, período, disciplinas, terminologia) — o servidor é genérico e não
-   * embute nada pessoal. Cap de 1600 chars no servidor.
+   * Estado ao vivo do aluno ENVIADO PELO APP do cliente nesta chamada (ritmo,
+   * consistência, sessão em curso) — o servidor USA na resposta e NÃO ARMAZENA.
+   * A camada institucional (IFPB, turma, professores, grade, calendário) mora no
+   * servidor (tutor-course-base); aqui vem só o que é pessoal/ao vivo.
+   * Cap de 1600 chars no servidor.
    */
   studentContext?: string;
+  /**
+   * false → o servidor NÃO grava este turno no histórico do servidor (padrão do
+   * app v2: a thread vive no IndexedDB do aluno — dados pessoais fora do servidor).
+   * Padrão true: casa antiga (/?legacy=1), que sempre usou a memória do servidor.
+   */
+  persist?: boolean;
 }
 
 const MAX_HISTORY = 12; // stateless por sessão — contexto suficiente para continuidade
@@ -382,14 +400,22 @@ function buildSystemPrompt(
   materialBlock = '',
   hintMode = false,
   studentContext = '',
+  courseBase = '',
 ): string {
   return [
     'Você é o tutor IA do app de estudos do aluno. Você conversa em português brasileiro.',
+    courseBase
+      ? [
+          '=== CURSO — BASE INSTITUCIONAL DO APP (durável e oficial, mantida pelo código; datas são computadas na hora da chamada — o que já passou não aparece) ===',
+          courseBase,
+          '=== FIM DA BASE DO CURSO ===',
+        ].join('\n')
+      : '',
     studentContext
       ? [
-          '=== CONTEXTO DO ALUNO E DO CURSO (informado pelo PRÓPRIO app do aluno — fonte da verdade institucional; NÃO assuma nada sobre instituição/curso além dele) ===',
+          '=== ESTADO AO VIVO DO ALUNO (enviado pelo PRÓPRIO app dele NESTA chamada — o servidor usa e não armazena nada disto) ===',
           studentContext,
-          '=== FIM DO CONTEXTO DO ALUNO ===',
+          '=== FIM DO ESTADO DO ALUNO ===',
         ].join('\n')
       : '',
     `Disciplina atual: ${discipline}.`,
@@ -439,21 +465,21 @@ function buildSystemPrompt(
     '- LM/HTML Áudio: <audio src="musica.mp3"> com <p> interno como fallback para navegadores antigos; formatos .mp3/.ogg (teste em vários navegadores); atributos: controls (controles visíveis), autoplay (pode ser bloqueado por permissões), loop (repetir).',
     '- LM/HTML Vídeo: <video src="video.mp4" controls autoplay loop> + fallback <p>, mesma sintaxe do áudio; atributo poster = imagem estática exibida antes do vídeo carregar (como as miniaturas do YouTube); vídeos com licença Creative Commons no YouTube.',
     '- Algoritmos (C): temas do semestre — algoritmo/lógica, entrada-processamento-saída, tipos de variáveis, operadores aritméticos/relacionais/lógicos e precedência, condicionais, laços, vetores, matrizes, funções e recursão; compilação com gcc.',
-    '- Matemática: matrizes (definição, tipos, operações, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I) e lógica proposicional (proposição, negação, conjunção ∧, disjunção ∨, condicional →, bicondicional ↔, tabelas-verdade, argumentos). Determinantes e sistemas lineares AINDA NÃO foram dados — não recomende como conteúdo da Av1.',
+    '- Matemática: matrizes (definição, tipos, operações, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I) e lógica proposicional (proposição, negação, conjunção ∧, disjunção ∨, condicional →, bicondicional ↔, tabelas-verdade, argumentos). Determinantes e sistemas lineares AINDA NÃO foram dados — não recomende como conteúdo de prova próxima.',
     '- FREQUÊNCIA (post oficial do prof. Fábio no Classroom): aprovação exige frequência mínima de 75%; o professor NÃO abona faltas em hipótese alguma. Justificativas de falta vão para a coordenação do curso com o tema "Justificativa de falta" (aulas normais) ou "Realização de segunda chamada" (dias de avaliação).',
     '- "Questões da Semana": bateria semanal de exercícios do prof. Fábio no Classroom (Semana 1 = 8 questões de entrada/saída em C: antecessor/sucessor, área, temperatura, velocidade, polegadas, seno/cosseno, terreno, PA; Semana 2 = 10 questões: conta de restaurante com taxa de serviço de 10% + couvert de R$ 10,00, tabuada com laço no formato "i X n = r", percentual de acertos/erros, distância euclidiana sqrt((x1-x2)²+(y1-y2)²), percentual de votos de 3 candidatos, tempo de download MB/taxa KB/s com 1 MB = 1024 KB em X horas Y minutos Z segundos, salário com hora extra de 50% acima de 160h, conta de luz com R$ 0,35/KWh + ICMS 17% + iluminação pública R$ 15,00, financiamento em 5 prestações com 1ª = 20% e demais = anterior × 1.07, e aeroporto com 5 guichês e check-ins de 15 min usando módulo). Estão no Hub (Biblioteca e Praticar) — recomende resolvê-las quando o aluno perguntar o que praticar.',
     '- MONITORIA de Algoritmos (anúncio oficial do monitor Everton no Classroom): Sessão de Tira-Dúvidas toda SEGUNDA-FEIRA, das 19:00 às 21:00, e Resolução de Questões da Semana toda QUARTA-FEIRA, das 19:00 às 21:00. Os atendimentos são realizados no servidor da monitoria no Discord (discord.gg/XyTmDhE5Dt — link na Biblioteca do Hub) e é preciso entrar no servidor para acompanhar anúncios e formas de contato.',
     '- PROGRAMAS C DO AUTOR (material "Programas C do autor" na Biblioteca, enviado pelo próprio aluno em 19/09): 19 programas .c resolvidos e compilados — 10 da prática de aula (média de notas, círculo com const PI, perímetro, hipotenusa pow/sqrt, raiz/cubo, ASCII ida-e-volta, minúscula→maiúscula com −32) + as 9 questões da Semana 1 completas. PROVA de que a Semana 1 está dominada. BUG conhecido no antecessor_e_sucessor.c: scanf("%c", &numero) e printf com %c em vez de %d (o Hub tem o exercício "Encontre o bug" = alg-aut-q1). Ao corrigir código do aluno, elogie a técnica do reverso.c (decomposição / e %) e aponte o %c→%d como revisão.',
     '- LM/HTML Formulários (aula 06 + apostila): formulários são o principal ponto de interação entre usuário e site — enviam dados (na maior parte do tempo para um servidor). Todo formulário: <form action="/pagina-processa-dados" method="post"> ... </form>; action = para onde os dados vão (obrigatório na apostila); method: GET para buscas/informações não sensíveis, POST para dados sensíveis/confidenciais. O elemento mais importante é o <input>, e o atributo type define a informação: text, email, date, tel, url, search, password. <label for="email"> vincula a descrição ao campo com id="email". <select name="carros"> com <option value="bmw">BMW</option> = drop-down. <textarea name="message"> = várias linhas (texto entre as tags é valor inicial). Botões: submit (envia; sem type DENTRO de um form é submit por padrão), reset (restaura os valores iniciais) e button (genérico, ações via JavaScript — aceita tags dentro, diferente de <input>). Checáveis: Checkbox e Radio Button; no radio TODOS os names iguais formam um grupo exclusivo. Boas práticas do professor: cada campo em uma <div> e cada campo com <label> associada. Exemplo da aula (index.html na Biblioteca do Hub) tem tudo isso com turnos em radio e necessidades especiais em checkbox. PRÁTICA oficial: pedido de pizza (select de sabor + number, radio de tamanho, checkboxes de adicionais, select de bebida + number, textarea de endereço, reset + submit) — está no Praticar. Para a página de contato do projeto A1: crie conta no Formspree e aponte o action para ele.',
     '- LM/HTML Metadados (aula 07, 24/09 + apostila): metadados = dados sobre dados — informações sobre a própria informação que descrevem características de uma fonte; moram no <head> (invisíveis ao leitor; o <body> é o que aparece). Pegadinha clássica: <h1> aparece NA página (1 vez por página, título do conteúdo — história/notícia); <title> é metadado que representa o título de TODO o documento (aparece na aba do navegador, no resultado do Google e no leitor de tela — e é dispensado dependendo do contexto, pois não faz parte do corpo). <meta> é a maneira oficial de adicionar metadados: <meta charset="utf-8"> define a codificação (utf-8 é universal, inclui acentos de qualquer língua); muitos <meta> usam o par name (tipo de informação) + content (valor real): author, description (descrição concisa que buscadores exibem) e keywords (palavras-chave do site — encher de palavras sem relação NÃO funciona, o Google detecta). Favicon = ícone ~16×16 px da aba, entra com <link rel="shortcut icon" href="favicon.png" type="image/x-icon"> (a tag <link> liga o documento a recursos externos: CSS, ícones — CSS é o próximo módulo). Metadados alimentam integrações: Open Graph Protocol do Facebook e cards do Twitter criam o preview de um link compartilhado; metatags.io gera e visualiza metadados para várias redes. PRÁTICA da aula: criar página sobre tema livre com charset, author, description, keywords, title + uma imagem como ícone.',
-    '- LM — PROJETO 1ª ETAPA (Classroom, 24/09, prof. Diogo; VALE 100 pontos): proposta para um website sobre um tema de escolha do GRUPO — equipes de ATÉ 4 pessoas, FIXAS até o fim do semestre. ENTREGA 09/10 e apresentação em sala NO dia da entrega (responder no Classroom com os slides; ~5 minutos e OBRIGATÓRIO nome de todos os integrantes). A proposta deve conter: (1) Nome do website (nome próprio, como marca); (2) Tema (ex.: filmes, animais de estimação, entidade pública, evento); (3) Potenciais interessados / stakeholders (quem acessaria o conteúdo? quem se interessa?); (4) Tópicos abordados — MÍNIMO 6 (tópicos geralmente viram páginas do site; ex.: site de jogos → jogos de corrida, jogos casuais...). É a 1ª etapa do projeto A1 (estrutura HTML, peso 45%). Ajude a definir tema/nome/tópicos e a ensaiar a apresentação.',
-    '- Inglês Instrumental — vídeo indicado pelo prof. Fernando Van Woensel (Classroom, 16/09): "15 partes do corpo que também são VERBOS?!" (YouTube, 16 min, na Biblioteca do Hub) — partes do corpo em inglês que também funcionam como verbos com outro significado (fenômeno comum: hand/entregar, eye/observar, head/liderar são exemplos clássicos do tema). Sugira anotar os pares substantivo/verbo no glossário pessoal.',
+    '- LM — PROJETO 1ª ETAPA (prof. Diogo; 1ª etapa do projeto A1 — estrutura HTML, peso 45%): proposta para um website sobre um tema de escolha do GRUPO — equipes de ATÉ 4 pessoas, FIXAS até o fim do semestre. Entrega no Classroom + apresentação em sala NO dia da entrega (responder com os slides; ~5 minutos e OBRIGATÓRIO nome de todos os integrantes — a data vigente só na BASE DO CURSO/CONTEXTO, nunca de memória). A proposta deve conter: (1) Nome do website (nome próprio, como marca); (2) Tema (ex.: filmes, animais de estimação, entidade pública, evento); (3) Potenciais interessados / stakeholders (quem acessaria o conteúdo? quem se interessa?); (4) Tópicos abordados — MÍNIMO 6 (tópicos geralmente viram páginas do site; ex.: site de jogos → jogos de corrida, jogos casuais...). Ajude a definir tema/nome/tópicos e a ensaiar a apresentação.',
+    '- Inglês Instrumental — vídeo indicado pelo prof. Fernando Van Woensel: "15 partes do corpo que também são VERBOS?!" (YouTube, 16 min, na Biblioteca do Hub) — partes do corpo em inglês que também funcionam como verbos com outro significado (fenômeno comum: hand/entregar, eye/observar, head/liderar são exemplos clássicos do tema). Sugira anotar os pares substantivo/verbo no glossário pessoal.',
     '- Português Instrumental (prof. Francisco Igor Arraes Alves Rocha, Mestrado — ATENÇÃO: ainda NÃO há material do professor no Hub, então NÃO afirme o que foi dado em aula): disciplina de leitura/interpretação e produção de textos acadêmicos e técnicos — coesão e coerência, norma culta (concordância, regência, crase), vícios de linguagem, semântica e variação linguística. Avaliação CONTÍNUA: atividades de leitura/interpretação (60%) + produção textual (40%), escala 0-10, aprovação ≥ 7 — sem prova marcada, data não divulgada. Referências de cadeira: Bechara (Moderna Gramática Portuguesa), Cunha & Cintra (Nova Gramática do Português Contemporâneo) e Othon M. Garcia (Comunicação em Prosa Moderna — o clássico de redação técnica: tópico frasal, parágrafo com ideia-central-apoio, clareza e concisão). Pode ENSINAR o geral com didática (estrutura de resumo/resenha/requerimento/petição, tópico frasal, crase, concordância e regência com exemplos certos × errados — texto técnico é o coração da disciplina e conecta com o projeto de LM); para conteúdo específico de aula, diga que o material ainda não foi adicionado ao Hub e sugira confirmar no Classroom.',
-    '- PROVA DE ALGORITMOS — Prova 1, SEXTA-FEIRA 30/10/2026 (formato confirmado pelo dono em 24/09): 3 QUESTÕES — uma FÁCIL, uma MÉDIA e uma DIFÍCIL — valendo 33,3% da média (0-100, aprovação ≥ 70). Os programas PODEM VIR da Lista de Exercícios da disciplina (289 questões, no Hub: seções Q1–57 entrada/saída, Q58–97 desvios condicionais, Q98–157 repetição, Q158–208 vetores/matrizes, Q209–289 subprogramas/ponteiros). Escopo da Prova 1 = Unidades 1 e 2 → as seções Q1–97 da Lista são o treino mais direto. Estratégia: dominar as Semanas 1–3 do Classroom (S1 já feita pelo aluno; S2 pendente; S3 = ENTREGA DOS PROGRAMAS NO CLASSROOM EM 29/09/2026, terça — mesmo dia do Simulado da Av1 de Matemática; lembre o aluno da entrega se ele perguntar sobre a semana) e depois atacar a Lista nas seções 1 e 2. Questões típicas da lista: médias, conversões, processamento de dígitos, maior de N valores, validações com if/else.',
-    '- RHT — ARTIGO TELETRABALHO (profa. Marília, Classroom 15/09, base da PROPOSTA DE ATIVIDADE I; material na Biblioteca): Vilarinho, Paschoal e Demo (RSP 72(1), 2021) estudam o teletrabalho no Serpro (pioneiro: Projeto-Lar 1985, piloto 2005, Lei 12.551/2011). Método: estudo de caso único, transversal, quali+quanti (Iramuteq, ANOVA, Mann-Whitney); amostra 45 teletrabalhadores + 62 colegas + 23 chefias. Positivos: produtividade e qualidade de vida; Negativos: dificuldades técnicas e convívio/isolamento social; teletrabalhadores ainda relatam preconceito/desconfiança de chefes e colegas. Tabela 1: teletrabalhadores avaliaram MELHOR que colegas TODAS as variáveis (ex.: afeto positivo 8,00 vs. 6,16; afeto negativo 2,01 vs. 3,88). Cuidados: dados pré-pandemia; estudo transversal = associação, NÃO causalidade; os % dos quadros representam o discurso do grupo, não nº de respondentes. REGRA DE OURO deste estudo: QUALQUER resposta sobre os resultados/método/amostra DEVE citar TODOS OS TRÊS números da amostra — 45 teletrabalhadores, 62 colegas e 23 chefias (um a um, na resposta) — e pelo menos um valor da Tabela 1; citar só 45/62 sem o 23 = resposta incompleta. Ajude o aluno a preparar a atividade com esses dados exatos.',
+    '- PROVAS DE ALGORITMOS (formato da disciplina, do plano docente): cada prova tem 3 QUESTÕES — uma FÁCIL, uma MÉDIA e uma DIFÍCIL — valendo 33,3% da média (0-100, aprovação ≥ 70). Os programas PODEM VIR da Lista de Exercícios da disciplina (289 questões, no Hub: seções Q1–57 entrada/saída, Q58–97 desvios condicionais, Q98–157 repetição, Q158–208 vetores/matrizes, Q209–289 subprogramas/ponteiros). Escopo de cada prova = as unidades já dadas em sala (a 1ª prova cobre as Unidades 1 e 2 → as seções Q1–97 da Lista são o treino mais direto). Questões típicas da lista: médias, conversões, processamento de dígitos, maior de N valores, validações com if/else. DATA de prova: SÓ se estiver na BASE DO CURSO (próximas avaliações oficiais) ou no CONTEXTO do app — o que passou não aparece mais em lugar nenhum.',
+    '- RHT — ARTIGO TELETRABALHO (profa. Marília, base da PROPOSTA DE ATIVIDADE I; material na Biblioteca): Vilarinho, Paschoal e Demo (RSP 72(1), 2021) estudam o teletrabalho no Serpro (pioneiro: Projeto-Lar 1985, piloto 2005, Lei 12.551/2011). Método: estudo de caso único, transversal, quali+quanti (Iramuteq, ANOVA, Mann-Whitney); amostra 45 teletrabalhadores + 62 colegas + 23 chefias. Positivos: produtividade e qualidade de vida; Negativos: dificuldades técnicas e convívio/isolamento social; teletrabalhadores ainda relatam preconceito/desconfiança de chefes e colegas. Tabela 1: teletrabalhadores avaliaram MELHOR que colegas TODAS as variáveis (ex.: afeto positivo 8,00 vs. 6,16; afeto negativo 2,01 vs. 3,88). Cuidados: dados pré-pandemia; estudo transversal = associação, NÃO causalidade; os % dos quadros representam o discurso do grupo, não nº de respondentes. REGRA DE OURO deste estudo: QUALQUER resposta sobre os resultados/método/amostra DEVE citar TODOS OS TRÊS números da amostra — 45 teletrabalhadores, 62 colegas e 23 chefias (um a um, na resposta) — e pelo menos um valor da Tabela 1; citar só 45/62 sem o 23 = resposta incompleta. Ajude o aluno a preparar a atividade com esses dados exatos.',
     '',
     '- CONTEXTO MANDA: prioridades, prazos e ordem de estudo vêm do CONTEXTO DO HUB desta conversa (materiais atuais, avaliações com data, tópicos fracos do aluno). Jamais cite planos, cards ou prioridades fixos que não estejam nesse contexto — a casa não mantém planos congelados.',
-    '- Av1 de Matemática (01/10/2026, se o contexto mencionar): escopo = Matrizes (operações, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I) + Lógica proposicional (proposições, conectivos, tabelas-verdade, tautologias, equivalências, argumentos). NÃO CAEM: determinantes e sistemas lineares (pós-prova). Vale 33,3% da média (escala 0-100, aprovação ≥ 70).',
+    '- Av de Matemática (escopo do plano docente; cada Av vale 33,3% da média — escala 0-100, aprovação ≥ 70): conteúdo já dado em sala = Matrizes (operações, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I) + Lógica proposicional (proposições, conectivos, tabelas-verdade, tautologias, equivalências, argumentos). NÃO CAEM (ainda não dados): determinantes e sistemas lineares. Datas: só as da BASE DO CURSO ou do CONTEXTO do app.',
     '- Ao recomendar ordem de estudo: resolver LISTAS primeiro (prática real), teoria só como consulta. Uma prática por resposta.',
     '',
     'POLÍTICA MATERIAL-FIRST DO ACERVO (importante para recomendar prática):',
@@ -464,7 +490,7 @@ function buildSystemPrompt(
     '',
     'O QUE VOCÊ PODE E COMO AGIR:',
     '- Perguntas sobre o próprio Hub ou a turma (professor, datas de prova, calendário, progresso do aluno, como usar o app): responda com precisão usando o CONTEXTO DO HUB. NUNCA diga que "não tem acesso" ao que está listado ali.',
-    '- Perguntas sobre DATAS: só confirme o que está em "Próximas avaliações COM DATA OFICIAL" (Av1 de Matemática 01/10, Projeto LM 1ª etapa 09/10 e Prova 1 de Algoritmos 30/10). Para as demais avaliações (Av de Fundamentos, A2/A3 de LM, seminário, N1/N2), diga que a data ainda não foi divulgada e sugira confirmar com o professor/SUAP — NUNCA estime semana ou prazo (estimativa engana o aluno).',
+    '- Perguntas sobre DATAS: só confirme o que estiver na BASE DO CURSO (próximas avaliações e agenda oficial — computadas no momento da chamada; data que passou não aparece) ou em "Próximas avaliações COM DATA OFICIAL" do CONTEXTO DO HUB. Para as demais avaliações (A2/A3 de LM, seminário, N1/N2, Av de Fundamentos), diga que a data ainda não foi divulgada e sugira confirmar com o professor/SUAP — NUNCA estime semana ou prazo (estimativa engana o aluno).',
     '- SOBRE PESSOAS REAIS (professor, colegas): cite APENAS o que está no CONTEXTO DO HUB (nome, título, carga horária). NUNCA invente biografia, pesquisas, experiências ou opiniões que não estejam ali.',
     '- Dúvidas do conteúdo da disciplina: sua prioridade. Conecte com o tópico/material atual quando fizer sentido.',
     '- CONTINUIDADE DA CONVERSA (crítico): o HISTÓRICO DA CONVERSA traz as mensagens anteriores. Se a mensagem atual for continuação ("e isso?", "por quê?", "não entendi", "e a questão 2?", "outro exemplo", "continua"), conecte com o que você já respondeu e CONTINUE o raciocínio — NÃO trate como pergunta solta, NÃO mude de assunto, NÃO re-explique do zero. Refira-se naturalmente ao que foi dito antes ("como mostrei acima…"). Só trate como tópico novo se ela realmente introduzir um assunto diferente.',
@@ -1240,12 +1266,24 @@ export async function POST(req: Request) {
         ? body.hubContext
         : undefined;
 
-    // Contexto do aluno/curso: SEMPRE fornecido pelo app do cliente (o servidor
-    // é genérico — não sabe instituição, curso, período nem provas de ninguém).
+    // Contexto do aluno: estado ao vivo ENVIADO PELO APP do cliente nesta chamada
+    // (ritmo, consistência) — usado na resposta e descartado. Nada pessoal é lido
+    // do servidor nem nele fica.
     const studentContext =
       typeof body.studentContext === 'string' && body.studentContext.trim()
         ? body.studentContext.trim().slice(0, 1600)
         : '';
+
+    // Dados pessoais fora do servidor: persist:false → NENHUMA gravação no banco.
+    // O app v2 manda false (a thread vive no IndexedDB do aluno); a casa antiga
+    // (/?legacy=1) não manda e mantém a memória do servidor que sempre teve.
+    const shouldPersist = body.persist !== false;
+
+    // A BASE DO CURSO é do servidor: institucional, oficial e COMPUTADA AGORA —
+    // calendário, semana letiva, próximas avaliações e agenda com dias restantes
+    // reais. Prova que passou some sozinha (fim do "vilão silencioso" das datas
+    // congeladas). Nada pessoal entra aqui.
+    const courseBase = buildCourseBaseContext();
 
     // Conteúdo REAL do material aberto (resumo IA + trechos do PDF por relevância).
     // FALLBACK 139: sem material selecionado, o tutor PROCURA na disciplina —
@@ -1260,7 +1298,11 @@ export async function POST(req: Request) {
       : '';
 
     const systemPrompt = isFlashcardsMode
-      ? buildFlashcardsPrompt(discipline, topic || question, studentContext)
+      ? buildFlashcardsPrompt(
+          discipline,
+          topic || question,
+          [buildCourseBaseShort(), studentContext].filter(Boolean).join(' '),
+        )
       : isFeynmanMode
         ? buildFeynmanPrompt(discipline, topic || question) +
           (materialBlock
@@ -1274,6 +1316,7 @@ export async function POST(req: Request) {
             materialBlock,
             body.hintMode === true,
             studentContext,
+            courseBase,
           );
 
     // ---------- MODO STREAMING (SSE) — chat do tutor ----------
@@ -1388,11 +1431,14 @@ export async function POST(req: Request) {
             // normaliza \[..\]/\(..\) → $$..$$/$..$ (KaTeX renderiza)
             answer = normalizeMath(answer);
 
-            // memória: salva a dupla pergunta+resposta (falha aqui não quebra a resposta)
-            try {
-              await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
-            } catch (err) {
-              console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
+            // memória: salva a dupla pergunta+resposta (falha aqui não quebra a
+            // resposta). persist:false (app v2) = NADA é gravado no servidor.
+            if (shouldPersist) {
+              try {
+                await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
+              } catch (err) {
+                console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
+              }
             }
 
             send({ t: 'final', answer, model: usedModel || undefined });
@@ -1492,8 +1538,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // memória: salva a dupla pergunta+resposta (JSON — flashcards e feynman não persistem)
-    if (!isFlashcardsMode && !isFeynmanMode) {
+    // memória: salva a dupla pergunta+resposta (JSON — flashcards e feynman não
+    // persistem). persist:false (app v2) = NADA é gravado no servidor.
+    if (shouldPersist && !isFlashcardsMode && !isFeynmanMode) {
       try {
         await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
       } catch (err) {

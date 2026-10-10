@@ -94,3 +94,29 @@ Revisão = fila FSRS, a mais antiga primeiro, ~3min cada. Interleaving gradual: 
 3. **Marcar tópico da semana na Trilha** (hoje só material tem estrela na UI).
 4. Offline: garantir SW cache do viewer (já cobre `/pdfs/`).
 5. Cutover: push das branches (main = app novo; legacy/v1 = casa antiga).
+
+## 8. A doutrina do contexto do tutor (v2.1 — 10/10/2026)
+
+> Diretriz do dono: "dados pessoais: fora do servidor — mas o curso é outro
+> caso: tudo que puder absorver para o estudo é importante, quanto mais
+> contexto melhor". O commit anterior tinha deixado o servidor genérico
+> demais; este ajuste separa as camadas com precisão.
+
+| Camada | Onde vive | Regra |
+|---|---|---|
+| **Curso (institucional)** | Servidor (`src/lib/tutor-course-base.ts`) | IFPB/Cajazeiras, ADS, turma 2026.2, 1º período, as 7 disciplinas com professor/CH/peso/escala/aprovação, calendário oficial, próximas avaliações e agenda — **computadas a cada chamada**: prova que passou some sozinha (fim do "vilão silencioso" das datas congeladas). Nada pessoal entra aqui. |
+| **Aluno (pessoal/ao vivo)** | Cliente, por chamada | Ritmo (min/semana), consistência (dias/30), sessão atual, plano, foco, erros, prova próxima, fila FSRS — viaja em `studentContext`/`hubContext`, é usado na resposta e **descartado**. |
+| **Persistência** | Dispositivo | O app v2 envia `persist:false`: o servidor **não grava nenhum chat**; a thread vive no IndexedDB (Dexie) do aluno. Só a casa antiga (`/?legacy=1`) mantém a memória de servidor que sempre teve. |
+
+O que foi removido do código do servidor (dados que envelhecem): data da Av1
+(01/10), da Prova 1 de Algoritmos (30/10), da entrega do Projeto LM (09/10),
+da entrega S3 (29/09), datas de vídeos/anúncios e o estado pessoal congelado
+("S1 já feita; S2 pendente") — tudo isso agora flue ao vivo: avaliações pela
+base computada (`evaluationPeriods` + `daysUntilDate`), agenda por
+`upcomingEvents(now)` e o estado pessoal pelo app do aluno.
+
+**Teste da doutrina (10/10/2026):** Av1 de Matemática e entrega do Projeto LM
+JÁ SUMIRAM da base; Prova 1 de Algoritmos aparece com "faltam 20 dia(s)";
+Sábado letivo de hoje marcado "em curso"; semana 7/19. QA ao vivo: chip
+honesto "IA sem chave" no sandbox, bloco de contexto visível no dock,
+casa antiga intacta, lint 0 erros.

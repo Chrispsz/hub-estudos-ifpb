@@ -8,6 +8,13 @@
 // mais próxima, fila FSRS) e manda junto em cada pergunta — acompanhamento quase
 // automático: ele sempre sabe onde o aluno está, sem o aluno precisar explicar.
 // Geração de flashcards cai DIRETO no baralho v2 (Dexie) — nada de escrita legada.
+//
+// DADOS PESSOAIS FORA DO SERVIDOR (diretriz do dono, 10/10/2026): a thread vive
+// no Dexie (IndexedDB) e cada chamada leva persist:false — o servidor não grava
+// NADA do chat. A camada institucional (IFPB, turma, professores, grade, calendário
+// ao vivo) é do SERVIDOR (tutor-course-base — computada por chamada, o que passou
+// some); daqui só viaja o estado pessoal do dia (ritmo, consistência), que o
+// servidor usa na resposta e descarta.
 
 import * as React from 'react';
 import {
@@ -387,13 +394,25 @@ export function TabTutor({
         .filter((x) => x.daysLeft >= 0 && x.daysLeft <= 45),
     };
 
-    // contexto do aluno montado dos PRÓPRIOS dados dele (núcleo IndexedDB) —
-    // o servidor do tutor é genérico: instituição/curso vêm daqui, nunca de código
-    const studentContext = subjects.length
-      ? `App de estudos pessoal do aluno (dados vivem no dispositivo dele). Disciplinas em curso: ${subjects
-          .map((s) => s.name)
-          .join(', ')}.`
-      : '';
+    // contexto do aluno — SÓ o estado pessoal/ao vivo, por chamada (o servidor
+    // usa e descarta; nada é gravado — persist:false abaixo). A camada
+    // institucional (instituição, professores, grade, calendário ao vivo) o
+    // SERVIDOR já conhece via tutor-course-base; duplicar aqui era ruído.
+    const key30 = dateKeyOf(new Date(now - 30 * 86_400_000));
+    const days30 = new Set(
+      sessions.filter((s) => s.dateKey >= key30).map((s) => s.dateKey),
+    ).size;
+    const subjFocus = focusTopic
+      ? subjects.find((s) => s.id === focusTopic.subjectId)
+      : undefined;
+    const liveParts = [
+      `ritmo: ${weekMinutes} min de foco nesta semana`,
+      `consistência: ${days30} dos últimos 30 dias com estudo registrado`,
+      ...(focusTopic && subjFocus
+        ? [`sessão atual: ${subjFocus.shortName} — ${focusTopic.name}`]
+        : []),
+    ];
+    const studentContext = `Estado ao vivo do app do aluno (nada disto fica no servidor) — ${liveParts.join(' · ')}.`;
 
     setStreaming(true);
     setStreamText('');
@@ -413,6 +432,7 @@ export function TabTutor({
           hubContext,
           studentContext,
           imageDataUrl: image,
+          persist: false, // a thread vive no Dexie do dispositivo — servidor não grava nada
         },
         (piece, full) => setStreamText(full),
         controller.signal,
@@ -464,14 +484,14 @@ export function TabTutor({
     setStreamText('');
     try {
       // o API exige question != vazio mesmo no modo flashcards — o tema vai no topic
+      // (o servidor injeta a base do curso curta; o estado pessoal do aluno nem
+      // é preciso aqui — e o modo flashcards nunca persiste nada no servidor)
       const result = await streamTutorAnswer({
         mode: 'flashcards',
         question: `Gere flashcards sobre o tema "${topicName}".`,
         discipline: subjects.find((s) => s.id === subjectId)?.name,
         topic: topicName,
-        studentContext: subjects.length
-          ? `App de estudos pessoal do aluno. Disciplinas em curso: ${subjects.map((s) => s.name).join(', ')}.`
-          : '',
+        persist: false,
       });
       const cleaned = result.answer.replace(/```(?:json)?/g, '').trim();
       const start = cleaned.indexOf('[');
