@@ -4,7 +4,10 @@
 //  o dono do Hub está no 1º PERÍODO dessa turma. O calendário abaixo é do ciclo letivo.)
 //
 // Fonte oficial: "Calendário Acadêmico Cursos Superiores e Subsequentes 2026"
-// (ifpb.edu.br/campus/cajazeiras/ensino/calendario-academico) — verificado em 10/09/2026.
+// (ifpb.edu.br/campus/cajazeiras/ensino/calendario-academico) — verificado em 10/09/2026
+// e REVISADO em 10/10/2026 contra o calendário semestral oficial (docs/CONTEXTO-IFPB.md):
+// feriados 12/10 e 20/11, sábado letivo 24/10 (ref. segunda), provas finais 03–05/02/2027,
+// colação 2026.2 em 03/03/2027 e término do ano letivo em 30/01/2027.
 //
 // ⚠️ NÃO duplicar SEMESTER_START em outros arquivos. Importe daqui.
 
@@ -29,9 +32,9 @@ export const SEMESTER_PAUSE_END = new Date(2027, 0, 18);
 /** 30/01/2027 — Encerramento do ciclo 2026.2 (fim das aulas). */
 export const SEMESTER_END = new Date(2027, 0, 30);
 
-/** 03-04/02/2027 — Provas finais 2026.2. */
+/** 03-05/02/2027 — Provas finais 2026.2 (3 dias, correção do calendário oficial 10/10/2026). */
 export const FINAL_EXAM_START = new Date(2027, 1, 3);
-export const FINAL_EXAM_END = new Date(2027, 1, 4);
+export const FINAL_EXAM_END = new Date(2027, 1, 5);
 
 /**
  * Semanas de ensino: 17 semanas (24/08 → 18/12) + pausa (18/12 → 17/01)
@@ -160,6 +163,13 @@ export const ACADEMIC_EVENTS: AcademicEvent[] = [
     kind: 'prazo',
   },
   {
+    // Feriado nacional (oficial 2026) — véspera do sábado letivo de 24/10.
+    date: '2026-10-12',
+    title: 'Feriado nacional — Nossa Senhora Aparecida',
+    description: 'Segunda-feira sem aulas.',
+    kind: 'feriado',
+  },
+  {
     date: '2026-10-10',
     title: 'Sábado letivo (ref. segunda)',
     description: 'Sábado com aulas no horário de segunda-feira.',
@@ -173,10 +183,19 @@ export const ACADEMIC_EVENTS: AcademicEvent[] = [
     kind: 'evento',
   },
   {
-    date: '2026-10-26',
-    title: 'Sábado letivo (ref. quarta)',
-    description: 'Sábado com aulas no horário de quarta-feira.',
+    // Correção do calendário oficial (10/10/2026): o sábado de referência
+    // segunda é 24/10 (26/10 é segunda — não faz sentido como sábado letivo).
+    date: '2026-10-24',
+    title: 'Sábado letivo (ref. segunda)',
+    description: 'Sábado com aulas no horário de segunda-feira.',
     kind: 'letivo',
+  },
+  {
+    // Feriado nacional (oficial 2026) — estava ausente do calendário do app.
+    date: '2026-11-20',
+    title: 'Feriado nacional — Consciência Negra',
+    description: 'Sexta-feira sem aulas.',
+    kind: 'feriado',
   },
   {
     date: '2026-12-18',
@@ -184,12 +203,13 @@ export const ACADEMIC_EVENTS: AcademicEvent[] = [
     description: 'Pausa do calendário 2026.2 começa após esta data.',
     kind: 'pausa',
   },
-  { date: '2026-12-30', title: 'Término do ano letivo 2026', kind: 'pausa' },
+  // Término do ano letivo = 30/01/2027 (oficial) — já coberto pelo evento de
+  // encerramento abaixo; o 30/12 era dia comum da pausa e não evento.
   { date: '2027-01-18', title: 'Reinício das aulas — calendário 2026.2', description: 'Volta às aulas após a pausa.', kind: 'letivo' },
   { date: '2027-01-23', title: 'Sábado letivo (ref. sexta)', kind: 'letivo' },
   { date: '2027-01-30', title: 'Encerramento das aulas 2026.2', kind: 'prazo' },
-  { date: '2027-02-03', endDate: '2027-02-04', title: 'Provas finais 2026.2', kind: 'provas' },
-  { date: '2027-02-03', title: 'Colação de grau 2026.2', kind: 'evento' },
+  { date: '2027-02-03', endDate: '2027-02-05', title: 'Provas finais 2026.2', kind: 'provas' },
+  { date: '2027-03-03', title: 'Colação de grau 2026.2', kind: 'evento' },
   { date: '2027-02-13', title: 'Publicação dos resultados finais 2026.2', kind: 'prazo' },
 ];
 

@@ -35,6 +35,7 @@ import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
 import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
 import { isNearBottom } from '@/lib/tutor-follow';
+import { hhmmOf } from '@/lib/tutor-history-view';
 import {
   clearThread,
   loadThread,
@@ -68,11 +69,22 @@ interface ChatMessage {
   error?: boolean;
   /** t167: true → o aluno PAROU a geração; o parcial que chegou é a resposta. */
   interrupted?: boolean;
+  /** Frente 11 — nasceu do banco da disciplina (não desta sessão): o primeiro
+   *  do bloco ganha a divisória discreta "Memória da disciplina". */
+  fromMemory?: boolean;
 }
 
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
 const hhmm = () =>
   new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+/**
+ * O TETO DA MEMÓRIA QUE O PAINEL TRAZ (a unificação dos dois fios):
+ * o chat principal restaura até 80 (é o arquivo); o painel é superfície de
+ * foco — as últimas 20 bastam para o tutor continuar o raciocínio e para o
+ * aluno reconhecer de onde parou.
+ */
+const PANEL_MEMORY_TAKE = 20;
 
 /**
  * Sequência de ids do MÓDULO (t144): sobrevive à remontagem do painel — as
@@ -89,6 +101,13 @@ interface TutorQuickPanelProps {
   materialTitle?: string;
   /** id do material no course-data — liga o retrieval (resumo + trechos do PDF). */
   materialId?: string;
+  /**
+   * DOUTRINA DO CONTEXTO (10/10/2026): false → cada chamada leva persist:false e
+   * o servidor NÃO grava nada — a thread vive só no dispositivo (IndexedDB).
+   * O app novo (v2) monta este painel com false (ler PDF no app novo não deve
+   * deixar conversa no servidor); a casa antiga omite (persiste, como sempre foi).
+   */
+  persist?: boolean;
   /** Perguntas prontas exibidas como chips antes da 1ª resposta. */
   suggestions?: string[];
   /** Material aberto — quando é PDF, o painel ganha o print DE PÁGINA (t152):
@@ -162,6 +181,7 @@ export function TutorQuickPanel({
   disciplineCode,
   materialTitle,
   materialId,
+  persist,
   suggestions,
   materialType,
   material,
@@ -180,12 +200,64 @@ export function TutorQuickPanel({
   // O FIO SOBREVIVE AO FECHAR (t144): a conversa fica em cache de SESSÃO
   // chaveado pelo material — fechar o diálogo e reabrir o MESMO PDF reidrata
   // o fio (a explicação longa com LaTeX não morre no X); outro material vê
-  // só a conversa dele. Recarregou a página, recomeça (memória longa é a do
-  // chat principal — aqui é produtividade de sessão, não persistência).
+  // só a conversa dele. E a memória longa agora também é do painel: sem fio
+  // próprio na sessão, ele NASCE do banco da disciplina (efeito abaixo — os
+  // dois fios viram um).
   const threadCacheKey = threadKey(materialId, disciplineCode, discipline);
   const [messages, setMessages] = React.useState<ChatMessage[]>(() =>
     loadThread(threadCacheKey).map((m) => ({ ...m, id: freshMessageId() })),
   );
+  // OS DOIS FIOS VIRAM UM (o pedido do dono — IA como espinha, 10/10/2026):
+  // o painel nasce da MEMÓRIA DA DISCIPLINA (o mesmo banco que o chat
+  // principal guarda) quando o material não tem fio próprio nesta sessão.
+  // A dor era o tutor amnésico ao lado do PDF: a conversa de 20 mensagens
+  // que o aluno já teve sobre a disciplina não entrava nem na tela, nem no
+  // contexto da IA (o painel só mandava as 12 do cache do material). Agora
+  // o fio restaurado entra na memória enviada junto — o tutor do lado lê o
+  // material E sabe do que vocês já conversaram.
+  // Paridade honesta com o chat principal: sessão viva vence (não duplica),
+  // recarregou → o banco devolve inclusive os turnos anteriores do painel
+  // (o persist da casa já os gravava — agora eles voltam a ser vistos).
+  const threadHadContent = loadThread(threadCacheKey).length > 0;
+  const memorySeededRef = React.useRef(threadHadContent);
+  React.useEffect(() => {
+    // v2 (persist:false) não tem promessa de memória — sem banco, sem fio.
+    if (persist === false) return;
+    if (!disciplineCode) return;
+    if (memorySeededRef.current) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/tutor/history?discipline=${encodeURIComponent(disciplineCode)}`,
+        );
+        if (!res.ok || !alive) return;
+        const data = (await res.json()) as {
+          messages?: { role: 'user' | 'assistant'; content: string; model?: string; savedAt?: string }[];
+        };
+        const restored = (data.messages ?? []).slice(-PANEL_MEMORY_TAKE);
+        if (!alive || restored.length === 0) return;
+        setMessages((prev) => {
+          // sessão viva ganhou corrida (usuário já perguntou) → não pisa
+          if (prev.some((m) => m.role === 'user')) return prev;
+          return restored.map((m) => ({
+            id: freshMessageId(),
+            role: m.role,
+            content: m.content,
+            model: m.model,
+            time: hhmmOf(m.savedAt),
+            fromMemory: true,
+          }));
+        });
+        memorySeededRef.current = true;
+      } catch {
+        // sem banco (offline/Vercel sem DATABASE_URL) — o painel segue limpo
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [persist, disciplineCode]);
   // t176 — O RASCUNHO QUE SOBREVIVE (paridade do chat principal): fechar o
   // diálogo do PDF desmonta o painel — o FIO já sobrevivia (thread-cache,
   // t144) mas o que estava DIGITADO morria. O composer renasce do rascunho
@@ -505,6 +577,8 @@ export function TutorQuickPanel({
           hubContext: buildHubContext(disciplineCode ?? '', sp),
           // contexto do curso agora viaja do CLIENTE (o servidor do tutor é genérico)
           studentContext: tutorCourseContext(),
+          // doutrina do contexto: v2 (persist=false) → o servidor não grava nada
+          ...(persist === false ? { persist: false as const } : {}),
         },
         (_piece, full) => {
           setLoading(false);
@@ -582,6 +656,9 @@ export function TutorQuickPanel({
       .catch(() => toast.error('Não consegui copiar agora.'));
   };
 
+  // Frente 11 — onde a memória restaurada começa (a divisória nasce antes dela).
+  const firstMemoryIdx = messages.findIndex((m) => m.fromMemory);
+
   return (
     <div className={cn('flex min-h-0 flex-col', className)}>
       {showHeader && (
@@ -657,14 +734,31 @@ export function TutorQuickPanel({
           </div>
         )}
 
+        {/* Frente 11 — A MEMÓRIA CONFESSADA: quando o fio nasceu do banco da
+            disciplina, a divisória diz de onde ele veio — o aluno sabe que o
+            tutor já sabe (sem mistério de mensagens que ele não mandou agora). */}
         {messages.map((m, idx) => (
-          <div
-            key={m.id}
-            className={cn(
-              'animate-msg-in flex gap-2',
-              m.role === 'user' && 'flex-row-reverse',
+          <React.Fragment key={m.id}>
+            {m.fromMemory && idx === firstMemoryIdx && (
+              <div
+                className="my-1.5 flex items-center gap-2"
+                role="separator"
+                aria-label="Início da memória da disciplina"
+                data-testid="panel-memory-divider"
+              >
+                <span className="h-px flex-1 bg-border/70" aria-hidden />
+                <span className="flex items-center gap-1 text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                  <History className="size-3" aria-hidden /> Memória da disciplina
+                </span>
+                <span className="h-px flex-1 bg-border/70" aria-hidden />
+              </div>
             )}
-          >
+            <div
+              className={cn(
+                'animate-msg-in flex gap-2',
+                m.role === 'user' && 'flex-row-reverse',
+              )}
+            >
             <div
               className={cn(
                 'grid size-6 shrink-0 place-items-center rounded-full',
@@ -816,6 +910,7 @@ export function TutorQuickPanel({
               )}
             </div>
           </div>
+          </React.Fragment>
         ))}
 
         {loading && (

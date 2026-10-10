@@ -74,7 +74,10 @@ export function PomodoroBar({ sessionId }: { sessionId: string }) {
   const focoElapsed = now - st.focoStartAt;
   const focoTotal = st.budgetMin * 60_000;
   const focoLeft = focoTotal - focoElapsed;
-  const decisao = st.phase === 'foco' && focoLeft <= 0;
+  // A decisão vive no PRÓPRIO estado (phase 'decisao') — comparar foco/relógio
+  // aqui fazia a caixa sumir: o efeito troca phase p/ 'decisao' e este cálculo
+  // voltava a ser false (a caixa nunca aparecia; pausa/+10min ficavam mortos).
+  const decisao = st.phase === 'decisao';
 
   // ciclo fechou → a decisão é do aluno (a pausa nunca corta o pensamento)
   React.useEffect(() => {

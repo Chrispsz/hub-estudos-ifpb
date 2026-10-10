@@ -6,15 +6,21 @@
 
 import * as React from 'react';
 import { BookOpen, ListPlus, XCircle } from 'lucide-react';
-import type { BacklogItem } from '@/lib/v2/domain';
+import type { BacklogItem, Topic } from '@/lib/v2/domain';
 import { dateKeyOf } from '@/lib/v2/planner';
-import { BACKLOG_DAILY_CAP, convertBacklogItem, type ConvertPlan } from '@/lib/v2/repo';
-import { useBacklog, useMetaValue, useSubjects } from '@/lib/v2/use-v2';
+import {
+  adoptBacklogIntoTopic,
+  BACKLOG_DAILY_CAP,
+  convertBacklogItem,
+  type ConvertPlan,
+} from '@/lib/v2/repo';
+import { useBacklog, useMetaValue, useSubjects, useTopics } from '@/lib/v2/use-v2';
 import { Btn, Chip, Empty, PageHead, Select, Textarea } from './ui';
 
 export function TabBacklog() {
   const backlog = useBacklog();
   const subjects = useSubjects();
+  const topics = useTopics();
   const todayKey = dateKeyOf();
   const doneRaw = useMetaValue(`backlog:converted:${todayKey}`);
   const done = doneRaw ? Number(doneRaw) || 0 : 0;
@@ -93,16 +99,29 @@ export function TabBacklog() {
         <summary className="cursor-pointer font-mono text-[11px] text-zinc-500">
           processados ({backlog.filter((b) => b.status !== 'open').length})
         </summary>
-        <div className="mt-2 space-y-1">
+        <div className="mt-2 space-y-2">
           {backlog
             .filter((b) => b.status !== 'open')
             .map((b) => (
-              <p key={b.id} className="truncate font-mono text-[11px] text-zinc-600">
-                <span className={b.status === 'converted' ? 'text-emerald-500' : 'text-zinc-600'}>
-                  {b.status === 'converted' ? '✓' : '×'}
-                </span>{' '}
-                {b.title}
-              </p>
+              <div key={b.id} className="space-y-1">
+                <p className="truncate font-mono text-[11px] text-zinc-600">
+                  <span className={b.status === 'converted' ? 'text-emerald-500' : 'text-zinc-600'}>
+                    {b.status === 'converted' ? '✓' : '×'}
+                  </span>{' '}
+                  {b.title}
+                </p>
+                {/* beco Backlog→Trilha fechado (Run #4/R3): a conversão nasce
+                    topicId:null — aqui ela é adotada por um tópico da matéria
+                    (2 cliques) e aparece na escadinha na hora (queries live) */}
+                {b.status === 'converted' && b.convertedUnitIds.length > 0 && (
+                  <AdoptRow
+                    item={b}
+                    topics={topics
+                      .filter((t) => t.subjectId === b.subjectId)
+                      .sort((a, b2) => a.order - b2.order)}
+                  />
+                )}
+              </div>
             ))}
         </div>
       </details>
@@ -113,6 +132,68 @@ export function TabBacklog() {
           onClose={() => setOpenItem(null)}
           onRun={run}
         />
+      )}
+    </div>
+  );
+}
+
+/** Linha de adoção (Run #4): conversão sem tópico ganha lugar na escadinha —
+ *  select com os tópicos da matéria + botão adotar + feedback inline. */
+function AdoptRow({ item, topics }: { item: BacklogItem; topics: Topic[] }) {
+  const [topicId, setTopicId] = React.useState('');
+  const [msg, setMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = React.useState(false);
+
+  async function adopt() {
+    if (!topicId || busy) return;
+    setBusy(true);
+    try {
+      const r = await adoptBacklogIntoTopic(item.id, topicId);
+      if (r.ok) {
+        const t = topics.find((x) => x.id === topicId);
+        setMsg({
+          ok: true,
+          text:
+            (r.moved ?? 0) > 0
+              ? `adotado: ${r.moved} unidade(s) → ${t?.name ?? 'tópico'}`
+              : 'já estava nesse tópico — nada mudou',
+        });
+      } else {
+        setMsg({ ok: false, text: r.reason ?? 'falhou' });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 pl-4">
+      <Select
+        value={topicId}
+        onChange={(e) => {
+          setTopicId(e.target.value);
+          setMsg(null);
+        }}
+        aria-label={`adotar "${item.title}" em um tópico`}
+        className="max-w-[16rem] truncate"
+      >
+        <option value="">adotar em tópico…</option>
+        {topics.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </Select>
+      <Btn variant="outline" disabled={!topicId || busy} onClick={() => void adopt()}>
+        adotar
+      </Btn>
+      {msg && (
+        <span
+          role="status"
+          className={`font-mono text-[10px] ${msg.ok ? 'text-emerald-400' : 'text-amber-300'}`}
+        >
+          {msg.text}
+        </span>
       )}
     </div>
   );

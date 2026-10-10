@@ -13,10 +13,11 @@
 // que o professor está dando AGORA — o Hoje passa a puxar esse conteúdo.
 
 import * as React from 'react';
-import { BookOpen, FileText, Sparkles, Star, ExternalLink } from 'lucide-react';
+import { BookOpen, FileText, PlayCircle, Sparkles, Star, ExternalLink } from 'lucide-react';
 import { materials as allMaterials, type Material } from '@/data/course-data';
 import { PdfViewerDialog } from '@/components/hub/pdf-viewer-dialog';
 import { MaterialSummaryDialog } from '@/components/hub/material-summary-dialog';
+import { VideoPlayerDialog } from '@/components/hub/video-player-dialog';
 import { isFocusAlive } from '@/lib/v2/planner';
 import { toggleFocusMark } from '@/lib/v2/repo';
 import { useBacklog, useFocusMarks, useSubjects, useUnits } from '@/lib/v2/use-v2';
@@ -62,6 +63,7 @@ export function TabMateriais({ onOpenTutor }: { onOpenTutor: (ctx: TutorMaterial
   const [scope, setScope] = React.useState<'todos' | 'semana' | 'abertos'>('todos');
   const [viewer, setViewer] = React.useState<Material | null>(null);
   const [summary, setSummary] = React.useState<Material | null>(null);
+  const [video, setVideo] = React.useState<Material | null>(null);
   const [busyMark, setBusyMark] = React.useState<string | null>(null);
 
   const rows: Row[] = React.useMemo(() => {
@@ -208,6 +210,10 @@ export function TabMateriais({ onOpenTutor }: { onOpenTutor: (ctx: TutorMaterial
                   <Btn variant="emerald" onClick={() => setViewer(r.m)}>
                     <BookOpen className="size-3.5" /> ler
                   </Btn>
+                ) : r.m.type === 'video' && r.m.externalUrl ? (
+                  <Btn variant="emerald" onClick={() => setVideo(r.m)}>
+                    <PlayCircle className="size-3.5" /> assistir
+                  </Btn>
                 ) : r.m.externalUrl ? (
                   <a href={r.m.externalUrl} target="_blank" rel="noreferrer">
                     <Btn variant="outline">
@@ -229,9 +235,24 @@ export function TabMateriais({ onOpenTutor }: { onOpenTutor: (ctx: TutorMaterial
         </div>
       )}
 
-      {/* os leitores prontos da casa antiga — mesma experiência, casa nova */}
-      <PdfViewerDialog material={viewer} open={!!viewer} onOpenChange={(o) => !o && setViewer(null)} />
+      {/* os leitores prontos da casa antiga — mesma experiência, casa nova.
+          tutorPersist=false: doutrina do contexto — ler PDF no app novo NÃO
+          deixa conversa no servidor (a thread vive no IndexedDB do dispositivo).
+          keepLegacyRecent=false: isolamento do estado do dono (QA 3-c) — abrir
+          material no app novo NÃO grava recentMaterials na MEGACHAVE legado
+          (o material recente do v2 já vive no núcleo; o legado omite a prop e
+          se comporta exatamente como sempre). */}
+      <PdfViewerDialog
+        material={viewer}
+        open={!!viewer}
+        onOpenChange={(o) => !o && setViewer(null)}
+        tutorPersist={false}
+        keepLegacyRecent={false}
+      />
       <MaterialSummaryDialog material={summary} open={!!summary} onOpenChange={(o) => !o && setSummary(null)} />
+      {/* videoaulas embutidas — o MESMO player da casa (YouTube/Drive/Vimeo),
+          zero cópia (E4). */}
+      <VideoPlayerDialog material={video} open={!!video} onOpenChange={(o) => !o && setVideo(null)} />
     </div>
   );
 }

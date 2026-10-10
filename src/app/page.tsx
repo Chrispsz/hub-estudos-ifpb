@@ -13,18 +13,26 @@ import { StudyView } from '@/components/hub/study-view';
 import { LibraryView } from '@/components/hub/library-view';
 import { PracticeView } from '@/components/hub/practice-view';
 import { useStudyProgress } from '@/lib/study-progress';
-import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, type OpenPracticeDetail, type OpenSimuladoDetail } from '@/lib/hub-events';
+import { StudyFocusProvider } from '@/lib/pomodoro-engine';
+import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, OPEN_PROGRESS_EVENT, type OpenPracticeDetail, type OpenSimuladoDetail } from '@/lib/hub-events';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-// CUTOVER (Fase 5): o app NOVO é o padrão em / · a casa antiga vive em /?legacy=1
-// · o console de migração da Fase 1 segue em /?v2. Zero rota nova — só query.
-const V2App = dynamic(() => import('@/components/v2/app').then((m) => m.V2App), {
-  ssr: false,
-});
+// DECISÃO DO DONO (10/10/2026): a LEGACY volta a ser a casa em `/`. A evolução do
+// produto passa a ser feita DENTRO dela (IA/tutor integrado a tudo, mais simples,
+// com acompanhamento central) — "a legacy só que melhor e mais limpa".
+// O experimento v2 permanece no repositório como referência, SEM porta de entrada;
+// o console técnico da Fase 1 segue em /?v2.
 const Phase1Panel = dynamic(() => import('@/components/v2/phase1-panel'), {
   ssr: false,
 });
+// A CALCULADORA DE NOTAS religada (GIT-1: cortada na mega-limpeza c902ad7;
+// fontes íntegras no git — a fiação de gravação setRealGrade nunca morreu).
+const GradeCalculator = dynamic(
+  () => import('@/components/hub/grade-calculator').then((m) => m.GradeCalculator),
+  { ssr: false },
+);
 
 const VALID_TABS: TabKey[] = ['library', 'study', 'practice'];
 
@@ -117,12 +125,27 @@ export default function Page() {
     return () => window.removeEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
   }, []);
 
+  // Pedido externo (evento hub:open-progress — Calculadora de Notas do
+  // dashboard/da paleta) → abre o Dialog da calculadora (religada do git).
+  const [progressReq, setProgressReq] = React.useState<{ nonce: number } | undefined>(
+    undefined,
+  );
+  React.useEffect(() => {
+    function onOpenProgress() {
+      setProgressReq({ nonce: Date.now() });
+    }
+    window.addEventListener(OPEN_PROGRESS_EVENT, onOpenProgress);
+    return () => window.removeEventListener(OPEN_PROGRESS_EVENT, onOpenProgress);
+  }, []);
+
   const setActive = React.useCallback((k: TabKey) => {
-    setActiveState(k);
+    // 'dashboard' chega do command palette (atalhos kit/plano) — a casa é a library.
+    const target = (k === 'dashboard' ? 'library' : k) as TabKey;
+    setActiveState(target);
     // Hash na URL → botão voltar do browser volta para a aba anterior
     if (typeof window !== 'undefined') {
-      const newUrl = `${window.location.pathname}${window.location.search}#${k}`;
-      window.history.pushState({ tab: k }, '', newUrl);
+      const newUrl = `${window.location.pathname}${window.location.search}#${target}`;
+      window.history.pushState({ tab: target }, '', newUrl);
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
   }, []);
@@ -147,14 +170,12 @@ export default function Page() {
     }
   }, []);
 
-  // Painel da Fase 1 (/?v2) e gate do legado (/?legacy=1) — hooks acima preservados
+  // Painel técnico da Fase 1 (/?v2) — o legado É o app padrão em `/`
   const [showV2, setShowV2] = React.useState(false);
-  const [showLegacy, setShowLegacy] = React.useState(false);
   React.useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       setShowV2(params.has('v2'));
-      setShowLegacy(params.has('legacy'));
     } catch {
       /* sem query string */
     }
@@ -212,9 +233,9 @@ export default function Page() {
   const activeContent = (() => {
     switch (active) {
       case 'library':
-        return <LibraryView />;
+        return <LibraryView onStartStudy={goStudy} />;
       case 'study':
-        return <StudyView initialDiscipline={studyDiscipline} initialMaterial={studyMaterial} tutorReq={tutorReq} />;
+        return <StudyView initialDiscipline={studyDiscipline} initialMaterial={studyMaterial} tutorReq={tutorReq} sp={sp} />;
       case 'practice':
         return <PracticeView simuladoReq={simuladoReq} practiceReq={practiceReq} />;
       default:
@@ -222,11 +243,11 @@ export default function Page() {
     }
   })();
 
-  // Cutover: ?v2 = console de migração · ?legacy=1 = casa antiga · padrão = app novo
+  // ?v2 = console técnico · padrão = a casa (legacy) — decisão do dono, 10/10/2026
   if (showV2) return <Phase1Panel />;
-  if (!showLegacy) return <V2App />;
 
   return (
+    <StudyFocusProvider sp={sp}>
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
       <SidebarNav
         active={active}
@@ -256,6 +277,21 @@ export default function Page() {
       </div>
       <BackToTop />
       <CommandPalette onNavigate={setActive} />
+
+      {/* Calculadora de notas — religada do histórico (evento hub:open-progress) */}
+      <Dialog open={!!progressReq} onOpenChange={(v) => { if (!v) setProgressReq(undefined); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Calculadora de notas</DialogTitle>
+            <DialogDescription>
+              Médias reais por disciplina — o que você salva aqui vira o registro oficial do
+              seu semestre.
+            </DialogDescription>
+          </DialogHeader>
+          <GradeCalculator />
+        </DialogContent>
+      </Dialog>
     </div>
+    </StudyFocusProvider>
   );
 }

@@ -84,13 +84,21 @@ import {
 } from '@/components/ui/sheet';
 import {
   disciplines,
+  materials as allMaterials,
   getDisciplineByCode,
   getMaterialsByDiscipline,
   type Material,
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
-import { useStudyProgress, type PomodoroState } from '@/lib/study-progress';
+import { type StudyProgressHook } from '@/lib/study-progress';
+import {
+  PHASE_META,
+  APP_BASE_TITLE,
+  fmtSeconds,
+  type SessionSummary,
+  useStudyFocus,
+} from '@/lib/pomodoro-engine';
 import { isNearBottom } from '@/lib/tutor-follow';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
@@ -128,7 +136,7 @@ import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
 import { tutorCourseContext } from '@/lib/curriculum';
-import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
+import { OPEN_TUTOR_EVENT, openPractice, type OpenTutorDetail } from '@/lib/hub-events';
 import { setEphemeralChatState } from '@/lib/ephemeral-registry';
 import {
   composerDraftKey,
@@ -149,6 +157,7 @@ import { materialDoorsFor } from '@/lib/study-material-doors';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { VideoPlayerDialog, parseVideoUrl } from './video-player-dialog';
+import { FocusDurationMenu } from './focus-duration-menu';
 import { TutorMarkdown } from './tutor-markdown';
 
 // t180 — ÚLTIMO nonce de porta JÁ consumido por esta sessão do navegador.
@@ -159,23 +168,9 @@ import { TutorMarkdown } from './tutor-markdown';
 // um NOVO clique (nonce maior) abre de novo.
 let lastReaderNonceConsumed = 0;
 import { CodeLab } from './code-lab';
+import { exercises } from '@/lib/exercise-extractor';
 
 // ---------- Tipos locais ----------
-
-type Phase = PomodoroState['phase'];
-type SessionSummary = NonNullable<PomodoroState['lastSessionSummary']>;
-type PomodoroConfig = { focus: number; shortBreak: number; longBreak: number; cyclesBeforeLong: number };
-
-interface LiveTimer {
-  phase: Phase;
-  secondsLeft: number;
-  running: boolean;
-  cycleCount: number; // nº de focos completados
-  /** Epoch (ms) do fim da fase — o relógio REAL. Definido ao rodar: a contagem
-   *  deriva dele, então fica correta mesmo com a aba em segundo plano. */
-  endsAt?: number;
-  runningSince?: string;
-}
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -236,39 +231,7 @@ function MemoryChip({ count }: { count: number }) {
   );
 }
 
-interface BannerSnapshot {
-  saved: PomodoroState;
-  agoMin: number;
-}
-
 // ---------- Constantes / helpers (módulo) ----------
-
-const PHASE_META: Record<
-  Phase,
-  { label: string; text: string; badge: string; dot: string; solid: string }
-> = {
-  focus: {
-    label: 'Foco',
-    text: 'text-emerald-400',
-    badge: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
-    dot: 'bg-emerald-500',
-    solid: 'bg-emerald-600 hover:bg-emerald-700',
-  },
-  shortBreak: {
-    label: 'Pausa curta',
-    text: 'text-amber-400',
-    badge: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
-    dot: 'bg-amber-500',
-    solid: 'bg-amber-600 hover:bg-amber-700',
-  },
-  longBreak: {
-    label: 'Pausa longa',
-    text: 'text-teal-400',
-    badge: 'border-teal-500/40 bg-teal-500/10 text-teal-400',
-    dot: 'bg-teal-500',
-    solid: 'bg-teal-600 hover:bg-teal-700',
-  },
-};
 
 const MATERIAL_TYPE_LABEL: Record<Material['type'], string> = {
   slides: 'Slides',
@@ -307,10 +270,7 @@ function mathExamBriefFor(code: string): { daysLeft: number; dateShort: string }
   const d = daysUntilDate(MATH_EXAM.date);
   return d >= 0 ? { daysLeft: d, dateShort: MATH_EXAM_DATE_SHORT } : null;
 }
-/** Segundos restantes reais a partir do epoch do fim da fase. */
-function remainingFromEndsAt(endsAt: number): number {
-  return Math.max(0, Math.round((endsAt - Date.now()) / 1000));
-}
+/** Segundos restantes reais a partir do epoch do fim da fase — fonte: pomodoro-engine. */
 
 /**
  * Follow-ups de continuidade: aparecem após cada resposta do tutor para o
@@ -325,70 +285,6 @@ const FOLLOW_UPS = [
 ];
 
 /** Contexto real do app enviado ao tutor — implementação única em @/lib/tutor-context. */
-
-const APP_BASE_TITLE = 'Hub de Estudos • IFPB ADS — Turma 2026.2';
-
-/** Notificação nativa do SO ao concluir uma fase do Pomodoro (permissão já concedida). */
-function notifyPhaseEnd(kind: 'focus' | 'break', focusMinutes: number, disciplineShort: string) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-  const title = kind === 'focus' ? 'Foco concluído! ☕' : 'Pausa finalizada 🎯';
-  const body =
-    kind === 'focus'
-      ? `${focusMinutes} min de foco em ${disciplineShort}. Hora da pausa!`
-      : 'De volta ao foco — bom estudo!';
-  try {
-    const n = new Notification(title, {
-      body,
-      tag: 'hub-pomodoro-fase',
-      icon: '/logo-ifpb.svg',
-    });
-    n.onclick = () => {
-      window.focus();
-      n.close();
-    };
-  } catch {
-    // alguns navegadores lançam em contextos não ativos — ignora
-  }
-}
-
-function fmtSeconds(total: number): string {
-  const s = Math.max(0, Math.floor(total));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
-}
-
-/** Beep duplo (880Hz, 0.15s x2) via WebAudio — silencioso em silentMode ou se indisponível. */
-function playBeep(silent: boolean) {
-  if (silent) return;
-  try {
-    const AudioCtx =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    [0, 0.25].forEach((offset) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      const t0 = ctx.currentTime + offset;
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t0);
-      osc.stop(t0 + 0.16);
-    });
-    window.setTimeout(() => {
-      ctx.close().catch(() => {});
-    }, 600);
-  } catch {
-    // áudio indisponível — ignora
-  }
-}
 
 function buildWelcome(
   shortName: string,
@@ -441,6 +337,7 @@ export function StudyView({
   initialMaterial,
   initialOpenNonce,
   tutorReq,
+  sp,
 }: {
   initialDiscipline?: string;
   initialMaterial?: string;
@@ -451,45 +348,72 @@ export function StudyView({
   /** Pedido externo (evento hub:open-tutor — Caderno de Erros) → abre o chat
    *  com a pergunta pronta no campo e a disciplina certa selecionada. */
   tutorReq?: { detail: OpenTutorDetail; nonce: number };
+  /** A ÚNICA instância do progresso — nasce no page.tsx e é compartilhada com
+   *  o motor do foco (pomodoro-engine): a sessão registrada pelo motor e a UI
+   *  leem o mesmo estado, sem divergência entre instâncias do hook. */
+  sp: StudyProgressHook;
 }) {
-  const sp = useStudyProgress();
+  // O MOTOR DO FOCO vive no page.tsx (provider): o timer atravessa abas, o
+  // leitor da Biblioteca consegue iniciar foco, e trocar de aba não pausa nada.
+  const focus = useStudyFocus()!;
+  const {
+    live,
+    banner,
+    summary,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    skipPhase,
+    continueFromBanner,
+    discardBanner,
+    dismissSummary,
+  } = focus;
 
-  // ----- Seleção (estados derivados com lazy init) -----
-  const [disciplineCode, setDisciplineCode] = React.useState<string>(
-    () => initialDiscipline ?? disciplines[0].code,
-  );
-  const [materialId, setMaterialId] = React.useState<string>(() => {
-    if (!initialMaterial) return '';
-    const disc = initialDiscipline ?? disciplines[0].code;
-    return getMaterialsByDiscipline(disc).some((m) => m.id === initialMaterial)
-      ? initialMaterial
-      : '';
-  });
+  // ----- Seleção (lazy init: intenção da porta vence; senão, o par do motor —
+  // o material que o dono amarrou no leitor da Biblioteca VEM selecionado;
+  // sem nenhuma das duas, o ÚLTIMO material aberto entra — a aba nunca cai no
+  // estado de configuração: o estudante chega e a porta já existe) -----
+  const lastOpenedMaterial = (() => {
+    const recent = sp.progress.recentMaterials[0];
+    return recent ? allMaterials.find((m) => m.id === recent.id) ?? null : null;
+  })();
+  const initDiscipline =
+    initialDiscipline ??
+    (focus.sel.materialId
+      ? focus.sel.disciplineCode
+      : lastOpenedMaterial?.disciplineCode ?? focus.sel.disciplineCode);
+  // Frente 11 — o ÚLTIMO material aberto DESTA disciplina (frente 10 da home:
+  // clicar "Algoritmos" na home não pode cair no combobox quando o dono já
+  // estudou Algoritmos — a porta nasce da própria história da disciplina).
+  const lastOpenedOfDiscipline = (() => {
+    const recent = sp.progress.recentMaterials.find((r) => {
+      const m = allMaterials.find((x) => x.id === r.id);
+      return m?.disciplineCode === initDiscipline;
+    });
+    return recent ? allMaterials.find((m) => m.id === recent.id) ?? null : null;
+  })();
+  const initMaterial = (() => {
+    if (initialMaterial) {
+      return getMaterialsByDiscipline(initDiscipline).some((m) => m.id === initialMaterial)
+        ? initialMaterial
+        : '';
+    }
+    // O par do motor só vale DENTRO da disciplina pedida (sem par cruzado).
+    if (focus.sel.materialId && focus.sel.disciplineCode === initDiscipline) {
+      return focus.sel.materialId;
+    }
+    return lastOpenedOfDiscipline ? lastOpenedOfDiscipline.id : '';
+  })();
+  const [disciplineCode, setDisciplineCode] = React.useState<string>(initDiscipline);
+  const [materialId, setMaterialId] = React.useState<string>(initMaterial);
+
+  // A seleção da UI amarra o REGISTRO do foco: a sessão completa grava este par.
+  const { bind } = focus;
+  React.useEffect(() => {
+    bind(disciplineCode, materialId);
+  }, [bind, disciplineCode, materialId]);
 
   const cfg = sp.progress.preferences.pomodoroConfig;
-
-  const durations = React.useMemo<Record<Phase, number>>(
-    () => ({
-      focus: cfg.focus * 60,
-      shortBreak: cfg.shortBreak * 60,
-      longBreak: cfg.longBreak * 60,
-    }),
-    [cfg.focus, cfg.shortBreak, cfg.longBreak],
-  );
-
-  // ----- Timer vivo (espelho local do pomodoroState persistido) -----
-  const [live, setLive] = React.useState<LiveTimer>(() => ({
-    phase: 'focus',
-    secondsLeft: cfg.focus * 60,
-    running: false,
-    cycleCount: 0,
-    runningSince: undefined,
-  }));
-
-  // Resumo do último foco concluído (banner emerald, dismissível)
-  const [summary, setSummary] = React.useState<SessionSummary | null>(null);
-  // Snapshot do estado salvo para o banner de continuidade
-  const [banner, setBanner] = React.useState<BannerSnapshot | null>(null);
 
   // ----- Chat IA -----
   const [chatOpen, setChatOpen] = React.useState(false);
@@ -703,6 +627,11 @@ export function StudyView({
   // porta da S3 (auto, com guarda de nonce) ou pela porta manual sob o
   // cronômetro (o material selecionado no Pomodoro deixa de ser texto morto).
   const [readerOpen, setReaderOpen] = React.useState(false);
+  /** O modo pedido pela ABERTURA (o convite 'split' do fluxo — a escolha
+   *  lembrada do dono no leitor continua vencendo; isto é só o 1º convite). */
+  const [readerInitialMode, setReaderInitialMode] = React.useState<'pdf' | 'split' | undefined>(
+    undefined,
+  );
   /** Página do convite aceito (retomada) — morre ao fechar, como na Biblioteca. */
   const [readerInitialPage, setReaderInitialPage] = React.useState<number | undefined>(
     undefined,
@@ -827,6 +756,18 @@ export function StudyView({
     }, null);
     return { tocadas, lastLabel: lastActivityLabel(last) };
   }, [topicsSummary, unitActivity]);
+  // A PAREDE DE CHECKBOXES FICOU DENTRO DA PORTA (o dono rejeitou as caixinhas
+  // soltas): os tópicos existem, mas abrem QUANDO ele quer marcar algo — a aba
+  // respira material e foco, não administro de ementa.
+  const [topicsOpen, setTopicsOpen] = React.useState(false);
+  // A PONTE LER→PRATICAR: quantas questões do acervo saíram DESTE material.
+  const linkedQuestions = React.useMemo(
+    () =>
+      selectedMaterial
+        ? exercises.filter((e) => (e.linkedMaterials ?? []).includes(selectedMaterial.id)).length
+        : 0,
+    [selectedMaterial],
+  );
   const colors = getColorClasses(discipline.color);
   const chatTopic = topicsSummary?.nextTopic ?? 'geral';
 
@@ -858,29 +799,7 @@ export function StudyView({
     };
   }, [zenOpen]);
 
-  // ----- Refs -----
-  const liveRef = React.useRef(live);
-  const silentModeRef = React.useRef(!sp.progress.preferences.silentMode);
-  silentModeRef.current = !sp.progress.preferences.silentMode;
-  /** "Rodar em outra guia" — espelho em ref para uso dentro de listeners. */
-  const backgroundTimerRef = React.useRef(sp.progress.preferences.backgroundTimer !== false);
-  backgroundTimerRef.current = sp.progress.preferences.backgroundTimer !== false;
-  const ctxRef = React.useRef({
-    sp,
-    cfg,
-    durations,
-    disciplineCode,
-    materialId,
-    summary,
-    topicsSummary,
-  });
-  const interactedRef = React.useRef(false); // só persiste depois da 1ª interação
-  const focusStartedAtRef = React.useRef<string | null>(null);
-  // Fim da fase como timestamp (Date.now) — fonte da verdade quando rodando.
-  // O relógio de parede não sofre com o estrangulamento de timers de guia
-  // oculta: cada tick recalcula o restante pelo timestamp, sem drift.
-  const endTimeRef = React.useRef<number | null>(null);
-  const bannerInitRef = React.useRef(false);
+  // ----- Refs (o MOTOR do foco vive no provider — pomodoro-engine) -----
   const messagesRef = React.useRef<HTMLDivElement>(null);
   // t165 — A LEITURA NÃO É SEQUESTRADA: true = o leitor está no fim e o
   // auto-scroll segue o fio; false = ele subiu de propósito (reler uma
@@ -890,426 +809,16 @@ export function StudyView({
   const [chatFollowing, setChatFollowing] = React.useState(true);
   const followLockRef = React.useRef(false);
 
-  // Sincroniza refs a cada render (para uso em intervals/listeners/cleanup)
-  React.useEffect(() => {
-    liveRef.current = live;
-  });
-  React.useEffect(() => {
-    ctxRef.current = { sp, cfg, durations, disciplineCode, materialId, summary, topicsSummary };
-  });
+  // (O motor do foco — tick, worker, persistência, banner, registro da sessão —
+  // vive no provider pomodoro-engine, acima das abas. Nada disso mora mais aqui.)
 
-  // Alinha a duração inicial com a config real assim que a hidratação chegar
-  // (só enquanto o usuário não interagiu — nunca sobrescreve sessão restaurada).
-  React.useEffect(() => {
-    if (interactedRef.current) return;
-    setLive((prev) => {
-      if (prev.running) return prev;
-      const full = durations[prev.phase];
-      return prev.secondsLeft === full ? prev : { ...prev, secondsLeft: full };
-    });
-  }, [durations]);
-
-  // Banner de continuidade: lê o pomodoroState persistido uma única vez por mount
-  // (o hook hidrata o localStorage após a montagem, então observamos sp.progress).
-  React.useEffect(() => {
-    if (bannerInitRef.current || interactedRef.current) return;
-    const saved = sp.progress.pomodoroState;
-    if (!saved) return;
-    bannerInitRef.current = true;
-    const ts = new Date(saved.updatedAt).getTime();
-    if (!Number.isFinite(ts)) return;
-    const ageMin = Math.floor((Date.now() - ts) / 60_000);
-    const isFresh = ageMin >= 0 && ageMin < 24 * 60; // menos de 24h
-    if (isFresh && (saved.running || saved.secondsLeft > 0)) {
-      setBanner({ saved, agoMin: Math.max(0, ageMin) });
-    }
-    if (saved.lastSessionSummary) {
-      setSummary(saved.lastSessionSummary);
-    }
-  }, [sp.progress]);
-
-  // ----- Persistência -----
-  const persistNow = React.useCallback(
-    (l: LiveTimer, summaryOverride?: SessionSummary | null) => {
-      const ctx = ctxRef.current;
-      // Rodando: grava o tempo REAL derivado do endsAt (snapshot sempre correto,
-      // mesmo se o último tick foi atrasado pelo throttling da aba).
-      const secondsLeft =
-        l.running && typeof l.endsAt === 'number' ? remainingFromEndsAt(l.endsAt) : l.secondsLeft;
-      const state: PomodoroState = {
-        disciplineCode: ctx.disciplineCode,
-        materialId: ctx.materialId || undefined,
-        phase: l.phase,
-        cycleCount: l.cycleCount,
-        secondsLeft,
-        running: l.running,
-        endsAt: l.endsAt,
-        runningSince: l.runningSince,
-        updatedAt: new Date().toISOString(),
-      };
-      if (summaryOverride === undefined) {
-        if (ctx.summary) state.lastSessionSummary = ctx.summary;
-      } else if (summaryOverride !== null) {
-        state.lastSessionSummary = summaryOverride;
-      }
-      ctx.sp.updatePomodoroState(state);
-    },
-    [],
-  );
-
-  const pauseCurrent = React.useCallback(() => {
-    const l = liveRef.current;
-    if (!l.running) return;
-    endTimeRef.current = null;
-    const paused: LiveTimer = { ...l, running: false, runningSince: undefined };
-    setLive(paused);
-    interactedRef.current = true;
-    setBanner(null);
-    persistNow(paused);
-  }, [persistNow]);
-
-  // Fim de fase: registra sessão (foco), avança fase, salva resumo e persiste.
-  const handlePhaseComplete = React.useCallback(() => {
-    const l = liveRef.current;
-    const ctx = ctxRef.current;
-    endTimeRef.current = null;
-    playBeep(silentModeRef.current);
-    if (ctx.sp.progress.preferences.notifyPhaseEnd) {
-      notifyPhaseEnd(
-        l.phase === 'focus' ? 'focus' : 'break',
-        ctx.cfg.focus,
-        getDisciplineByCode(ctx.disciplineCode)?.shortName ?? 'estudos',
-      );
-    }
-    interactedRef.current = true;
-    setBanner(null);
-
-    if (l.phase === 'focus') {
-      const completed = l.cycleCount + 1;
-      const nextPhase: Phase =
-        completed % ctx.cfg.cyclesBeforeLong === 0 ? 'longBreak' : 'shortBreak';
-      const next: LiveTimer = {
-        phase: nextPhase,
-        secondsLeft: ctx.durations[nextPhase],
-        running: false,
-        cycleCount: completed,
-        runningSince: undefined,
-      };
-      const newSummary: SessionSummary = {
-        focusMinutes: ctx.cfg.focus,
-        topicsDone: ctx.topicsSummary?.doneTopics ?? 0,
-        topicsTotal: ctx.topicsSummary?.totalTopics ?? 0,
-        nextPhase,
-        completedAt: new Date().toISOString(),
-      };
-      ctx.sp.addPomodoroSession({
-        startedAt:
-          focusStartedAtRef.current ??
-          new Date(Date.now() - ctx.cfg.focus * 60_000).toISOString(),
-        disciplineId: ctx.disciplineCode,
-        materialId: ctx.materialId || undefined,
-        focusMinutes: ctx.cfg.focus,
-        mode: 'estudo',
-      });
-      focusStartedAtRef.current = null;
-      setSummary(newSummary);
-      setLive(next);
-      persistNow(next, newSummary);
-    } else {
-      const next: LiveTimer = {
-        phase: 'focus',
-        secondsLeft: ctx.durations.focus,
-        running: false,
-        cycleCount: l.cycleCount,
-        runningSince: undefined,
-      };
-      setLive(next);
-      persistNow(next);
-    }
-  }, [persistNow]);
-
-  // Tick resiliente enquanto roda: o RELÓGIO DE PAREDE é a fonte da verdade.
-  // Com a guia oculta o navegador estrangula o setInterval (chega a 1/min),
-  // então em vez de decrementar 1 por tick recalculamos o restante pelo
-  // timestamp de fim — zero drift. Um Web Worker reforça o ritmo em segundo
-  // plano (o setInterval do worker não é estrangulado), mantendo o título da
-  // aba e a transição de fase no tempo certo enquanto o dono pesquisa fora.
-  const syncFromClock = React.useCallback(() => {
-    if (!liveRef.current.running) return;
-    const end = endTimeRef.current ?? Date.now() + liveRef.current.secondsLeft * 1000;
-    endTimeRef.current = end;
-    const left = Math.max(0, Math.round((end - Date.now()) / 1000));
-    setLive((prev) =>
-      !prev.running || prev.secondsLeft === left ? prev : { ...prev, secondsLeft: left },
-    );
-  }, []);
-
-  React.useEffect(() => {
-    if (!live.running) return;
-    syncFromClock();
-    const id = window.setInterval(syncFromClock, 1000);
-    // Worker de 1s: continua postando mesmo com a guia em segundo plano.
-    let worker: Worker | null = null;
-    try {
-      const blob = new Blob(['setInterval(function(){postMessage(0)},1000);'], {
-        type: 'text/javascript',
-      });
-      worker = new Worker(URL.createObjectURL(blob));
-      worker.onmessage = () => syncFromClock();
-    } catch {
-      worker = null; // Sem worker (raro): o interval da guia cobre sozinho.
-    }
-    return () => {
-      window.clearInterval(id);
-      worker?.terminate();
-    };
-  }, [live.running, syncFromClock]);
-
-  // Detecção de fim de fase (secondsLeft chegou a 0 rodando).
-  React.useEffect(() => {
-    if (live.running && live.secondsLeft <= 0) {
-      handlePhaseComplete();
-    }
-  }, [live.running, live.secondsLeft, handlePhaseComplete]);
-
-  // Timer no título da aba ("24:31 • Foco — Hub de Estudos") enquanto roda.
-  const tabTitleTimer = sp.progress.preferences.tabTitleTimer;
-  React.useEffect(() => {
-    if (!tabTitleTimer || !live.running) return;
-    const label = PHASE_META[live.phase].label;
-    document.title = `${fmtSeconds(live.secondsLeft)} • ${label} — Hub de Estudos`;
-  }, [live.running, live.secondsLeft, live.phase, tabTitleTimer]);
-
-  // Restaura o título base quando o timer para ou a opção é desligada.
-  React.useEffect(() => {
-    if (!live.running || !tabTitleTimer) {
-      document.title = APP_BASE_TITLE;
-    }
-  }, [live.running, tabTitleTimer]);
-
-  // Persistência com throttle: a cada 5s enquanto roda.
-  React.useEffect(() => {
-    if (!live.running) return;
-    const id = window.setInterval(() => {
-      persistNow(liveRef.current);
-    }, 5000);
-    return () => window.clearInterval(id);
-  }, [live.running, persistNow]);
-
-  // Guia em segundo plano: com "Rodar em outra guia" LIGADO (padrão), o foco
-  // segue contando pelo relógio e re-sincroniza na hora quando o dono volta;
-  // a notificação de fim de fase chega normalmente. Desligado, volta a pausar
-  // automaticamente (comportamento antigo).
-  React.useEffect(() => {
-    const onVisibility = () => {
-      if (!document.hidden) {
-        if (liveRef.current.running) syncFromClock();
-        return;
-      }
-      if (!backgroundTimerRef.current && liveRef.current.running) {
-        pauseCurrent();
-        toast('Timer pausado', {
-          description: 'A guia ficou em segundo plano — continue quando voltar.',
-        });
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [pauseCurrent, syncFromClock]);
-
-  // Ao desmontar (troca de aba), pausa e salva — o banner de continuidade cuida do retorno.
-  React.useEffect(() => {
-    return () => {
-      const l = liveRef.current;
-      if (!interactedRef.current || !l.running) return;
-      persistNow({ ...l, running: false, runningSince: undefined });
-    };
-  }, [persistNow]);
-
-  // ----- Ações do timer (botões) -----
-  const startTimer = () => {
-    const l = live;
-    interactedRef.current = true;
-    setBanner(null);
-    const nowIso = new Date().toISOString();
-    if (l.phase === 'focus') {
-      if (!focusStartedAtRef.current) focusStartedAtRef.current = nowIso;
-      if (materialId) sp.markAccessed(materialId);
-    }
-    const next: LiveTimer = { ...l, running: true, runningSince: nowIso };
-    endTimeRef.current = Date.now() + next.secondsLeft * 1000;
-    setLive(next);
-    persistNow(next);
-  };
-
-  const pauseTimer = () => {
-    if (!live.running) return;
-    interactedRef.current = true;
-    endTimeRef.current = null;
-    const next: LiveTimer = { ...live, running: false, runningSince: undefined };
-    setLive(next);
-    persistNow(next);
-  };
-
-  const resetTimer = () => {
-    interactedRef.current = true;
-    focusStartedAtRef.current = null;
-    endTimeRef.current = null;
-    const next: LiveTimer = {
-      phase: 'focus',
-      secondsLeft: durations.focus,
-      running: false,
-      cycleCount: 0,
-      runningSince: undefined,
-    };
-    setLive(next);
-    persistNow(next);
-  };
-
-  const skipPhase = () => {
-    interactedRef.current = true;
-    focusStartedAtRef.current = null;
-    endTimeRef.current = null;
-    const nextPhase: Phase = live.phase === 'focus' ? 'shortBreak' : 'focus';
-    const next: LiveTimer = {
-      phase: nextPhase,
-      secondsLeft: durations[nextPhase],
-      running: false,
-      cycleCount: live.cycleCount,
-      runningSince: undefined,
-    };
-    setLive(next);
-    persistNow(next);
-  };
-
+  // ----- Ações do timer: DELEGADAS ao motor (pomodoro-engine) -----
+  // Troca de disciplina na UI: o motor reinicia o foco e persiste sob o novo código.
   const handleDisciplineChange = (code: string) => {
     if (code === disciplineCode) return;
     setDisciplineCode(code);
     setMaterialId('');
-    focusStartedAtRef.current = null;
-    setLive({
-      phase: 'focus',
-      secondsLeft: durations.focus,
-      running: false,
-      cycleCount: 0,
-      runningSince: undefined,
-    });
-    setBanner(null);
-    // Se já tínhamos uma sessão em andamento, persiste o reinício sob a nova disciplina.
-    if (interactedRef.current) {
-      sp.updatePomodoroState({
-        disciplineCode: code,
-        phase: 'focus',
-        cycleCount: 0,
-        secondsLeft: durations.focus,
-        running: false,
-        updatedAt: new Date().toISOString(),
-        lastSessionSummary: summary ?? undefined,
-      });
-    }
-  };
-
-  // ----- Banner de continuidade -----
-  const continueFromBanner = () => {
-    if (!banner) return;
-    const saved = banner.saved;
-    interactedRef.current = true;
-    focusStartedAtRef.current = null;
-
-    if (getDisciplineByCode(saved.disciplineCode)) {
-      setDisciplineCode(saved.disciplineCode);
-    }
-    const savedMaterials = getMaterialsByDiscipline(saved.disciplineCode);
-    setMaterialId(
-      saved.materialId && savedMaterials.some((m) => m.id === saved.materialId)
-        ? saved.materialId
-        : '',
-    );
-
-    // Desconta o tempo decorrido desde runningSince (clamp ≥ 0).
-    let adjusted = saved.secondsLeft;
-    if (saved.running && saved.runningSince) {
-      const elapsedSec = Math.max(
-        0,
-        Math.floor((Date.now() - new Date(saved.runningSince).getTime()) / 1000),
-      );
-      adjusted = Math.max(0, saved.secondsLeft - elapsedSec);
-    }
-    const completedWhileRunning = saved.running && adjusted <= 0;
-
-    let next: LiveTimer;
-    if (adjusted <= 0) {
-      if (saved.phase === 'focus') {
-        if (completedWhileRunning) {
-          // O foco realmente rodou até o fim — registra a sessão.
-          sp.addPomodoroSession({
-            startedAt: saved.runningSince ?? saved.updatedAt,
-            disciplineId: saved.disciplineCode,
-            materialId: saved.materialId,
-            focusMinutes: cfg.focus,
-            mode: 'estudo',
-          });
-        }
-        const completed = saved.cycleCount + 1;
-        const nextPhase: Phase =
-          completed % cfg.cyclesBeforeLong === 0 ? 'longBreak' : 'shortBreak';
-        next = {
-          phase: nextPhase,
-          secondsLeft: durations[nextPhase],
-          running: false,
-          cycleCount: completed,
-          runningSince: undefined,
-        };
-        setSummary({
-          focusMinutes: cfg.focus,
-          topicsDone: topicsSummary?.doneTopics ?? 0,
-          topicsTotal: topicsSummary?.totalTopics ?? 0,
-          nextPhase,
-          completedAt: new Date().toISOString(),
-        });
-      } else {
-        next = {
-          phase: 'focus',
-          secondsLeft: durations.focus,
-          running: false,
-          cycleCount: saved.cycleCount,
-          runningSince: undefined,
-        };
-      }
-      toast(
-        completedWhileRunning
-          ? 'Fase concluída enquanto você estava fora — seguimos para a próxima.'
-          : 'A fase anterior havia terminado — seguimos para a próxima.',
-      );
-    } else {
-      next = {
-        phase: saved.phase,
-        secondsLeft: adjusted,
-        running: saved.running,
-        cycleCount: saved.cycleCount,
-        runningSince: saved.running ? new Date().toISOString() : undefined,
-      };
-    }
-
-    if (next.running) endTimeRef.current = Date.now() + next.secondsLeft * 1000;
-    setLive(next);
-    setBanner(null);
-    persistNow(next);
-  };
-
-  const discardBanner = () => {
-    setBanner(null);
-    sp.updatePomodoroState(null);
-  };
-
-  const dismissSummary = () => {
-    setSummary(null);
-    if (banner) {
-      // Remove só o resumo do estado salvo, preservando a sessão do banner.
-      sp.updatePomodoroState({ ...banner.saved, lastSessionSummary: undefined });
-    } else if (interactedRef.current) {
-      persistNow(liveRef.current, null);
-    }
+    focus.changeDiscipline(code);
   };
 
   const nextPhaseLabel = (p: SessionSummary['nextPhase']) =>
@@ -1837,32 +1346,25 @@ export function StudyView({
           <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Timer className="size-4 text-emerald-400" />
-                Pomodoro
+                <BookOpen className="size-4 text-emerald-400" />
+                Sessão de estudo
               </CardTitle>
-              <CardDescription>Registre sessões de foco e acompanhe sua meta</CardDescription>
+              <CardDescription>
+                O material na frente, o tutor do lado — o foco acompanha sozinho.
+              </CardDescription>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                onClick={() => setChatOpen(true)}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                <Sparkles className="size-4" />
-                Tirar dúvida com IA
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setZenOpen(true)}
-                aria-label="Abrir modo foco (tela cheia)"
-                title="Modo foco — tela cheia (Esc para sair)"
-              >
-                <Maximize2 className="size-4" />
-                Modo foco
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setZenOpen(true)}
+              aria-label="Abrir modo foco (tela cheia)"
+              title="Modo foco — tela cheia (Esc para sair)"
+            >
+              <Maximize2 className="size-4" />
+            </Button>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-5">
             {/* Seleção de disciplina + material */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -1881,7 +1383,7 @@ export function StudyView({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="study-material">Material (opcional)</Label>
+                <Label htmlFor="study-material">Material</Label>
                 <Select
                   value={materialId || 'none'}
                   onValueChange={(v) => setMaterialId(v === 'none' ? '' : v)}
@@ -1901,214 +1403,269 @@ export function StudyView({
               </div>
             </div>
 
-            {/* Relógio */}
-            <div
-              className={cn(
-                'flex flex-col items-center gap-3 rounded-xl border bg-white/[0.02] px-4 py-8 transition-all duration-500',
-                live.running
-                  ? 'border-emerald-500/40 shadow-[0_0_40px_-12px_rgba(16,185,129,0.35)]'
-                  : 'border-white/10',
-              )}
-            >
-              <Badge variant="outline" className={PHASE_META[live.phase].badge}>
-                {PHASE_META[live.phase].label}
-              </Badge>
-              <div
-                className={cn(
-                  'text-6xl font-bold tabular-nums',
-                  PHASE_META[live.phase].text,
+            {/* O FLUXO EM UM GESTO (o pedido do dono, 10/10/2026): abrir o
+                material É começar o foco — um clique abre o leitor com o tutor
+                ao lado e põe o timer a rodar. Sem selects→fechar→iniciar→reabrir. */}
+            {selectedMaterial?.pdfPath && (
+              <Button
+                size="lg"
+                data-testid="study-reader-door"
+                onClick={() => {
+                  if (!live.running && live.phase === 'focus') startTimer();
+                  setReaderInitialPage(readerResumePage ?? undefined);
+                  setReaderInitialMode('split');
+                  setReaderOpen(true);
+                }}
+                className="h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
+                aria-label={`Abrir ${selectedMaterial.title} no leitor com o tutor ao lado — ${readerDoorLabel(readerResumePage)}`}
+                title={readerDoorTitle(
+                  selectedMaterial.title,
+                  readerResumePage,
+                  selectedMaterial.pages,
                 )}
               >
-                {fmtSeconds(live.secondsLeft)}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>
-                  Ciclo {cyclePosition} de {cycleTotal}
-                </span>
-                <span className="flex items-center gap-1.5" aria-hidden>
-                  {Array.from({ length: cycleTotal }).map((_, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'size-2 rounded-full transition-colors',
-                        i < doneInCycle ? PHASE_META.focus.dot : 'bg-white/15',
-                      )}
+                <BookOpen className="size-4" />
+                {live.running ? 'Abrir material' : 'Abrir material e focar'}
+                <ArrowUpRight className="size-4 opacity-80" />
+              </Button>
+            )}
+
+            {/* t185 — AS PORTAS DO MATERIAL + AS PONTES DA SESSÃO: o resumo IA,
+                o vídeo, a página externa, as questões ligadas e o tutor — cada
+                chip é UM gesto a partir do que está em foco. A decisão de quem
+                tem porta é das libs puras (study-material-doors). */}
+            <div className="flex flex-wrap items-center gap-2" data-testid="study-material-doors">
+              <button
+                type="button"
+                onClick={() => setChatOpen(true)}
+                className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                aria-label="Tirar dúvida com IA sobre o que você está estudando"
+              >
+                <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate">Tirar dúvida com IA</span>
+              </button>
+              {materialDoors.map((door) =>
+                door.href ? (
+                  // t185 — A PORTA DE PÁGINA EXTERNA é âncora REAL: o gesto
+                  // é do navegador (nova aba), não do Hub (a doutrina da
+                  // t180 confessa: "outra porta, outro gesto").
+                  <a
+                    key={door.kind}
+                    data-testid="study-web-door"
+                    href={door.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                    aria-label={door.ariaLabel}
+                    title={door.title}
+                  >
+                    <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
+                    <span className="truncate">{door.label}</span>
+                    <ArrowUpRight
+                      className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      aria-hidden
                     />
-                  ))}
+                  </a>
+                ) : (
+                  <button
+                    key={door.kind}
+                    type="button"
+                    data-testid={door.kind === 'video' ? 'study-video-door' : 'study-summary-door'}
+                    onClick={() => (door.kind === 'video' ? setVideoOpen(true) : setSummaryOpen(true))}
+                    className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                    aria-label={door.ariaLabel}
+                    title={door.title}
+                  >
+                    {door.kind === 'video' ? (
+                      <PlayCircle className="size-3.5 shrink-0" aria-hidden />
+                    ) : (
+                      <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                    )}
+                    <span className="truncate">{door.label}</span>
+                    <ArrowUpRight
+                      className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
+                  </button>
+                ),
+              )}
+              {/* A PONTE LER→PRATICAR: as questões DO material aberto, um clique
+                  de distância — o ciclo do método sem caçar a lista na aba. */}
+              {selectedMaterial && linkedQuestions > 0 && (
+                <button
+                  type="button"
+                  data-testid="study-questions-door"
+                  onClick={() =>
+                    openPractice({
+                      linkedMaterial: selectedMaterial.id,
+                      disciplineCode: selectedMaterial.disciplineCode,
+                    })
+                  }
+                  className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
+                  aria-label={`Resolver as ${linkedQuestions} questões ligadas a ${selectedMaterial.title}`}
+                  title={`As ${linkedQuestions} questões desta lista, no Praticar, uma por vez.`}
+                >
+                  <ClipboardList className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">
+                    Questões deste material ({linkedQuestions})
+                  </span>
+                  <ArrowUpRight
+                    className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </button>
+              )}
+            </div>
+
+            {/* O FOCO COMO COMPANHEIRO — compacto, nunca protagonista (o dono
+                rejeitou o relógio-cabeçote: "sem pomodoro solto"). Ele conta,
+                registra e respeita; o material comanda a cena. */}
+            <div
+              className={cn(
+                'flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border px-4 py-3.5 transition-all duration-500',
+                live.running
+                  ? 'border-emerald-500/40 bg-emerald-500/[0.04] shadow-[0_0_40px_-16px_rgba(16,185,129,0.35)]'
+                  : 'border-white/10 bg-white/[0.02]',
+              )}
+              data-testid="study-focus-timer"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <Badge variant="outline" className={PHASE_META[live.phase].badge}>
+                  {PHASE_META[live.phase].label}
+                </Badge>
+                <span
+                  className={cn(
+                    'text-4xl font-bold leading-none tabular-nums',
+                    PHASE_META[live.phase].text,
+                  )}
+                >
+                  {fmtSeconds(live.secondsLeft)}
+                </span>
+                <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+                  <span>
+                    Ciclo {cyclePosition} de {cycleTotal}
+                  </span>
+                  <span className="flex items-center gap-1" aria-hidden>
+                    {Array.from({ length: cycleTotal }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          'size-1.5 rounded-full transition-colors',
+                          i < doneInCycle ? PHASE_META.focus.dot : 'bg-white/15',
+                        )}
+                      />
+                    ))}
+                  </span>
                 </span>
               </div>
-              <p className="text-center text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 sm:justify-end">
+                {/* Frente 10 — a duração do foco governável no fluxo: o gap
+                    morava no SettingsView órfão; agora é 1 toque do companheiro. */}
+                <FocusDurationMenu sp={sp} />
+                <Button
+                  size="sm"
+                  onClick={live.running ? pauseTimer : startTimer}
+                  className={cn('min-w-28 text-white', PHASE_META[live.phase].solid)}
+                >
+                  {live.running ? (
+                    <>
+                      <Pause className="size-4" />
+                      Pausar
+                    </>
+                  ) : (
+                    <>
+                      <Play className="size-4" />
+                      Iniciar
+                    </>
+                  )}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={resetTimer}>
+                  <RotateCcw className="size-4" />
+                  Resetar
+                </Button>
+                <Button size="sm" variant="outline" onClick={skipPhase}>
+                  <SkipForward className="size-4" />
+                  Pular fase
+                </Button>
+              </div>
+              <p className="w-full text-xs text-muted-foreground">
                 {live.phase === 'focus'
                   ? selectedMaterial
                     ? `Material: ${selectedMaterial.title}`
-                    : 'Sem material específico'
-                  : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}`}
+                    : 'Sem material específico — foque sem ele ou escolha acima.'
+                  : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}.`}
               </p>
-              {/* t180 + t185 — A LINHA DAS PORTAS DO MATERIAL: o material
-                  selecionado no Pomodoro deixa de ser texto morto — UM clique
-                  abre o gesto que ele TEM: leitor (PDF, t180), resumo IA
-                  (com o print do resumo da t146 dentro), vídeo (player da
-                  Biblioteca) ou página externa (âncora real, nova aba).
-                  Sem porta nenhuma, a linha segue texto honesto: a casa não
-                  inventa porta. Na fase de break o foco é levantar — a linha
-                  inteira some. A decisão de quem tem porta é das libs puras
-                  (study-reader-door + study-material-doors). */}
-              {live.phase === 'focus' &&
-                selectedMaterial &&
-                (readerDoorVisible(selectedMaterial) || materialDoors.length > 0) && (
-                <div
-                  data-testid="study-material-doors"
-                  className="flex flex-wrap items-center justify-center gap-2"
-                >
-                  {readerDoorVisible(selectedMaterial) && (
-                    <button
-                      type="button"
-                      data-testid="study-reader-door"
-                      onClick={() => {
-                        setReaderInitialPage(readerResumePage ?? undefined);
-                        setReaderOpen(true);
-                      }}
-                      className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
-                      aria-label={`Abrir ${selectedMaterial?.title} no leitor — ${readerDoorLabel(readerResumePage)}`}
-                      title={readerDoorTitle(
-                        selectedMaterial?.title ?? '',
-                        readerResumePage,
-                        selectedMaterial?.pages,
-                      )}
-                    >
-                      <BookOpen className="size-3.5 shrink-0" aria-hidden />
-                      <span className="truncate">{readerDoorLabel(readerResumePage)}</span>
-                      <ArrowUpRight
-                        className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                  {materialDoors.map((door) =>
-                    door.href ? (
-                      // t185 — A PORTA DE PÁGINA EXTERNA é âncora REAL: o gesto
-                      // é do navegador (nova aba), não do Hub (a doutrina da
-                      // t180 confessa: "outra porta, outro gesto").
-                      <a
-                        key={door.kind}
-                        data-testid="study-web-door"
-                        href={door.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
-                        aria-label={door.ariaLabel}
-                        title={door.title}
-                      >
-                        <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
-                        <span className="truncate">{door.label}</span>
-                        <ArrowUpRight
-                          className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                          aria-hidden
-                        />
-                      </a>
-                    ) : (
-                      <button
-                        key={door.kind}
-                        type="button"
-                        data-testid={door.kind === 'video' ? 'study-video-door' : 'study-summary-door'}
-                        onClick={() => (door.kind === 'video' ? setVideoOpen(true) : setSummaryOpen(true))}
-                        className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
-                        aria-label={door.ariaLabel}
-                        title={door.title}
-                      >
-                        {door.kind === 'video' ? (
-                          <PlayCircle className="size-3.5 shrink-0" aria-hidden />
-                        ) : (
-                          <Sparkles className="size-3.5 shrink-0" aria-hidden />
-                        )}
-                        <span className="truncate">{door.label}</span>
-                        <ArrowUpRight
-                          className="size-3 shrink-0 opacity-70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                          aria-hidden
-                        />
-                      </button>
-                    ),
-                  )}
-                </div>
-              )}
             </div>
 
-            {/* Controles: só 3 botões */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button
-                size="lg"
-                onClick={live.running ? pauseTimer : startTimer}
-                className={cn('min-w-40 text-white', PHASE_META[live.phase].solid)}
-              >
-                {live.running ? (
-                  <>
-                    <Pause className="size-4" />
-                    Pausar
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-4" />
-                    Iniciar
-                  </>
-                )}
-              </Button>
-              <Button variant="ghost" onClick={resetTimer}>
-                <RotateCcw className="size-4" />
-                Resetar
-              </Button>
-              <Button variant="outline" onClick={skipPhase}>
-                <SkipForward className="size-4" />
-                Pular fase
-              </Button>
-            </div>
-
-            {/* Continuidade (GNOME-like: controle contextual onde a ação acontece) */}
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Switch
-                checked={sp.progress.preferences.backgroundTimer !== false}
-                onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
-                aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
-              />
-              <span>
-                Rodar em outra guia — o foco segue contando enquanto você pesquisa fora
-              </span>
-            </div>
-
-            <Separator />
-
-            {/* Mini-stats */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Clock className="size-4 text-emerald-400" />
-                Hoje: <span className="font-medium text-foreground">{sp.minutesToday} min</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Timer className="size-4 text-amber-400" />
-                <span className="font-medium text-foreground">{sp.sessionsToday.length}</span>{' '}
-                sessões
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Target className="size-4 text-teal-400" />
-                meta <span className="font-medium text-foreground">{sp.dailyGoalProgress}%</span>
+            {/* Continuidade + os números que o uso já gerou (a meta por sessões
+                saiu: número morto que o dono apontou — o retrato da home conta
+                a história real, aqui só o que toca o foco) */}
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs text-muted-foreground">
+              <label className="flex items-center gap-2">
+                <Switch
+                  checked={sp.progress.preferences.backgroundTimer !== false}
+                  onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
+                  aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
+                />
+                <span>Rodar em outra guia</span>
+              </label>
+              <span className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-emerald-400" />
+                  Hoje: <span className="font-medium text-foreground">{sp.minutesToday} min</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Timer className="size-3.5 text-amber-400" />
+                  <span className="font-medium text-foreground">{sp.sessionsToday.length}</span>{' '}
+                  {sp.sessionsToday.length === 1 ? 'sessão' : 'sessões'}
+                </span>
               </span>
             </div>
           </CardContent>
         </Card>
+
       </div>
 
-      {/* ===== Coluna direita: checklist de tópicos ===== */}
+
       <div className="lg:col-span-5">
         <Card className="h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DisciplineIcon name={discipline.icon} className="size-4 text-emerald-400" />
-              Tópicos de {discipline.shortName}
-            </CardTitle>
-            <CardDescription className="flex items-center gap-2">
-              <span className={cn('inline-block size-2 rounded-full', colors.dot)} />
-              {discipline.name} · {discipline.chTotal}h · Prof. {discipline.professor}
-            </CardDescription>
+          <CardHeader className="space-y-0">
+            <button
+              type="button"
+              onClick={() => setTopicsOpen((v) => !v)}
+              aria-expanded={topicsOpen}
+              className="flex w-full items-center justify-between gap-2 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              data-testid="topics-toggle"
+              title={topicsOpen ? 'Esconder os tópicos' : 'Mostrar os tópicos da ementa'}
+            >
+              <CardTitle className="flex items-center gap-2">
+                <DisciplineIcon name={discipline.icon} className="size-4 text-emerald-400" />
+                Tópicos de {discipline.shortName}
+              </CardTitle>
+              <span className="flex shrink-0 items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'tabular-nums',
+                    topicsSummary?.isComplete && 'border-emerald-500/40 text-emerald-400',
+                  )}
+                >
+                  {topicsSummary ? `${topicsSummary.doneTopics}/${topicsSummary.totalTopics}` : '—'}
+                </Badge>
+                <ChevronDown
+                  className={cn('size-4 text-muted-foreground transition-transform', topicsOpen && 'rotate-180')}
+                  aria-hidden
+                />
+              </span>
+            </button>
+            {topicsOpen && (
+              <CardDescription className="flex items-center gap-2 pt-2">
+                <span className={cn('inline-block size-2 rounded-full', colors.dot)} />
+                {discipline.name} · {discipline.chTotal}h · Prof. {discipline.professor}
+              </CardDescription>
+            )}
           </CardHeader>
+          {topicsOpen && (
           <CardContent className="space-y-4">
             {topicsSummary ? (
               <>
@@ -2266,6 +1823,7 @@ export function StudyView({
               </p>
             )}
           </CardContent>
+          )}
         </Card>
       </div>
 
@@ -3398,10 +2956,7 @@ export function StudyView({
                   <span className="font-medium text-foreground">{sp.sessionsToday.length}</span>{' '}
                   sessões
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Target className="size-4 text-teal-400" />
-                  meta <span className="font-medium text-foreground">{sp.dailyGoalProgress}%</span>
-                </span>
+
               </div>
             </div>
           </motion.div>
@@ -3420,10 +2975,12 @@ export function StudyView({
           if (!o) {
             setReaderOpen(false);
             setReaderInitialPage(undefined); // o convite morre com a abertura (t162)
+            setReaderInitialMode(undefined); // o convite de modo também (o dono decide depois)
             setReaderPosEpoch((e) => e + 1); // a leitura mudou a memória — a porta relê (t180)
           }
         }}
         initialPage={readerInitialPage}
+        initialMode={readerInitialMode}
         pendingAttachLabel={chatImageLabel}
       />
 

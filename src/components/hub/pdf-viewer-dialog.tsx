@@ -29,9 +29,11 @@ import {
   ExternalLink,
   FileText,
   GripVertical,
+  History,
   Image as ImageIcon,
   Loader2,
   Search,
+  Timer,
   X,
   Zap,
 } from 'lucide-react';
@@ -61,9 +63,12 @@ import {
 } from '@/lib/pdf-print';
 import { downscaleCanvas } from '@/lib/tutor-image';
 import { instantChipAlive } from '@/lib/study-reader-door';
+import { MATERIAL_REVIEW_DAYS, type MaterialReviewState } from '@/lib/study-progress';
+import { PHASE_META, fmtSeconds, useStudyFocus } from '@/lib/pomodoro-engine';
 import { TutorQuickPanel } from './tutor-quick-panel';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PdfSearchDialog } from './pdf-search-dialog';
+import { MaterialChecklistPopover } from './material-checklist-popover';
 
 interface Props {
   material: Material | null;
@@ -93,6 +98,23 @@ interface Props {
    * (study-reader-door) decide.
    */
   pendingAttachLabel?: string | null;
+  /**
+   * DOUTRINA DO CONTEXTO (10/10/2026): repassado ao TutorQuickPanel montado
+   * dentro do diálogo. false = cada pergunta leva persist:false — o servidor
+   * do tutor não grava nada (thread só no dispositivo). O app novo (v2) passa
+   * false; a casa antiga omite e mantém o comportamento de sempre.
+   */
+  tutorPersist?: boolean;
+  /**
+   * ISOLAMENTO DO ESTADO DO DONO (Run #4, achado do QA 3-c): o componente
+   * escreve `recentMaterials` (markAccessed) na MEGACHAVE legado
+   * (hub-estudos-ifpb:v2) ao abrir um material. No app novo (v2) o material
+   * recente já vive no núcleo — o write lá é um vazamento entre casas.
+   * true (default) = comportamento atual intocado (a casa antiga omite a
+   * prop); false = o v2 passa e o write NÃO acontece. Só o write é guardado:
+   * leitura de progresso e o botão "concluir" seguem idênticos nos dois apps.
+   */
+  keepLegacyRecent?: boolean;
 }
 
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
@@ -137,8 +159,13 @@ export function PdfViewerDialog({
   initialPage,
   initialMode,
   pendingAttachLabel,
+  tutorPersist,
+  keepLegacyRecent = true,
 }: Props) {
   const sp = useStudyProgress();
+  /** O motor do foco (null fora do provider — ex.: console técnico v2): o chip
+   *  de foco da barra só existe quando a casa tem foco para oferecer. */
+  const focusApi = useStudyFocus();
   /** Modo do workspace — 'split' é lembrado no localStorage (hidrata no mount). */
   const [mode, setMode] = React.useState<'pdf' | 'split'>(initialMode ?? 'pdf');
   /** Largura do painel do MATERIAL em % (o tutor leva o resto). */
@@ -199,11 +226,10 @@ export function PdfViewerDialog({
   const rowRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef(false);
 
-  // Preferências do dono (modo + largura) entram DEPOIS do mount — sem brigar
+  // Preferências do dono (largura + dica) entram DEPOIS do mount — sem brigar
   // com a hidratação; a escolha de uma sessão vale para as próximas.
   React.useEffect(() => {
     try {
-      if (!initialMode && localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
       const p = Number(localStorage.getItem(SPLIT_PCT_KEY));
       if (p >= PCT_MIN && p <= PCT_MAX) setSplitPct(Math.round(p));
       if (localStorage.getItem(SPLIT_HINT_KEY) !== '1') setDragHint(true);
@@ -211,6 +237,24 @@ export function PdfViewerDialog({
       /* storage indisponível — padrões servem */
     }
   }, []);
+
+  // O MODO ACOMPANHA A ABERTURA (o fluxo de 1 clique): o diálogo vive MONTADO
+  // junto à casa (open=false) e o useState inicial ignora mudanças posteriores
+  // de initialMode — a porta "Abrir material e focar" pedia split e o leitor
+  // abria em tela única, tutor longe. Sincronizado no gesto de abrir: o convite
+  // explícito vence; sem convite, vale a última escolha do dono (SPLIT_KEY).
+  React.useEffect(() => {
+    if (!open) return;
+    if (initialMode) {
+      setMode(initialMode);
+      return;
+    }
+    try {
+      if (localStorage.getItem(SPLIT_KEY) === '1') setMode('split');
+    } catch {
+      /* storage indisponível — padrão serve */
+    }
+  }, [open, initialMode]);
 
   /** A dica cumpriu o papel (interação ou tempo) — nunca mais na vida. */
   const dismissDragHint = React.useCallback(() => {
@@ -342,6 +386,21 @@ export function PdfViewerDialog({
   const markCompleted = sp.markCompleted;
   const unmarkCompleted = sp.unmarkCompleted;
   const isCompleted = sp.progress.completedMaterials.includes(material?.id ?? '');
+  // FRENTE 13 — O CICLO DE REVISÃO DESTE MATERIAL: quando a volta espaçada
+  // (1·3·7·14·30) vence, o chip confessa o compromisso no próprio leitor —
+  // é aqui que o aluno está quando o antigo volta à fila. Concluí-lo aqui
+  // avança o ciclo e reagenda (a próxima volta em N dias, confessada no
+  // toast). Material sem ciclo ou com volta futura: nada na tela (anti-ruído).
+  const reviewState: MaterialReviewState | undefined = material
+    ? sp.progress.materialReviews?.[material.id]
+    : undefined;
+  const reviewDue = !!reviewState && new Date(reviewState.dueAt).getTime() <= Date.now();
+  const reviewVolta = reviewState ? reviewState.stage + 1 : 0;
+  const reviewNextDays = reviewState
+    ? MATERIAL_REVIEW_DAYS[
+        Math.min(reviewState.stage + 1, MATERIAL_REVIEW_DAYS.length - 1)
+      ]
+    : 0;
   const discipline: Discipline | undefined = material
     ? getDisciplineByCode(material.disciplineCode)
     : undefined;
@@ -491,10 +550,12 @@ export function PdfViewerDialog({
   }, [dragHint, isSplit, dismissDragHint]);
 
   React.useEffect(() => {
-    if (open && material) {
+    // keepLegacyRecent=false (app novo): o write do recente fica na casa do
+    // material recente — a megachave legado não recebe nada daqui
+    if (open && material && keepLegacyRecent) {
       markAccessed(material.id);
     }
-  }, [open, material, markAccessed]);
+  }, [open, material, markAccessed, keepLegacyRecent]);
 
   // ===== O LEITOR LEMBRA (t161) + O CONVITE ACEITO LÁ FORA (t162): ao abrir
   // um PDF buscável, o Hub lê a posição do último salto e oferece o CONVITE
@@ -565,6 +626,42 @@ export function PdfViewerDialog({
         </div>
 
         <div className="flex flex-wrap gap-2 border-b bg-muted/40 p-3">
+          {/* O FOCO ONDE SE ESTUDA (o coração do fluxo — motor global):
+              lendo e sem foco? UM clique amarra este material ao timer e o põe
+              a rodar. Focando? o chip acompanha o tempo e pausa num toque. O
+              foco sobrevive à troca de aba — o leitor é um lugar de estudo,
+              não um anexo da aba Estudar. */}
+          {focusApi && material.disciplineCode && (focusApi.live.running ? (
+            <button
+              type="button"
+              onClick={focusApi.pauseTimer}
+              data-testid="reader-focus-chip"
+              className="inline-flex h-11 items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-700 tabular-nums transition-colors hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 sm:h-8 dark:text-emerald-400"
+              title="Foco em curso — clique para pausar (continua depois deste ponto)"
+              aria-label={`Foco em curso, ${fmtSeconds(focusApi.live.secondsLeft)} restantes — pausar`}
+            >
+              <span
+                className={cn(
+                  'size-1.5 rounded-full',
+                  focusApi.live.phase === 'focus' ? 'animate-pulse bg-emerald-500' : 'bg-amber-500',
+                )}
+                aria-hidden
+              />
+              {PHASE_META[focusApi.live.phase].label} · {fmtSeconds(focusApi.live.secondsLeft)}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => focusApi.focusMaterial(material.disciplineCode!, material.id)}
+              data-testid="reader-focus-chip"
+              className="inline-flex h-11 items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 sm:h-8 dark:text-emerald-400"
+              title={`Focar ${focusApi.cfg.focus} min neste material — o timer segue contando por onde você andar`}
+              aria-label={`Focar ${focusApi.cfg.focus} minutos neste material`}
+            >
+              <Timer className="size-3.5" aria-hidden />
+              Focar {focusApi.cfg.focus}min
+            </button>
+          ))}
           <Button
             asChild
             size="sm"
@@ -758,6 +855,32 @@ export function PdfViewerDialog({
           >
             <BotMessageSquare className="size-3.5" /> Tela dividida
           </Button>
+          {/* FRENTE 13 — O CHIP DA REVISÃO VENCIDA: o compromisso do ciclo
+              espaçado aparece no próprio leitor (onde o material vive). Um
+              clique registra a volta e reagenda — honesto, sem punição. */}
+          {reviewDue && material && (
+            <button
+              type="button"
+              onClick={() => {
+                sp.markMaterialReviewDone(material.id);
+                toast.success(
+                  `Revisão registrada — a próxima volta em ${reviewNextDays} ${reviewNextDays === 1 ? 'dia' : 'dias'}`,
+                );
+              }}
+              data-testid="review-due-chip"
+              className="inline-flex h-11 items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 sm:h-8 dark:text-amber-400"
+              title={`Revisão espaçada vencida (${reviewVolta}ª volta, intervalo que fixa) — registrar avança o ciclo 1·3·7·14·30 e reagenda para daqui a ${reviewNextDays} dias`}
+              aria-label={`Registrar a ${reviewVolta}ª revisão deste material — próxima volta em ${reviewNextDays} dias`}
+            >
+              <History className="size-3.5" aria-hidden />
+              Revisão de hoje · {reviewVolta}ª volta — concluí
+            </button>
+          )}
+          {/* FRENTE 13 — O CHECKLIST DO MATERIAL: o PDF vira fila de passos
+              (tópicos da aula ou divisão por páginas) e o plano do dia lê o
+              que falta. Um popover, o mesmo diálogo, a mesma instância do
+              progresso — a checklist e o cronograma são um sistema só. */}
+          {material && <MaterialChecklistPopover material={material} sp={sp} />}
           <Button
             size="sm"
             variant={isCompleted ? 'outline' : 'default'}
@@ -990,6 +1113,7 @@ export function PdfViewerDialog({
                 disciplineCode={material.disciplineCode}
                 materialTitle={material.title}
                 materialId={material.id}
+                persist={tutorPersist}
                 materialType={material.type}
                 material={material}
                 showHeader={isSplit}

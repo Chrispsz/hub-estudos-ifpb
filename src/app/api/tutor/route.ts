@@ -10,8 +10,13 @@
 //                                            Resolve texto E leitura de print na Vercel.
 //  2º OpenRouter (se OPENROUTER_API_KEY)   — 1 key grátis → dezenas de modelos free (texto + visão)
 //  3º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
+//  4º SDK local (z-ai-web-dev-sdk)         — último elo: usa as credenciais DO PRÓPRIO AMBIENTE de
+//                                            execução (config .z-ai-config do sandbox/servidor).
+//                                            É o que mantém o tutor VIVO aqui sem nenhuma key; num
+//                                            deploy externo sem config, create() falha e a cadeia
+//                                            termina no erro honesto de chave — nada muda na Vercel.
 //
-// Sem nenhuma key → erro HONESTO para o dono (nada de fallback secreto).
+// Sem nenhuma key NEM SDK configurado → erro HONESTO para o dono (nada de fallback secreto).
 //
 // DOUTRINA DO CONTEXTO (diretriz do dono, 10/10/2026):
 //   · O servidor CONHECE O CURSO (base institucional: IFPB/Cajazeiras, turma,
@@ -45,7 +50,10 @@ import { db } from '@/lib/db';
 import { buildCourseBaseContext, buildCourseBaseShort } from '@/lib/tutor-course-base';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
+import { contentKnowledgeLines, materialFirstPolicyLines } from '@/data/tutor-knowledge';
 import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
+import ZAI from 'z-ai-web-dev-sdk';
+import { readFileSync } from 'fs';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -251,6 +259,7 @@ function visionProviderLabel(): string | null {
   if (GEMINI.key) return 'Gemini (key grátis do AI Studio)';
   if (process.env.OPENROUTER_API_KEY) return 'OpenRouter (modelos free de visão)';
   if (ZAI_PUBLIC.key) return `Z.ai (${process.env.ZAI_VISION_MODEL || 'glm-4.5v'})`;
+  if (localSdkConfigured()) return 'Z.ai local (SDK do ambiente)';
   return null; // sem nenhum provedor de visão neste deploy — a UI avisa honestamente
 }
 
@@ -278,17 +287,17 @@ function buildFeynmanPrompt(discipline: string, topic: string): string {
     'Se um trecho de material oficial do curso for fornecido abaixo, use-o como fonte da verdade para corrigir imprecisões.',
     '',
     'Responda em português brasileiro, em markdown, EXATAMENTE nesta estrutura:',
-    '## 🎯 Pontuação: X/100',
+    '## Pontuação: X/100',
     '(uma linha justificando a nota)',
-    '## ✅ O que você acertou',
+    '## O que você acertou',
     '- (itens concretos; se nada, escreva "Nada ainda — mas vamos construir juntos.")',
-    '## ⚠️ Lacunas detectadas',
+    '## Lacunas detectadas',
     '- (conceitos importantes do tema que faltaram na explicação)',
-    '## 🔧 Correções necessárias',
+    '## Correções necessárias',
     '- (erros técnicos ou imprecisões, com a versão correta)',
-    '## 💬 Sua ideia em uma frase',
+    '## Sua ideia em uma frase',
     '(reescreva a ideia central do aluno de forma precisa e simples)',
-    '## 🚀 Próximo passo',
+    '## Próximo passo',
     '(1 ação específica e pequena para a próxima sessão)',
     '',
     'Regras: direto (máx. ~300 palavras); trate o aluno por "você"; não invente conteúdo fora do material e do conhecimento da disciplina; pontuação realista (20-45 = confusa, 50-70 = razoável com lacunas, 75-90 = boa, 90+ = excelente).',
@@ -457,36 +466,12 @@ function buildSystemPrompt(
     '- Linguagens de Marcação usa HTML (estrutura) e CSS (estilo) no projeto prático.',
     '- Detalhe curricular além disso (qual unidade usa qual recurso): SÓ afirme se estiver no CONTEXTO DO HUB. Caso contrário, diga o que sabe do stack e que o professor (cite-o se estiver no contexto) confirmará os detalhes.',
     '',
-    'BASE DE CONHECIMENTO DO CONTEÚDO (dos materiais reais do Hub — use para respostas ESPECÍFICAS; não invente além disso):',
-    '- Ao citar caminhos, nomes de arquivos e exemplos destes materiais, use EXATAMENTE os nomes originais (ex.: ../imagens/foto.jpg com "imagens", não "images").',
-    '- LM/HTML Hyperlinks: elemento <a> com atributo href (Hypertext Reference) cria o link para qualquer recurso da web; atributo title adiciona informações úteis sobre o destino; links podem apontar para partes específicas de um documento.',
-    '- LM/HTML URLs e caminhos: URL define onde algo está na web (ex.: https://www.ifpb.edu.br). Mesmo diretório = só o nome (contato.html); descer em subdiretório = dir/arquivo (equipe/equipe.html); subir um nível = ../ (../imagens/foto.jpg); combine vários ../ se preciso, mas prefira simplicidade. index.html é a página de entrada e pode existir em múltiplos diretórios.',
-    '- LM/HTML Imagens: <img> é elemento VAZIO (sem fechamento); src obrigatório (caminho relativo ou absoluto, regras iguais às do href); alt = descrição textual (imagem que não carrega/acessibilidade); teste do alt: errar o nome do arquivo de propósito; escreva o alt pensando no que se perde sem a imagem.',
-    '- LM/HTML Áudio: <audio src="musica.mp3"> com <p> interno como fallback para navegadores antigos; formatos .mp3/.ogg (teste em vários navegadores); atributos: controls (controles visíveis), autoplay (pode ser bloqueado por permissões), loop (repetir).',
-    '- LM/HTML Vídeo: <video src="video.mp4" controls autoplay loop> + fallback <p>, mesma sintaxe do áudio; atributo poster = imagem estática exibida antes do vídeo carregar (como as miniaturas do YouTube); vídeos com licença Creative Commons no YouTube.',
-    '- Algoritmos (C): temas do semestre — algoritmo/lógica, entrada-processamento-saída, tipos de variáveis, operadores aritméticos/relacionais/lógicos e precedência, condicionais, laços, vetores, matrizes, funções e recursão; compilação com gcc.',
-    '- Matemática: matrizes (definição, tipos, operações, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I) e lógica proposicional (proposição, negação, conjunção ∧, disjunção ∨, condicional →, bicondicional ↔, tabelas-verdade, argumentos). Determinantes e sistemas lineares AINDA NÃO foram dados — não recomende como conteúdo de prova próxima.',
-    '- FREQUÊNCIA (post oficial do prof. Fábio no Classroom): aprovação exige frequência mínima de 75%; o professor NÃO abona faltas em hipótese alguma. Justificativas de falta vão para a coordenação do curso com o tema "Justificativa de falta" (aulas normais) ou "Realização de segunda chamada" (dias de avaliação).',
-    '- "Questões da Semana": bateria semanal de exercícios do prof. Fábio no Classroom (Semana 1 = 8 questões de entrada/saída em C: antecessor/sucessor, área, temperatura, velocidade, polegadas, seno/cosseno, terreno, PA; Semana 2 = 10 questões: conta de restaurante com taxa de serviço de 10% + couvert de R$ 10,00, tabuada com laço no formato "i X n = r", percentual de acertos/erros, distância euclidiana sqrt((x1-x2)²+(y1-y2)²), percentual de votos de 3 candidatos, tempo de download MB/taxa KB/s com 1 MB = 1024 KB em X horas Y minutos Z segundos, salário com hora extra de 50% acima de 160h, conta de luz com R$ 0,35/KWh + ICMS 17% + iluminação pública R$ 15,00, financiamento em 5 prestações com 1ª = 20% e demais = anterior × 1.07, e aeroporto com 5 guichês e check-ins de 15 min usando módulo). Estão no Hub (Biblioteca e Praticar) — recomende resolvê-las quando o aluno perguntar o que praticar.',
-    '- MONITORIA de Algoritmos (anúncio oficial do monitor Everton no Classroom): Sessão de Tira-Dúvidas toda SEGUNDA-FEIRA, das 19:00 às 21:00, e Resolução de Questões da Semana toda QUARTA-FEIRA, das 19:00 às 21:00. Os atendimentos são realizados no servidor da monitoria no Discord (discord.gg/XyTmDhE5Dt — link na Biblioteca do Hub) e é preciso entrar no servidor para acompanhar anúncios e formas de contato.',
-    '- PROGRAMAS C DO AUTOR (material "Programas C do autor" na Biblioteca, enviado pelo próprio aluno em 19/09): 19 programas .c resolvidos e compilados — 10 da prática de aula (média de notas, círculo com const PI, perímetro, hipotenusa pow/sqrt, raiz/cubo, ASCII ida-e-volta, minúscula→maiúscula com −32) + as 9 questões da Semana 1 completas. PROVA de que a Semana 1 está dominada. BUG conhecido no antecessor_e_sucessor.c: scanf("%c", &numero) e printf com %c em vez de %d (o Hub tem o exercício "Encontre o bug" = alg-aut-q1). Ao corrigir código do aluno, elogie a técnica do reverso.c (decomposição / e %) e aponte o %c→%d como revisão.',
-    '- LM/HTML Formulários (aula 06 + apostila): formulários são o principal ponto de interação entre usuário e site — enviam dados (na maior parte do tempo para um servidor). Todo formulário: <form action="/pagina-processa-dados" method="post"> ... </form>; action = para onde os dados vão (obrigatório na apostila); method: GET para buscas/informações não sensíveis, POST para dados sensíveis/confidenciais. O elemento mais importante é o <input>, e o atributo type define a informação: text, email, date, tel, url, search, password. <label for="email"> vincula a descrição ao campo com id="email". <select name="carros"> com <option value="bmw">BMW</option> = drop-down. <textarea name="message"> = várias linhas (texto entre as tags é valor inicial). Botões: submit (envia; sem type DENTRO de um form é submit por padrão), reset (restaura os valores iniciais) e button (genérico, ações via JavaScript — aceita tags dentro, diferente de <input>). Checáveis: Checkbox e Radio Button; no radio TODOS os names iguais formam um grupo exclusivo. Boas práticas do professor: cada campo em uma <div> e cada campo com <label> associada. Exemplo da aula (index.html na Biblioteca do Hub) tem tudo isso com turnos em radio e necessidades especiais em checkbox. PRÁTICA oficial: pedido de pizza (select de sabor + number, radio de tamanho, checkboxes de adicionais, select de bebida + number, textarea de endereço, reset + submit) — está no Praticar. Para a página de contato do projeto A1: crie conta no Formspree e aponte o action para ele.',
-    '- LM/HTML Metadados (aula 07, 24/09 + apostila): metadados = dados sobre dados — informações sobre a própria informação que descrevem características de uma fonte; moram no <head> (invisíveis ao leitor; o <body> é o que aparece). Pegadinha clássica: <h1> aparece NA página (1 vez por página, título do conteúdo — história/notícia); <title> é metadado que representa o título de TODO o documento (aparece na aba do navegador, no resultado do Google e no leitor de tela — e é dispensado dependendo do contexto, pois não faz parte do corpo). <meta> é a maneira oficial de adicionar metadados: <meta charset="utf-8"> define a codificação (utf-8 é universal, inclui acentos de qualquer língua); muitos <meta> usam o par name (tipo de informação) + content (valor real): author, description (descrição concisa que buscadores exibem) e keywords (palavras-chave do site — encher de palavras sem relação NÃO funciona, o Google detecta). Favicon = ícone ~16×16 px da aba, entra com <link rel="shortcut icon" href="favicon.png" type="image/x-icon"> (a tag <link> liga o documento a recursos externos: CSS, ícones — CSS é o próximo módulo). Metadados alimentam integrações: Open Graph Protocol do Facebook e cards do Twitter criam o preview de um link compartilhado; metatags.io gera e visualiza metadados para várias redes. PRÁTICA da aula: criar página sobre tema livre com charset, author, description, keywords, title + uma imagem como ícone.',
-    '- LM — PROJETO 1ª ETAPA (prof. Diogo; 1ª etapa do projeto A1 — estrutura HTML, peso 45%): proposta para um website sobre um tema de escolha do GRUPO — equipes de ATÉ 4 pessoas, FIXAS até o fim do semestre. Entrega no Classroom + apresentação em sala NO dia da entrega (responder com os slides; ~5 minutos e OBRIGATÓRIO nome de todos os integrantes — a data vigente só na BASE DO CURSO/CONTEXTO, nunca de memória). A proposta deve conter: (1) Nome do website (nome próprio, como marca); (2) Tema (ex.: filmes, animais de estimação, entidade pública, evento); (3) Potenciais interessados / stakeholders (quem acessaria o conteúdo? quem se interessa?); (4) Tópicos abordados — MÍNIMO 6 (tópicos geralmente viram páginas do site; ex.: site de jogos → jogos de corrida, jogos casuais...). Ajude a definir tema/nome/tópicos e a ensaiar a apresentação.',
-    '- Inglês Instrumental — vídeo indicado pelo prof. Fernando Van Woensel: "15 partes do corpo que também são VERBOS?!" (YouTube, 16 min, na Biblioteca do Hub) — partes do corpo em inglês que também funcionam como verbos com outro significado (fenômeno comum: hand/entregar, eye/observar, head/liderar são exemplos clássicos do tema). Sugira anotar os pares substantivo/verbo no glossário pessoal.',
-    '- Português Instrumental (prof. Francisco Igor Arraes Alves Rocha, Mestrado — ATENÇÃO: ainda NÃO há material do professor no Hub, então NÃO afirme o que foi dado em aula): disciplina de leitura/interpretação e produção de textos acadêmicos e técnicos — coesão e coerência, norma culta (concordância, regência, crase), vícios de linguagem, semântica e variação linguística. Avaliação CONTÍNUA: atividades de leitura/interpretação (60%) + produção textual (40%), escala 0-10, aprovação ≥ 7 — sem prova marcada, data não divulgada. Referências de cadeira: Bechara (Moderna Gramática Portuguesa), Cunha & Cintra (Nova Gramática do Português Contemporâneo) e Othon M. Garcia (Comunicação em Prosa Moderna — o clássico de redação técnica: tópico frasal, parágrafo com ideia-central-apoio, clareza e concisão). Pode ENSINAR o geral com didática (estrutura de resumo/resenha/requerimento/petição, tópico frasal, crase, concordância e regência com exemplos certos × errados — texto técnico é o coração da disciplina e conecta com o projeto de LM); para conteúdo específico de aula, diga que o material ainda não foi adicionado ao Hub e sugira confirmar no Classroom.',
-    '- PROVAS DE ALGORITMOS (formato da disciplina, do plano docente): cada prova tem 3 QUESTÕES — uma FÁCIL, uma MÉDIA e uma DIFÍCIL — valendo 33,3% da média (0-100, aprovação ≥ 70). Os programas PODEM VIR da Lista de Exercícios da disciplina (289 questões, no Hub: seções Q1–57 entrada/saída, Q58–97 desvios condicionais, Q98–157 repetição, Q158–208 vetores/matrizes, Q209–289 subprogramas/ponteiros). Escopo de cada prova = as unidades já dadas em sala (a 1ª prova cobre as Unidades 1 e 2 → as seções Q1–97 da Lista são o treino mais direto). Questões típicas da lista: médias, conversões, processamento de dígitos, maior de N valores, validações com if/else. DATA de prova: SÓ se estiver na BASE DO CURSO (próximas avaliações oficiais) ou no CONTEXTO do app — o que passou não aparece mais em lugar nenhum.',
-    '- RHT — ARTIGO TELETRABALHO (profa. Marília, base da PROPOSTA DE ATIVIDADE I; material na Biblioteca): Vilarinho, Paschoal e Demo (RSP 72(1), 2021) estudam o teletrabalho no Serpro (pioneiro: Projeto-Lar 1985, piloto 2005, Lei 12.551/2011). Método: estudo de caso único, transversal, quali+quanti (Iramuteq, ANOVA, Mann-Whitney); amostra 45 teletrabalhadores + 62 colegas + 23 chefias. Positivos: produtividade e qualidade de vida; Negativos: dificuldades técnicas e convívio/isolamento social; teletrabalhadores ainda relatam preconceito/desconfiança de chefes e colegas. Tabela 1: teletrabalhadores avaliaram MELHOR que colegas TODAS as variáveis (ex.: afeto positivo 8,00 vs. 6,16; afeto negativo 2,01 vs. 3,88). Cuidados: dados pré-pandemia; estudo transversal = associação, NÃO causalidade; os % dos quadros representam o discurso do grupo, não nº de respondentes. REGRA DE OURO deste estudo: QUALQUER resposta sobre os resultados/método/amostra DEVE citar TODOS OS TRÊS números da amostra — 45 teletrabalhadores, 62 colegas e 23 chefias (um a um, na resposta) — e pelo menos um valor da Tabela 1; citar só 45/62 sem o 23 = resposta incompleta. Ajude o aluno a preparar a atividade com esses dados exatos.',
+    ...contentKnowledgeLines(),
     '',
     '- CONTEXTO MANDA: prioridades, prazos e ordem de estudo vêm do CONTEXTO DO HUB desta conversa (materiais atuais, avaliações com data, tópicos fracos do aluno). Jamais cite planos, cards ou prioridades fixos que não estejam nesse contexto — a casa não mantém planos congelados.',
-    '- Av de Matemática (escopo do plano docente; cada Av vale 33,3% da média — escala 0-100, aprovação ≥ 70): conteúdo já dado em sala = Matrizes (operações, transposta, simétrica/antissimétrica, inversa com teste A·A⁻¹ = I) + Lógica proposicional (proposições, conectivos, tabelas-verdade, tautologias, equivalências, argumentos). NÃO CAEM (ainda não dados): determinantes e sistemas lineares. Datas: só as da BASE DO CURSO ou do CONTEXTO do app.',
     '- Ao recomendar ordem de estudo: resolver LISTAS primeiro (prática real), teoria só como consulta. Uma prática por resposta.',
     '',
-    'POLÍTICA MATERIAL-FIRST DO ACERVO (importante para recomendar prática):',
-    '- O acervo do Hub se alinha automaticamente ao que a turma já viu: exercícios de tópicos ainda NÃO dados em aula ficam ocultos por padrão ("futuros") até material novo comprovar a aula.',
-    '- Para Matemática: só recomende o que está nos 4 materiais (matrizes + lógica). NÃO recomende exercícios de Conjuntos/Funções como conteúdo da prova — são unidades futuras (Av3).',
-    '- Para Algoritmos: entrada/saída, condicionais e laços estão "em sala"; vetores, modularização e recursividade são FUTUROS (provas 2 e 3). Se o aluno pedir para se adiantar, tudo bem — mas avise que está à frente da turma.',
-    '- Se o aluno disser que "uma questão nunca foi vista em sala": provavelmente é um exercício futuro com o modo "Mostrar futuros" ligado — explique o padrão e redirecione para o material correspondente.',
+    ...materialFirstPolicyLines(),
     '',
     'O QUE VOCÊ PODE E COMO AGIR:',
     '- Perguntas sobre o próprio Hub ou a turma (professor, datas de prova, calendário, progresso do aluno, como usar o app): responda com precisão usando o CONTEXTO DO HUB. NUNCA diga que "não tem acesso" ao que está listado ali.',
@@ -774,6 +759,142 @@ async function callZAIPublic(
   }
 }
 
+// ---------------------------------------------------------------------------
+// 4º elo — SDK local (z-ai-web-dev-sdk): credenciais DO PRÓPRIO AMBIENTE
+// (arquivo .z-ai-config do sandbox/servidor do dono). Não exige NENHUMA key no
+// deploy: é o elo que mantém o tutor VIVO neste ambiente sem chave. Num deploy
+// externo sem o arquivo de config, localSdkConfigured() = false e a cadeia
+// termina no erro honesto de chave — comportamento de produção inalterado.
+// ---------------------------------------------------------------------------
+
+const LOCAL_SDK_VISION_MODEL = process.env.ZAI_SDK_VISION_MODEL || 'glm-4.5v';
+
+/** O SDK tem credenciais neste ambiente? (mesma busca que o loadConfig dele faz) */
+function localSdkConfigured(): boolean {
+  const paths = [
+    `${process.cwd()}/.z-ai-config`,
+    `${process.env.HOME ?? ''}/.z-ai-config`,
+    '/etc/.z-ai-config',
+  ];
+  for (const p of paths) {
+    try {
+      const cfg = JSON.parse(readFileSync(p, 'utf-8')) as { baseUrl?: string; apiKey?: string };
+      if (cfg.baseUrl && cfg.apiKey) return true;
+    } catch {
+      // arquivo ausente/ilegível — tenta o próximo caminho
+    }
+  }
+  return false;
+}
+
+let localSdkPromise: Promise<ZAI> | null = null;
+function getLocalSdk(): Promise<ZAI> {
+  if (!localSdkPromise) localSdkPromise = ZAI.create();
+  return localSdkPromise;
+}
+
+/** Corrida contra o relógio: o fetch interno do SDK não aceita AbortSignal nosso. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(
+      () => reject(new Error(`${label}: sem resposta em ${Math.round(ms / 1000)}s`)),
+      ms,
+    );
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
+
+/**
+ * Tutoria pelo SDK local — texto, todos os modos (tutor/flashcards/feynman).
+ * Sem onDelta responde em JSON; com onDelta usa o stream SSE do gateway
+ * (formato OpenAI-compatible — o mesmo parser consumeSSE da casa serve).
+ */
+async function callLocalSDK(
+  systemPrompt: string,
+  history: ChatMessage[],
+  question: string,
+  onDelta?: (piece: string) => void,
+): Promise<{ text: string; model: string }> {
+  const sdk = await getLocalSdk();
+  const messages = [
+    { role: 'system' as const, content: systemPrompt },
+    ...history,
+    { role: 'user' as const, content: question },
+  ];
+
+  if (!onDelta) {
+    const completion = (await withTimeout(
+      sdk.chat.completions.create({ messages, thinking: { type: 'disabled' } }),
+      MODEL_TIMEOUT_MS,
+      'sdk-local',
+    )) as { choices?: { message?: { content?: string } }[]; model?: string };
+    const content = completion?.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) throw new Error('resposta vazia (sdk-local)');
+    return { text: content.trim(), model: `Z.ai local (${completion.model || 'glm-4'})` };
+  }
+
+  // streaming: o SDK devolve o ReadableStream SSE cru
+  const body = await withTimeout(
+    sdk.chat.completions.create({ messages, stream: true, thinking: { type: 'disabled' } }),
+    22_000,
+    'sdk-local (stream)',
+  );
+  if (body instanceof ReadableStream) {
+    let model = '';
+    const full = await withTimeout(
+      consumeSSE(new Response(body), onDelta, () => {}, (json) => {
+        if (json.model && !model) model = String(json.model);
+        return json.choices?.[0]?.delta?.content;
+      }),
+      50_000,
+      'sdk-local (leitura do stream)',
+    );
+    if (!full.trim()) throw new Error('stream vazio (sdk-local)');
+    return { text: full.trim(), model: `Z.ai local (${model || 'glm-4'})` };
+  }
+  // gateway devolveu JSON mesmo com stream:true — resposta completa de uma vez
+  const content = (body as { choices?: { message?: { content?: string } }[] })?.choices?.[0]
+    ?.message?.content;
+  const text = content?.trim();
+  if (!text) throw new Error('stream vazio (sdk-local)');
+  onDelta(text);
+  return { text, model: 'Z.ai local (glm-4)' };
+}
+
+/** Transcrição de imagem pelo SDK local (createVision). */
+async function callLocalSDKVision(instruction: string, dataUrl: string): Promise<string> {
+  const sdk = await getLocalSdk();
+  const res = (await withTimeout(
+    sdk.chat.completions.createVision({
+      model: LOCAL_SDK_VISION_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: instruction },
+            { type: 'image_url', image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+      thinking: { type: 'disabled' },
+    }),
+    MODEL_TIMEOUT_MS,
+    'sdk-local (visão)',
+  )) as { choices?: { message?: { content?: string } }[] };
+  const content = res?.choices?.[0]?.message?.content;
+  if (!content || !content.trim()) throw new Error('resposta vazia (sdk-local visão)');
+  return content.trim();
+}
+
 /**
  * Transcreve a imagem anexada (print/foto da questão) com o PRIMEIRO modelo de
  * visão disponível — cadeia pensada para funcionar 100% na Vercel com keys grátis:
@@ -781,6 +902,7 @@ async function callZAIPublic(
  *  1º Gemini (GEMINI_API_KEY)      — visão nativa, tier grátis generoso (RECOMENDADO)
  *  2º OpenRouter (OPENROUTER_API_KEY) — modelos free que aceitam imagem
  *  3º Z.ai público (ZAI_API_KEY)   — glm-4.5v via api.z.ai
+ *  4º SDK local (credenciais do ambiente) — glm-4.5v via z-ai-web-dev-sdk
  *
  * A transcrição vira a "pergunta efetiva" — assim qualquer provedor de TEXTO da
  * cadeia responde com a questão na mão, e ela também entra no retrieval.
@@ -831,6 +953,16 @@ async function transcribeImage(dataUrl: string, userNote: string): Promise<strin
       if (out) return out;
     } catch (err) {
       errors.push(`zai-public: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  // 4º — SDK local (credenciais do ambiente — glm-4.5v via createVision)
+  if (localSdkConfigured()) {
+    try {
+      const out = await callLocalSDKVision(instruction, dataUrl);
+      if (out) return out;
+    } catch (err) {
+      errors.push(`sdk-local: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -1096,7 +1228,7 @@ export async function GET(req: Request) {
   if (params.get('probe')) return probeProviders(params.get('geminiModel'));
   const vision = visionProviderLabel();
   return Response.json({
-    provider: 'gemini → openrouter → z.ai (primeiro disponível — REST puro, sem SDK)',
+    provider: 'gemini → openrouter → z.ai público → sdk local (primeiro disponível)',
     vision: vision ?? 'não configurada — adicione GEMINI_API_KEY (grátis) para ler prints',
     chains: {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
@@ -1110,6 +1242,7 @@ export async function GET(req: Request) {
       gemini: Boolean(GEMINI.key),
       openrouter: Boolean(process.env.OPENROUTER_API_KEY),
       zaiPublic: Boolean(process.env.ZAI_API_KEY),
+      localSdk: localSdkConfigured(),
     },
   });
 }
@@ -1211,7 +1344,7 @@ export async function POST(req: Request) {
           );
         } else if (!question) {
           const visionReady = Boolean(
-            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key,
+            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key || localSdkConfigured(),
           );
           return Response.json(
             {
@@ -1230,7 +1363,7 @@ export async function POST(req: Request) {
         );
         if (!question) {
           const visionReady = Boolean(
-            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key,
+            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key || localSdkConfigured(),
           );
           return Response.json(
             {
@@ -1414,6 +1547,23 @@ export async function POST(req: Request) {
                 );
               }
             }
+            // 3º: SDK local — credenciais do próprio ambiente (tutor vivo sem key)
+            if (!answer && localSdkConfigured() && Date.now() <= deadline - 8_000) {
+              const t0 = Date.now();
+              try {
+                const r = await callLocalSDK(systemPrompt, history, effectiveQuestion, (piece) =>
+                  send({ t: 'delta', v: piece }),
+                );
+                answer = r.text;
+                usedModel = r.model;
+                console.log(`[api/tutor] sdk-local (stream) → ${Date.now() - t0}ms`);
+              } catch (err) {
+                console.warn(
+                  `[api/tutor] sdk-local falhou (stream) em ${Date.now() - t0}ms:`,
+                  err instanceof Error ? err.message : err,
+                );
+              }
+            }
 
 
             if (!answer) {
@@ -1423,7 +1573,7 @@ export async function POST(req: Request) {
                   ? 'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). Tente novamente em instantes.'
                   : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
                     '(key grátis em aistudio.google.com/app/apikey) nas variáveis de ambiente do deploy ' +
-                    '(Vercel ou servidor próprio) — em seguida o tutor funciona completo, incluindo leitura de prints. 💪',
+                    '(Vercel ou servidor próprio) — em seguida o tutor funciona completo, incluindo leitura de prints.',
               });
               return;
             }
@@ -1516,6 +1666,22 @@ export async function POST(req: Request) {
       }
     }
 
+    // 3º: SDK local — credenciais do próprio ambiente (tutor vivo sem key)
+    if (!answer && localSdkConfigured()) {
+      const t0 = Date.now();
+      try {
+        const r = await callLocalSDK(systemPrompt, history, effectiveQuestion);
+        answer = r.text;
+        usedModel = r.model;
+        console.log(`[api/tutor] sdk-local → ${Date.now() - t0}ms`);
+      } catch (err) {
+        console.warn(
+          `[api/tutor] sdk-local falhou em ${Date.now() - t0}ms:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
+
     // Normaliza delimitadores que o KaTeX não entende de fábrica (todas as respostas)
     answer = normalizeMath(answer);
 
@@ -1528,11 +1694,11 @@ export async function POST(req: Request) {
         {
           error: withVision
             ? 'O tutor IA está sobrecarregado agora (muitas perguntas em pouco tempo). ' +
-              'Aguarde ~1 minuto e tente de novo — volta rapidinho. 💪'
+              'Aguarde ~1 minuto e tente de novo — volta rapidinho.'
             : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
               '(key grátis em aistudio.google.com/app/apikey) nas variáveis de ambiente do deploy ' +
               '(Vercel ou servidor próprio) — em seguida o tutor ' +
-              'funciona completo, incluindo leitura de prints. 💪',
+              'funciona completo, incluindo leitura de prints.',
         },
         { status: 502 },
       );

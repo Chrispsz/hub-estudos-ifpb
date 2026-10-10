@@ -148,7 +148,7 @@ export const importantLinks: ImportantLink[] = [
   { title: 'Edital IVS 2026.2', url: 'https://www.ifpb.edu.br/campus/cajazeiras/noticias/2026/08/ifpb-campus-cajazeiras-lanca-edital-de-indice-de-vulnerabilidade-social-ivs',
     description: 'Edital 12/2026 - Índice de Vulnerabilidade Social. Inscrições 01/09 a 15/09 pelo SUAP. Auxílio financeiro (R$ 100-300) para estudantes em vulnerabilidade.',
     category: 'institucional', icon: 'HandCoins' },
-  { title: 'CAEST - Apoio ao Estudante', url: 'https://ifpb.edu.br/campus/cajazeiras/assuntos/caest',
+  { title: 'CAEST - Apoio ao Estudante', url: 'https://www.ifpb.edu.br/campus/cajazeiras/assistencia-estudantil/coordenacao-de-apoio-ao-estudante',
     description: 'Coordenação de Apoio ao Estudante - IVS, PAPE, refeitório, orientações sociais. Email: caest.cz@ifpb.edu.br',
     category: 'institucional', icon: 'HeartHandshake' },
   { title: 'Loopis Jr (Empresa Júnior)', url: 'https://www.instagram.com/loopisjr/',

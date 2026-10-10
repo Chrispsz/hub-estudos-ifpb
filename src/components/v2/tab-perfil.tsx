@@ -4,7 +4,8 @@
 // backup/restauração (o bundle completo do dono) e a porta para a casa antiga.
 
 import * as React from 'react';
-import { ArrowUpRight, Database, Download, GitBranch, Upload } from 'lucide-react';
+import { ArrowUpRight, Database, Download, GitBranch, MonitorDown, Upload } from 'lucide-react';
+import { usePwaInstall } from '@/components/pwa';
 import type { Attempt, StudySession } from '@/lib/v2/domain';
 import { dateKeyOf } from '@/lib/v2/planner';
 import { buildBackup, downloadBackup, restoreBackup } from '@/lib/v2/backup';
@@ -210,6 +211,11 @@ export function TabPerfil() {
         {msg && <p className="mt-2 font-mono text-[11px] text-emerald-400">{msg}</p>}
       </div>
 
+      {/* instalar como app (D4, stretch Run #4) — o mesmo beforeinstallprompt
+          capturado globalmente pelo PwaRegister (components/pwa.tsx); card só
+          existe quando o navegador OFERECE a instalação — sem ruído do contrário */}
+      <InstallAppCard />
+
       <a
         href="/?legacy=1"
         className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3 transition-colors hover:border-zinc-600"
@@ -220,6 +226,38 @@ export function TabPerfil() {
         </div>
         <ArrowUpRight className="size-4 text-zinc-500" />
       </a>
+    </div>
+  );
+}
+
+/** Card pequeno "instalar o app" — prompt nativo do Chromium; nada de configs. */
+function InstallAppCard() {
+  const [canInstall, install] = usePwaInstall();
+  const [msg, setMsg] = React.useState<string | null>(null);
+
+  if (!canInstall) return null;
+
+  async function onInstall() {
+    const ok = await install();
+    setMsg(ok ? 'instalado — procure o ícone do Hub na tela inicial' : 'instalação dispensada — o card fica aqui para a próxima');
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="mb-0.5 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+            <MonitorDown className="size-3.5" /> instalar como app
+          </p>
+          <p className="text-[11px] text-zinc-400">
+            Ícone na tela inicial, tela cheia e os PDFs do acervo offline-first no dispositivo.
+          </p>
+        </div>
+        <Btn variant="emerald" className="shrink-0" onClick={() => void onInstall()}>
+          instalar agora
+        </Btn>
+      </div>
+      {msg && <p className="mt-2 font-mono text-[11px] text-emerald-400">{msg}</p>}
     </div>
   );
 }

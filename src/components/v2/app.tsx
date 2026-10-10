@@ -12,9 +12,16 @@
 // Offline-first sobre IndexedDB. Onboarding honesto: backup ANTES da migração.
 
 import * as React from 'react';
-import { Download, GitBranch, GraduationCap, Play, ShieldCheck } from 'lucide-react';
+import { Download, GitBranch, GraduationCap, Play, RefreshCw, ShieldCheck, Upload } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { buildBackup, downloadBackup } from '@/lib/v2/backup';
+import { materials } from '@/data/course-data';
+import {
+  OPEN_PRACTICE_EVENT,
+  OPEN_TUTOR_EVENT,
+  type OpenPracticeDetail,
+  type OpenTutorDetail,
+} from '@/lib/hub-events';
+import { buildBackup, downloadBackup, restoreBackup } from '@/lib/v2/backup';
 import { runMigration } from '@/lib/v2/migrate';
 import { dateKeyOf } from '@/lib/v2/planner';
 import { rankFor, streakOf, totalXp, daysStudiedOf } from '@/lib/v2/xp';
@@ -50,10 +57,17 @@ export function V2App() {
   // dock do tutor — acessível de qualquer aba, com o material em foco
   const [tutorOpen, setTutorOpen] = React.useState(false);
   const [tutorMaterial, setTutorMaterial] = React.useState<TutorMaterialContext | null>(null);
+  // material em foco da TRILHA (ponte hub:open-practice — o conjunto ligado)
+  const [materialFilter, setMaterialFilter] = React.useState<string | null>(null);
+  // espelho do hash VIVO do app novo — a ponte usa para consertar a URL quando
+  // o page.tsx (pai, sempre montado) também responde ao evento com o hash do
+  // LEGADO (#study/#practice empurrados por cima)
+  const v2HashRef = React.useRef('#hoje');
 
   React.useEffect(() => {
     function applyHash() {
       const { tab: t, seg } = stateFromHash();
+      v2HashRef.current = window.location.hash || '#hoje';
       setTab(t);
       if (t === 'estudar' && seg && isEstudarSeg(seg)) setSegEstudar(seg);
       if (t === 'progresso' && seg && isProgressoSeg(seg)) setSegProgresso(seg);
@@ -74,6 +88,7 @@ export function V2App() {
     if (t === 'estudar' && s && isEstudarSeg(s)) setSegEstudar(s);
     if (t === 'progresso' && s && isProgressoSeg(s)) setSegProgresso(s);
     window.history.pushState(null, '', `#${dest}`);
+    v2HashRef.current = `#${dest}`;
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
@@ -81,6 +96,53 @@ export function V2App() {
     setTutorMaterial(ctx);
     setTutorOpen(true);
   }
+
+  // ===== PONTE DE EVENTOS (Run #4 — plano 3-a/E3): os componentes REUSADOS da
+  // casa antiga (PdfViewerDialog, MaterialSummaryDialog) despacham hub:* — o
+  // legado responde em page.tsx; o app novo responde AQUI, sem duplicar
+  // superfície. open-tutor → dock com o material em foco (o TabTutor semeia o
+  // composer a partir do material). silent=true (print instantâneo, t178) NÃO
+  // abre nada por cima da leitura: o chip "pág. N no tutor · abrir" do leitor
+  // re-despacha sem silent — e o clique do dono abre o dock. open-practice →
+  // Trilha com o conjunto ligado (unidades ligadas ao material via
+  // linkedMaterials — a prática v2 do material-first).
+  // PENDENTE (4-b, precisa de props de seed no TabTutor — fora do escopo
+  // desta task): pergunta pronta (question) e anexo de print (image/imageLabel)
+  // do evento ainda não entram no composer do dock.
+  React.useEffect(() => {
+    function onOpenTutor(e: Event) {
+      const d = (e as CustomEvent<OpenTutorDetail>).detail ?? {};
+      const mat = d.materialId ? materials.find((m) => m.id === d.materialId) : undefined;
+      if (mat) {
+        setTutorMaterial({ materialId: mat.id, title: mat.title, subjectId: mat.disciplineCode });
+      }
+      if (!d.silent) {
+        setTutorOpen(true);
+        // o dock não troca de aba — o pai empurrou '#study' (hash do legado);
+        // replaceState devolve o hash vivo do app novo sem sujar o histórico
+        window.history.replaceState(null, '', v2HashRef.current);
+      }
+    }
+    function onOpenPractice(e: Event) {
+      const d = (e as CustomEvent<OpenPracticeDetail>).detail ?? {};
+      setMaterialFilter(d.linkedMaterial ?? null);
+      // mesmo gesto do go('estudar/trilha') — inline para o efeito não
+      // depender de função recriada a cada render; replaceState (e não
+      // pushState) substitui o '#practice' que o pai acabou de empurrar —
+      // o voltar do navegador continua voltando para onde o dono estava
+      setTab('estudar');
+      setSegEstudar('trilha');
+      v2HashRef.current = '#estudar/trilha';
+      window.history.replaceState(null, '', '#estudar/trilha');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    window.addEventListener(OPEN_TUTOR_EVENT, onOpenTutor);
+    window.addEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
+    return () => {
+      window.removeEventListener(OPEN_TUTOR_EVENT, onOpenTutor);
+      window.removeEventListener(OPEN_PRACTICE_EVENT, onOpenPractice);
+    };
+  }, []);
 
   // núcleo vazio → onboarding (backup antes de migrar — a ordem é inegociável)
   if (counts && counts.subjects === 0) {
@@ -124,6 +186,8 @@ export function V2App() {
             seg={segEstudar}
             onSeg={(s) => go(`estudar/${s}`)}
             onOpenTutor={openTutor}
+            materialFilter={materialFilter}
+            onClearMaterialFilter={() => setMaterialFilter(null)}
           />
         )}
         {tab === 'progresso' && <TabProgresso seg={segProgresso} onSeg={(s) => go(`progresso/${s}`)} />}
@@ -229,12 +293,16 @@ function Footer() {
   );
 }
 
-/** Onboarding — backup PRIMEIRO, migração DEPOIS, entrada por contagem viva. */
+/** Onboarding — backup PRIMEIRO, migração DEPOIS, entrada por contagem viva.
+ *  Caminho lateral: voltando de outro dispositivo, restaura o backup direto. */
 function Onboarding() {
   const counts = useCounts();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<string | null>(null);
   const [backed, setBacked] = React.useState(false);
+  // restauração (dispositivo novo) — estados próprios, tudo inline, sem alert
+  const [restoreMsg, setRestoreMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const restoreFileRef = React.useRef<HTMLInputElement | null>(null);
 
   async function doBackup() {
     setBusy('backup');
@@ -260,6 +328,26 @@ function Onboarding() {
       );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'falha na migração');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // mesma função/validação do Perfil (src/lib/v2/backup.ts) — zero lógica duplicada
+  async function onRestoreFile(file: File) {
+    if (!window.confirm('Restaurar substitui o núcleo e as chaves do Hub pelo conteúdo do arquivo. Continuar?')) return;
+    setBusy('restore');
+    setRestoreMsg(null);
+    try {
+      const r = await restoreBackup(await file.text());
+      // o useCounts() (live query do núcleo) percebe as tabelas povoadas e o app
+      // entra sozinho no estado restaurado — nada de recarregar na mão
+      setRestoreMsg({
+        ok: true,
+        text: `restaurado: ${r.rows} linhas · ${r.legacyKeys} chaves do Hub — o app abre em seguida se o núcleo veio povoado`,
+      });
+    } catch (e) {
+      setRestoreMsg({ ok: false, text: e instanceof Error ? e.message : 'falha ao restaurar o backup' });
     } finally {
       setBusy(null);
     }
@@ -313,6 +401,51 @@ function Onboarding() {
               </div>
             ) : (
               <p className="mt-2 text-[11px] text-zinc-500">o botão aparece quando a migração correr</p>
+            )}
+          </div>
+
+          {/* caminho lateral — quem volta de outro dispositivo não depende da migração */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+            <p className="font-mono text-xs font-semibold text-zinc-100">Voltando de outro dispositivo?</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+              Restaure o backup (JSON) que você baixou no outro aparelho — o núcleo volta
+              como estava, sem precisar migrar nada aqui.
+            </p>
+            <input
+              ref={restoreFileRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onRestoreFile(f);
+                e.target.value = '';
+              }}
+            />
+            <Btn
+              variant="outline"
+              className="mt-3"
+              disabled={busy !== null}
+              onClick={() => restoreFileRef.current?.click()}
+            >
+              <Upload className="size-3.5" /> restaurar backup
+            </Btn>
+            {busy === 'restore' && (
+              <p className="mt-2 flex items-center gap-1.5 font-mono text-[11px] text-zinc-400">
+                <RefreshCw className="size-3 animate-spin" /> restaurando o backup…
+              </p>
+            )}
+            {restoreMsg && (
+              <p
+                role="status"
+                className={`mt-2 rounded-md border px-3 py-2 text-[11px] leading-relaxed ${
+                  restoreMsg.ok
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                    : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                }`}
+              >
+                {restoreMsg.text}
+              </p>
             )}
           </div>
 

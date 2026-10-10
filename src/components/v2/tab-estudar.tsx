@@ -29,10 +29,15 @@ export function TabEstudar({
   seg,
   onSeg,
   onOpenTutor,
+  materialFilter,
+  onClearMaterialFilter,
 }: {
   seg: EstudarSeg;
   onSeg: (s: EstudarSeg) => void;
   onOpenTutor: (ctx: TutorMaterialContext) => void;
+  /** Ponte hub:open-practice — conjunto ligado da Trilha (material em foco). */
+  materialFilter?: string | null;
+  onClearMaterialFilter?: () => void;
 }) {
   return (
     <div className="space-y-3">
@@ -55,7 +60,9 @@ export function TabEstudar({
       </nav>
 
       {seg === 'materiais' && <TabMateriais onOpenTutor={onOpenTutor} />}
-      {seg === 'trilha' && <TabTrilha />}
+      {seg === 'trilha' && (
+        <TabTrilha materialFilter={materialFilter} onClearMaterialFilter={onClearMaterialFilter} />
+      )}
       {seg === 'revisao' && <TabRevisao />}
       {seg === 'backlog' && <TabBacklog />}
       {seg === 'erros' && <TabCodeReview />}

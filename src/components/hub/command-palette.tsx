@@ -465,8 +465,8 @@ export function CommandPalette({ onNavigate }: Props) {
               navegação universal, não um enterro no submenu Mais → Progresso. */}
           <CommandGroup heading="Caderno de erros">
             <CommandItem
-              value="caderno de erros pendentes revisao abrir progresso"
-              onSelect={() => run(() => openProgress())}
+              value="caderno de erros pendentes revisao abrir praticar"
+              onSelect={() => run(() => openPractice({}))}
               className="gap-2.5"
             >
               <span className="shrink-0 text-amber-500 [&_svg]:size-4">

@@ -70,3 +70,14 @@ cron-logs
 # exemplo de env SIM vai para o repo (sem segredos)
 !.env.example
 backups/
+
+# ---- Artefatos de QA (screenshots e debug, regeneráveis) ----
+qa-shots/
+tmp-verify/
+*.bak
+/qa*.png
+--full-page
+scripts/*.png
+/debug-*.ts
+/test-retrieval-*.ts
+/test-sanitize-*.ts

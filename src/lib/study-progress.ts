@@ -405,9 +405,61 @@ export interface KaizenEntry {
   disciplineCode?: string;
 }
 
+/**
+ * Horas disponíveis do dia (check-in do dono, 10/10/2026 — "todo dia que logar
+ * ele pode me perguntar quantas horas tenho"). Chave = yyyy-mm-dd LOCAL;
+ * valor = horas decimais lançadas (1.5 = 1h30). Editável a qualquer momento;
+ * o retrato reconcilia com o foco REAL (pomodoroSessions) — o plano não
+ * mente nem quando a intenção e o relógio divergem.
+ */
+export interface DailyHours {
+  [dateKey: string]: number;
+}
+
+// ---------- Checklist por material (frente 13 — pedido direto do dono:
+// "adiciona check list nos PDF pra marcar como concluído") ----------
+
+/** Um passo da checklist do material (ex.: "Ler páginas 1–10"). */
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface MaterialChecklist {
+  items: ChecklistItem[];
+}
+
+// ---------- Revisão espaçada de MATERIAIS (frente 13 — "revisar os antigos
+// com prática e técnica de memorização de dias") ----------
+
+/**
+ * Intervalos (dias) entre as voltas de revisão de um material — a mesma
+ * doutrina Leitner dos flashcards aplicada ao acervo: 1 · 3 · 7 · 14 · 30.
+ * O ciclo NASCE quando o material é concluído (markCompleted semeia a 1ª
+ * volta para amanhã) e avança a cada revisão cumprida — o antigo nunca
+ * apodrece: o sistema o traz de volta sozinho.
+ */
+export const MATERIAL_REVIEW_DAYS = [1, 3, 7, 14, 30] as const;
+
+export interface MaterialReviewState {
+  /** Índice do intervalo EM ESPERA em MATERIAL_REVIEW_DAYS (0 = a 1ª volta). */
+  stage: number;
+  /** Quando o ciclo nasceu (1ª conclusão do material). */
+  startedAt: string; // ISO
+  /** Última volta cumprida. */
+  lastReviewedAt?: string; // ISO
+  /** Quando a próxima revisão vence. */
+  dueAt: string; // ISO
+}
+
 export interface StudyProgress {
   /** Caderno de Erros: chave do item → ISO em que foi marcado como revisado. */
   notebookRevised?: { [key: string]: string };
+  /** Checklist de passos por material (o PDF vira fila de passos; o plano lê o que falta). */
+  materialChecklists?: { [materialId: string]: MaterialChecklist };
+  /** Ciclo de revisão espaçada por material (1·3·7·14·30 — semeado ao concluir). */
+  materialReviews?: { [materialId: string]: MaterialReviewState };
   recentMaterials: RecentMaterial[];
   completedMaterials: string[];
   materialProgress: { [materialId: string]: MaterialProgress };
@@ -428,6 +480,12 @@ export interface StudyProgress {
   simuladoRuns: SimuladoRun[];
   focusSessions: FocusSessionLog[];
   kaizenEntries: KaizenEntry[];
+  /** Horas disponíveis lançadas por dia (check-in diário, editável). */
+  dailyHours?: DailyHours;
+  /** Checklist de passos por material (frente 13). */
+  materialChecklists: { [materialId: string]: MaterialChecklist };
+  /** Ciclo de revisão espaçada por material (frente 13). */
+  materialReviews: { [materialId: string]: MaterialReviewState };
 }
 
 const defaultDayAvailability: StudyPreferences['days'] = {
@@ -482,6 +540,9 @@ export const defaultProgress: StudyProgress = {
   focusSessions: [],
   kaizenEntries: [],
   notebookRevised: {},
+  dailyHours: {},
+  materialChecklists: {},
+  materialReviews: {},
 };
 
 /**
@@ -511,6 +572,9 @@ export function mergeWithDefaults(partial: Partial<StudyProgress> | null | unkno
     flashcards: Array.isArray(p.flashcards) ? p.flashcards : [],
     focusSessions: Array.isArray(p.focusSessions) ? p.focusSessions : [],
     kaizenEntries: Array.isArray(p.kaizenEntries) ? p.kaizenEntries : [],
+    dailyHours: p.dailyHours ?? {},
+    materialChecklists: p.materialChecklists ?? {},
+    materialReviews: p.materialReviews ?? {},
   };
 }
 
@@ -635,6 +699,7 @@ export function useStudyProgress() {
   const markCompleted = React.useCallback(
     (materialId: string, disciplineCode: string) => {
       setProgress((prev) => {
+        const nowIso = new Date().toISOString();
         const wasCompleted = prev.completedMaterials.includes(materialId);
         const completed = wasCompleted
           ? prev.completedMaterials
@@ -644,15 +709,32 @@ export function useStudyProgress() {
           studiedMinutes: 0,
           materialsCompleted: 0,
         };
+        // FRENTE 13 — concluir um material SEMEIA o ciclo de revisão espaçada
+        // (1·3·7·14·30): a 1ª volta vence amanhã. Só para material que se lê
+        // no leitor (pdfPath) — ementa/calendário/página não voltam à fila;
+        // e o ciclo em curso NUNCA reinicia (concluir de novo não zera o
+        // agendamento — a revisão é um compromisso, não um placar).
+        const matMeta = materials.find((m) => m.id === materialId);
+        const reviews = { ...(prev.materialReviews ?? {}) };
+        if (matMeta?.pdfPath && matMeta.type !== 'web_page' && !reviews[materialId]) {
+          reviews[materialId] = {
+            stage: 0,
+            startedAt: nowIso,
+            dueAt: new Date(
+              new Date(nowIso).getTime() + MATERIAL_REVIEW_DAYS[0] * 86_400_000,
+            ).toISOString(),
+          };
+        }
         return {
           ...prev,
           completedMaterials: completed,
+          materialReviews: reviews,
           materialProgress: {
             ...prev.materialProgress,
             [materialId]: {
               ...mat,
               completed: true,
-              lastAccessedAt: new Date().toISOString(),
+              lastAccessedAt: nowIso,
             },
           },
           disciplineProgress: {
@@ -662,7 +744,7 @@ export function useStudyProgress() {
               materialsCompleted: wasCompleted
                 ? disc.materialsCompleted
                 : disc.materialsCompleted + 1,
-              lastStudiedAt: new Date().toISOString(),
+              lastStudiedAt: nowIso,
             },
           },
         };
@@ -695,6 +777,128 @@ export function useStudyProgress() {
               materialsCompleted: wasCompleted
                 ? Math.max(0, disc.materialsCompleted - 1)
                 : disc.materialsCompleted,
+            },
+          },
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  // ----- Checklist por material (frente 13) -----
+
+  /** Substitui a checklist inteira (geradores: tópicos da aula / páginas). */
+  const setChecklist = React.useCallback(
+    (materialId: string, texts: string[]) => {
+      setProgress((prev) => ({
+        ...prev,
+        materialChecklists: {
+          ...(prev.materialChecklists ?? {}),
+          [materialId]: {
+            items: texts
+              .filter((t) => t.trim().length > 0)
+              .map((text, i) => ({
+                id: `chk-${materialId}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+                text: text.trim().slice(0, 140),
+                done: false,
+              })),
+          },
+        },
+      }));
+    },
+    [setProgress],
+  );
+
+  const addChecklistItem = React.useCallback(
+    (materialId: string, text: string) => {
+      const clean = text.trim();
+      if (!clean) return;
+      setProgress((prev) => {
+        const cur = prev.materialChecklists?.[materialId] ?? { items: [] };
+        return {
+          ...prev,
+          materialChecklists: {
+            ...(prev.materialChecklists ?? {}),
+            [materialId]: {
+              items: [
+                ...cur.items,
+                {
+                  id: `chk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                  text: clean.slice(0, 140),
+                  done: false,
+                },
+              ],
+            },
+          },
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  const toggleChecklistItem = React.useCallback(
+    (materialId: string, itemId: string) => {
+      setProgress((prev) => {
+        const cur = prev.materialChecklists?.[materialId];
+        if (!cur) return prev;
+        return {
+          ...prev,
+          materialChecklists: {
+            ...(prev.materialChecklists ?? {}),
+            [materialId]: {
+              items: cur.items.map((it) =>
+                it.id === itemId ? { ...it, done: !it.done } : it,
+              ),
+            },
+          },
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  const removeChecklistItem = React.useCallback(
+    (materialId: string, itemId: string) => {
+      setProgress((prev) => {
+        const cur = prev.materialChecklists?.[materialId];
+        if (!cur) return prev;
+        return {
+          ...prev,
+          materialChecklists: {
+            ...(prev.materialChecklists ?? {}),
+            [materialId]: { items: cur.items.filter((it) => it.id !== itemId) },
+          },
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  // ----- Revisão espaçada de materiais (frente 13) -----
+
+  /**
+   * A volta de revisão foi cumprida — avança o ciclo (1·3·7·14·30). A
+   * próxima vence MATERIAL_REVIEW_DAYS[stage+1] dias depois; no último
+   * degrau o material permanece em revisão a cada 30 dias (nunca sai da
+   * rotação — "sempre ter o que estudar", diretriz do dono).
+   */
+  const markMaterialReviewDone = React.useCallback(
+    (materialId: string) => {
+      setProgress((prev) => {
+        const cur = prev.materialReviews?.[materialId];
+        if (!cur) return prev;
+        const nextIdx = Math.min(cur.stage + 1, MATERIAL_REVIEW_DAYS.length - 1);
+        return {
+          ...prev,
+          materialReviews: {
+            ...(prev.materialReviews ?? {}),
+            [materialId]: {
+              ...cur,
+              stage: nextIdx,
+              lastReviewedAt: new Date().toISOString(),
+              dueAt: new Date(
+                Date.now() + MATERIAL_REVIEW_DAYS[nextIdx] * 86_400_000,
+              ).toISOString(),
             },
           },
         };
@@ -792,6 +996,29 @@ export function useStudyProgress() {
         const next = { ...prev.notebookRevised };
         delete next[key];
         return { ...prev, notebookRevised: next };
+      });
+    },
+    [setProgress],
+  );
+
+  /**
+   * Check-in de horas do dia (dono, 10/10/2026): "quantas horas tenho hoje" —
+   * lançado com 1 toque, EDITÁVEL a qualquer momento (re-clicar substitui).
+   * dateKey yyyy-mm-dd LOCAL — mesma gramática do pomodoroSessions.
+   */
+  const setAvailableHours = React.useCallback(
+    (dateKey: string, hours: number) => {
+      setProgress((prev) => {
+        if (hours <= 0) {
+          if (!prev.dailyHours || !(dateKey in prev.dailyHours)) return prev;
+          const next = { ...prev.dailyHours };
+          delete next[dateKey];
+          return { ...prev, dailyHours: next };
+        }
+        return {
+          ...prev,
+          dailyHours: { ...(prev.dailyHours ?? {}), [dateKey]: hours },
+        };
       });
     },
     [setProgress],
@@ -1364,6 +1591,11 @@ export function useStudyProgress() {
       markAccessed,
       markCompleted,
       unmarkCompleted,
+      setChecklist,
+      addChecklistItem,
+      toggleChecklistItem,
+      removeChecklistItem,
+      markMaterialReviewDone,
       addPomodoroSession,
       updatePomodoroState,
       addStudyBlock,
@@ -1392,6 +1624,7 @@ export function useStudyProgress() {
       removeKaizenEntry,
       markNotebookRevised,
       unmarkNotebookRevised,
+      setAvailableHours,
       // selectors
       sessionsToday,
       minutesToday,
@@ -1416,6 +1649,11 @@ export function useStudyProgress() {
       markAccessed,
       markCompleted,
       unmarkCompleted,
+      setChecklist,
+      addChecklistItem,
+      toggleChecklistItem,
+      removeChecklistItem,
+      markMaterialReviewDone,
       addPomodoroSession,
       updatePomodoroState,
       addStudyBlock,
@@ -1444,6 +1682,7 @@ export function useStudyProgress() {
       removeKaizenEntry,
       markNotebookRevised,
       unmarkNotebookRevised,
+      setAvailableHours,
       sessionsToday,
       minutesToday,
       sessionsLast7d,

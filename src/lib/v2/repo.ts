@@ -236,6 +236,56 @@ export async function convertBacklogItem(
   return { ok: true };
 }
 
+// ---------- adoção de conversões (fecha o beco Backlog→Trilha, R3) ----------
+
+export interface AdoptBacklogResult {
+  ok: boolean;
+  reason?: string;
+  /** Quantas unidades mudaram de lugar (0 pode ser "já estava lá" — idempotente). */
+  moved?: number;
+}
+
+/**
+ * Adota as unidades que uma conversão de backlog criou num tópico da Trilha.
+ * A conversão nasce `topicId: null` (unidade solta, sem lugar na escadinha) —
+ * aqui ela ganha tópico. TUDO o que já existe é preservado: id (as tentativas
+ * continuam válidas), FSRS, prompt/resposta, linkedMaterials. Só muda o lugar.
+ * Rodar 2× no mesmo tópico não faz nada (idempotente).
+ */
+export async function adoptBacklogIntoTopic(
+  itemId: string,
+  topicId: string,
+): Promise<AdoptBacklogResult> {
+  const db = getDb();
+  const item = await db.backlog.get(itemId);
+  if (!item) return { ok: false, reason: 'item inexistente' };
+  if (item.status !== 'converted') {
+    return { ok: false, reason: 'este item ainda não foi convertido' };
+  }
+  const topic = await db.topics.get(topicId);
+  if (!topic) return { ok: false, reason: 'tópico inexistente' };
+  const unitIds = item.convertedUnitIds.filter((id) => !!id);
+  if (unitIds.length === 0) {
+    return { ok: false, reason: 'esta conversão não criou unidades de prática' };
+  }
+
+  let moved = 0;
+  await db.transaction('rw', db.units, async () => {
+    for (const unitId of unitIds) {
+      const unit = await db.units.get(unitId);
+      if (!unit || unit.topicId === topicId) continue;
+      await db.units.put({
+        ...unit,
+        // matéria e tópico nunca discordam — a unidade segue o tópico adotado
+        subjectId: topic.subjectId,
+        topicId,
+      });
+      moved += 1;
+    }
+  });
+  return { ok: true, moved };
+}
+
 // ---------- quests ----------
 
 export async function upsertQuest(q: Quest): Promise<void> {

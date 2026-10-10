@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# GUARDA DA FROTA — Task 122 (a dívida P2 das rodadas 120/121).
+#
+# O MODO DE DESASTRE: o sweep cron f5d80be fez `git add -A` sobre o estado
+# intermediário de uma sessão paralela em reset e APAGOU 14.819 linhas /
+# 395 arquivos do disco (examWeekMilestoneFor, briefs, kit, heatmap — tudo
+# só LOCAL; restaurado em b15cc60). Nada na frota impedia o commit da
+# catástrofe. Este hook torna o modo VISÍVEL: um commit que deleta em massa
+# tem que se explicar com --no-verify (override consciente, registrado no
+# histórico do terminal).
+#
+# O detector é o EFEITO (deleção em massa no índice), não o comando —
+# `git add -A`, `git add -u` ou um `git rm` acidental produzem o mesmo
+# numstat, e é o numstat que a frota julga.
+
+set -euo pipefail
+
+MAX_FILES=40    # arquivos com deleção num mesmo commit (sweep real: 395)
+MAX_LINES=4000  # linhas deletadas num mesmo commit (sweep real: 14.819)
+
+# numstat: "added<TAB>deleted<TAB>path" ("-" = binário)
+read -r N_FILES N_LINES < <(
+  git diff --cached --numstat \
+    | awk -F'\t' '$2 != "-" && $2+0 > 0 {n++; sum+=$2} END {print n+0, sum+0}'
+)
+
+if [ "$N_FILES" -ge "$MAX_FILES" ] || [ "$N_LINES" -ge "$MAX_LINES" ]; then
+  {
+    echo ""
+    echo "✋ pre-commit: commit RECUSADO — deleção em massa no índice."
+    echo "   arquivos com linhas deletadas: $N_FILES  (limite $MAX_FILES)"
+    echo "   linhas deletadas:              $N_LINES (limite $MAX_LINES)"
+    echo ""
+    echo "   Este é o modo de desastre do sweep cron f5d80be (Task 120):"
+    echo "   git add -A sobre o worktree de uma sessão paralela em reset."
+    echo "   Suspeitos mais baratos primeiro:"
+    echo "     git status --short"
+    echo "     git diff --cached --numstat | awk -F'\t' '\$2+0>0 {print \$3}' | head"
+    echo "     git stash list   # o estado de outra sessão pode ter vindo junto"
+    echo ""
+    echo "   Se a deleção é INTENCIONAL (poda real, renomeação em massa),"
+    echo "   faça o override consciente com:"
+    echo "     git commit --no-verify"
+  } >&2
+  exit 1
+fi
+
+exit 0

@@ -258,11 +258,17 @@ export interface MetaEntry {
 
 export interface TutorMessage {
   id: string; // cuid
-  role: 'user' | 'assistant';
+  /** 'system' = linha de erro honesta na thread (nunca vai ao servidor nem ao histórico do chat). */
+  role: 'user' | 'assistant' | 'system';
   content: string;
   at: number; // epoch ms
   /** Print anexado — rótulo de procedência (a doutrina t170 da casa antiga). */
   imageLabel?: string;
+  /**
+   * O MESMO data URL comprimido (JPEG ≤1280px) que foi enviado ao API — guardado
+   * junto do turno para o retry recolocar o anexo. Vive SÓ no IndexedDB (persist:false).
+   */
+  imageDataUrl?: string;
   /** Tópico ativo quando a mensagem nasceu (contexto do acompanhamento automático). */
   topicId?: string;
   /** true → o aluno parou a geração; o parcial é a resposta honesta. */
@@ -271,6 +277,8 @@ export interface TutorMessage {
   model?: string;
   /** Flashcards gerados por esta resposta (ligação com o deck). */
   cardIds?: string[];
+  /** true → falha do tutor IA (sem chave, 502, timeout); filtrada do history do API. */
+  isError?: boolean;
 }
 
 export interface LegacySnapshot {

@@ -18,6 +18,13 @@ import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER } from '@/lib/curriculum';
 import { cn } from '@/lib/utils';
 import { DisciplinesView } from './disciplines-view';
 import { MaterialsList } from './materials-list';
+import { Dashboard } from './dashboard';
+
+interface LibraryViewProps {
+  /** A CASA: o painel "Bom estudo" (método + acompanhamento automático) monta no
+   *  topo quando a navegação existe — abrir o site já é saber o que fazer. */
+  onStartStudy?: (disciplineCode?: string, materialId?: string) => void;
+}
 
 type CategoryFilter = 'todos' | Discipline['category'];
 
@@ -87,7 +94,7 @@ const STAT_BADGES = {
   resumos: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300',
 } as const;
 
-export function LibraryView() {
+export function LibraryView({ onStartStudy }: LibraryViewProps) {
   const [tab, setTab] = React.useState<string>('disciplinas');
   const [filtro, setFiltro] = React.useState<CategoryFilter>('todos');
 
@@ -107,6 +114,11 @@ export function LibraryView() {
 
   return (
     <div className="space-y-6">
+      {/* A CASA primeiro: o que fazer agora + como você está (dashboard) */}
+      {onStartStudy && (
+        <Dashboard onStartStudy={onStartStudy} />
+      )}
+
       {/* Cabeçalho da Biblioteca */}
       <header className="space-y-3">
         <div>
