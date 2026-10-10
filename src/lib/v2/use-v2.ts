@@ -86,3 +86,23 @@ export function useActiveSession() {
 export function useMetaValue(key: string) {
   return useLiveQuery(async () => (await getDb().meta.get(key))?.value ?? null, [key], null);
 }
+
+/**
+ * Marcas "conteúdo da semana" (Edição Definitiva) — reativas, map prontos
+ * para o plano cirúrgico e para os chips das listas.
+ */
+export function useFocusMarks(): { topics: Record<string, string>; materials: Record<string, string> } {
+  return useLiveQuery(
+    async () => {
+      const rows = await getDb().meta.toArray();
+      const out = { topics: {} as Record<string, string>, materials: {} as Record<string, string> };
+      for (const r of rows) {
+        if (r.key.startsWith('semana:topico:')) out.topics[r.key.slice(14)] = r.value;
+        else if (r.key.startsWith('semana:material:')) out.materials[r.key.slice(16)] = r.value;
+      }
+      return out;
+    },
+    [],
+    { topics: {}, materials: {} },
+  );
+}

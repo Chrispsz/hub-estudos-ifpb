@@ -130,6 +130,23 @@ function dateKeyOfSafe(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * CONSISTÊNCIA FROUXA — a métrica primária do hábito (Edição Definitiva).
+ * "Dias estudados na janela" > sequência ininterrupta: faltar um dia não
+ * apaga NADA (a ciência do hábito — P7 da pesquisa; streaks punitivos
+ * afastam exatamente quem mais precisa).
+ */
+export function daysStudiedOf(sessions: StudySession[], todayKey: string, windowDays = 30): number {
+  const map = minutesByDate(sessions);
+  let n = 0;
+  const cursor = new Date(`${todayKey}T00:00:00`);
+  for (let i = 0; i < windowDays; i += 1) {
+    if ((map.get(dateKeyOfSafe(cursor)) ?? 0) > 0) n += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return n;
+}
+
 /** XP total — soma o que foi efetivamente concedido nas sessões + tentativas. */
 export function totalXp(sessions: StudySession[], attempts: Attempt[]): number {
   const fromSessions = sessions.reduce((acc, s) => acc + s.xpAwarded, 0);

@@ -9,7 +9,7 @@ import type { Attempt, StudySession } from '@/lib/v2/domain';
 import { dateKeyOf } from '@/lib/v2/planner';
 import { buildBackup, downloadBackup, restoreBackup } from '@/lib/v2/backup';
 import { runMigration } from '@/lib/v2/migrate';
-import { accuracyOf, RANKS, rankFor, streakOf, totalXp } from '@/lib/v2/xp';
+import { accuracyOf, RANKS, rankFor, streakOf, totalXp, daysStudiedOf } from '@/lib/v2/xp';
 import { recoveryStatus, type PlannerCtx } from '@/lib/v2/planner';
 import {
   useAttempts,
@@ -44,6 +44,7 @@ export function TabPerfil() {
   const { acc, correct, tried } = accuracyOf(attempts);
   const rank = rankFor(xp, attempts);
   const streak = streakOf(sessions as StudySession[], todayKey);
+  const days30 = daysStudiedOf(sessions as StudySession[], todayKey, 30);
 
   const recovery = React.useMemo(() => {
     const ctx: PlannerCtx = {
@@ -135,12 +136,17 @@ export function TabPerfil() {
       </div>
 
       {/* stats */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Stat label="XP total" value={xp} hint="só trabalho real" />
+        <Stat
+          label="dias estudados · 30d"
+          value={days30}
+          hint="a métrica que importa — faltar um dia não apaga nada"
+        />
         <Stat
           label="streak"
           value={`${streak.count}d`}
-          hint={streak.floorOk ? 'piso de 60min pago hoje' : 'faltam ' + Math.max(0, 60 - streak.todayMinutes) + 'min hoje'}
+          hint={streak.floorOk ? 'piso de 60min pago hoje' : 'detalhe curioso, não a meta'}
         />
         <Stat label="minutos hoje" value={streak.todayMinutes} hint="vagabond não conta" />
         <Stat label="unidades tocadas" value={attempts.filter((a) => a.result !== 'skipped').length} hint="tentativas reais" />
@@ -153,16 +159,16 @@ export function TabPerfil() {
         </p>
         <div className="grid grid-cols-2 gap-2">
           <Stat
-            label="dívida do ritmo"
+            label="matérias aguardando toque"
             value={recovery.ritmoDebt}
-            hint={recovery.ritmoDebt === 0 ? 'todas as matérias com toque recente' : 'matérias sem toque ≥7d'}
+            hint={recovery.ritmoDebt === 0 ? 'todas com toque recente — muito bem' : 'há ≥7d sem toque — o plano já puxa elas'}
           />
           <Stat label="fundação" value={`${recovery.fundacaoProgress}%`} hint="tópicos estáveis na escadinha" />
         </div>
         <p className={`mt-2 font-mono text-[11px] ${recovery.exitReady ? 'text-emerald-400' : 'text-zinc-400'}`}>
           {recovery.exitReady
-            ? 'condições de saída alcançadas: ritmo sem dívida + fundação sólida — modo pode ser desligado'
-            : 'saída do modo: ritmo sem dívida + fundação alcançando o semestre anterior'}
+            ? 'condições de saída alcançadas: todas as matérias com toque recente + fundação sólida — modo pode ser desligado'
+            : 'saída do modo: todas as matérias com toque recente + fundação alcançando o semestre anterior — um bloco por dia leva lá'}
         </p>
       </div>
 

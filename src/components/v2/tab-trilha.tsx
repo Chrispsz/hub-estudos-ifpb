@@ -135,7 +135,7 @@ export function TabTrilha() {
                         {isNext && <Chip tone="violet">próximo degrau</Chip>}
                         {st.stable && <Chip tone="emerald">estável</Chip>}
                         {st.dueCount > 0 && <Chip tone="amber">{st.dueCount} na fila</Chip>}
-                        {st.domain === 0 && !st.seededOnly && <Chip tone="zinc">virgem</Chip>}
+                        {st.domain === 0 && !st.seededOnly && <Chip tone="zinc">novo</Chip>}
                         <ChevronDown
                           className={`size-3.5 text-zinc-600 transition-transform ${open ? 'rotate-180' : ''}`}
                         />

@@ -215,6 +215,30 @@ export function examProximityOf(ctx: PlannerCtx, lockDays = 1): ExamProximity {
 
 const PRIORITY_W: Record<Subject['priority'], number> = { alta: 1.2, media: 1, baixa: 0.8 };
 
+// ---------- marca "conteúdo da semana" (o boost cirúrgico da Edição Definitiva) ----------
+//
+// O dono marca com 1 toque o tópico/material que o professor está dando AGORA.
+// A marca vale 9 dias e multiplica o score do plano (×1.8) — é a resposta do
+// app à dor "foco nos mais recentes e atuais da semana para não ficar para trás".
+export interface FocusMarks {
+  topics?: Record<string, string>; // topicId → dateKey da marca
+  materials?: Record<string, string>; // materialId → dateKey da marca
+}
+
+const FOCUS_TTL_DAYS = 9;
+
+/** Dias desde a marca da semana (null = sem marca válida). */
+export function focusAgeOf(key: string | undefined, dateKey: string): number | null {
+  if (!key) return null;
+  const d = daysBetweenKeys(key, dateKey);
+  return d >= 0 && d <= FOCUS_TTL_DAYS ? d : null;
+}
+
+/** Marca viva? (p/ UI pintar o chip "da semana") */
+export function isFocusAlive(key: string | undefined, dateKey: string): boolean {
+  return focusAgeOf(key, dateKey) !== null;
+}
+
 // ---------- sugestões ----------
 
 export type SuggestionKind = 'ritmo' | 'fundacao' | 'revisao' | 'flashcards' | 'projeto' | 'sprint';
@@ -255,69 +279,95 @@ function unitsOfTopic(ctx: PlannerCtx, topicId: string): PracticeUnit[] {
 }
 
 /**
- * RITMO — conteúdo atual, dívida zero. Escolhe 2–3 tópicos de MATÉRIAS
- * DIFERENTES (interleaving), priorizando prova próxima > mais esquecida.
+ * RITMO — conteúdo atual. Escolhe 2–3 tópicos de MATÉRIAS DIFERENTES
+ * (interleaving), priorizando: conteúdo da semana (marca do dono) > prova
+ * próxima > mais tempo sem toque. Interleaving gradual (a ciência): quem
+ * está começando um tópico (domínio baixo) recebe o lote em bloco; a
+ * mistura acontece entre as matérias, nunca dentro do primeiro contato.
  */
-export function pickRitmo(ctx: PlannerCtx, n = 3): Suggestion[] {
+export function pickRitmo(ctx: PlannerCtx, n = 3, focus?: FocusMarks): Suggestion[] {
   const exam = examProximityOf(ctx);
-  const scored = ctx.subjects.map((s) => {
-    const stale = daysSinceSubject(ctx, s.id);
-    let score = PRIORITY_W[s.priority] ?? 1;
-    let whyExam = '';
-    if (exam.exam && exam.exam.subjectId === s.id && exam.window) {
+
+  // 1º passe: o candidato de cada matéria (o tópico "de agora" da cadeia).
+  type Candidate = {
+    subject: Subject;
+    topic: Topic;
+    stats: TopicStats;
+    units: PracticeUnit[];
+  };
+  const candidates: Candidate[] = [];
+  for (const subject of ctx.subjects) {
+    // Ritmo é PRÁTICA: tópicos sem unidade não entram (o Trilha mostra o porquê)
+    const ranked = ctx.topics
+      .filter((t) => t.subjectId === subject.id && unitsOfTopic(ctx, t.id).length > 0)
+      .map((t) => ({ t, st: topicStatsOf(t, unitsOfTopic(ctx, t.id), ctx.attempts, ctx.now) }))
+      .sort((a, b) => {
+        // Ritmo: o tópico "de agora" = primeiro não-estável da cadeia
+        if (a.st.stable !== b.st.stable) return a.st.stable ? 1 : -1;
+        return a.t.order - b.t.order;
+      });
+    const pick = ranked[0];
+    if (!pick) continue;
+    candidates.push({
+      subject,
+      topic: pick.t,
+      stats: pick.st,
+      units: unitsOfTopic(ctx, pick.t.id)
+        .sort((a, b) => (a.priorStats?.tried ? 1 : 0) - (b.priorStats?.tried ? 1 : 0))
+        .slice(0, 3),
+    });
+  }
+
+  // 2º passe: score com TODOS os fatores (prova, atraso, foco da semana).
+  const scored = candidates.map((c) => {
+    const stale = daysSinceSubject(ctx, c.subject.id);
+    let score = PRIORITY_W[c.subject.priority] ?? 1;
+    const whys: string[] = [];
+    if (exam.exam && exam.exam.subjectId === c.subject.id && exam.window) {
       score *= exam.eve ? 3 : 2;
-      whyExam = exam.eve
-        ? ` · véspera de ${exam.exam.name} (${exam.daysUntil}d)`
-        : ` · ${exam.exam.name} em ${exam.daysUntil}d — peso dobrado`;
+      whys.push(
+        exam.eve
+          ? `véspera de ${exam.exam.name} (${exam.daysUntil}d)`
+          : `${exam.exam.name} em ${exam.daysUntil}d — peso dobrado`,
+      );
     }
     if (stale === Number.POSITIVE_INFINITY) {
       score *= 1.3;
-      whyExam += ' · sem toque nenhum ainda';
+      whys.push('sem toque nenhum ainda');
     } else if (stale >= 7) {
       score *= 1.25;
-      whyExam += ` · sem toque há ${stale}d (dívida do Ritmo)`;
+      whys.push(`há ${stale}d sem toque — hoje a gente volta nele`);
     }
-    return { subject: s, score, whyExam };
+    const focusDays = focusAgeOf(focus?.topics?.[c.topic.id], ctx.dateKey);
+    if (focusDays !== null) {
+      score *= 1.8;
+      whys.push(
+        focusDays === 0
+          ? 'você marcou como conteúdo da semana — é o que o professor está dando agora'
+          : `conteúdo da semana (marcado há ${focusDays}d) — não fica para trás`,
+      );
+    }
+    return { c, score, whys };
   });
   scored.sort((a, b) => b.score - a.score);
 
   const out: Suggestion[] = [];
   const usedTopics = new Set<string>();
-  for (const { subject, whyExam } of scored) {
+  for (const { c, whys } of scored) {
     if (out.length >= n) break;
-    // Ritmo é PRÁTICA: tópicos sem unidade não entram (o Trilha mostra o porquê)
-    const tStats = ctx.topics
-      .filter((t) => t.subjectId === subject.id && unitsOfTopic(ctx, t.id).length > 0)
-      .map((t) => topicStatsOf(t, unitsOfTopic(ctx, t.id), ctx.attempts, ctx.now))
-      .filter((st) => {
-        const t = ctx.topics.find((x) => x.id === st.topicId);
-        return t && !usedTopics.has(t.id);
-      })
-      .sort((a, b) => {
-        const ta = ctx.topics.find((x) => x.id === a.topicId)!;
-        const tb = ctx.topics.find((x) => x.id === b.topicId)!;
-        // Ritmo: o tópico "de agora" = primeiro não-estável da cadeia
-        if (a.stable !== b.stable) return a.stable ? 1 : -1;
-        return ta.order - tb.order;
-      });
-    const pick = tStats[0];
-    const topic = pick ? ctx.topics.find((t) => t.id === pick.topicId) : undefined;
-    if (!pick || !topic) continue;
-    usedTopics.add(topic.id);
-    const units = unitsOfTopic(ctx, topic.id)
-      .sort((a, b) => (a.priorStats?.tried ? 1 : 0) - (b.priorStats?.tried ? 1 : 0))
-      .slice(0, 3);
+    if (usedTopics.has(c.topic.id)) continue;
+    usedTopics.add(c.topic.id);
     const why =
-      `Próximo da cadeia de ${subject.shortName}: domínio ${pick.domain}%` +
-      (pick.seededOnly ? ' (semeado pelo legado — primeira rodada real)' : '') +
-      whyExam;
+      `Próximo da cadeia de ${c.subject.shortName}: domínio ${c.stats.domain}%` +
+      (c.stats.seededOnly ? ' (semeado pelo legado — primeira rodada real)' : '') +
+      (whys.length ? ` · ${whys.join(' · ')}` : '');
     out.push({
-      key: `ritmo:${topic.id}`,
+      key: `ritmo:${c.topic.id}`,
       kind: 'ritmo',
-      subjectId: subject.id,
-      topicId: topic.id,
-      unitIds: units.map((u) => u.id),
-      title: `${subject.shortName} · ${topic.name}`,
+      subjectId: c.subject.id,
+      topicId: c.topic.id,
+      unitIds: c.units.map((u) => u.id),
+      title: `${c.subject.shortName} · ${c.topic.name}`,
       why,
       estMin: 30,
     });
@@ -400,9 +450,9 @@ export function pickRevisao(ctx: PlannerCtx, n = 10): Suggestion {
     key: 'revisao:fila',
     kind: 'revisao',
     unitIds: due.map((u) => u.id),
-    title: `Fila FSRS — ${due.length} unidade(s) vencida(s)`,
+    title: `Fila FSRS — ${due.length} unidade(s) para revisitar`,
     why: due.length
-      ? `a mais atrasada vence há ${overdueDays}d — dose mínima de fundação`
+      ? `a mais antiga esperava há ${overdueDays}d — começa por ela, ~3min cada e a fila encolhe`
       : 'fila zerada — o esforço de hoje já virou estabilidade',
     estMin: Math.min(45, due.length * 3),
   };
@@ -415,11 +465,11 @@ export function flashcardsDue(ctx: PlannerCtx): DeckCard[] {
     .sort((a, b) => a.fsrs.due - b.fsrs.due);
 }
 
-/** Sugestões de um bloco de estudo do dia. */
-export function suggestForBlock(block: RoutineBlock, ctx: PlannerCtx): Suggestion[] {
+/** Sugestões de um bloco de estudo do dia (o foco da semana entra no Ritmo). */
+export function suggestForBlock(block: RoutineBlock, ctx: PlannerCtx, focus?: FocusMarks): Suggestion[] {
   switch (block.kind) {
     case 'estudo-pesado': {
-      const ritmo = pickRitmo(ctx, 2);
+      const ritmo = pickRitmo(ctx, 2, focus);
       const fund = pickFundacao(ctx, 1);
       const seen = new Set(ritmo.map((s) => s.topicId));
       return [...ritmo, ...fund.filter((f) => !seen.has(f.topicId))];
@@ -430,7 +480,7 @@ export function suggestForBlock(block: RoutineBlock, ctx: PlannerCtx): Suggestio
       return [fila, ...fund];
     }
     case 'pnaat':
-      return pickRitmo(ctx, 2);
+      return pickRitmo(ctx, 2, focus);
     case 'flashcards': {
       const due = flashcardsDue(ctx);
       return [
@@ -440,8 +490,8 @@ export function suggestForBlock(block: RoutineBlock, ctx: PlannerCtx): Suggestio
           unitIds: [],
           title: `Flashcards do dia — ${due.length} vencido(s)`,
           why: due.length
-            ? 'repetição espaçada na dose do dia — 30min, sem dívida'
-            : 'fila zerada — bloco livre hoje',
+            ? 'repetição espaçada na dose do dia — 30min e o FSRS organiza o resto'
+            : 'fila zerada — bloco livre hoje, sem culpa',
           estMin: 30,
         },
       ];

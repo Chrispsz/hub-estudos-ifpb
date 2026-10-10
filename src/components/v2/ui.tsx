@@ -33,14 +33,17 @@ export type Tone = keyof typeof TONES;
 export function Chip({
   tone = 'zinc',
   className = '',
+  title,
   children,
 }: {
   tone?: Tone;
   className?: string;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
     <span
+      title={title}
       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[11px] ${TONES[tone]} ${className}`}
     >
       {children}
@@ -94,9 +97,9 @@ export function PageHead({
   );
 }
 
-export function Empty({ children }: { children: React.ReactNode }) {
+export function Empty({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className="rounded-md border border-dashed border-zinc-800 p-4 text-center font-mono text-xs text-zinc-500">
+    <p className={`rounded-md border border-dashed border-zinc-800 p-4 text-center font-mono text-xs text-zinc-500 ${className}`}>
       {children}
     </p>
   );

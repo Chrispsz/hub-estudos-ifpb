@@ -47,7 +47,7 @@ export async function answerUnit(input: AnswerInput): Promise<{ xp: number; atte
   const db = getDb();
   const now = Date.now();
   if (input.result === 'wrong' && !input.error?.reason?.trim()) {
-    throw new Error('Errei exige 1 frase do porquê — a casa não aceita erro mudo.');
+    throw new Error('Errei pede 1 frase do porquê — anote rápido, seu eu do futuro agradece.');
   }
   const attempt: Attempt = {
     id: nid('at'),
@@ -291,4 +291,25 @@ export async function getMeta(key: string): Promise<string | null> {
 
 export async function setMeta(key: string, value: string): Promise<void> {
   await metaPut(key, value);
+}
+
+export async function deleteMeta(key: string): Promise<void> {
+  await getDb().meta.delete(key);
+}
+
+// ---------- marca "conteúdo da semana" (o boost cirúrgico do plano) ----------
+
+/** Marca/desmarca (1 toque). true = ficou marcado. A marca vale 9 dias. */
+export async function toggleFocusMark(
+  kind: 'topico' | 'material',
+  id: string,
+  dateKey: string,
+): Promise<boolean> {
+  const key = `semana:${kind}:${id}`;
+  if (await metaGet(key)) {
+    await deleteMeta(key);
+    return false;
+  }
+  await metaPut(key, dateKey);
+  return true;
 }

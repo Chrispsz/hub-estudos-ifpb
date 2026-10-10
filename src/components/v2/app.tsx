@@ -1,67 +1,85 @@
 'use client';
 
-// O PROJETO PRINCIPAL — shell do app novo (9 abas). Offline-first sobre IndexedDB.
-// Gate de onboarding honesto: núcleo vazio → backup ANTES da migração → migração
-// idempotente → entra. O app antigo segue inteiro em /?legacy=1.
+// O PROJETO PRINCIPAL — Edição Definitiva (Fase 6).
+//
+// 10 abas viraram 3 destinos + 1 dock (a filosofia Ubuntu/COSMIC: menos
+// destinos, mais coesão):
+//   HOJE      — plano cirúrgico do dia + agenda (board) + registro + pomodoro
+//   ESTUDAR   — Materiais (PDFs dos professores) · Trilha · Revisão · Backlog · Erros
+//   PROGRESSO — Sprint Review · Missões · Rotina · Perfil
+//   TUTOR     — dock fixo (canto), aberto de qualquer aba, com o material em foco
+//
+// Offline-first sobre IndexedDB. Onboarding honesto: backup ANTES da migração.
 
 import * as React from 'react';
-import { Download, GitBranch, Play, ShieldCheck } from 'lucide-react';
+import { Download, GitBranch, GraduationCap, Play, ShieldCheck } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { buildBackup, downloadBackup } from '@/lib/v2/backup';
 import { runMigration } from '@/lib/v2/migrate';
 import { dateKeyOf } from '@/lib/v2/planner';
-import { accuracyOf, RANKS, rankFor, streakOf, totalXp } from '@/lib/v2/xp';
+import { rankFor, streakOf, totalXp, daysStudiedOf } from '@/lib/v2/xp';
 import { useActiveSession, useAttempts, useCounts, useSessions, useSubjects, useTopics, useUnits } from '@/lib/v2/use-v2';
 import { Btn, Chip } from './ui';
 import { TabHoje } from './tab-hoje';
+import { TabEstudar, isEstudarSeg, type EstudarSeg } from './tab-estudar';
+import { TabProgresso, isProgressoSeg, type ProgressoSeg } from './tab-progresso';
 import { TabTutor } from './tab-tutor';
-import { TabBacklog } from './tab-backlog';
-import { TabTrilha } from './tab-trilha';
-import { TabRevisao } from './tab-revisao';
-import { TabCodeReview } from './tab-code-review';
-import { TabQuests } from './tab-quests';
-import { TabSprint } from './tab-sprint';
-import { TabRotina } from './tab-rotina';
-import { TabPerfil } from './tab-perfil';
+import type { TutorMaterialContext } from './tab-materiais';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje' },
-  { id: 'tutor', label: 'Tutor' },
-  { id: 'backlog', label: 'Backlog' },
-  { id: 'trilha', label: 'Trilha' },
-  { id: 'revisao', label: 'Revisão' },
-  { id: 'code-review', label: 'Code Review' },
-  { id: 'quests', label: 'Quests' },
-  { id: 'sprint', label: 'Sprint Review' },
-  { id: 'rotina', label: 'Rotina' },
-  { id: 'perfil', label: 'Perfil' },
+  { id: 'estudar', label: 'Estudar' },
+  { id: 'progresso', label: 'Progresso' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
-function tabFromHash(): TabId {
+function stateFromHash(): { tab: TabId; seg: string | null } {
   const h = window.location.hash.replace('#', '');
-  return (TABS.find((t) => t.id === h)?.id ?? 'hoje') as TabId;
+  const [tab, seg] = h.split('/');
+  const t = (TABS.find((x) => x.id === tab)?.id ?? 'hoje') as TabId;
+  return { tab: t, seg: seg ?? null };
 }
 
 export function V2App() {
   const counts = useCounts();
   const [tab, setTab] = React.useState<TabId>('hoje');
+  const [segEstudar, setSegEstudar] = React.useState<EstudarSeg>('materiais');
+  const [segProgresso, setSegProgresso] = React.useState<ProgressoSeg>('sprint');
+
+  // dock do tutor — acessível de qualquer aba, com o material em foco
+  const [tutorOpen, setTutorOpen] = React.useState(false);
+  const [tutorMaterial, setTutorMaterial] = React.useState<TutorMaterialContext | null>(null);
 
   React.useEffect(() => {
-    setTab(tabFromHash());
-    // popstate cobre voltar/avançar; pushState do go() já seta a aba na hora
-    const onNav = () => setTab(tabFromHash());
-    window.addEventListener('popstate', onNav);
-    window.addEventListener('hashchange', onNav);
+    function applyHash() {
+      const { tab: t, seg } = stateFromHash();
+      setTab(t);
+      if (t === 'estudar' && seg && isEstudarSeg(seg)) setSegEstudar(seg);
+      if (t === 'progresso' && seg && isProgressoSeg(seg)) setSegProgresso(seg);
+    }
+    applyHash();
+    // popstate cobre voltar/avançar; hashchange cobre rotações manuais
+    window.addEventListener('popstate', applyHash);
+    window.addEventListener('hashchange', applyHash);
     return () => {
-      window.removeEventListener('popstate', onNav);
-      window.removeEventListener('hashchange', onNav);
+      window.removeEventListener('popstate', applyHash);
+      window.removeEventListener('hashchange', applyHash);
     };
   }, []);
 
-  function go(t: string) {
+  function go(dest: string) {
+    const [t, s] = dest.split('/');
     setTab(t as TabId);
-    window.history.pushState(null, '', `#${t}`);
+    if (t === 'estudar' && s && isEstudarSeg(s)) setSegEstudar(s);
+    if (t === 'progresso' && s && isProgressoSeg(s)) setSegProgresso(s);
+    window.history.pushState(null, '', `#${dest}`);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function openTutor(ctx: TutorMaterialContext) {
+    setTutorMaterial(ctx);
+    setTutorOpen(true);
   }
 
   // núcleo vazio → onboarding (backup antes de migrar — a ordem é inegociável)
@@ -87,7 +105,7 @@ export function V2App() {
               type="button"
               onClick={() => go(t.id)}
               aria-current={tab === t.id}
-              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs transition-colors ${
+              className={`min-h-[36px] whitespace-nowrap rounded-md px-4 py-1.5 text-[13px] transition-colors ${
                 tab === t.id
                   ? 'bg-emerald-500/15 font-semibold text-emerald-300'
                   : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300'
@@ -99,18 +117,43 @@ export function V2App() {
         </div>
       </nav>
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-3 py-4 sm:px-4 sm:py-6">
-        {tab === 'hoje' && <TabHoje onNavigate={go} />}
-        {tab === 'tutor' && <TabTutor />}
-        {tab === 'backlog' && <TabBacklog />}
-        {tab === 'trilha' && <TabTrilha />}
-        {tab === 'revisao' && <TabRevisao />}
-        {tab === 'code-review' && <TabCodeReview />}
-        {tab === 'quests' && <TabQuests />}
-        {tab === 'sprint' && <TabSprint />}
-        {tab === 'rotina' && <TabRotina />}
-        {tab === 'perfil' && <TabPerfil />}
+      <main className="mx-auto w-full max-w-4xl flex-1 px-3 py-4 pb-20 sm:px-4 sm:py-6">
+        {tab === 'hoje' && <TabHoje onNavigate={go} onOpenTutor={openTutor} />}
+        {tab === 'estudar' && (
+          <TabEstudar
+            seg={segEstudar}
+            onSeg={(s) => go(`estudar/${s}`)}
+            onOpenTutor={openTutor}
+          />
+        )}
+        {tab === 'progresso' && <TabProgresso seg={segProgresso} onSeg={(s) => go(`progresso/${s}`)} />}
       </main>
+
+      {/* dock do tutor — um toque de qualquer aba; o GNOME tem dock, a casa também */}
+      <button
+        type="button"
+        onClick={() => setTutorOpen(true)}
+        title="Abrir o Tutor (de qualquer aba, com o material em foco)"
+        aria-label="Abrir o Tutor"
+        className="fixed bottom-5 right-4 z-40 flex size-12 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-600 text-white shadow-lg shadow-emerald-950/50 transition-transform hover:scale-105 hover:bg-emerald-500 sm:right-6"
+      >
+        <GraduationCap className="size-5" />
+      </button>
+
+      <Sheet open={tutorOpen} onOpenChange={setTutorOpen}>
+        <SheetContent className="w-full overflow-y-auto border-zinc-800 bg-[#0c0c0c] p-0 sm:max-w-2xl">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Tutor IA</SheetTitle>
+          </SheetHeader>
+          <div className="p-3 sm:p-4">
+            <TabTutor
+              material={tutorMaterial}
+              onClearMaterial={() => setTutorMaterial(null)}
+              onClose={() => setTutorOpen(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Footer />
     </div>
@@ -122,12 +165,14 @@ function Header() {
   const attempts = useAttempts();
   const xp = totalXp(sessions, attempts);
   const rank = rankFor(xp, attempts);
-  const streak = streakOf(sessions, dateKeyOf());
+  const todayKey = dateKeyOf();
+  const streak = streakOf(sessions, todayKey);
+  const days30 = daysStudiedOf(sessions, todayKey, 30);
   const active = useActiveSession();
 
   return (
     <header className="border-b border-zinc-800">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-4">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-violet-400">O Projeto Principal</p>
           <h1 className="font-mono text-sm font-semibold text-zinc-50">
@@ -137,7 +182,13 @@ function Header() {
         <div className="flex flex-wrap items-center gap-1.5">
           <Chip tone="emerald">{rank.rank.name}</Chip>
           <Chip tone="violet">{xp} XP</Chip>
-          <Chip tone={streak.floorOk ? 'emerald' : 'zinc'}>streak {streak.count}d</Chip>
+          {/* consistência em primeiro lugar (o hábito é soma, não sequência) */}
+          <Chip tone={days30 > 0 ? 'emerald' : 'zinc'} title="dias estudados nos últimos 30 — faltar um dia não apaga nada">
+            {days30} dias · 30d
+          </Chip>
+          <Chip tone="zinc" title="sequência com piso de 60min — só um detalhe, não a meta">
+            streak {streak.count}d
+          </Chip>
           {active && <Chip tone="amber">sessão viva</Chip>}
         </div>
       </div>
@@ -148,6 +199,8 @@ function Header() {
 function Footer() {
   const units = useUnits();
   const attempts = useAttempts();
+  const subjects = useSubjects();
+  const topics = useTopics();
   const now = Date.now();
   const dueCount = units.filter((u) => u.fsrs && u.fsrs.due <= now && u.topicId).length;
   const today = dateKeyOf();
@@ -157,10 +210,13 @@ function Footer() {
     .reduce((acc, a) => acc + (a.result === 'correct' ? 2 : a.result === 'wrong' ? 1 : 0), 0);
   return (
     <footer className="mt-auto border-t border-zinc-800 bg-[#0c0c0c]">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-[10px] text-zinc-600 sm:px-4">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-[10px] text-zinc-600 sm:px-4">
         <p>
           fila FSRS: <span className="text-zinc-400 tabular-nums">{dueCount}</span> · tentativas:{' '}
-          <span className="text-zinc-400 tabular-nums">{attempts.length}</span>
+          <span className="text-zinc-400 tabular-nums">{attempts.length}</span> ·{' '}
+          <span className="text-zinc-400 tabular-nums">
+            {subjects.length} matérias · {topics.length} tópicos
+          </span>
         </p>
         <p>
           XP de tentativas hoje: <span className="text-emerald-400 tabular-nums">{todayXp}</span>
@@ -236,7 +292,7 @@ function Onboarding() {
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
             <p className="font-mono text-xs font-semibold text-violet-300">PASSO 2 — migração</p>
             <p className="mt-1 text-[11px] text-zinc-500">
-              Snapshot do legado → 7 matérias, 24 tópicos, 98 unidades, backlog, provas, rotina →
+              Snapshot do legado → matérias, tópicos, unidades, backlog, provas, rotina →
               seu estado (Leitner→FSRS semeado, sessões, notas). Rodar 2× não duplica nada.
             </p>
             <Btn variant="violet" className="mt-3" disabled={busy !== null} onClick={() => void doMigrate()}>

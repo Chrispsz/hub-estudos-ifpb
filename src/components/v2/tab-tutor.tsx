@@ -52,6 +52,7 @@ import {
   useUnits,
 } from '@/lib/v2/use-v2';
 import { Btn, Chip, Empty, PageHead, Panel } from './ui';
+import type { TutorMaterialContext } from './tab-materiais';
 
 /** Espelho do contrato do API (route.ts) — mensagens de contexto do chat. */
 interface ChatMessage {
@@ -112,7 +113,7 @@ function buildContextBlock(
 
   if (rec.active) {
     lines.push(
-      `Modo: RECUPERAÇÃO ativa (dívida de ritmo: ${rec.ritmoDebt} matéria(s) ≥7d sem toque · fundação ${rec.fundacaoProgress}% estável)`,
+      `Modo: RECUPERAÇÃO ativa (${rec.ritmoDebt} matéria(s) há ≥7d sem toque — recuperar com calma, um bloco por vez · fundação ${rec.fundacaoProgress}% estável)`,
     );
   } else {
     lines.push('Modo: plano equilibrado (recuperação concluída)');
@@ -200,7 +201,16 @@ interface Pending {
   imageLabel?: string;
 }
 
-export function TabTutor() {
+export function TabTutor({
+  material,
+  onClearMaterial,
+  onClose,
+}: {
+  /** Material em foco (aberto pela prateleira) — o servidor lê o PDF REAL dele. */
+  material?: TutorMaterialContext | null;
+  onClearMaterial?: () => void;
+  onClose?: () => void;
+} = {}) {
   const subjects = useSubjects();
   const topics = useTopics();
   const units = useUnits();
@@ -227,6 +237,17 @@ export function TabTutor() {
 
   const now = Date.now();
   const todayKey = dateKeyOf();
+
+  // material aberto pela prateleira → o composer já nasce com a pergunta boa
+  // (o aluno só aperta enviar — minimizar passos até começar)
+  React.useEffect(() => {
+    if (!material) return;
+    setInput((cur) =>
+      cur.trim()
+        ? cur
+        : `Estou lendo o material "${material.title}". Explica os pontos essenciais dele — o que costuma cair em prova e os erros comuns de interpretação.`,
+    );
+  }, [material]);
 
   // status do tutor no DEPLOY (GET /api/tutor): gemini/openrouter/zai com key?
   // Honestidade de casa — o chip diz a verdade sem expor nenhuma key.
@@ -386,6 +407,7 @@ export function TabTutor() {
           question: effectiveQuestion,
           discipline: focusTopic ? subjects.find((s) => s.id === focusTopic.subjectId)?.name : undefined,
           topic: focusTopic?.name,
+          materialId: material?.materialId,
           hintMode,
           history: hist,
           hubContext,
@@ -505,6 +527,17 @@ export function TabTutor() {
         desc="O tutor lê o estado do núcleo em tempo real (plano, foco, erros, provas) — você pergunta, ele já sabe onde você está. Print anexado é lido com visão."
         right={
           <>
+            {material && (
+              <Chip tone="violet" className="max-w-[220px]">
+                <BookOpenCheck className="size-3 shrink-0" />
+                <span className="truncate">material: {material.title}</span>
+                {onClearMaterial && (
+                  <button type="button" onClick={onClearMaterial} aria-label="limpar material em foco" className="shrink-0 text-violet-300/70 hover:text-violet-200">
+                    <X className="size-3" />
+                  </button>
+                )}
+              </Chip>
+            )}
             {rec?.active && <Chip tone="amber">modo recuperação</Chip>}
             <Chip tone={dueCount ? 'violet' : 'zinc'}>fila hoje {dueCount}</Chip>
             <Chip tone="zinc">{msgs.length} msg</Chip>
@@ -526,6 +559,13 @@ export function TabTutor() {
       />
 
       <Panel className="flex flex-col gap-3 p-3 sm:p-4">
+        {onClose && (
+          <div className="flex justify-end sm:hidden">
+            <Btn variant="ghost" className="min-h-0 px-2 py-1 text-[10px]" onClick={onClose}>
+              <X className="size-3" /> fechar
+            </Btn>
+          </div>
+        )}
         {/* thread */}
         <div
           ref={scrollRef}
@@ -611,6 +651,9 @@ export function TabTutor() {
 
         {/* quick actions */}
         <div className="flex flex-wrap gap-1.5">
+          {material && (
+            <QuickBtn icon={<BookOpenCheck className="size-3" />} label="explicar este material" onClick={() => void send(`Estou lendo o material "${material.title}". Explica os pontos essenciais dele — o que costuma cair em prova e os erros comuns de interpretação.`)} disabled={streaming} />
+          )}
           <QuickBtn icon={<Brain className="size-3" />} label="explicar tópico em foco" onClick={() => void send('Explica o tópico em foco do jeito que cai em prova, com um exemplo prático e uma pegadinha comum.')} disabled={streaming} />
           <QuickBtn icon={<ListChecks className="size-3" />} label="quiz · 3 questões" onClick={() => void send('Me dê um quiz de 3 questões sobre o tópico em foco (uma fácil, uma média, uma difícil). NÃO revele as respostas — eu tento primeiro.')} disabled={streaming} />
           <QuickBtn icon={<CornerUpLeft className="size-3" />} label="por que errei?" onClick={() => void send(lastErrors.length ? `Analise meu erro mais recente: marquei "${truncate(lastErrors[0].reason, 200)}" (categoria ${lastErrors[0].category}). Explique o conceito por trás e como não repetir.` : 'Ainda não há erros registrados no Code Review — bora prevenir: qual o erro mais comum no tópico em foco?')} disabled={streaming} />
