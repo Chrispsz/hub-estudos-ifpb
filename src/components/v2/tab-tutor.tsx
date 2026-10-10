@@ -218,6 +218,8 @@ export function TabTutor() {
   const [streamText, setStreamText] = React.useState('');
   const [pending, setPending] = React.useState<Pending>({});
   const [showPlan, setShowPlan] = React.useState(false);
+  // status honesto da IA (uma consulta só — as keys vivem no deploy, nunca no cliente)
+  const [aiStatus, setAiStatus] = React.useState<'checking' | 'ready' | 'nokey'>('checking');
   const abortRef = React.useRef<AbortController | null>(null);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const stickRef = React.useRef(true);
@@ -225,6 +227,25 @@ export function TabTutor() {
 
   const now = Date.now();
   const todayKey = dateKeyOf();
+
+  // status do tutor no DEPLOY (GET /api/tutor): gemini/openrouter/zai com key?
+  // Honestidade de casa — o chip diz a verdade sem expor nenhuma key.
+  React.useEffect(() => {
+    let alive = true;
+    fetch('/api/tutor')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        const p = (d?.providers ?? {}) as { gemini?: boolean; openrouter?: boolean; zaiPublic?: boolean };
+        setAiStatus(p.gemini || p.openrouter || p.zaiPublic ? 'ready' : 'nokey');
+      })
+      .catch(() => {
+        if (alive) setAiStatus('nokey');
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const ctx: PlannerCtx | null =
     routine && subjects.length
@@ -345,6 +366,14 @@ export function TabTutor() {
         .filter((x) => x.daysLeft >= 0 && x.daysLeft <= 45),
     };
 
+    // contexto do aluno montado dos PRÓPRIOS dados dele (núcleo IndexedDB) —
+    // o servidor do tutor é genérico: instituição/curso vêm daqui, nunca de código
+    const studentContext = subjects.length
+      ? `App de estudos pessoal do aluno (dados vivem no dispositivo dele). Disciplinas em curso: ${subjects
+          .map((s) => s.name)
+          .join(', ')}.`
+      : '';
+
     setStreaming(true);
     setStreamText('');
     stickRef.current = true;
@@ -360,6 +389,7 @@ export function TabTutor() {
           hintMode,
           history: hist,
           hubContext,
+          studentContext,
           imageDataUrl: image,
         },
         (piece, full) => setStreamText(full),
@@ -417,6 +447,9 @@ export function TabTutor() {
         question: `Gere flashcards sobre o tema "${topicName}".`,
         discipline: subjects.find((s) => s.id === subjectId)?.name,
         topic: topicName,
+        studentContext: subjects.length
+          ? `App de estudos pessoal do aluno. Disciplinas em curso: ${subjects.map((s) => s.name).join(', ')}.`
+          : '',
       });
       const cleaned = result.answer.replace(/```(?:json)?/g, '').trim();
       const start = cleaned.indexOf('[');
@@ -475,6 +508,19 @@ export function TabTutor() {
             {rec?.active && <Chip tone="amber">modo recuperação</Chip>}
             <Chip tone={dueCount ? 'violet' : 'zinc'}>fila hoje {dueCount}</Chip>
             <Chip tone="zinc">{msgs.length} msg</Chip>
+            <span
+              title={
+                aiStatus === 'ready'
+                  ? 'Tutor com provedor de IA ativo neste deploy (Gemini → OpenRouter → Z.ai)'
+                  : aiStatus === 'nokey'
+                    ? 'Nenhuma chave de IA neste deploy — configure GEMINI_API_KEY/OPENROUTER_API_KEY/ZAI_API_KEY nas variáveis de ambiente'
+                    : 'Consultando o deploy…'
+              }
+            >
+              <Chip tone={aiStatus === 'ready' ? 'emerald' : aiStatus === 'nokey' ? 'amber' : 'zinc'}>
+                {aiStatus === 'ready' ? 'IA pronta' : aiStatus === 'nokey' ? 'IA sem chave' : 'IA…'}
+              </Chip>
+            </span>
           </>
         }
       />

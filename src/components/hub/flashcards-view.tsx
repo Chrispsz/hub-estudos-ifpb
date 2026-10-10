@@ -68,6 +68,7 @@ import {
   type StudyProgressHook,
 } from '@/lib/study-progress';
 import { useNow } from '@/lib/use-now';
+import { tutorCourseContext } from '@/lib/curriculum';
 import { openTutor } from '@/lib/hub-events';
 import {
   mistakeCardSeedsFor,
@@ -1384,6 +1385,8 @@ function GenerateCardsDialog({
           discipline: disc?.name ?? disciplineCode,
           topic: theme,
           question: `Gere ${count} flashcards sobre: ${theme}`,
+          // contexto do curso viaja do CLIENTE (o servidor do tutor é genérico)
+          studentContext: tutorCourseContext(),
         }),
       });
       const data = (await res.json()) as { answer?: string; error?: string };

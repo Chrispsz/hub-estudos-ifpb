@@ -127,6 +127,7 @@ import { CaptureTidyBanner } from './capture-tidy-banner';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError, TUTOR_STOP_MESSAGE } from '@/lib/tutor-stream';
+import { tutorCourseContext } from '@/lib/curriculum';
 import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { setEphemeralChatState } from '@/lib/ephemeral-registry';
 import {
@@ -1634,6 +1635,8 @@ export function StudyView({
           history,
           hintMode: chatHints,
           hubContext: buildHubContext(disciplineCode, sp),
+          // contexto do curso agora viaja do CLIENTE (o servidor do tutor é genérico)
+          studentContext: tutorCourseContext(),
         },
         (_piece, full) => {
           setChatLoading(false); // 1º delta chegou — troca o "Pensando..." pela resposta viva

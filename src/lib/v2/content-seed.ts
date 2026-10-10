@@ -234,7 +234,7 @@ const b = (
 
 // GRADE REDESENHADA (pedido do dono, out/2026): estudo começa 15:00, lanche da
 // tarde EXPLÍCITO, janta/banho mesclados na agenda, 1h de hobby/leitura, dormir
-// 22h. Estudo/dia útil = 4h00 (B1 90min + B2 75min + PNAAT 45min + flashcards 30min).
+// 22h. Estudo/dia útil = 4h00 (B1 90min + B2 75min + bloco pessoal fixo 45min + flashcards 30min).
 export function buildRoutine(): RoutineConfig {
   // Semente GENÉRICA — a rotina de cada um é pessoal e vive nos dados DELE
   // (editor da aba Rotina). O código nunca embute a agenda do dono: os rótulos

@@ -29,6 +29,7 @@ import { CaptureTidyBanner } from './capture-tidy-banner';
 import { PdfPageCaptureDialog } from './pdf-page-capture-dialog';
 import { PrintLightboxDialog } from './print-lightbox-dialog';
 import { streamTutorAnswer, TutorStreamError } from '@/lib/tutor-stream';
+import { tutorCourseContext } from '@/lib/curriculum';
 import { buildQuizPrompt } from '@/lib/tutor-quiz';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import { resolveRetryTarget } from '@/lib/tutor-retry';
@@ -502,6 +503,8 @@ export function TutorQuickPanel({
           history,
           hintMode,
           hubContext: buildHubContext(disciplineCode ?? '', sp),
+          // contexto do curso agora viaja do CLIENTE (o servidor do tutor é genérico)
+          studentContext: tutorCourseContext(),
         },
         (_piece, full) => {
           setLoading(false);

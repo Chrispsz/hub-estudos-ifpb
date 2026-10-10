@@ -1,6 +1,8 @@
 // /api/tutor — Tutor IA + gerador de flashcards
 //
-// Cadeia de provedores (primeiro disponível responde):
+// Cadeia de provedores (primeiro disponível responde) — 100% REST puro, sem
+// NENHUM SDK proprietário: roda igual em qualquer servidor/Vercel e usa as
+// MESMAS Environment Variables já configuradas no deploy (nada reconfigurar):
 //
 //  1º Google Gemini (se GEMINI_API_KEY)    — RECOMENDADO: key grátis no AI Studio
 //                                            (aistudio.google.com/app/apikey, sem cartão),
@@ -8,12 +10,10 @@
 //                                            Resolve texto E leitura de print na Vercel.
 //  2º OpenRouter (se OPENROUTER_API_KEY)   — 1 key grátis → dezenas de modelos free (texto + visão)
 //  3º Z.ai público (se ZAI_API_KEY)        — API oficial api.z.ai (ex.: glm-4.5-flash, tem tier grátis)
-//  4º SDK Z-AI do sandbox (dinâmico)      — FORA do package.json (pedido do dono:
-//                                            "nada que dependa da zai em prod"). Só
-//                                            ativa se existir em node_modules (dev).
 //
-// Configure no .env local e nas Environment Variables da Vercel — UMA key já ativa tudo;
-// GEMINI_API_KEY é a única que dá leitura de imagem + texto com UMA key só.
+// Sem nenhuma key → erro HONESTO para o dono (nada de fallback secreto).
+// O contexto pessoal (curso, instituição, provas) vem do PRÓPRIO APP do aluno
+// via `studentContext`/`hubContext` — o servidor é genérico por design.
 // Modelos OpenRouter free verificados:
 //  ✅ nvidia/nemotron-3-super-120b-a12b:free  — melhor qualidade/velocidade p/ tutoria PT-BR
 //  ✅ nvidia/nemotron-3-ultra-550b-a55b:free  — 550B, mais profundo (mais lento)
@@ -27,30 +27,15 @@
 //  ❌ google/gemma-4-31b-it:free              — provider error (removido)
 //  ❌ thinkingmachines/inkling:free           — exige harness agentic (removido)
 
-/** Import dinâmico do SDK Z-AI do sandbox (fora do package.json, pedido do dono).
- *  O pacote é ESM-only sem campo "exports" — alguns loaders (Turbopack dev)
- *  não resolvem o main pelo specificador nu; o fallback dist/index.js cobre. */
-async function importZaiSandbox(): Promise<any> {
-  const dyn = (s: string) => new Function(`return import(${JSON.stringify(s)})`)() as Promise<any>;
-  try {
-    return await dyn('z-ai-web-dev-sdk');
-  } catch {
-    return await dyn('z-ai-web-dev-sdk/dist/index.js');
-  }
-}
-
 export const runtime = 'nodejs';
 // Cadeia Gemini(35s) → OpenRouter(13s+) precisa de teto explícito: o padrão da
 // plataforma pode matar a função antes do fallback responder (504 pro usuário).
 export const maxDuration = 60;
 
 import { db } from '@/lib/db';
-import { examIntelForTutor } from '@/lib/prof-audio-map';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
 import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
-import { MATH_SIMULADO_REGRA_REVISAO } from '@/lib/math-exam-prep';
-import { CURRENT_PERIOD_LABEL, CURRENT_PERIOD_LOWER, tutorCourseContext } from '@/lib/curriculum';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -146,6 +131,12 @@ interface TutorRequestBody {
   hintMode?: boolean;
   /** Dados do app (professor, datas, progresso) para respostas precisas. */
   hubContext?: HubContext;
+  /**
+   * Contexto do aluno/curso ENVIADO PELO PRÓPRIO APP do cliente (instituição,
+   * curso, período, disciplinas, terminologia) — o servidor é genérico e não
+   * embute nada pessoal. Cap de 1600 chars no servidor.
+   */
+  studentContext?: string;
 }
 
 const MAX_HISTORY = 12; // stateless por sessão — contexto suficiente para continuidade
@@ -242,12 +233,13 @@ function visionProviderLabel(): string | null {
   if (GEMINI.key) return 'Gemini (key grátis do AI Studio)';
   if (process.env.OPENROUTER_API_KEY) return 'OpenRouter (modelos free de visão)';
   if (ZAI_PUBLIC.key) return `Z.ai (${process.env.ZAI_VISION_MODEL || 'glm-4.5v'})`;
-  return null; // sandbox SDK cobre o dev; na Vercel = sem visão
+  return null; // sem nenhum provedor de visão neste deploy — a UI avisa honestamente
 }
 
-function buildFlashcardsPrompt(discipline: string, topic: string): string {
+function buildFlashcardsPrompt(discipline: string, topic: string, studentContext = ''): string {
   return [
-    `Você cria flashcards de revisão espaçada para um aluno do ${CURRENT_PERIOD_LOWER} no IFPB, na disciplina ${discipline}.`,
+    `Você cria flashcards de revisão espaçada em português brasileiro, na disciplina ${discipline}.`,
+    studentContext ? `Contexto do aluno (do app dele): ${studentContext.slice(0, 400)}` : '',
     `Tema solicitado: "${topic}".`,
     'Regras OBRIGATÓRIAS:',
     '- Responda APENAS com um array JSON válido. Sem texto antes ou depois, sem markdown, sem blocos de código.',
@@ -293,7 +285,7 @@ function buildHubBlock(hub?: HubContext): string {
   if (hub.today) lines.push(`- Hoje: ${hub.today}`);
   if (hub.week) {
     const tw = hub.totalWeeks ? ` de ${hub.totalWeeks}` : '';
-    lines.push(`- Semana atual do semestre: ${hub.week}${tw} (letivo 24/08/2026 → 18/12, pausa 19/12→17/01, retoma 18/01/2027, termina 30/01/2027)`);
+    lines.push(`- Semana atual do semestre: ${hub.week}${tw} (calendário oficial do app do aluno)`);
   }
   if (hub.professor) {
     const t = hub.professorTitle ? ` (${hub.professorTitle})` : '';
@@ -325,7 +317,7 @@ function buildHubBlock(hub?: HubContext): string {
   }
   if (hub.examWeek) {
     const w = hub.examWeek;
-    const parts: string[] = [`faltam ${w.provaDaysLeft} dia(s) para a prova (01/10)`];
+    const parts: string[] = [`faltam ${w.provaDaysLeft} dia(s) para a prova`];
     if (w.planoHoje) {
       parts.push(
         `plano de hoje: "${w.planoHoje.titulo}" — ${w.planoHoje.feitas}/${w.planoHoje.total} tarefa(s) feita(s), ~${w.planoHoje.minutos} min`,
@@ -334,7 +326,7 @@ function buildHubBlock(hub?: HubContext): string {
     if (w.diasAtras > 0) parts.push(`${w.diasAtras} dia(s) do plano ficaram para trás`);
     parts.push(
       w.simulado
-        ? `simulado oficial de 29/09: FEITO ✓ ${w.simulado.pct}% (meta ${w.simulado.meta})${
+        ? `simulado oficial: FEITO ✓ ${w.simulado.pct}% (meta ${w.simulado.meta})${
             w.simulado.porTopico.length
               ? ` — por tópico: ${w.simulado.porTopico
                   .map(
@@ -362,13 +354,13 @@ function buildHubBlock(hub?: HubContext): string {
                 }`
               : ''
           }`
-        : `simulado oficial de 29/09: ainda NÃO feito`,
+        : `simulado oficial: ainda NÃO feito`,
     );
     parts.push(`questões travadas marcadas nas listas: ${w.travadasCount}`);
     lines.push(
-      `- SEMANA DA AV1 (estado ao vivo, dados do app):\n    • ${parts.join(
+      `- SEMANA DE PROVA (estado ao vivo, dados do app do aluno):\n    • ${parts.join(
         '\n    • ',
-      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (a promessa do plano: "${MATH_SIMULADO_REGRA_REVISAO}" — bloco todo pulado É o bloco com mais erros); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado. Se o treino do foco JÁ aconteceu e subiu, reconheça o progresso e mantenha o ritmo; se não subiu, proponha outro ângulo (refazer no papel, reler a fórmula daquele bloco antes de dormir) — nunca cobre duas vezes o que o registro já mostrou.`,
+      )}\n    • Se o aluno perguntar o que revisar: com o simulado FEITO, priorize o bloco fraco ou o bloco inteiro pulado (bloco inteiro sem tentativa É o bloco com mais erros — comece a revisão por ele); SEM o simulado, mantenha o dia do plano — não antecipe pânico nem invente resultado. Se o treino do foco JÁ aconteceu e subiu, reconheça o progresso e mantenha o ritmo; se não subiu, proponha outro ângulo (refazer no papel, reler a fórmula daquele bloco antes de dormir) — nunca cobre duas vezes o que o registro já mostrou.`,
     );
   }
 
@@ -389,10 +381,17 @@ function buildSystemPrompt(
   hub?: HubContext,
   materialBlock = '',
   hintMode = false,
+  studentContext = '',
 ): string {
   return [
-    `Você é o tutor IA do Hub de Estudos — o app de estudos de um aluno do ${CURRENT_PERIOD_LOWER} no IFPB Campus Cajazeiras, turma 2026.2. Você conversa em português brasileiro.`,
-    tutorCourseContext(),
+    'Você é o tutor IA do app de estudos do aluno. Você conversa em português brasileiro.',
+    studentContext
+      ? [
+          '=== CONTEXTO DO ALUNO E DO CURSO (informado pelo PRÓPRIO app do aluno — fonte da verdade institucional; NÃO assuma nada sobre instituição/curso além dele) ===',
+          studentContext,
+          '=== FIM DO CONTEXTO DO ALUNO ===',
+        ].join('\n')
+      : '',
     `Disciplina atual: ${discipline}.`,
     topic ? `Tópico em estudo agora: "${topic}".` : '',
     material ? `Material aberto: "${material}".` : '',
@@ -749,125 +748,6 @@ async function callZAIPublic(
   }
 }
 
-/** Fallback final: SDK Z-AI — import dinâmico protegido p/ portabilidade.
- *  O pacote NÃO está mais no package.json (pedido do dono: "nada que dependa da zai") —
- *  só funciona em sandboxes de desenvolvimento que o tenham instalado localmente.
- *  Em qualquer outro ambiente (Vercel, servidor próprio) o import falha e cai no
- *  catch da chamadora, devolvendo '' sem erro — o tutor usa só provedores com key.
- *  Com onDelta tenta stream:true; se o backend não iterar, entrega inteiro — nunca quebra. */
-async function callZAI(
-  systemPrompt: string,
-  history: ChatMessage[],
-  question: string,
-  onDelta?: (piece: string) => void,
-): Promise<string> {
-  // new Function impede o bundler de resolver o pacote no build — se não existir
-  // no ambiente (node_modules), cai no catch e devolve '' sem erro.
-  // (ESM-only sem "exports": alguns loaders não acham o entrypoint pelo main —
-  //  por isso o 2º Specificador dist/index.js, que o pacote sempre entrega.)
-  const mod = await importZaiSandbox();
-  const ZAI = mod.default;
-  const zai = await ZAI.create();
-  const messages = [
-    { role: 'assistant', content: systemPrompt },
-    ...history,
-    { role: 'user', content: question },
-  ];
-
-  if (!onDelta) {
-    const completion = await zai.chat.completions.create({
-      messages,
-      thinking: { type: 'disabled' },
-    });
-    return completion.choices[0]?.message?.content?.trim() ?? '';
-  }
-
-  // tentativa de streaming (o tipo é Promise<any> — testamos iterabilidade)
-  try {
-    const completion = await zai.chat.completions.create({
-      messages,
-      stream: true,
-      thinking: { type: 'disabled' },
-    });
-    if (completion && typeof completion[Symbol.asyncIterator] === 'function') {
-      let full = '';
-      for await (const chunk of completion) {
-        // Formato 1: delta OpenAI-like direto no chunk
-        const direct =
-          chunk?.choices?.[0]?.delta?.content ?? chunk?.choices?.[0]?.message?.content;
-        if (typeof direct === 'string' && direct) {
-          full += direct;
-          onDelta(direct);
-          continue;
-        }
-        // Formato 2 (sandbox): string SSE crua — "data: {json}\n\n"
-        const raw =
-          typeof chunk === 'string' ? chunk : chunk instanceof String ? String(chunk) : '';
-        if (!raw) continue;
-        for (const line of raw.split('\n')) {
-          const l = line.trim();
-          if (!l.startsWith('data:')) continue;
-          const payload = l.slice(5).trim();
-          if (!payload || payload === '[DONE]') continue;
-          try {
-            const json = JSON.parse(payload) as {
-              choices?: { delta?: { content?: string }; message?: { content?: string } }[];
-            };
-            const piece =
-              json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? '';
-            if (piece) {
-              full += piece;
-              onDelta(piece);
-            }
-          } catch {
-            // linha parcial — ignora
-          }
-        }
-      }
-      if (!full.trim()) throw new Error('stream vazio');
-      return full.trim();
-    }
-  } catch (err) {
-    console.warn('[api/tutor] ZAI stream indisponível — usando resposta inteira:',
-      err instanceof Error ? err.message : err);
-  }
-
-  // caminho seguro: resposta completa em um único delta
-  const completion = await zai.chat.completions.create({
-    messages,
-    thinking: { type: 'disabled' },
-  });
-  const full = completion.choices[0]?.message?.content?.trim() ?? '';
-  if (!full) throw new Error('resposta vazia');
-  onDelta(full);
-  return full;
-}
-
-/** Z-AI com retry + backoff — sob rajadas (429 Too many requests) tenta até 3x
- *  antes de desistir, evitando 502 para o aluno quando a OpenRouter também
- *  está limitando. Total extra no pior caso: ~3,7s. */
-async function callZAIRetry(
-  systemPrompt: string,
-  history: ChatMessage[],
-  question: string,
-  onDelta?: (piece: string) => void,
-): Promise<string> {
-  const backoffMs = [0, 1200, 2500];
-  let lastErr: unknown;
-  for (const delay of backoffMs) {
-    if (delay) await new Promise((r) => setTimeout(r, delay));
-    try {
-      const answer = await callZAI(systemPrompt, history, question, onDelta);
-      if (answer) return answer;
-      lastErr = new Error('resposta vazia');
-    } catch (err) {
-      lastErr = err;
-      console.warn('[api/tutor] ZAI tentativa falhou (retry em sequência):', err instanceof Error ? err.message : err);
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error('ZAI esgotou as retentativas');
-}
-
 /**
  * Transcreve a imagem anexada (print/foto da questão) com o PRIMEIRO modelo de
  * visão disponível — cadeia pensada para funcionar 100% na Vercel com keys grátis:
@@ -875,7 +755,6 @@ async function callZAIRetry(
  *  1º Gemini (GEMINI_API_KEY)      — visão nativa, tier grátis generoso (RECOMENDADO)
  *  2º OpenRouter (OPENROUTER_API_KEY) — modelos free que aceitam imagem
  *  3º Z.ai público (ZAI_API_KEY)   — glm-4.5v via api.z.ai
- *  4º SDK Z-AI do sandbox          — só em dev/sandbox (na Vercel não existe)
  *
  * A transcrição vira a "pergunta efetiva" — assim qualquer provedor de TEXTO da
  * cadeia responde com a questão na mão, e ela também entra no retrieval.
@@ -927,14 +806,6 @@ async function transcribeImage(dataUrl: string, userNote: string): Promise<strin
     } catch (err) {
       errors.push(`zai-public: ${err instanceof Error ? err.message : err}`);
     }
-  }
-
-  // 4º — SDK do sandbox (dev). Na Vercel o import falha → cai no throw abaixo.
-  try {
-    const out = await transcribeImageSandbox(dataUrl, userNote);
-    if (out) return out;
-  } catch (err) {
-    errors.push(`sandbox-sdk: ${err instanceof Error ? err.message : err}`);
   }
 
   if (errors.length) {
@@ -1050,28 +921,6 @@ async function callZAIVision(
   } finally {
     clearTimeout(timer);
   }
-}
-
-/** Transcrição com o SDK Z-AI do sandbox (glm-4.5v) — só funciona em dev.
- *  Pacote fora do package.json (pedido do dono) — em produção o import falha
- *  e a chamadora ignora este caminho (visão vem de Gemini/OpenRouter com key). */
-async function transcribeImageSandbox(dataUrl: string, userNote: string): Promise<string> {
-  const mod = await importZaiSandbox();
-  const ZAI = mod.default;
-  const zai = await ZAI.create();
-  const instruction = buildTranscriptionInstruction(userNote);
-  const completion = await zai.chat.completions.createVision({
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: instruction },
-          { type: 'image_url', image_url: { url: dataUrl } },
-        ],
-      },
-    ],
-  });
-  return (completion?.choices?.[0]?.message?.content ?? '').trim();
 }
 
 /**
@@ -1202,7 +1051,7 @@ async function probeProviders(geminiModelOverride?: string | null): Promise<Resp
   }
 
   const [gemini, openrouter, zai] = await Promise.all([jobs.gemini, jobs.openrouter, jobs.zai]);
-  const first = gemini.ok ? 'Gemini' : openrouter.ok ? 'OpenRouter' : zai.ok ? 'Z.ai' : 'nenhum (usa sandbox no dev)';
+  const first = gemini.ok ? 'Gemini' : openrouter.ok ? 'OpenRouter' : zai.ok ? 'Z.ai' : 'nenhuma key configurada';
   return Response.json({
     probe: {
       at: new Date().toISOString(),
@@ -1221,8 +1070,8 @@ export async function GET(req: Request) {
   if (params.get('probe')) return probeProviders(params.get('geminiModel'));
   const vision = visionProviderLabel();
   return Response.json({
-    provider: 'gemini → openrouter → z.ai → sandbox (primeiro disponível)',
-    vision: vision ?? 'somente dev/sandbox — configure GEMINI_API_KEY (grátis) para produção',
+    provider: 'gemini → openrouter → z.ai (primeiro disponível — REST puro, sem SDK)',
+    vision: vision ?? 'não configurada — adicione GEMINI_API_KEY (grátis) para ler prints',
     chains: {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
       flashcards: MODEL_CHAIN.flashcards.map((id) => ({ id, label: prettyModelName(id) })),
@@ -1235,7 +1084,6 @@ export async function GET(req: Request) {
       gemini: Boolean(GEMINI.key),
       openrouter: Boolean(process.env.OPENROUTER_API_KEY),
       zaiPublic: Boolean(process.env.ZAI_API_KEY),
-      zaiSdk: 'auto (só em dev/sandbox)',
     },
   });
 }
@@ -1392,6 +1240,13 @@ export async function POST(req: Request) {
         ? body.hubContext
         : undefined;
 
+    // Contexto do aluno/curso: SEMPRE fornecido pelo app do cliente (o servidor
+    // é genérico — não sabe instituição, curso, período nem provas de ninguém).
+    const studentContext =
+      typeof body.studentContext === 'string' && body.studentContext.trim()
+        ? body.studentContext.trim().slice(0, 1600)
+        : '';
+
     // Conteúdo REAL do material aberto (resumo IA + trechos do PDF por relevância).
     // FALLBACK 139: sem material selecionado, o tutor PROCURA na disciplina —
     // pergunta com número de questão/tema específico ancora no material certo em
@@ -1405,7 +1260,7 @@ export async function POST(req: Request) {
       : '';
 
     const systemPrompt = isFlashcardsMode
-      ? buildFlashcardsPrompt(discipline, topic || question)
+      ? buildFlashcardsPrompt(discipline, topic || question, studentContext)
       : isFeynmanMode
         ? buildFeynmanPrompt(discipline, topic || question) +
           (materialBlock
@@ -1418,11 +1273,8 @@ export async function POST(req: Request) {
             hub,
             materialBlock,
             body.hintMode === true,
-          ) +
-      // t194 (porta da t177) — INTEL DA PROVA (só modo tutor): na disciplina da
-      // Av1, o tutor recebe o mapa espelhado completo (6 questões, espelhos,
-      // ordem, pontos) gerado DO MESMO prof-audio-map que os cards usam.
-      (disciplineKey === 'TEC.1984' ? `\n\n${examIntelForTutor()}` : '');
+            studentContext,
+          );
 
     // ---------- MODO STREAMING (SSE) — chat do tutor ----------
     if (useStream) {
@@ -1520,17 +1372,6 @@ export async function POST(req: Request) {
               }
             }
 
-            // 3º: fallback Z-AI do sandbox (stream se o SDK permitir)
-            if (!answer && Date.now() <= deadline - 8_000) {
-              try {
-                answer = await callZAIRetry(systemPrompt, history, effectiveQuestion, (piece) =>
-                  send({ t: 'delta', v: piece }),
-                );
-                usedModel = 'Z-AI (fallback)';
-              } catch (err) {
-                console.error('[api/tutor] fallback ZAI falhou:', err instanceof Error ? err.message : err);
-              }
-            }
 
             if (!answer) {
               send({
@@ -1626,16 +1467,6 @@ export async function POST(req: Request) {
           `[api/tutor] zai-public falhou em ${Date.now() - t0}ms:`,
           err instanceof Error ? err.message : err,
         );
-      }
-    }
-
-    // 3º: fallback Z-AI do sandbox (com retry — sobrevive a rajadas de 429)
-    if (!answer) {
-      try {
-        answer = await callZAIRetry(systemPrompt, history, effectiveQuestion);
-        usedModel = 'Z-AI (fallback)';
-      } catch (err) {
-        console.error('[api/tutor] fallback ZAI falhou:', err instanceof Error ? err.message : err);
       }
     }
 
