@@ -227,7 +227,7 @@ export function ExamPrepCard() {
         (MATH_EXAM.topicosEscopo as readonly string[]).includes(t.topic),
     );
     if (trends.length === 0) return null;
-    return { worst: trends[0], allGood: trends.every((t) => t.last >= 80), trends };
+    return { worst: trends[0], allGood: trends.every((t) => (t.last ?? 0) >= 80), trends };
   }, [sp.progress.simuladoRuns]);
 
   // O DIA DO SIMULADO SABE QUANDO ELE JÁ ACONTECEU: uma prova de Matemática
@@ -637,16 +637,20 @@ export function ExamPrepCard() {
                 </span>
                 {examFocus.trends.map((t) => {
                   const isWorst = t === examFocus.worst;
+                  // doutrina da casa: null = pulou tudo — "sem taxa", nunca 0% falso
+                  const last = t.last;
                   const worstTone =
-                    t.last < 40
+                    last !== null && last < 40
                       ? 'border-rose-500/50 bg-rose-500/10 text-rose-700 dark:text-rose-400'
                       : 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400';
                   const pctTone =
-                    t.last >= 80
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : t.last >= 40
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-rose-600 dark:text-rose-400';
+                    last === null
+                      ? 'text-muted-foreground'
+                      : last >= 80
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : last >= 40
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-rose-600 dark:text-rose-400';
                   return (
                     <span
                       key={t.topic}
@@ -673,9 +677,9 @@ export function ExamPrepCard() {
                       )}
                       <span className="max-w-[13rem] truncate">{t.topic}</span>
                       <span className={cn('font-bold tabular-nums', isWorst ? '' : pctTone)}>
-                        {t.last}%
+                        {last === null ? 'sem taxa' : `${last}%`}
                       </span>
-                      {t.series.length >= 2 && t.delta !== 0 && (
+                      {t.series.length >= 2 && t.delta !== null && t.delta !== 0 && (
                         <span
                           title={
                             t.delta > 0
@@ -2191,21 +2195,28 @@ function ReadinessSection({
                       aria-label="Domínio atual por tópico do escopo da prova"
                     >
                       {readiness.topicMastery.map((t, ti) => {
-                        const DeltaIcon = t.delta > 0 ? TrendingUp : t.delta < 0 ? TrendingDown : Minus;
+                        // doutrina: pct/delta null = pulou tudo — "sem taxa", nunca 0% falso
+                        const pct = t.pct;
+                        const delta = t.delta;
+                        const DeltaIcon =
+                          delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
                         const deltaCls =
-                          t.delta > 0
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : t.delta < 0
-                              ? 'text-rose-500'
-                              : 'text-muted-foreground/60';
-                        const deltaTxt = `Δ ${t.delta >= 0 ? '+' : ''}${t.delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`;
+                          delta === null || delta === 0
+                            ? 'text-muted-foreground/60'
+                            : delta > 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-500';
+                        const deltaTxt =
+                          delta === null
+                            ? `sem taxa na última (bloco pulado) em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`
+                            : `Δ ${delta >= 0 ? '+' : ''}${delta}pp em ${t.attempts} tentativa${t.attempts === 1 ? '' : 's'}`;
                         return (
                           <div
                             key={t.topic}
                             className="flex items-center gap-1.5"
-                            title={`${t.topic}: ${t.pct}% na última tentativa · ${deltaTxt}`}
+                            title={`${t.topic}: ${pct === null ? 'sem taxa' : `${pct}% na última tentativa`} · ${deltaTxt}`}
                           >
-                            {t.pct < 60 ? (
+                            {pct !== null && pct < 60 ? (
                               <Crosshair
                                 className="size-3 shrink-0 text-rose-500"
                                 role="img"
@@ -2219,19 +2230,19 @@ function ReadinessSection({
                             </span>
                             <span className="h-1 flex-[3] overflow-hidden rounded-full bg-muted" aria-hidden>
                               <motion.span
-                                className={cn('block h-full rounded-full', masteryBarCls(t.pct))}
+                                className={cn('block h-full rounded-full', masteryBarCls(pct ?? 0))}
                                 initial={{ width: 0 }}
-                                animate={{ width: `${t.pct}%` }}
+                                animate={{ width: `${pct ?? 0}%` }}
                                 transition={{ duration: 0.6, delay: 0.4 + ti * 0.08, ease: 'easeOut' }}
                               />
                             </span>
                             <span
                               className={cn(
                                 'w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums',
-                                masteryTextCls(t.pct),
+                                masteryTextCls(pct ?? 0),
                               )}
                             >
-                              {t.pct}%
+                              {pct === null ? 's/ taxa' : `${pct}%`}
                             </span>
                             <DeltaIcon className={cn('size-3 shrink-0', deltaCls)} aria-hidden />
                           </div>

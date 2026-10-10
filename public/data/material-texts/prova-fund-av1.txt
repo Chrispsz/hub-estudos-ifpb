@@ -1,0 +1,22 @@
+Prova Av1 — Fundamentos da Computação (Prof. André)
+====================================================
+Fonte: foto da prova real — transcrição OCR por IA de visão (todas as 5 questões; os números soltos na margem são os pontos de cada questão).
+
+2,0 1- Para cada geração (5 Gerações) cite as principais características, problemas e dispositivos que marcaram a evolução dos computadores. (2,0)
+
+2,0 2- Fale da importância histórica dos seguintes Notáveis, escreva como suas invenções ou ideias revolucionaram a Computação: Babbage, Ada Lovelace, Alan Turing, John Von Neumann. (2,0)
+
+2,0 3- Resolva: (2,0)
+a. 14 (16) → X (10), X (2)
+b. 10101010 (2) → X (10), X (8), X (16)
+c. CAFA (16) → X (10), X (8)
+
+2,0 4- A divisão do número 1710, que está na base 8, pelo número 1111001, que está na base 2, adicionado do número 2, que está na base 10, resulta em qual número na base 16? (2,0)
+
+1,5 5- Converter os números a seguir de decimal para binário e realizar as operações indicadas utilizando a representação binária. (2,0)
+a. 174 x 13;
+b. 203 x 7;
+c. 105 / 5;
+d. 200 / 3.
+
+(Fim da prova — 10,0 pontos no total: 2+2+2+2+2.)

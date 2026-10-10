@@ -170,7 +170,6 @@ export function buildDayPlan(
     if (dueCards > 0) {
       push({
         kind: 'pratica',
-        id: 'pratica:flashcards',
         title:
           dueCards === 1 ? 'Revisar 1 cartão vencido' : `Revisar ${dueCards} cartões vencidos`,
         why: 'recall ativo — testar de cabeça fixa mais que reler',

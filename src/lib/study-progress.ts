@@ -456,10 +456,6 @@ export interface MaterialReviewState {
 export interface StudyProgress {
   /** Caderno de Erros: chave do item → ISO em que foi marcado como revisado. */
   notebookRevised?: { [key: string]: string };
-  /** Checklist de passos por material (o PDF vira fila de passos; o plano lê o que falta). */
-  materialChecklists?: { [materialId: string]: MaterialChecklist };
-  /** Ciclo de revisão espaçada por material (1·3·7·14·30 — semeado ao concluir). */
-  materialReviews?: { [materialId: string]: MaterialReviewState };
   recentMaterials: RecentMaterial[];
   completedMaterials: string[];
   materialProgress: { [materialId: string]: MaterialProgress };
