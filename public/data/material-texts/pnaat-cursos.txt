@@ -1,3 +1,6 @@
+=== NOTA DE ESTUDO (dono do hub) ===
+PNAAT = Programa Nacional de Aprendizado Acelerado em Tecnologia — residência para formar talento em IoT e IA na borda. CURSO EXTERNO: as trilhas rodam na plataforma FIT (fit-tecnologia.org.br), fora do hub. O papel do hub é LEMBRAR de estudar (card na home, Ter/Qui) e registrar o dia cumprido. Bolsas: Intensivo Maker (presencial, 2 meses, 4h/dia) R$1.800/mês; Residência Tecnológica em empresas (3 meses) até R$3.600/mês. Concluir as trilhas é o primeiro passo para disputar.
+
 04/09/2026, 18:03 Meus cursos | PNAAT
 
  Meus cursos  Buscar curso...

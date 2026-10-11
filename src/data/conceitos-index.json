@@ -1933,9 +1933,9 @@
   "titulo": "matematica-ementa.summary.json"
  },
  {
-  "conceito": "PNAAT",
-  "explicacao": "Núcleo de apoio acadêmico do IFPB Cajazeiras que oferece trilhas gratuitas na plataforma FIT Tecnologia; concluir trilhas qualifica para concorrer a bolsa.",
-  "exemplo": "A trilha 'Fundamentos em IoT e Edge AI' é uma das portas de entrada para a bolsa do programa.",
+  "conceito": "PNAAT — Programa Nacional de Aprendizado Acelerado em Tecnologia",
+  "explicacao": "Programa de residência/aceleração para formar talento em IoT e IA na borda (Edge AI): as trilhas online na plataforma FIT são a porta de entrada; quem se destaca avança para as fases com bolsa.",
+  "exemplo": "Concluir 'Fundamentos em IoT e Edge AI' qualifica para o Intensivo Maker (laboratório, 2 meses, 4h/dia, bolsa R$1.800/mês) e depois para a Residência…",
   "summaryFile": "pnaat-cursos.summary.json",
   "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)"
  },
@@ -1955,7 +1955,7 @@
  },
  {
   "conceito": "Atividades Síncronas",
-  "explicacao": "Encontros ao vivo da plataforma FIT, já disponíveis na aba 'Meus cursos' — participation conta para o aproveitamento da trilha.",
+  "explicacao": "Encontros ao vivo da plataforma FIT, já disponíveis na aba 'Meus cursos' — a participação conta para o aproveitamento da trilha.",
   "exemplo": "O item '5. Atividades Síncronas' aparece com status 'Já disponível' dentro da trilha de IoT.",
   "summaryFile": "pnaat-cursos.summary.json",
   "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)"

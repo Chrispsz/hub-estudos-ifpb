@@ -453,6 +453,26 @@ export interface MaterialReviewState {
   dueAt: string; // ISO
 }
 
+// ---------- Lembrete PNAAT (plataforma externa — pedido do dono:
+// "quero só ser lembrado de estudar mesmo já que vai ser em outra plataforma") ----------
+
+/**
+ * O PNAAT (Programa Nacional de Aprendizado Acelerado em Tecnologia) NÃO é
+ * disciplina nem material do acervo: as trilhas vivem na plataforma FIT
+ * (fit-tecnologia.org.br) e rendem bolsa (Intensivo Maker R$1.800/mês,
+ * Residência em empresas até R$3.600). O hub não tenta reproduzir o curso —
+ * só o COMPROMISSO: lembrar nos dias combinados e registrar que o dia cumpriu.
+ */
+export interface PnaatReminderState {
+  /** ISO da última sessão marcada como "estudei hoje". */
+  lastSessionAt?: string;
+  /** Dias da semana que lembram (0=Dom..6=Sáb). Padrão: Ter e Qui. */
+  days: number[];
+}
+
+/** Fallback do lembrete: Terça e Quinta — 2 toques por semana, sem sufoco. */
+export const PNAAT_DEFAULT_DAYS = [2, 4] as const;
+
 export interface StudyProgress {
   /** Caderno de Erros: chave do item → ISO em que foi marcado como revisado. */
   notebookRevised?: { [key: string]: string };
@@ -482,6 +502,8 @@ export interface StudyProgress {
   materialChecklists: { [materialId: string]: MaterialChecklist };
   /** Ciclo de revisão espaçada por material (frente 13). */
   materialReviews: { [materialId: string]: MaterialReviewState };
+  /** Lembrete de estudo do PNAAT (plataforma FIT — externo ao acervo). */
+  pnaatReminder: PnaatReminderState;
 }
 
 const defaultDayAvailability: StudyPreferences['days'] = {
@@ -539,6 +561,7 @@ export const defaultProgress: StudyProgress = {
   dailyHours: {},
   materialChecklists: {},
   materialReviews: {},
+  pnaatReminder: { days: [...PNAAT_DEFAULT_DAYS] },
 };
 
 /**
@@ -571,6 +594,13 @@ export function mergeWithDefaults(partial: Partial<StudyProgress> | null | unkno
     dailyHours: p.dailyHours ?? {},
     materialChecklists: p.materialChecklists ?? {},
     materialReviews: p.materialReviews ?? {},
+    pnaatReminder: {
+      ...defaultProgress.pnaatReminder,
+      ...(p.pnaatReminder ?? {}),
+      days: Array.isArray(p.pnaatReminder?.days)
+        ? p.pnaatReminder.days
+        : [...PNAAT_DEFAULT_DAYS],
+    },
   };
 }
 
@@ -1086,6 +1116,21 @@ export function useStudyProgress() {
     [setProgress],
   );
 
+  // PNAAT (plataforma FIT) — registra "estudei hoje" no lembrete. Idempotente
+  // no mesmo dia (clicar 2x não cria 2 sessões) e acumula o total (o dono vê
+  // o compromisso crescendo, não só a última data).
+  const markPnaatSession = React.useCallback(() => {
+    setProgress((prev) => {
+      const today = new Date().toISOString();
+      const last = prev.pnaatReminder.lastSessionAt;
+      if (last && last.slice(0, 10) === today.slice(0, 10)) return prev;
+      return {
+        ...prev,
+        pnaatReminder: { ...prev.pnaatReminder, lastSessionAt: today },
+      };
+    });
+  }, [setProgress]);
+
   const toggleScheduleBlockDone = React.useCallback(
     (blockId: string) => {
       setProgress((prev) => {
@@ -1596,6 +1641,7 @@ export function useStudyProgress() {
       updatePomodoroState,
       addStudyBlock,
       removeStudyBlock,
+      markPnaatSession,
       toggleScheduleBlockDone,
       saveGradeNote,
       resetGradeNotes,
@@ -1654,6 +1700,7 @@ export function useStudyProgress() {
       updatePomodoroState,
       addStudyBlock,
       removeStudyBlock,
+      markPnaatSession,
       toggleScheduleBlockDone,
       saveGradeNote,
       resetGradeNotes,

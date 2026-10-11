@@ -2,9 +2,9 @@
   "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)",
   "conceitos_chave": [
     {
-      "conceito": "PNAAT",
-      "explicacao": "Núcleo de apoio acadêmico do IFPB Cajazeiras que oferece trilhas gratuitas na plataforma FIT Tecnologia; concluir trilhas qualifica para concorrer a bolsa.",
-      "exemplo": "A trilha 'Fundamentos em IoT e Edge AI' é uma das portas de entrada para a bolsa do programa."
+      "conceito": "PNAAT — Programa Nacional de Aprendizado Acelerado em Tecnologia",
+      "explicacao": "Programa de residência/aceleração para formar talento em IoT e IA na borda (Edge AI): as trilhas online na plataforma FIT são a porta de entrada; quem se destaca avança para as fases com bolsa.",
+      "exemplo": "Concluir 'Fundamentos em IoT e Edge AI' qualifica para o Intensivo Maker (laboratório, 2 meses, 4h/dia, bolsa R$1.800/mês) e depois para a Residência Tecnológica em empresas (até R$3.600/mês)."
     },
     {
       "conceito": "Trilha de Fundamentos em IoT e Edge AI",
@@ -18,14 +18,15 @@
     },
     {
       "conceito": "Atividades Síncronas",
-      "explicacao": "Encontros ao vivo da plataforma FIT, já disponíveis na aba 'Meus cursos' — participation conta para o aproveitamento da trilha.",
+      "explicacao": "Encontros ao vivo da plataforma FIT, já disponíveis na aba 'Meus cursos' — a participação conta para o aproveitamento da trilha.",
       "exemplo": "O item '5. Atividades Síncronas' aparece com status 'Já disponível' dentro da trilha de IoT."
     }
   ],
   "pontos_importantes": [
-    "Print da plataforma FIT (fit-tecnologia.org.br) capturado em 04/09/2026 mostrando o painel 'Meus cursos'",
+    "CURSO EXTERNO: as trilhas rodam na plataforma FIT (fit-tecnologia.org.br) — outro site. O hub não reproduz o curso: só lembra de estudar (card na home, Ter/Qui) e registra o dia cumprido",
+    "Bolsas do programa: Intensivo Maker (presencial, 2 meses, 4h/dia) R$1.800/mês · Residência Tecnológica em empresas (3 meses) até R$3.600/mês",
+    "Print da plataforma FIT capturado em 04/09/2026 mostrando o painel 'Meus cursos'",
     "Único progresso real: Fundamentos em Python — 28% completo, 8h, Prof. Jane Piantoni",
-    "A trilha de IoT e Edge AI é a âncora da bolsa (o link 'PNAAT - Plataforma FIT' na aba Links leva direto às trilhas)",
     "Hub de Aprendizagem PNAAT (1h, Prof. Lucas Mattos) é o módulo zero obrigatório da trilha principal",
     "Trilhas de Eletrônica e Sistemas Embarcados estão disponíveis mas zeradas (0/2 cada)"
   ],
@@ -41,10 +42,11 @@
     "Acessar sempre por fit-tecnologia.org.br/ava/local/customcourses/index.php (aba Links do hub)"
   ],
   "perguntas_autoavaliacao": [
+    "O que significa a sigla PNAAT e por que o programa existe (qual é o 'talento' que ele busca)?",
+    "Quais são as duas fases com bolsa do programa e quanto cada uma paga por mês?",
     "Qual módulo da trilha de IoT está em andamento e com qual percentual?",
     "Quanto tempo dura o Hub de Aprendizagem PNAAT e quem é o professor?",
     "Quais são as duas trilhas complementares além de IoT e por que elas importam para Edge AI?",
-    "Onde ficam as atividades síncronas e qual o status delas no print?",
-    "Como o PNAAT paga o esforço nas trilhas — o que a conclusão qualifica você a concorrer?"
+    "Por que o hub não tenta ensinar o PNAAT — e qual é o único papel dele nesse compromisso?"
   ]
 }

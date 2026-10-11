@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { openPractice, openProgress, openSimulado } from '@/lib/hub-events';
 import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { upcomingEvents } from '@/lib/semester';
+import { PnaatReminderCard } from './pnaat-reminder-card';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
 import { buildDayPlan, PLAN_KIND_LABEL, type PlanBlock, type PlanKind } from '@/lib/study-plan';
 import { useStudyProgress } from '@/lib/study-progress';
@@ -646,6 +647,9 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           </ul>
         </Card>
       )}
+
+      {/* Lembrete PNAAT — compromisso externo (plataforma FIT): lembrar, não replicar */}
+      <PnaatReminderCard />
 
       {/* Agenda oficial — o calendário do campus, fonte viva: nada de prazo surpresa */}
       {agenda.length > 0 && (

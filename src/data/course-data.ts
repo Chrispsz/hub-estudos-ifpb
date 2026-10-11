@@ -143,7 +143,7 @@ export const importantLinks: ImportantLink[] = [
     description: 'Pasta no Google Drive com videoaulas do Prof. Fabio Gomes',
     category: 'material', icon: 'Video' },
   { title: 'PNAAT - Plataforma FIT', url: 'https://fit-tecnologia.org.br/ava/local/customcourses/index.php',
-    description: 'Acesso às trilhas do PNAAT (IoT e Edge AI) para concorrer a bolsa',
+    description: 'Programa Nacional de Aprendizado Acelerado em Tecnologia (curso EXTERNO — roda LÁ, não no hub). Trilhas de IoT e Edge AI: concluir é o 1º passo para as bolsas (Intensivo Maker R$1.800/mês; Residência em empresa até R$3.600). O hub lembra de estudar — Ter e Qui.',
     category: 'pnaat', icon: 'Cpu' },
   { title: 'Edital IVS 2026.2', url: 'https://www.ifpb.edu.br/campus/cajazeiras/noticias/2026/08/ifpb-campus-cajazeiras-lanca-edital-de-indice-de-vulnerabilidade-social-ivs',
     description: 'Edital 12/2026 - Índice de Vulnerabilidade Social. Inscrições 01/09 a 15/09 pelo SUAP. Auxílio financeiro (R$ 100-300) para estudantes em vulnerabilidade.',
@@ -713,6 +713,7 @@ export const disciplines: Discipline[] = [
       'ORLANDI, E. P. Análise de discurso: princípios e procedimentos. 5ª ed. Pontes.',
     ],
     dicasEstudo: [
+      'Material da aula é FÍSICO (apostila em papel) — fotografe a página do dia e anexe ao tutor para estudar junto',
       'Leia ativamente - sublinhe e faça anotações',
       'Pratique a produção de resumos e resenhas',
       'Revise concordância e regência semanalmente',

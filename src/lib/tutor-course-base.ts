@@ -95,6 +95,10 @@ export function buildCourseBaseContext(now: Date = new Date()): string {
     '',
     'Disciplinas do período (plano docente — professores, carga, peso da nota):',
     ...disciplinaLines,
+    '',
+    'Notas de método (verdades permanentes do dono — nada aqui envelhece):',
+    '  • Português Instrumental: o material da aula é FÍSICO (apostila em papel). As imagens que o aluno anexar são as páginas dela — leia-as como material oficial da disciplina; o plano 0576 é a única âncora digital.',
+    '  • PNAAT (Programa Nacional de Aprendizado Acelerado em Tecnologia): curso EXTERNO na plataforma FIT (fit-tecnologia.org.br), trilhas de IoT/Edge AI. NÃO é disciplina do IFPB — o hub só lembra de estudar (Ter/Qui) e registra o dia. Bolsas: Intensivo Maker R$1.800/mês · Residência em empresa até R$3.600/mês.',
   ];
 
   if (evaluationLines.length) {
