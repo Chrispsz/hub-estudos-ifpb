@@ -1,0 +1,25 @@
+Videoaulas de Algoritmos — pasta oficial no Google Drive do Prof. Fabio Gomes de Andrade.
+
+[página 1] O QUE É
+
+Coleção de aulas gravadas da disciplina Algoritmos e Lógica de Programação, compartilhada pelo professor em pasta pública do Google Drive. É o complemento em vídeo dos PDFs (slides, Questões da Semana 1-4) e da monitoria no Discord.
+
+COBERTURA (unidades comprovas no hub):
+- Unidade 1: Noções de algoritmos e programação — algoritmos, entrada/saída em C, atribuição, tipos, variáveis, operadores aritméticos/lógicos/relacionais.
+- Unidade 2: Desvios condicionais — comando if, comando switch.
+- Unidade 3: Comandos de repetição — for, while, do-while.
+
+COMO USAR (fluxo do hub):
+1. Antes da lista da semana: assista ao vídeo da unidade correspondente.
+2. Pause no exemplo e digite o programa no Replit ou VS Code — algoritmo se aprende digitando, não assistindo.
+3. Depois do vídeo, faça a Questão da Semana correspondente; a notação dos vídeos é a mesma das listas.
+4. Dúvida que sobrevive ao vídeo → pergunte ao Tutor IA citando a questão específica, ou leve à monitoria (Discord, Everton).
+
+ONDE ACHAR:
+- Aba Links do hub → "Videoaulas de Algoritmos" (categoria material).
+- Card deste material na Biblioteca → botão "Abrir no Drive".
+- URL direta: drive.google.com/drive/folders/1QFBEca75o9E-Vd65rDdg2wktqasDzHIx
+
+REGRAS DE ESTUDO:
+- 1 vídeo da unidade = 1 lista correspondente da mesma semana (nunca acumular 2 semanas).
+- Vídeo → pausar → digitar → rodar → seguir. Assistir passivamente não conta como estudo.

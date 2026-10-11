@@ -1,5 +1,5 @@
 const ta = document.querySelector('[aria-label="Bloco de código para o tutor"]');
-if (!ta) { 'NO-TA' } else {
+if (!ta) { console.log('NO-TA'); } else {
   const code = `#include <stdio.h>
 #include <math.h>
 
@@ -24,5 +24,5 @@ void main(){
   const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
   setter.call(ta, code);
   ta.dispatchEvent(new Event('input', { bubbles: true }));
-  'PASTED ' + code.split('\n').length + ' lines';
+  console.log('PASTED ' + code.split('\n').length + ' lines');
 }

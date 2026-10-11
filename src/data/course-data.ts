@@ -660,34 +660,58 @@ export const disciplines: Discipline[] = [
     category: 'linguagens',
     color: 'cyan',
     icon: 'BookOpen',
-    ementa: 'Estudo dirigido da língua portuguesa voltado à produção e compreensão de textos acadêmicos e técnicos. Foco em norma culta, coesão, coerência e produção textual.',
+    // EMENTA OFICIAL — plano de disciplina 0576 assinado em 15/02/2026 (SUAP 836330)
+    ementa:
+      'A Língua portuguesa como interação comunicativa. Diferentes concepções textuais. Modos de produção textual científica. Conceitos linguísticos. Níveis de linguagem, variações linguísticas. Teoria da Comunicação. Leitura e interpretação de textos diversos. Tipologia textual. Parágrafo padrão. Técnica de resumo. Técnicas de argumentação; estrutura e características do texto dissertativo, elementos de textualidade. Noções linguístico gramaticais aplicadas ao texto.',
     conteudoProgramatico: [
-      { unidade: 'Compreensão e produção textual', topicos: ['Leitura e interpretação de textos',
-        'Coesão e coerência textual', 'Produção de textos técnicos'] },
-      { unidade: 'Norma culta', topicos: ['Gramática aplicada (concordância, regência, crase)',
-        'Vícios de linguagem', 'Semântica e variação linguística'] },
-    ],
-    objetivos: { geral: 'Desenvolver competências de leitura, interpretação e produção textual em língua portuguesa.',
-      especificos: [
-        'Aplicar a norma culta em produções textuais',
-        'Identificar e corrigir desvios gramaticais',
-        'Produzir textos coerentes e coesos',
+      { unidade: 'Unidade I: As diferentes concepções de linguagem', topicos: [
+        'Linguagem e cognição', 'Modalidades da língua', 'As variações linguísticas',
+        'Tipos de variações linguísticas', 'Teoria da comunicação', 'O texto',
+        'Tipologia textual e gêneros textuais', 'Tipos textuais', 'Textualidade',
+        'Propriedades da textualidade', 'Compreensão de texto',
+        'O texto literário / o texto não literário',
       ] },
-    avaliacao: 'Avaliação contínua com atividades de leitura, interpretação e produção textual.',
+      { unidade: 'Unidade II: Técnicas de produção textual aplicadas ao texto acadêmico', topicos: [
+        'O parágrafo', 'Palavras e ideias chave', 'Dissertação argumentativa',
+        'Estrutura da dissertação', 'O Resumo', 'Resumo indicativo',
+        'Resumo informativo', 'Resumo crítico',
+      ] },
+      { unidade: 'Unidade III: Orientações gramaticais', topicos: [
+        'Noções básicas de morfossintaxe', 'Regras de pontuação',
+      ] },
+    ],
+    objetivos: {
+      geral: 'Entender a linguagem como atividade interativa, sócio-comunicativa através da qual se estabelecem as relações sociais e dominar os aspectos fundamentais do processo comunicativo com ênfase na diversidade linguística.',
+      especificos: [
+        'Fazer leitura crítico-analítica de diferentes gêneros textuais',
+        'Analisar e redigir textos argumentativos',
+        'Reconhecer a diversidade linguística',
+        'Resumir e analisar textos diversos',
+        'Produzir textos de diversas tipologias',
+      ],
+    },
+    // Oficial: avaliação qualitativa e quantitativa — escritas individuais + trabalhos
+    // em equipe + produção de gêneros textuais + participação oral e escrita
+    avaliacao: 'Avaliação qualitativa e quantitativa: avaliações escritas individuais e trabalhos em equipe; produção de gêneros textuais específicos; pontuação atribuída à participação oral e escrita durante as aulas.',
     evaluationMethod: 'continua_formativa',
     gradeComponents: [
-      { name: 'Atividades', weight: 60, scale: 10, description: 'Atividades de leitura e interpretação' },
-      { name: 'Produção Textual', weight: 40, scale: 10, description: 'Produção de textos técnicos' },
+      { name: 'Produções textuais', weight: 60, scale: 10, description: 'Escritas individuais e trabalhos em equipe — produção de gêneros textuais específicos' },
+      { name: 'Participação', weight: 40, scale: 10, description: 'Participação oral e escrita durante as aulas (qualitativa)' },
     ],
     approvalThreshold: 7,
     finalExamThreshold: 4,
     scale: 10,
     bibliografiaBasica: [
-      'BECHARA, E. Moderna Gramática Portuguesa. Nova Fronteira, 37ª ed.',
-      'CUNHA, C.; CINTRA, L. Nova Gramática do Português Contemporâneo. Lexikon.',
-      'GARCIA, O. M. Comunicação em Prosa Moderna. FGV.',
+      'BECHARA, E. Moderna Gramática da Língua Portuguesa. 37ª ed. Nova Fronteira.',
+      'GARCIA, O. M. Comunicação em Prosa Moderna. 27ª ed. FGV, 2010.',
+      'FIORIN, J. L.; SAVIOLI, F. P. Para entender o texto: leitura e redação.',
     ],
-    bibliografiaComplementar: [],
+    bibliografiaComplementar: [
+      'ABAURRE, M. L.; ABAURRE, M. B. M.; PONTARA, M. N. Português: Contexto, interlocução e Sentido. Moderna, 2010.',
+      'SARMENTO, L. L. Oficina de redação. Vol. único. Moderna.',
+      'VIANA, A. C. Roteiro de redação: lendo e argumentando. Scipione.',
+      'ORLANDI, E. P. Análise de discurso: princípios e procedimentos. 5ª ed. Pontes.',
+    ],
     dicasEstudo: [
       'Leia ativamente - sublinhe e faça anotações',
       'Pratique a produção de resumos e resenhas',
@@ -737,7 +761,7 @@ export const materials: Material[] = [
     topicosCobertos: ['Unidade 1: Noções de algoritmos e programação'],
   },
   { id: 'alg-videoaulas', disciplineCode: 'TEC.1687', title: 'Videoaulas (Google Drive)',
-    type: 'video', summaryFile: '', source: 'external',
+    type: 'video', summaryFile: 'alg-videoaulas.summary.json', source: 'external',
     externalUrl: 'https://drive.google.com/drive/folders/1QFBEca75o9E-Vd65rDdg2wktqasDzHIx',
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['Unidade 1: Noções de algoritmos e programação', 'Unidade 2: Desvios condicionais', 'Unidade 3: Comandos de repetição'],
@@ -931,6 +955,10 @@ export const materials: Material[] = [
   { id: 'ing-ementa', disciplineCode: 'ING.001', title: 'Plano de Disciplina - Inglês',
     type: 'ementa', pdfPath: '/data/ementas/ementa-ingles.pdf',
     summaryFile: 'ingles-ementa.summary.json', source: 'ifpb_site' },
+  // Ementa oficial de Português (SUAP 836330 — baixada do estudante.ifpb.edu.br)
+  { id: 'port-ementa', disciplineCode: 'PORT.001', title: 'Plano de Disciplina - Português Instrumental (0576)',
+    type: 'ementa', pdfPath: '/data/ementas/ementa-portugues.pdf',
+    summaryFile: 'port-ementa.summary.json', source: 'ifpb_site' },
   // Calendário acadêmico
   { id: 'calendario', disciplineCode: 'PNAAT', title: 'Calendário Acadêmico Semestral 2026',
     type: 'calendar', pdfPath: '/pdfs/calendario-semestral.pdf',
@@ -948,7 +976,7 @@ export const materials: Material[] = [
   // PNAAT
   { id: 'pnaat-cursos', disciplineCode: 'PNAAT', title: 'PNAAT - Meus Cursos (PDF)',
     type: 'pdf', pdfPath: '/pdfs/PNAAT-Meus-cursos.pdf',
-    summaryFile: '', source: 'pnaat' },
+    summaryFile: 'pnaat-cursos.summary.json', source: 'pnaat' },
   { id: 'pnaat-parceiros', disciplineCode: 'PNAAT', title: 'PNAAT Parceiros - Cajazeiras',
     type: 'pdf', pdfPath: '/pdfs/pnaat-parceiros-cajazeiras.pdf',
     summaryFile: 'pnaat-parceiros-cajazeiras.summary.json', source: 'user_upload' },

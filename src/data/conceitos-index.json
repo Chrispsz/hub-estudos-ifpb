@@ -265,6 +265,62 @@
   "titulo": "Questões da Semana 3 — Algoritmos (Classroom)"
  },
  {
+  "conceito": "O número 'do meio' de três distintos (Q1)",
+  "explicacao": "Com três valores distintos, o meio é o que NÃO é nem o maior nem o menor. Estratégia sem laço: achar maior e menor com if encadeados e o que sobrou é o meio — ou comparar em cadeia (a>b && a<c etc.). O enunciado GARANTE distintos: não…",
+  "exemplo": "maior = a; menor = a; if (b > maior) maior = b; if (c > maior) maior = c; if (b < menor) menor = b; if (c < menor) menor = c; if (a != maior && a != menor)…",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Quadrante de um ponto (Q2)",
+  "explicacao": "Desta vez o enunciado GARANTE que o ponto pertence a um único quadrante (diferente da S3-Q5, que pedia a QUANTIDADE e tinha casos de eixo). Regra: x>0 e y>0 → 1º; x<0 e y>0 → 2º; x<0 e y<0 → 3º; x>0 e y<0 → 4º. Dois if simples sobre o…",
+  "exemplo": "if (x > 0) if (y > 0) 1º quadrante; else 4º quadrante; else if (y > 0) 2º quadrante; else 3º quadrante;",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Ponto na reta y = 2x + 1 (Q3)",
+  "explicacao": "Leia x e y e teste a igualdade y == 2*x + 1. Atenção à precedência: a multiplicação acontece antes da soma, então 2x+1 sai direto — só confundem quem escreve (2*x)+1 errado ou compara 2*x == y+1 sem necessidade. Com inteiros, == funciona;…",
+  "exemplo": "if (y == 2*x + 1) printf(\"Pertence a reta\\n\"); else printf(\"Nao pertence\\n\");",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Estado civil por caractere — o caso do SWITCH (Q4)",
+  "explicacao": "Leia um CHAR ('S','C','D','V') e imprima por extenso. É a questão clássica de switch/case em C (char é constante inteira), mas também resolve com cadeia if/else if. Não esqueça o default/else para caractere inválido.",
+  "exemplo": "switch (ec) { case 'S': printf(\"Solteiro\\n\"); break; case 'C': printf(\"Casado\\n\"); break; case 'D': printf(\"Divorciado\\n\"); break; case 'V': printf(\"Viuvo\\n\");…",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Palíndromo de 4 dígitos SEM laço (Q5)",
+  "explicacao": "Número entre 1000 e 9999: recorte cada dígito com divisão e resto — milhares = n/1000; centenas = (n/100)%10; dezenas = (n/10)%10; unidades = n%10. Palíndromo se primeiro==último E segundo==terceiro (ex.: 1221, 7337). Valide a faixa antes.",
+  "exemplo": "if (n < 1000 || n > 9999) printf(\"Fora da faixa\\n\"); else if (n/1000 == n%10 && (n/100)%10 == (n/10)%10) printf(\"Palindromo\\n\"); else printf(\"Nao e…",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Saque com prioridade de cédulas (Q6)",
+  "explicacao": "Cédulas de 100, 50, 20 e 10; saque até 1000; priorize as MAIORES. Cadência: qtd100 = valor/100; valor = valor%100; qtd50 = valor/50; valor = valor%50; qtd20 = valor/20; valor = valor%20; qtd10 = valor/10. Divisão inteira e resto resolvem…",
+  "exemplo": "int v; scanf(\"%d\", &v); if (v > 1000 || v % 10 != 0) printf(\"Saque invalido\\n\"); else { int c100 = v/100; v %= 100; int c50 = v/50; v %= 50; int c20 = v/20; v…",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Conjugação de verbo regular (Q7)",
+  "explicacao": "Leia o verbo no infinitivo e decida pela TERMINAÇÃO: 'ar' → 1ª conjugação (o, as, a, amos, ais, am); 'er' → 2ª (o, es, e, emos, eis, em); 'ir' → 3ª (o, es, e, imos, is, em). A raiz é o verbo sem as 2 últimas letras — imprima raiz +…",
+  "exemplo": "int n = strlen(verb); char suf = verb[n-1]; /* 'r' */ char penult = verb[n-2]; if (penult=='a') /* cantar: cant + o/as/a/amos/ais/am */; else if (penult=='e')…",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
+  "conceito": "Conversão de horário com fuso (Q8)",
+  "explicacao": "Converta tudo para MINUTOS: total = horas*60 + minutos + fuso*60. Normalize com aritmética modular (total += 1440; total %= 1440 — 1440 = 24h em minutos). Meia-noite é 00:00. Os 4 exemplos do enunciado são os casos de teste: 10:30+4→14:30;…",
+  "exemplo": "int total = h*60 + m + fuso*60; total = ((total % 1440) + 1440) % 1440; printf(\"%02d:%02d hs\\n\", total/60, total%60);",
+  "summaryFile": "alg-questoes-semana4.summary.json",
+  "titulo": "Questões da Semana 4 — Algoritmos (Classroom)"
+ },
+ {
   "conceito": "Algoritmo",
   "explicacao": "Sequência finita e não ambígua de instruções para resolver um problema.",
   "exemplo": "Receita de bolo, manual de instruções para trocar um pneu.",
@@ -326,6 +382,27 @@
   "exemplo": "&& (AND - E), || (OR - OU), ! (NOT - NÃO)",
   "summaryFile": "alg-tipos-operadores.summary.json",
   "titulo": "alg-tipos-operadores"
+ },
+ {
+  "conceito": "Pasta oficial de videoaulas",
+  "explicacao": "Coleção no Google Drive mantida pelo Prof. Fabio Gomes de Andrade com as aulas gravadas da disciplina de Algoritmos — é o complemento em vídeo do PDF e das listas.",
+  "exemplo": "Acessar pelo link 'Videoaulas de Algoritmos' na aba Links do hub (pasta drive.google.com compartilhada pelo professor).",
+  "summaryFile": "alg-videoaulas.summary.json",
+  "titulo": "Videoaulas de Algoritmos (Google Drive — Prof. Fabio Gomes)"
+ },
+ {
+  "conceito": "Cobertura: Unidades 1 a 3",
+  "explicacao": "Os vídeos cobrem noções de algoritmos e programação em C (entrada/saída, tipos, operadores), desvios condicionais (if/switch) e comandos de repetição (for, while, do-while) — a mesma sequência das Questões da Semana.",
+  "exemplo": "Travou na Questão da Semana 3 (repetição)? O vídeo da unidade 3 mostra o padrão do laço antes de olhar o gabarito.",
+  "summaryFile": "alg-videoaulas.summary.json",
+  "titulo": "Videoaulas de Algoritmos (Google Drive — Prof. Fabio Gomes)"
+ },
+ {
+  "conceito": "Assistir ANTES de pedir ao tutor",
+  "explicacao": "O vídeo é a fonte primária do professor: quando a dúvida é conceitual (como funciona um laço), assistir a aula correspondente resolve melhor que perguntar genérico ao tutor.",
+  "exemplo": "Dúvida sobre switch vs if → vídeo da unidade 2 → depois, se persistir, pergunte ao tutor citando o trecho do vídeo.",
+  "summaryFile": "alg-videoaulas.summary.json",
+  "titulo": "Videoaulas de Algoritmos (Google Drive — Prof. Fabio Gomes)"
  },
  {
   "conceito": "Algoritmo",
@@ -487,6 +564,153 @@
   "exemplo": "23/10/2026.",
   "summaryFile": "cronograma-ivs.summary.json",
   "titulo": "Edital IVS — Cronograma (2026.2)"
+ },
+ {
+  "conceito": "Base de numeração",
+  "explicacao": "A quantidade de algarismos disponíveis em um sistema de numeração é chamada de BASE. As quantidades não mudam entre bases — mudam apenas os símbolos usados para representá-las. Cada dígito é sempre menor que a base.",
+  "exemplo": "Binário tem base 2 (dígitos 0 e 1); octal base 8 (0-7); decimal base 10 (0-9); hexadecimal base 16 (0-9 e A-F, com A=10 ... F=15).",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Expressão polinomial",
+  "explicacao": "A técnica universal de conversão qualquer-base → decimal: cada algarismo multiplica a base elevada à sua posição (contando da direita, começando em 0). É o método exigido nos exercícios 'represente na forma polinomial'.",
+  "exemplo": "1011 (2) = 1x2³ + 0x2² + 1x2¹ + 1x2⁰ = 8+0+2+1 = 11. 7D40 (16) = 7x4096 + 13x256 + 4x16 + 0x1 = 28672+3328+64+0 = 32064.",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Decimal → binário/octal: divisões sucessivas",
+  "explicacao": "Divida o número pela base destino várias vezes, anotando os RESTOS; a resposta é a leitura dos restos de BAIXO para CIMA (do último quociente ao primeiro resto).",
+  "exemplo": "150 → binário: 150÷2=75 r0; 75÷2=37 r1; 37÷2=18 r1; 18÷2=9 r0; 9÷2=4 r1; 4÷2=2 r0; 2÷2=1 r0; 1÷2=0 r1 → 10010110. 266 → octal: 266÷8=33 r2; 33÷8=4 r1; 4÷8=0 r4…",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Binário ↔ hexadecimal: grupos de 4",
+  "explicacao": "Hexa para binário: cada algarismo vira 4 dígitos binários. Binário para hexa: separe em grupos de 4 da DIREITA para a esquerda e converta cada grupo. Usa a equivalência 1010=A, 1011=B, 1100=C, 1101=D, 1110=E, 1111=F.",
+  "exemplo": "ABCD (16) = 1010.1011.1100.1101; 100111111010 (2) = 1001.1111.1010 = 9FA (16).",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Binário ↔ octal: grupos de 3",
+  "explicacao": "Octal para binário: cada algarismo vira 3 dígitos (0=000 até 7=111). Binário para octal: separe em grupos de 3 da direita para a esquerda.",
+  "exemplo": "472 (8) = [100][111][010] = 100111010 (2); 11010110 (2) = [011][010][110] = 326 (8).",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Potências de 2 (tabela de dica do professor)",
+  "explicacao": "Decore a escada das potências de 2 — é o atalho para converter binário→decimal de cabeça e para as questões da prova.",
+  "exemplo": "2⁰=1, 2¹=2, 2²=4, 2³=8, 2⁴=16, 2⁵=32, 2⁶=64, 2⁷=128, 2⁸=256, 2⁹=512.",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Adição binária",
+  "explicacao": "Regras: 0+0=0, 0+1=1, 1+0=1, 1+1=0 COM 'vai 1' para a coluna seguinte, e 1+1+1=1 com 'vai 1'. Funciona coluna a coluna como soma no papel.",
+  "exemplo": "1101 (2) + 1011 (2) = 11000 (2); 11101 + 1001 = 100110.",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Subtração binária",
+  "explicacao": "0-0=0, 1-0=1, 1-1=0, e 0-1=1 COM 'pede emprestado 1' da coluna de ordem superior.",
+  "exemplo": "1110 (2) - 1001 (2) = 0101 (2); 11000 - 101 = 10011.",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Multiplicação binária",
+  "explicacao": "Mesmo método do decimal: linhas de produtos parciais (só 0 ou 1: 1x1=1, resto 0) deslocados, somados com a adição binária. Número maior fica acima do menor.",
+  "exemplo": "101 x 011: 101 + 1010 + 000 = 01111.",
+  "summaryFile": "fund-01-notacoes-numericas.summary.json",
+  "titulo": "Notações Numéricas — Representação da Informação (Prof. André, Fundamentos)"
+ },
+ {
+  "conceito": "Hardware × Software",
+  "explicacao": "O computador é organizado por dois itens básicos: Hardware é a parte FÍSICA; Software é a parte LÓGICA. Definição de computador (Aurélio): máquina capaz de receber, armazenar e enviar dados e efetuar sequências previamente programadas de…",
+  "exemplo": "Gabinete/processador = hardware; programas = software.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Máquina Analítica de Babbage (1837)",
+  "explicacao": "Proposta por Charles Babbage influenciado pelo tear de Jacquard: primeira máquina de propósito GENÉRICO (processador genérico), programada por cartões perfurados. O 'moinho' é o PROCESSADOR e o 'depósito' é a MEMÓRIA. Nenhum projeto…",
+  "exemplo": "Moinho = Processador; Depósito = Memória.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Ada Lovelace — primeira programadora",
+  "explicacao": "Augusta Ada Byron (condessa de Lovelace, filha de Lord Byron) desenvolveu os algoritmos para a Máquina Analítica, incluindo a Sequência de Bernoulli — o primeiro algoritmo especificamente criado para ser implementado num computador. Por…",
+  "exemplo": "Ada Byron King, primeira pessoa a programar (1842).",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Lógica Booleana (Boole, 1841)",
+  "explicacao": "George Boole colocou a lógica sob o domínio da matemática ('A Análise Matemática da Lógica', 1847; 'Uma Investigação das Leis do Pensamento', 1854). Deu origem às três portas lógicas base de qualquer operação aritmética ou comparação: AND,…",
+  "exemplo": "Portas AND, OR, NOT — base das operações do computador.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Numeração binária e o bit (Shannon, 1948)",
+  "explicacao": "Claude Shannon publicou em 1948 a teoria de que o princípio dos números binários era semelhante aos circuitos elétricos; introduziu o conceito do 'binary digit' (BIT) e a Teoria da Informação. Sucesso imediato nos sistemas telefônicos…",
+  "exemplo": "bit = binary digit; escolhas sim/não representadas por dígitos binários.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "ENIAC (1946)",
+  "explicacao": "PRIMEIRO computador eletrônico digital. Iniciado 1943, concluído 1946, projetado por John Presper Eckert e John W. Mauchly. 5.000 operações/segundo (cálculo balístico em 30 s em vez de 12 h). Dimensões: 1.400 m² (1/3 campo de futebol), 30…",
+  "exemplo": "18.000 válvulas, 30 t, 1.400 m².",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Arquitetura de von Neumann (1946)",
+  "explicacao": "Arquitetura em que a máquina digital armazena seus PROGRAMAS no mesmo espaço de MEMÓRIA que os DADOS, podendo manipular tais programas. Componentes: memória, unidade de controle, unidade aritmética e lógica (com acumulador), entrada e…",
+  "exemplo": "Memória + UC + UAL + Entrada/Saída.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Linha do tempo das gerações",
+  "explicacao": "Geração mecânica: ábaco (300 a.C.), ossos de Napier (1614), régua de cálculo (1632), Pascaline (1642), calculadora 4 operações de Leibniz (1672), tear de Jacquard (1804), máquina diferencial (1822), máquina analítica (1837), Hollerith…",
+  "exemplo": "Mecânica → Válvulas → Transistores → Circuitos → Processadores.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Turing, Enigma e Colossus",
+  "explicacao": "Na 2ª Guerra (1939-45) os alemães usavam a ENIGMA para criptografar mensagens. Em Bletchley Park o projeto britânico Ultra, com Alan Turing, quebrou a Enigma — o Colossus se baseou nas 'bombas' polonesas. Turing é considerado o 'PAI DA…",
+  "exemplo": "Enigma → Bletchley Park → Colossus.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Hollerith e a IBM",
+  "explicacao": "Herman Hollerith patenteou em 1887 o tabulador estatístico com cartões perfurados (baseado nos teares de Jacquard) para o censo dos EUA de 1890: 63 milhões de habitantes em menos de 3 anos (antes, 50 milhões levavam 7,5 anos). Em 1911, sob…",
+  "exemplo": "Censo 1890: 7,5 anos → menos de 3.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Classificação dos computadores",
+  "explicacao": "Por PRINCÍPIO DE CONSTRUÇÃO: analógicos (analogias físicas, ex.: primeira geração) e digitais (operações lógicas/aritméticas sequenciais, ex.: computadores atuais). Por ÂMBITO DE AÇÃO: específicos (conjunto reduzido, ex.: calculadora) e…",
+  "exemplo": "Analógico/digital; específico/geral; científico/comercial.",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
+ },
+ {
+  "conceito": "Gerações de micros (5ª geração)",
+  "explicacao": "Kenbak-1 (1971): primeiro computador pessoal, 750 dólares. Apple I (1976): projeto de garagem de Jobs (21) e Wozniak (26), ligava na TV, ~200 unidades a 666 dólares; hoje vale 50.000. Apple II (1977). Osborne I (1981): primeiro portátil,…",
+  "exemplo": "Kenbak-1 (1971) → Apple I (1976) → Apple II (1977) → Osborne I (1981) → Lisa/Macintosh (1984).",
+  "summaryFile": "fund-02-historia-computacao.summary.json",
+  "titulo": "História da Computação — Hardware: Evolução e Conceitos (Prof. André)"
  },
  {
   "conceito": "Hardware",
@@ -1499,6 +1723,69 @@
   "titulo": "Matrizes — Aula 01 (Lista)"
  },
  {
+  "conceito": "Regras de valor lógico (∧, ∨, →, ↔)",
+  "explicacao": "∧ é V só se os dois forem V · ∨ é F só se os dois forem F · → só é F quando V→F · ↔ é V quando os lados são iguais. Decorar estas 4 regras resolve a Questão 1 da prova inteira.",
+  "exemplo": "3+2=6 (F) → π>3 (V) dá V, porque → só é F quando V→F.",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Regras de inferência",
+  "explicacao": "Modus ponens (p→q, p ⊢ q) · modus tollens (p→q, ¬q ⊢ ¬p) · silogismo (p→q, q→r ⊢ p→r) · disjunção (p∨q, ¬p ⊢ q). É como se encadeia um argumento até a conclusão.",
+  "exemplo": "Carlos é executivo público (V) e Carlos→Cláudio eletricista, logo Cláudio é eletricista (modus ponens).",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Formalização de proposições compostas",
+  "explicacao": "Traduzir português para símbolos: 'e/mas' = ∧ · 'ou' = ∨ · 'se...então' = → · 'se e somente se' = ↔ · 'não/pobre/infeliz' = ¬.",
+  "exemplo": "Luciana é pobre, mas é feliz = ¬p ∧ q (o 'mas' é ∧).",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Tabela-verdade e classificação",
+  "explicacao": "n variáveis → 2ⁿ linhas, colunas construídas de dentro para fora. Coluna final toda V = tautologia; toda F = contradição; mista = contingência.",
+  "exemplo": "Com 2 proposições simples a tabela tem 4 linhas; X→X é sempre tautologia.",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Lei de formação de matrizes",
+  "explicacao": "Aplicar a fórmula casa a casa: i = linha, j = coluna. i=j é a diagonal principal; i+j=n+1 é a secundária. Nas leis por partes, teste cada condição separadamente.",
+  "exemplo": "a_ij = 2+i+j em 2×2 dá [[4,5],[5,6]].",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Simétrica e antissimétrica",
+  "explicacao": "Simétrica: Aᵗ = A (espelho na diagonal principal, a_ij = a_ji). Antissimétrica: Aᵗ = −A, o que força a diagonal toda zero.",
+  "exemplo": "Em [[1,x,5],[2,7,−4],[y,z,−3]] simétrica: x=2, y=5, z=−4.",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Produto de matrizes como situação-problema",
+  "explicacao": "Situação-problema (quantidades × preços) é PRODUTO de matrizes, NÃO sistema linear. Q(m×n)·P(n×1) = (m×1): cada linha do resultado é o faturamento daquele dia/loja.",
+  "exemplo": "c_ik = soma de (linha i de Q) × (coluna k de P), elemento a elemento.",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Potência e combinação de matrizes",
+  "explicacao": "A² = A·A (nunca elevar elemento a elemento). Combos do tipo A² + 2A − 11I: primeiro A², depois os escalares, só então soma elemento a elemento.",
+  "exemplo": "Com A=[[1,1],[0,1]]: Aⁿ = [[1,n],[0,1]] — só o canto cresce.",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
+  "conceito": "Matriz inversa: isolar X e a definição",
+  "explicacao": "Definição: M é inversa de A ⇔ A·M = M·A = I. Para isolar X, multiplique pelos dois lados pela inversa na ordem certa (quem está à esquerda é desfeito primeiro). Propriedades: (AB)⁻¹ = B⁻¹A⁻¹ · (Aᵗ)⁻¹ = (A⁻¹)ᵗ.",
+  "exemplo": "(XA)⁻¹ = B ⇒ XA = B⁻¹ ⇒ X = B⁻¹A⁻¹.",
+  "summaryFile": "mat-av1-questoes-professor.summary.json",
+  "titulo": "Av1 — As questões do professor (espelhos das listas)"
+ },
+ {
   "conceito": "Proposição",
   "explicacao": "Enunciado que pode ser classificado como verdadeiro (V) ou falso (F).",
   "exemplo": "5 · 4 = 20 é uma proposição verdadeira.",
@@ -1647,6 +1934,34 @@
  },
  {
   "conceito": "PNAAT",
+  "explicacao": "Núcleo de apoio acadêmico do IFPB Cajazeiras que oferece trilhas gratuitas na plataforma FIT Tecnologia; concluir trilhas qualifica para concorrer a bolsa.",
+  "exemplo": "A trilha 'Fundamentos em IoT e Edge AI' é uma das portas de entrada para a bolsa do programa.",
+  "summaryFile": "pnaat-cursos.summary.json",
+  "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)"
+ },
+ {
+  "conceito": "Trilha de Fundamentos em IoT e Edge AI",
+  "explicacao": "Trilha principal com 5 módulos, ancorada no Hub de Aprendizagem PNAAT (Prof. Lucas Mattos) e no módulo 'Fundamentos em Python' (8h, Prof. Jane Piantoni) — o único já em andamento.",
+  "exemplo": "Progresso registrado na plataforma: Python 28% completo; demais módulos ainda 0%.",
+  "summaryFile": "pnaat-cursos.summary.json",
+  "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)"
+ },
+ {
+  "conceito": "Trilhas de Eletrônica e Sistemas Embarcados",
+  "explicacao": "Duas trilhas complementares (2 módulos cada) para quem quer a base de hardware que alimenta IoT e Edge AI.",
+  "exemplo": "Eletrônica e Sistemas Embarcados aparecem zeradas — são os próximos passos depois de Python.",
+  "summaryFile": "pnaat-cursos.summary.json",
+  "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)"
+ },
+ {
+  "conceito": "Atividades Síncronas",
+  "explicacao": "Encontros ao vivo da plataforma FIT, já disponíveis na aba 'Meus cursos' — participation conta para o aproveitamento da trilha.",
+  "exemplo": "O item '5. Atividades Síncronas' aparece com status 'Já disponível' dentro da trilha de IoT.",
+  "summaryFile": "pnaat-cursos.summary.json",
+  "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)"
+ },
+ {
+  "conceito": "PNAAT",
   "explicacao": "Programa Nacional de Aprendizado Acelerado em Tecnologia, focado em capacitação em IoT e IA na borda.",
   "summaryFile": "pnaat-parceiros-cajazeiras.summary.json",
   "titulo": "pnaat-parceiros-cajazeiras.summary.json"
@@ -1664,6 +1979,62 @@
   "exemplo": "Bolsa de R$ 3.600/mês por 3 meses",
   "summaryFile": "pnaat-parceiros-cajazeiras.summary.json",
   "titulo": "pnaat-parceiros-cajazeiras.summary.json"
+ },
+ {
+  "conceito": "Linguagem como interação comunicativa",
+  "explicacao": "A língua é vista como atividade interativa e sócio-comunicativa pela qual se estabelecem relações sociais — não como código puro.",
+  "exemplo": "Um e-mail ao professor e uma mensagem no grupo da turma usam a mesma língua, mas níveis e intenções comunicativas diferentes.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Variação linguística",
+  "explicacao": "As variações da língua (regionais, sociais, de registro) são naturais e legítimas; o curso trabalha o reconhecimento dessa diversidade.",
+  "exemplo": "\"Tá dando erro no código\" (registro informal) vs \"O programa apresenta um erro\" (registro formal acadêmico).",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Tipologia e gêneros textuais",
+  "explicacao": "Tipos textuais (narração, descrição, argumentação, exposição, injunção) são estruturas; gêneros (e-mail, artigo, resenha, petição) são formas sociais concretas que os realizam.",
+  "exemplo": "O gênero 'documentação técnica de software' é expositivo-injuntivo; o gênero 'post em blog de tecnologia' mistura exposição e argumentação.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Textualidade",
+  "explicacao": "Propriedades que fazem um texto ser texto: coesão, coerência, intencionalidade, aceitabilidade, situacionalidade, informatividade e intertextualidade.",
+  "exemplo": "Um relatório sem conectivos entre parágrafos tem frases corretas mas falha de coesão — não forma texto coeso.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Parágrafo padrão",
+  "explicacao": "Estrutura tópico-frase (ideia central na abertura) + desenvolvimento + frase de fecho; é a célula da dissertação.",
+  "exemplo": "Parágrafo que abre com 'A recursividade reduz código ao repetir padrões', desenvolve com dois argumentos e fecha retomando a ideia central.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Resumo indicativo, informativo e crítico",
+  "explicacao": "Indicativo: só descreve os tópicos do texto. Informativo: reproduz conteúdo essencial. Crítico: informa E avalia com juízo de valor fundamentado.",
+  "exemplo": "Resumo crítico de um artigo sobre IA diz o que o artigo propõe e avalia se a metodologia sustenta as conclusões.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Dissertação argumentativa",
+  "explicacao": "Texto com tese, argumentos que a sustentam e conclusão; a unidade II do curso trabalha sua estrutura completa.",
+  "exemplo": "Tese: 'Todo dev deve dominar escrita técnica'; argumentos: legibilidade de código, documentação, comunicação em equipe; conclusão retoma a tese.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
+ },
+ {
+  "conceito": "Morfossintaxe e pontuação",
+  "explicacao": "Noções básicas de classes de palavras e funções sintáticas aplicadas ao texto, mais regras de pontuação que organizam a leitura.",
+  "exemplo": "Vírgula entre sujeito e verbo é erro; vírgula isolando aposto ou adjunto deslocado é obrigatória.",
+  "summaryFile": "port-ementa.summary.json",
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)"
  },
  {
   "conceito": "5 Gerações de Computadores",

@@ -1,0 +1,77 @@
+{
+  "titulo": "Português Instrumental — Plano de Disciplina (IFPB Cajazeiras)",
+  "conceitos_chave": [
+    {
+      "conceito": "Linguagem como interação comunicativa",
+      "explicacao": "A língua é vista como atividade interativa e sócio-comunicativa pela qual se estabelecem relações sociais — não como código puro.",
+      "exemplo": "Um e-mail ao professor e uma mensagem no grupo da turma usam a mesma língua, mas níveis e intenções comunicativas diferentes."
+    },
+    {
+      "conceito": "Variação linguística",
+      "explicacao": "As variações da língua (regionais, sociais, de registro) são naturais e legítimas; o curso trabalha o reconhecimento dessa diversidade.",
+      "exemplo": "\"Tá dando erro no código\" (registro informal) vs \"O programa apresenta um erro\" (registro formal acadêmico)."
+    },
+    {
+      "conceito": "Tipologia e gêneros textuais",
+      "explicacao": "Tipos textuais (narração, descrição, argumentação, exposição, injunção) são estruturas; gêneros (e-mail, artigo, resenha, petição) são formas sociais concretas que os realizam.",
+      "exemplo": "O gênero 'documentação técnica de software' é expositivo-injuntivo; o gênero 'post em blog de tecnologia' mistura exposição e argumentação."
+    },
+    {
+      "conceito": "Textualidade",
+      "explicacao": "Propriedades que fazem um texto ser texto: coesão, coerência, intencionalidade, aceitabilidade, situacionalidade, informatividade e intertextualidade.",
+      "exemplo": "Um relatório sem conectivos entre parágrafos tem frases corretas mas falha de coesão — não forma texto coeso."
+    },
+    {
+      "conceito": "Parágrafo padrão",
+      "explicacao": "Estrutura tópico-frase (ideia central na abertura) + desenvolvimento + frase de fecho; é a célula da dissertação.",
+      "exemplo": "Parágrafo que abre com 'A recursividade reduz código ao repetir padrões', desenvolve com dois argumentos e fecha retomando a ideia central."
+    },
+    {
+      "conceito": "Resumo indicativo, informativo e crítico",
+      "explicacao": "Indicativo: só descreve os tópicos do texto. Informativo: reproduz conteúdo essencial. Crítico: informa E avalia com juízo de valor fundamentado.",
+      "exemplo": "Resumo crítico de um artigo sobre IA diz o que o artigo propõe e avalia se a metodologia sustenta as conclusões."
+    },
+    {
+      "conceito": "Dissertação argumentativa",
+      "explicacao": "Texto com tese, argumentos que a sustentam e conclusão; a unidade II do curso trabalha sua estrutura completa.",
+      "exemplo": "Tese: 'Todo dev deve dominar escrita técnica'; argumentos: legibilidade de código, documentação, comunicação em equipe; conclusão retoma a tese."
+    },
+    {
+      "conceito": "Morfossintaxe e pontuação",
+      "explicacao": "Noções básicas de classes de palavras e funções sintáticas aplicadas ao texto, mais regras de pontuação que organizam a leitura.",
+      "exemplo": "Vírgula entre sujeito e verbo é erro; vírgula isolando aposto ou adjunto deslocado é obrigatória."
+    }
+  ],
+  "pontos_importantes": [
+    "Disciplina 0576, obrigatória, 33h teóricas, 2h semanais, docente Francisco Igor Arraes Alves Rocha (plano assinado em 15/02/2026)",
+    "Três unidades: I — concepções de linguagem e texto; II — produção textual acadêmica (parágrafo, dissertação, resumo); III — gramática (morfossintaxe e pontuação)",
+    "Avaliação qualitativa E quantitativa: escritas individuais + trabalhos em equipe + produção de gêneros textuais + participação oral e escrita",
+    "Metodologia: explanação inicial seguida de atividades de fixação com apoio audiovisual",
+    "Bibliografia básica obrigatória: Bechara (Gramática), Garcia (Comunicação em Prosa Moderna), Fiorin & Savioli (Para entender o texto)",
+    "Foco do curso: leitura crítico-analítica, texto argumentativo e diversidade linguística — habilidades que recaem sobre documentação e comunicação técnica do dev"
+  ],
+  "erros_comuns": [
+    "Achar que Português Instrumental é 'aula de gramática tradicional': o eixo é produção e compreensão de texto com gramática aplicada",
+    "Confundir tipo textual com gênero textual (tipo é estrutura; gênero é forma social)",
+    "Escrever resumo crítico sem juízo de valor (vira resumo informativo) ou com opinião sem fundamento (vira opinião, não crítica)",
+    "Ignorar a variação linguística e julgar 'errado' o que é apenas registro diferente",
+    "Parágrafo sem tópico-frase claro: o leitor não sabe qual ideia aquele bloco defende"
+  ],
+  "formulas_regras": [
+    "Parágrafo padrão = tópico-frase + desenvolvimento + fecho",
+    "Dissertação = introdução (tese) + desenvolvimento (argumentos) + conclusão (retomada da tese)",
+    "Resumo indicativo ≠ informativo ≠ crítico: descrição de tópicos → conteúdo essencial → conteúdo + avaliação fundamentada",
+    "Texto coeso usa conectivos; texto coerente mantém unidade de sentido — as duas propriedades se cobram juntas",
+    "Pontuação básica: vírgula NUNCA separa sujeito de verbo; separa adjuntos deslocados, apostos e itens de enumeração"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença entre linguagem como código e linguagem como interação — e por que a disciplina adota a segunda?",
+    "Dê um exemplo de variação linguística que VOCÊ usa no dia a dia e que não escreveria num trabalho acadêmico. Por que não escreveria?",
+    "Tipo textual e gênero textual: classifique um e-mail de reclamação ao SUAP nos dois níveis.",
+    "Quais são as três partes do parágrafo padrão? E as três da dissertação argumentativa?",
+    "O que falta num resumo informativo para virar resumo crítico?",
+    "Cite quatro propriedades da textualidade e dê um exemplo de texto que falha em cada uma.",
+    "Por que a vírgula em 'O aluno, entregou o trabalho' está errada? Que regra ela viola?",
+    "Quais são os três livros da bibliografia básica e o que cada um cobre de melhor na disciplina?"
+  ]
+}

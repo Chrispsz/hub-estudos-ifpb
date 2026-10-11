@@ -81,4 +81,4 @@ localStorage.setItem(
     'Matrizes (núcleo da Av1)-3': true,
   }),
 );
-'seeded: simulado 60% · baralho 2/3 · exercicios 1/6 · checklist 4/12 · plano 2/21 · pendentes 2';
+console.log('seeded: simulado 60% · baralho 2/3 · exercicios 1/6 · checklist 4/12 · plano 2/21 · pendentes 2');

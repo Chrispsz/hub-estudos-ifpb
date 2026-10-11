@@ -108,4 +108,4 @@ p.flashcards = [
 
 if (state.state) state.state = p;
 localStorage.setItem('hub-estudos-ifpb:v2', JSON.stringify(state));
-`seeded: runs=${p.simuladoRuns.length} ex=${Object.keys(p.exerciseProgress).length} fc=${p.flashcards.length}`;
+return `seeded: runs=${p.simuladoRuns.length} ex=${Object.keys(p.exerciseProgress).length} fc=${p.flashcards.length}`;

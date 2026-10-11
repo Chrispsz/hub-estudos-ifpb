@@ -1,0 +1,50 @@
+{
+  "titulo": "PNAAT — Meus Cursos (trilhas da bolsa)",
+  "conceitos_chave": [
+    {
+      "conceito": "PNAAT",
+      "explicacao": "Núcleo de apoio acadêmico do IFPB Cajazeiras que oferece trilhas gratuitas na plataforma FIT Tecnologia; concluir trilhas qualifica para concorrer a bolsa.",
+      "exemplo": "A trilha 'Fundamentos em IoT e Edge AI' é uma das portas de entrada para a bolsa do programa."
+    },
+    {
+      "conceito": "Trilha de Fundamentos em IoT e Edge AI",
+      "explicacao": "Trilha principal com 5 módulos, ancorada no Hub de Aprendizagem PNAAT (Prof. Lucas Mattos) e no módulo 'Fundamentos em Python' (8h, Prof. Jane Piantoni) — o único já em andamento.",
+      "exemplo": "Progresso registrado na plataforma: Python 28% completo; demais módulos ainda 0%."
+    },
+    {
+      "conceito": "Trilhas de Eletrônica e Sistemas Embarcados",
+      "explicacao": "Duas trilhas complementares (2 módulos cada) para quem quer a base de hardware que alimenta IoT e Edge AI.",
+      "exemplo": "Eletrônica e Sistemas Embarcados aparecem zeradas — são os próximos passos depois de Python."
+    },
+    {
+      "conceito": "Atividades Síncronas",
+      "explicacao": "Encontros ao vivo da plataforma FIT, já disponíveis na aba 'Meus cursos' — participation conta para o aproveitamento da trilha.",
+      "exemplo": "O item '5. Atividades Síncronas' aparece com status 'Já disponível' dentro da trilha de IoT."
+    }
+  ],
+  "pontos_importantes": [
+    "Print da plataforma FIT (fit-tecnologia.org.br) capturado em 04/09/2026 mostrando o painel 'Meus cursos'",
+    "Único progresso real: Fundamentos em Python — 28% completo, 8h, Prof. Jane Piantoni",
+    "A trilha de IoT e Edge AI é a âncora da bolsa (o link 'PNAAT - Plataforma FIT' na aba Links leva direto às trilhas)",
+    "Hub de Aprendizagem PNAAT (1h, Prof. Lucas Mattos) é o módulo zero obrigatório da trilha principal",
+    "Trilhas de Eletrônica e Sistemas Embarcados estão disponíveis mas zeradas (0/2 cada)"
+  ],
+  "erros_comuns": [
+    "Deixar a trilha parada: progresso do Python (28%) só sobe com estudo contínuo na plataforma",
+    "Pular o Hub de Aprendizagem (módulo 0) e tentar começar direto pelos módulos técnicos",
+    "Ignorar as Atividades Síncronas — participação ao vivo faz parte do aproveitamento",
+    "Confundir PNAAT com disciplina do curso: são trilhas extracurriculares que rendem bolsa, não matéria com nota no SUAP"
+  ],
+  "formulas_regras": [
+    "Bolsa PNAAT = concluir trilhas + participar das atividades síncronas",
+    "Ordem sensível de estudo: Hub de Aprendizagem (1h) → Fundamentos em Python (8h) → Eletrônica → Sistemas Embarcados",
+    "Acessar sempre por fit-tecnologia.org.br/ava/local/customcourses/index.php (aba Links do hub)"
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual módulo da trilha de IoT está em andamento e com qual percentual?",
+    "Quanto tempo dura o Hub de Aprendizagem PNAAT e quem é o professor?",
+    "Quais são as duas trilhas complementares além de IoT e por que elas importam para Edge AI?",
+    "Onde ficam as atividades síncronas e qual o status delas no print?",
+    "Como o PNAAT paga o esforço nas trilhas — o que a conclusão qualifica você a concorrer?"
+  ]
+}

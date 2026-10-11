@@ -1,0 +1,43 @@
+{
+  "titulo": "Videoaulas de Algoritmos (Google Drive — Prof. Fabio Gomes)",
+  "conceitos_chave": [
+    {
+      "conceito": "Pasta oficial de videoaulas",
+      "explicacao": "Coleção no Google Drive mantida pelo Prof. Fabio Gomes de Andrade com as aulas gravadas da disciplina de Algoritmos — é o complemento em vídeo do PDF e das listas.",
+      "exemplo": "Acessar pelo link 'Videoaulas de Algoritmos' na aba Links do hub (pasta drive.google.com compartilhada pelo professor)."
+    },
+    {
+      "conceito": "Cobertura: Unidades 1 a 3",
+      "explicacao": "Os vídeos cobrem noções de algoritmos e programação em C (entrada/saída, tipos, operadores), desvios condicionais (if/switch) e comandos de repetição (for, while, do-while) — a mesma sequência das Questões da Semana.",
+      "exemplo": "Travou na Questão da Semana 3 (repetição)? O vídeo da unidade 3 mostra o padrão do laço antes de olhar o gabarito."
+    },
+    {
+      "conceito": "Assistir ANTES de pedir ao tutor",
+      "explicacao": "O vídeo é a fonte primária do professor: quando a dúvida é conceitual (como funciona um laço), assistir a aula correspondente resolve melhor que perguntar genérico ao tutor.",
+      "exemplo": "Dúvida sobre switch vs if → vídeo da unidade 2 → depois, se persistir, pergunte ao tutor citando o trecho do vídeo."
+    }
+  ],
+  "pontos_importantes": [
+    "Link do Drive está na aba Links (categoria material) e no card do material — abrir direto no navegador",
+    "São as aulas do próprio professor: a linguagem e a notação dos vídeos batem com as Questões da Semana e a monitoria",
+    "Unidades cobertas: 1 (noções/algoritmos/C), 2 (condicionais), 3 (repetição) — anote no hub quais você assistiu",
+    "Combine com o fluxo do hub: vídeo → lista da semana → questões com o tutor → marcar concluído"
+  ],
+  "erros_comuns": [
+    "Assistir passivamente sem reproduzir os programas em C junto — algoritmo se aprende digitando",
+    "Deixar acumular: os vídeos seguem a semana da disciplina; atrasar 2 semanas encalha a lista",
+    "Perguntar ao tutor o que o vídeo do professor já respondeu com a notação dele (nomes de variáveis, padrões)"
+  ],
+  "formulas_regras": [
+    "Regra de ouro: 1 vídeo da unidade = 1 lista de exercícios correspondente da mesma semana",
+    "Vídeo → pausar no exemplo → digitar no Replit/VS Code → rodar → só então seguir",
+    "Se a dúvida sobrevive ao vídeo, ela é boa o suficiente para levar ao tutor ou à monitoria no Discord"
+  ],
+  "perguntas_autoavaliacao": [
+    "Onde fica a pasta de videoaulas e de quem é a autoria delas?",
+    "Quais unidades da disciplina os vídeos cobrem hoje?",
+    "Qual o fluxo recomendado no hub depois de assistir um vídeo (o que vem antes e depois)?",
+    "Por que assistir ao vídeo ANTES de perguntar ao tutor economiza tempo nas listas?",
+    "Qual a regra de ouro que casa vídeo com lista de exercícios?"
+  ]
+}

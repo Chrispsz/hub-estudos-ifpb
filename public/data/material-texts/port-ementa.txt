@@ -1,0 +1,86 @@
+[página 1]
+**MINISTÉRIO DA EDUCAÇÃO — INSTITUTO FEDERAL DA PARAÍBA**
+
+| CAMPUS: Cajazeiras | CURSO: Superior em Análise e Desenvolvimento de Sistemas |
+| :--- | :--- |
+| DISCIPLINA: **Português Instrumental** | CÓDIGO: 0576 |
+| DOCENTE: Francisco Igor Arraes Alves Rocha | SEMESTRE/ANO: 2026.1 |
+| CARGA HORÁRIA: 33h/a teórica • 2h/a semanal | UNIDADE CURRICULAR: Obrigatória |
+
+Documento assinado eletronicamente em 15/02/2026 (SUAP código 836330, verificador 18e2a59c7a).
+
+## EMENTA
+
+A Língua portuguesa como interação comunicativa. Diferentes concepções textuais. Modos de produção textual científica. Conceitos linguísticos. Níveis de linguagem, variações linguísticas. Teoria da Comunicação. Leitura e interpretação de textos diversos. Tipologia textual. Parágrafo padrão. Técnica de resumo. Técnicas de argumentação; estrutura e características do texto dissertativo, elementos de textualidade. Noções linguístico gramaticais aplicadas ao texto.
+
+## OBJETIVO GERAL
+
+Entender a linguagem como atividade interativa, sócio-comunicativa através da qual se estabelecem as relações sociais e dominar os aspectos fundamentais do processo comunicativo com ênfase na diversidade linguística.
+
+## OBJETIVOS ESPECÍFICOS
+
+- Fazer leitura crítico-analítica de diferentes gêneros textuais;
+- Analisar e redigir textos argumentativos;
+- Reconhecer a diversidade linguística;
+- Resumir e analisar textos diversos;
+- Produzir textos de diversas tipologias.
+
+[página 2]
+
+## CONTEÚDO PROGRAMÁTICO
+
+### Unidade I — As diferentes concepções de linguagem
+
+- Linguagem e cognição
+- Modalidades da língua
+- As variações linguísticas
+- Tipos de variações linguísticas
+- Teoria da comunicação
+- O texto
+- Tipologia textual e gêneros textuais
+- Tipos textuais
+- Textualidade
+- Propriedades da textualidade
+- Compreensão de texto
+- O texto literário / o texto não literário
+
+[página 3]
+
+### Unidade II — Técnicas de produção textual aplicadas ao texto acadêmico
+
+- O parágrafo
+- Palavras e ideias chave
+- Dissertação argumentativa
+- Estrutura da dissertação
+- O Resumo
+- Resumo indicativo
+- Resumo informativo
+- Resumo crítico
+
+### Unidade III — Orientações gramaticais
+
+- Noções básicas de morfossintaxe
+- Regras de pontuação
+
+## METODOLOGIA DE ENSINO
+
+As aulas serão conduzidas com explanação inicial do conteúdo, seguido de atividades de fixação. Explicações e comentários apoiados por recursos audiovisuais. As avaliações serão realizadas através de atividades individuais e em grupo.
+
+[página 4]
+
+## CRITÉRIOS DE AVALIAÇÃO
+
+A avaliação será qualitativa e quantitativa: avaliações escritas individuais e trabalhos em equipe; produção de gêneros textuais específicos (quantitativa), e pontuação atribuída à participação oral e escrita durante as aulas (qualitativa).
+
+## BIBLIOGRAFIA BÁSICA
+
+- BECHARA, E. Moderna Gramática da Língua Portuguesa. 37ª ed. Editora Nova Fronteira.
+- GARCIA, O. M. Comunicação em Prosa Moderna. 27ª ed. Editora FGV, 2010.
+- FIORIN, J. L.; SAVIOLI, F. P. Para entender o texto: leitura e redação.
+
+## BIBLIOGRAFIA COMPLEMENTAR
+
+- ABAURRE, M. L.; ABAURRE, M. B. M.; PONTARA, M. N. Português: Contexto, interlocução e Sentido. Editora Moderna, 2010.
+- SARMENTO, L. L. Oficina de redação. Vol. único. Editora Moderna.
+- VIANA, A. C. Roteiro de redação: lendo e argumentando. Editora Scipione.
+- ORLANDI, E. P. Análise de discurso: princípios e procedimentos. 5ª ed. Campinas SP: Editora Pontes.
