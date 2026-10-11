@@ -37,6 +37,7 @@ import { Button } from '@/components/ui/button';
 import { TutorMarkdown } from '@/components/hub/tutor-markdown';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { cn } from '@/lib/utils';
+import { materials } from '@/data/course-data';
 import {
   MATH_CHECKLIST,
   MATH_EXAM,
@@ -161,6 +162,83 @@ function useSimuladoFoco(): {
   }, [runs]);
 }
 
+/** CICLO ESPAÇADO DE MATERIAIS NA FOLHA (frente 13 no papel) — a promessa
+ *  "revisar os antigos com prática e técnica de memorização de dias" hoje
+ *  mora só na tela (Plano de hoje + chip no leitor). A folha impressa da
+ *  manhã passa a carregar as voltas 1·3·7·14·30 que vencem HOJE e a fila do
+ *  que vem — o papel acompanha TODAS as disciplinas, não só a Av1.
+ *  Leitura SÓ-LEITURA do storage v2 (MESMA doutrina do useSimuladoFoco:
+ *  NUNCA useLocalStorage numa chave estrangeira). Lixo/vazio → folha
+ *  honesta sem bloco falso. */
+type MaterialCycleRow = {
+  id: string;
+  title: string;
+  volta: number;
+  atrasoDias: number; // ≥ 0 = vencida há N dias; < 0 = falta N dias
+};
+
+function useMaterialCycle(): {
+  due: MaterialCycleRow[];
+  next: MaterialCycleRow[];
+  passos: { title: string; items: string[] }[];
+} {
+  const [state, setState] = React.useState<{
+    reviews: Record<string, { stage?: number; dueAt?: string }>;
+    checklists: Record<string, { items?: { text?: string; done?: boolean }[] }>;
+  } | null>(null);
+  React.useEffect(() => {
+    function read() {
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(PROGRESS_KEY) || 'null');
+        const candidate = parsed?.progress ?? parsed;
+        setState({
+          reviews: candidate?.materialReviews ?? {},
+          checklists: candidate?.materialChecklists ?? {},
+        });
+      } catch {
+        setState({ reviews: {}, checklists: {} }); // storage corrompido → folha calma
+      }
+    }
+    function onStorage(e: StorageEvent) {
+      if (e.key === PROGRESS_KEY) read();
+    }
+    read();
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  return React.useMemo(() => {
+    const reviews = state?.reviews ?? {};
+    const checklists = state?.checklists ?? {};
+    const titleOf = (id: string) => materials.find((m) => m.id === id)?.title ?? id;
+    const now = Date.now();
+    const DAY = 86_400_000;
+    const rows: MaterialCycleRow[] = Object.entries(reviews).map(([id, r]) => {
+      const dueMs = r.dueAt ? new Date(r.dueAt).getTime() : NaN;
+      const diff = Number.isNaN(dueMs) ? 0 : Math.floor((now - dueMs) / DAY);
+      return { id, title: titleOf(id), volta: (r.stage ?? 0) + 1, atrasoDias: diff };
+    });
+    const due = rows
+      .filter((r) => r.atrasoDias >= 0)
+      .sort((a, b) => b.atrasoDias - a.atrasoDias)
+      .slice(0, 6);
+    const next = rows
+      .filter((r) => r.atrasoDias < 0)
+      .sort((a, b) => a.atrasoDias - b.atrasoDias)
+      .slice(0, 4);
+    const passos = Object.entries(checklists)
+      .map(([id, c]) => ({
+        title: titleOf(id),
+        items: (c.items ?? [])
+          .filter((i) => !i.done && i.text)
+          .map((i) => i.text as string),
+      }))
+      .filter((p) => p.items.length > 0)
+      .slice(0, 4);
+    return { due, next, passos };
+  }, [state]);
+}
+
 function fmtDayBR(iso: string): string {
   // FUSO (lição 108 no papel): date-only ('yyyy-mm-dd') é meia-noite UTC no
   // parser — no fuso do aluno (BRT, negativo) isso vira o dia ANTERIOR à
@@ -187,6 +265,7 @@ export function FolhaRevisaoSheet() {
   // marcar aqui marca lá, e o que já foi marcado aparece preenchido na folha.
   const [checklist, setChecklist] = useLocalStorage<CheckedMap>(LS_CHECK, {});
   const simuladoFoco = useSimuladoFoco();
+  const materialCycle = useMaterialCycle();
 
   // O RECIBO DA RECITAÇÃO (t178) — leitura SÓ-LEITURA da chave do kit (a
   // MESMA doutrina do useSimuladoFoco: NUNCA useLocalStorage numa chave
@@ -522,6 +601,77 @@ export function FolhaRevisaoSheet() {
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* 5. CICLO ESPAÇADO DE MATERIAIS (frente 13 no papel): as voltas
+              1·3·7·14·30 que vencem hoje, a fila do que vem e os passos
+              pendentes das checklists — "revisar os antigos com técnica de
+              memorização de dias" com tinta, em TODAS as disciplinas. */}
+          <section aria-label="Revisões do ciclo espaçado de materiais" className="mt-5 break-inside-avoid border-t border-zinc-200 pt-3">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-900">
+              Revisões do ciclo <span className="font-medium normal-case tracking-normal text-zinc-500">— o antigo nunca apodrece: 1·3·7·14·30 dias</span>
+            </h2>
+            {materialCycle.due.length === 0 && materialCycle.next.length === 0 && materialCycle.passos.length === 0 ? (
+              <p className="mt-1 text-[10.5px] leading-snug text-zinc-500">
+                Nenhuma volta do ciclo ainda. Conclua um material no Hub — a conclusão semeia a
+                1ª revisão para amanhã e o sistema o traz de volta sozinho.
+              </p>
+            ) : (
+              <div className="mt-2 space-y-2.5">
+                {materialCycle.due.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-600">
+                      Vencem hoje {materialCycle.due.some((r) => r.atrasoDias > 0) && '(ou venceram)'}
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {materialCycle.due.map((r) => (
+                        <li key={r.id} className="flex items-start gap-2">
+                          <span
+                            aria-hidden
+                            className="mt-[1px] grid size-3.5 shrink-0 place-items-center rounded-[3px] border border-zinc-400 bg-white text-[9px] font-bold leading-none text-transparent"
+                          >
+                            ✓
+                          </span>
+                          <span className="min-w-0 text-[10.5px] leading-snug text-zinc-800">
+                            {r.title}{' '}
+                            <span className="font-medium text-zinc-500">
+                              · {r.volta}ª volta ·{' '}
+                              {r.atrasoDias === 0
+                                ? 'vence hoje'
+                                : `venceu há ${r.atrasoDias} ${r.atrasoDias === 1 ? 'dia' : 'dias'}`}
+                              {' '}— releia o essencial e registre a volta no leitor
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {materialCycle.next.length > 0 && (
+                  <p className="text-[10.5px] leading-snug text-zinc-500">
+                    Na fila:{' '}
+                    {materialCycle.next
+                      .map((r) => `${r.title} (${r.volta}ª volta em ${r.atrasoDias === -1 ? 'amanhã' : `${-r.atrasoDias} dias`})`)
+                      .join(' · ')}
+                  </p>
+                )}
+                {materialCycle.passos.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-600">
+                      Passos pendentes nas checklists
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {materialCycle.passos.map((p) => (
+                        <li key={p.title} className="text-[10.5px] leading-snug text-zinc-800">
+                          <span className="font-medium">{p.title}:</span>{' '}
+                          <span className="text-zinc-600">{p.items.join(' · ')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* 4. Plano do dia + kit — a coluna LÊ O DIA (t184): véspera no
