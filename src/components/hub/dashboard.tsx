@@ -41,7 +41,7 @@ import { upcomingEvents } from '@/lib/semester';
 import { PnaatReminderCard } from './pnaat-reminder-card';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
 import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
-import { syncPomodoroToBudget } from '@/lib/session-harmony';
+import { suggestBudgetFromHistory, syncPomodoroToBudget } from '@/lib/session-harmony';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
@@ -170,6 +170,19 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   /** A sessão sintonizada existe quando há orçamento no dia (Task 30). */
   const sessionActive = (plannedHours ?? 0) > 0;
   const dateKey = agora ? todayDateKey(agora) : '';
+
+  // O orçamento que aprende (banco de ideias #3): a casa já viu o dono estudar
+  // e PROPÕE o orçamento — mediana do ritmo recente + prova próxima. Pura no
+  // `agora` do retrato; sem história suficiente ela confessa e não sugere.
+  const budgetSuggestion = React.useMemo(
+    () =>
+      agora
+        ? suggestBudgetFromHistory(sp.progress.dailyHours, agora, {
+            examDaysLeft: nextExam?.daysLeft ?? null,
+          })
+        : null,
+    [agora, sp.progress.dailyHours, nextExam],
+  );
   const applyHours = React.useCallback(
     (h: number) => {
       if (dateKey) {
@@ -456,13 +469,33 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             </>
           )}
         </p>
-        {/* Check-in de horas — 1 toque ao logar, editável sempre (dono 10/10/2026) */}
+        {/* Check-in de horas — 1 toque ao logar, editável sempre (dono 10/10/2026).
+            A casa aprende (banco #3): com ritmo recente, a mediana vira o 1º chip. */}
         {agora && (plannedHours === null || editingHours) && (
           <div className="mt-2" data-t="checkin-horas">
             <p className="text-sm text-muted-foreground">
               Quanto tempo você tem hoje? A sessão inteira se ajusta: plano, pomodoro e fecho.
+              {budgetSuggestion && (
+                <>
+                  {' '}
+                  Sugestão: <span className="font-medium text-foreground">{fmtH(budgetSuggestion.hours)}</span>{' '}
+                  — {budgetSuggestion.why}.
+                </>
+              )}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {budgetSuggestion && (
+                <button
+                  type="button"
+                  onClick={() => applyHours(budgetSuggestion.hours)}
+                  title={`${fmtH(budgetSuggestion.hours)} — ${budgetSuggestion.why}`}
+                  aria-label={`Aplicar sugestão de ${fmtH(budgetSuggestion.hours)}: ${budgetSuggestion.why}`}
+                  data-t="checkin-sugestao"
+                  className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {fmtH(budgetSuggestion.hours)} · seu ritmo
+                </button>
+              )}
               {[1, 1.5, 2, 2.5, 3, 4].map((h) => (
                 <button
                   key={h}

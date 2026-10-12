@@ -29,6 +29,7 @@
 
 import {
   flashcardsDueFor,
+  type DailyHours,
   type PomodoroConfig,
   type Preferences,
   type StudyProgress,
@@ -230,6 +231,82 @@ export function fitPomodoro(remainingMin: number, cfg: PomodoroConfig): Pomodoro
   };
   const needsSync = best.focusMin !== cfg.focus;
   return { ...fit, needsSync, suggestion: fitSuggestion(fit) };
+}
+
+// ---------- O ORÇAMENTO QUE APRENDE (Task 204 — banco de ideias #3) ----------
+//
+// O check-in pergunta "quanto tempo você tem hoje?" — e a casa, que já viu o
+// dono estudar, PROPÕE uma resposta: a mediana dos dias logados dentro da
+// janela recente (14 dias de calendário; hoje fora — o dia de hoje ainda está
+// em aberto). Nada de tabela fixa: a inteligência nasce do histórico real.
+// Menos de 3 dias logados na janela → a casa confessa que ainda não conhece o
+// ritmo e devolve null (sugestão inventada é ruído, não ajuda).
+
+/** O universo dos chips do check-in — a sugestão tem que caber nele. */
+export const BUDGET_PRESETS = [1, 1.5, 2, 2.5, 3, 4] as const;
+
+/** Janela de calendário que alimenta a mediana (dias). */
+export const RHYTHM_WINDOW_DAYS = 14;
+
+export interface BudgetSuggestion {
+  /** Horas sugeridas — já no universo dos chips (1 toque aplica). */
+  hours: number;
+  /** O porquê em uma linha (pt-BR, a voz da casa). */
+  why: string;
+  /** Quantos dias logados alimentaram a mediana (transparência). */
+  daysCounted: number;
+}
+
+/**
+ * A sugestão do orçamento: mediana do ritmo recente, com reforço honesto de
+ * +30min quando há prova em ≤3 dias (teto 4h, o maior chip). Pura — o
+ * dashboard chama com o MESMO `agora` do retrato (SSR e 1º render dividem).
+ */
+export function suggestBudgetFromHistory(
+  dailyHours: DailyHours | undefined,
+  now: Date,
+  opts?: { examDaysLeft?: number | null },
+): BudgetSuggestion | null {
+  if (!dailyHours) return null;
+  const nowMs = now.getTime();
+  const todayKey = todayDateKey(now);
+  const cutoffKey = todayDateKey(new Date(nowMs - (RHYTHM_WINDOW_DAYS - 1) * DAY));
+
+  const pairs = Object.entries(dailyHours)
+    .filter(
+      ([key, hours]) =>
+        key !== todayKey && key >= cutoffKey && Number.isFinite(Number(hours)) && Number(hours) > 0,
+    )
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1)); // dateKey ISO ordena em texto
+  if (pairs.length < 3) return null;
+
+  const values = pairs.map(([, hours]) => Number(hours)).sort((a, b) => a - b);
+  const mid = Math.floor(values.length / 2);
+  const median = values.length % 2 === 0 ? (values[mid - 1] + values[mid]) / 2 : values[mid];
+
+  const exam = opts?.examDaysLeft ?? null;
+  const boosted = exam !== null && exam <= 3 ? median + 0.5 : median;
+
+  // snap no universo dos chips (o mais perto vence; empate fica no menor)
+  let snapped: number = BUDGET_PRESETS[0];
+  let bestDist = Infinity;
+  for (const p of BUDGET_PRESETS) {
+    const d = Math.abs(p - boosted);
+    if (d < bestDist) {
+      bestDist = d;
+      snapped = p;
+    }
+  }
+
+  const ritmo = `seu ritmo de ${pairs.length} dias estudados`;
+  const why =
+    exam !== null && exam <= 3
+      ? exam === 0
+        ? `${ritmo} · prova hoje, dia de fechar`
+        : `${ritmo} · prova ${exam === 1 ? 'amanhã' : `em ${exam} dias`}`
+      : ritmo;
+
+  return { hours: snapped, why, daysCounted: pairs.length };
 }
 
 // ---------- A sessão ----------
