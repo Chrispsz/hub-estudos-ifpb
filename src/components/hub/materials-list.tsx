@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { daysUntilDate } from '@/lib/semester';
 import { MATH_EXAM, MATH_SCOPE_MATERIALS } from '@/lib/math-exam-prep';
+import { curateMaterial } from '@/lib/material-curation';
 import { recallPdfPage } from '@/lib/pdf-position';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
@@ -130,11 +131,17 @@ export function MaterialsList() {
   );
 
   // Agrupamento por disciplina (dados estáticos) calculado uma única vez.
+  // Curadoria caso a caso (dono 12/10): material de prova passada (arquivo)
+  // desce para o fim da lista da disciplina — consulta, não caminho do dia.
   const byDiscipline = React.useMemo(
     () =>
       disciplines.map((d) => ({
         discipline: d,
-        items: getMaterialsByDiscipline(d.code),
+        items: [...getMaterialsByDiscipline(d.code)].sort((a, b) => {
+          const ra = curateMaterial(a).role === 'arquivo' ? 1 : 0;
+          const rb = curateMaterial(b).role === 'arquivo' ? 1 : 0;
+          return ra - rb;
+        }),
       })),
     [],
   );
@@ -484,6 +491,34 @@ const MaterialRow = React.memo(function MaterialRow({
   const color = getColorClasses(discipline?.color ?? 'slate');
   const statusBadge = STATUS_BADGES[status];
 
+  // O papel do material na curadoria (dono 12/10) — o dono vê o PORQUÊ ao
+  // passar o mouse: prática/leitura/arquivo com a nota caso a caso.
+  const curated = curateMaterial(material);
+  const roleBadge =
+    curated.role === 'pratica' ? (
+      <Badge
+        title={curated.note}
+        className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300"
+      >
+        prática
+      </Badge>
+    ) : curated.role === 'leitura' ? (
+      <Badge
+        title={curated.note}
+        variant="outline"
+        className="border-border text-[10px] text-muted-foreground"
+      >
+        leitura
+      </Badge>
+    ) : curated.role === 'arquivo' ? (
+      <Badge
+        title={curated.note}
+        className="border-amber-200 bg-amber-50 text-[10px] text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
+      >
+        arquivo
+      </Badge>
+    ) : null;
+
   return (
     <motion.li
       initial={{ opacity: 0, y: 6 }}
@@ -495,6 +530,7 @@ const MaterialRow = React.memo(function MaterialRow({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium leading-tight">{material.title}</p>
           {statusBadge}
+          {roleBadge}
           {examScope && (
             <Badge
               variant="outline"

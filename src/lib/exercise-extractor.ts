@@ -991,7 +991,8 @@ export const exercises: Exercise[] = [
       'Reescreva o parágrafo: "O João foi ao mercado. O João esqueceu o dinheiro. O João voltou para casa." Use conectivos para tornar o texto coeso (mínimo 2 conectivos).',
     difficulty: 'facil',
     source: 'gerado_topico',
-    unit: 'Compreensão e produção textual',
+    // unidade OFICIAL do PPC (ementa SUAP 0576): coesão/coerência = textualidade (Un. I)
+    unit: 'Unidade I: As diferentes concepções de linguagem',
   },
   {
     id: 'port-002',
@@ -1001,7 +1002,8 @@ export const exercises: Exercise[] = [
       'Identifique e corrija os erros de concordância: "Fazem dois anos que estudo aqui. Haviam muitas pessoas na aula. Os alunos vai fazer a prova."',
     difficulty: 'medio',
     source: 'gerado_topico',
-    unit: 'Norma culta',
+    // unidade OFICIAL do PPC (ementa SUAP 0576): concordância = morfossintaxe (Un. III)
+    unit: 'Unidade III: Orientações gramaticais',
   },
 
   // ===== PROVA DE MATEMÁTICA — Av1 (01/10) =====

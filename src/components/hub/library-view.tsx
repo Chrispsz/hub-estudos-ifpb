@@ -124,7 +124,9 @@ export function LibraryView({ onStartStudy }: LibraryViewProps) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Conteúdos</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Disciplinas, materiais e resumos gerados por IA — {CURRENT_PERIOD_LOWER}
+            Disciplinas, materiais e resumos gerados por IA — {CURRENT_PERIOD_LOWER}. A fila segue
+            a curadoria: prática do assunto em curso primeiro, leitura como complemento — o resumo
+            IA é leitura guiada; em lista de exercícios, o que fixa é resolver.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2" aria-label="Resumo da biblioteca">

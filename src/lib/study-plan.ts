@@ -3,13 +3,23 @@
 // vistos em aula mas também revisar os antigos com prática e técnica de
 // memorização de dias pra sempre ter o que estudar").
 //
+// CURADORIA CASO A CASO (dono, 12/10/2026): "quero focar nos conteúdos mais
+// recentes que batem com a semana real da faculdade — priorizar os com
+// questões práticas/material real; leitura fica complementar; o que foi
+// gerado pra prova nem precisa mais". Desde então a fila lê a curadoria de
+// material-curation.ts: apoio/arquivo saem da fila inteira; o acervo-esparso
+// (muro de 43p, pasta do Drive, slides gerais) vira AQUECIMENTO no fim;
+// "próximo" entrega a prática mais recente da aula primeiro, uma por
+// disciplina, e explica o papel de cada sugestão no porquê.
+//
 // A fila do dia nasce do que o uso diário já registra — nada é lançado à mão:
 //   1. CONTINUAR — o material recente que ainda não virou conhecimento;
 //   2. REVISÃO — o ciclo espaçado 1·3·7·14·30 semeado ao concluir (o antigo
 //      volta ao dia quando a memória dele começa a desbotar);
 //   3. PRÁTICA — cartões vencidos (recall ativo, o teste que fixa);
 //   4. ATRASADO — material da disciplina que você anda seguindo, sem concluir;
-//   5. PRÓXIMO — o acervo na ordem da aula, para a fila nunca ficar vazia.
+//   5. PRÓXIMO — a prática/leitura mais recente de cada disciplina na régua
+//      da curadoria (o acervo-esparso aquece no fim — a fila nunca fica vazia).
 // A checklist de cada PDF pesa no PORQUÊ ("faltam 3 de 5 no checklist") —
 // o cronograma e as caixinhas são o mesmo sistema, não duas prateleiras.
 //
@@ -24,6 +34,11 @@ import {
   MATERIAL_REVIEW_DAYS,
   type StudyProgress,
 } from './study-progress';
+import {
+  curateMaterial,
+  inStudyQueue,
+  studyRank,
+} from './material-curation';
 
 export type PlanKind = 'continuar' | 'revisao' | 'pratica' | 'atrasado' | 'proximo';
 
@@ -46,11 +61,6 @@ export interface DayPlan {
 }
 
 const DAY = 86_400_000;
-
-/** Tipos de acervo que NÃO viram fila de estudo (consulta, não conteúdo). */
-function isQueueMaterial(m: Material): boolean {
-  return m.type !== 'web_page' && m.type !== 'calendar' && m.type !== 'ementa';
-}
 
 function daysAgo(iso: string, nowMs: number): number {
   const t = new Date(iso).getTime();
@@ -102,7 +112,7 @@ export function buildDayPlan(
   {
     const last = (sp.recentMaterials ?? []).find((r) => {
       const m = matOf(r.id);
-      return m && isQueueMaterial(m) && !completed.has(r.id);
+      return m && inStudyQueue(m) && !completed.has(r.id);
     });
     if (last) {
       const m = matOf(last.id)!;
@@ -136,7 +146,9 @@ export function buildDayPlan(
     const due = Object.entries(sp.materialReviews ?? {})
       .filter(([id, st]) => {
         const m = matOf(id);
-        if (!m || !isQueueMaterial(m)) return false;
+        // material de prova passada (arquivo) não reaparece nem na revisão —
+        // "não vou perder tempo com assuntos antigos" (dono, curadoria 12/10)
+        if (!m || !inStudyQueue(m)) return false;
         const t = new Date(st.dueAt).getTime();
         return !Number.isNaN(t) && t <= nowMs;
       })
@@ -178,27 +190,30 @@ export function buildDayPlan(
     }
   }
 
-  // 4) ATRASADOS — material da disciplina que você anda seguindo (recentes +
-  //    foco dos últimos 14 dias), ainda sem concluir, na ordem da aula.
-  {
-    const discOrder: string[] = [];
-    for (const r of sp.recentMaterials ?? []) {
-      const m = matOf(r.id);
-      if (m && !discOrder.includes(m.disciplineCode)) discOrder.push(m.disciplineCode);
-    }
-    for (const s of sp.pomodoroSessions ?? []) {
-      if (!s.date || !s.disciplineId || discOrder.includes(s.disciplineId)) continue;
-      const d = new Date(`${s.date}T00:00:00`).getTime();
-      if (!Number.isNaN(d) && nowMs - d <= 14 * DAY) discOrder.push(s.disciplineId);
-    }
+  // ----- as disciplinas que você anda seguindo (recentes + foco dos últimos
+  //      14 dias) — a MESMA ordem serve para atrasados e para os próximos -----
+  const discOrder: string[] = [];
+  for (const r of sp.recentMaterials ?? []) {
+    const m = matOf(r.id);
+    if (m && !discOrder.includes(m.disciplineCode)) discOrder.push(m.disciplineCode);
+  }
+  for (const s of sp.pomodoroSessions ?? []) {
+    if (!s.date || !s.disciplineId || discOrder.includes(s.disciplineId)) continue;
+    const d = new Date(`${s.date}T00:00:00`).getTime();
+    if (!Number.isNaN(d) && nowMs - d <= 14 * DAY) discOrder.push(s.disciplineId);
+  }
 
+  // 4) ATRASADOS — material da disciplina que você anda seguindo, ainda sem
+  //    concluir, na régua da curadoria (a evidência da aula, não o array cru).
+  {
     let added = 0;
     for (const code of discOrder) {
       if (added >= 2 || blocks.length >= maxBlocks) break;
-      for (const m of materials) {
+      const ranked = materials
+        .filter((m) => m.disciplineCode === code && inStudyQueue(m) && !completed.has(m.id))
+        .sort((a, b) => studyRank(a) - studyRank(b));
+      for (const m of ranked) {
         if (added >= 2 || blocks.length >= maxBlocks) break;
-        if (m.disciplineCode !== code) continue;
-        if (!isQueueMaterial(m) || completed.has(m.id)) continue;
         const ck = checklistWhy(m.id);
         // O retorno de push É o contrato: material que já entrou no plano
         // (continuar/revisão) não consome slot de atrasado — o mesmo PDF
@@ -216,21 +231,47 @@ export function buildDayPlan(
     }
   }
 
-  // 5) PRÓXIMOS — o acervo na ordem da aula completa a fila: "sempre ter o
-  //    que estudar" sem que o plano invente conteúdo que a aula não deu.
+  // 5) PRÓXIMOS — a prática mais recente da aula primeiro (uma por disciplina
+  //    que você anda seguindo), depois a leitura do assunto em curso; o
+  //    acervo-esparso aquece no fim. "Sempre ter o que estudar" — sem que o
+  //    plano invente conteúdo que a aula não deu nem ofereça prova velha.
   {
+    const ranked = materials
+      .filter((m) => inStudyQueue(m) && !completed.has(m.id))
+      .sort((a, b) => studyRank(a) - studyRank(b));
+
+    const picked = new Set<string>();
+    const candidates: Material[] = [];
+    // 1ª passada: o melhor candidato de cada disciplina que você anda seguindo
+    for (const code of discOrder) {
+      const best = ranked.find((m) => m.disciplineCode === code);
+      if (best) {
+        candidates.push(best);
+        picked.add(best.id);
+      }
+    }
+    // 2ª passada: completa com a fila inteira na régua da curadoria
+    for (const m of ranked) {
+      if (!picked.has(m.id)) candidates.push(m);
+    }
+
     let added = 0;
-    for (const m of materials) {
+    for (const m of candidates) {
       if (added >= 2 || blocks.length >= maxBlocks) break;
-      if (!isQueueMaterial(m) || completed.has(m.id)) continue;
       const short =
         disciplines.find((d) => d.code === m.disciplineCode)?.shortName ?? m.disciplineCode;
+      const cur = curateMaterial(m);
+      const why = cur.warmup
+        ? `aquecimento de ${short} — o acervo já dado mantém a mente afiada`
+        : cur.role === 'pratica'
+          ? `próximo da fila de ${short} — a prática mais recente da aula`
+          : `próximo da fila de ${short} — a leitura do assunto em curso`;
       const ok = push({
         kind: 'proximo',
         materialId: m.id,
         disciplineCode: m.disciplineCode,
         title: m.title,
-        why: `próximo da fila de ${short} — o acervo na ordem da aula`,
+        why,
         minutes: focusMin,
       });
       if (ok) added += 1;
