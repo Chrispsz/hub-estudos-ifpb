@@ -91,14 +91,20 @@ export interface AutoavaliacaoChecks {
   };
 }
 
+/**
+ * A forma do config do pomodoro (Task 30 — extraída para a fonte da verdade;
+ * o motor declara a mesma forma — estruturalmente idênticas, zero conflito).
+ */
+export type PomodoroConfig = {
+  focus: number;
+  shortBreak: number;
+  longBreak: number;
+  cyclesBeforeLong: number;
+};
+
 export interface Preferences {
   theme: 'light' | 'dark' | 'system';
-  pomodoroConfig: {
-    focus: number;
-    shortBreak: number;
-    longBreak: number;
-    cyclesBeforeLong: number;
-  };
+  pomodoroConfig: PomodoroConfig;
   dailyGoal: number;
   silentMode: boolean;
   /** Notificação nativa do SO ao concluir fase do Pomodoro. */
@@ -109,6 +115,13 @@ export interface Preferences {
    *  (relógio baseado em timestamp — sem drift, mesmo com a guia oculta).
    *  Padrão LIGADO: o dono pesquisa fora do Hub e o foco segue contando. */
   backgroundTimer: boolean;
+  /**
+   * Memória do encaixe da sessão (Task 30 — a Sessão Sintonizada): o config
+   * do pomodoro ORIGINAL do dia, guardado quando o sync da sessão reescreve
+   * o foco. `undefined` = nada a restaurar. O 1º sync do dia preserva o
+   * config de ontem; o botão Restaurar devolve exatamente o que era.
+   */
+  autoFit?: { dateKey: string; saved: PomodoroConfig };
 }
 
 // ---------- Preferências do cronograma (v2.0) ----------

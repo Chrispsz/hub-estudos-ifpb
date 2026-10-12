@@ -40,13 +40,15 @@ import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { upcomingEvents } from '@/lib/semester';
 import { PnaatReminderCard } from './pnaat-reminder-card';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
-import { buildDayPlan, PLAN_KIND_LABEL, type PlanBlock, type PlanKind } from '@/lib/study-plan';
+import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
+import { syncPomodoroToBudget } from '@/lib/session-harmony';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
 import { recallPdfPage } from '@/lib/pdf-position';
 import { TrackingPanel } from './tracking-panel';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
+import { SessionHarmonyCard } from './session-harmony-card';
 
 /** A folha da prova — as questões do professor como MATERIAL (t180). */
 const FOLHA_DA_PROVA_ID = 'mat-av1-questoes-professor';
@@ -165,13 +167,22 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
 
   // ----- Horas do dia (check-in) + doses do método + agenda oficial -----
   const plannedHours = snap?.plannedHours ?? null;
+  /** A sessão sintonizada existe quando há orçamento no dia (Task 30). */
+  const sessionActive = (plannedHours ?? 0) > 0;
   const dateKey = agora ? todayDateKey(agora) : '';
   const applyHours = React.useCallback(
     (h: number) => {
-      if (dateKey) sp.setAvailableHours(dateKey, h);
+      if (dateKey) {
+        sp.setAvailableHours(dateKey, h);
+        // A harmonia nasce no check-in: o pomodoro encaixa no que RESTA da
+        // sessão (o foco já rodado hoje desconta) na mesma respiração — o
+        // original fica guardado, o Restaurar sempre à mão.
+        if (h > 0)
+          syncPomodoroToBudget(sp, Math.max(0, Math.round(h * 60) - (snap?.minutesToday ?? 0)), dateKey);
+      }
       setEditingHours(false);
     },
-    [dateKey, sp],
+    [dateKey, sp, snap],
   );
 
   /** 1.5 → "1h30" · 2 → "2h" · 0.75 → "45min". */
@@ -262,12 +273,11 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     [focusApi, onStartStudy],
   );
 
-  // FRENTE 13 — o gesto de um bloco do plano: material → openMaterialFocused
-  // (o MESMO 1-clique da frente 9: leitor split + foco governado); prática →
-  // o Praticar já filtrado na fila de flashcards; sem material (impossível
-  // hoje, mas a casa não inventa gesto) → aba Estudar.
+  // FRENTE 13 + TASK 30 — o gesto de um bloco: plano cru (PlanBlock) e bloco
+  // da sessão (HarmonyBlock) compartilham a forma essencial — o MESMO clique
+  // abre os dois (material → openMaterialFocused; prática → flashcards).
   const openPlanBlock = React.useCallback(
-    (b: PlanBlock) => {
+    (b: { kind: string; materialId?: string; disciplineCode?: string }) => {
       if (b.kind === 'pratica') {
         openPractice({ mode: 'flashcards' });
         return;
@@ -450,7 +460,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         {agora && (plannedHours === null || editingHours) && (
           <div className="mt-2" data-t="checkin-horas">
             <p className="text-sm text-muted-foreground">
-              Quanto tempo você tem hoje? As horas viram o plano dos três passos.
+              Quanto tempo você tem hoje? A sessão inteira se ajusta: plano, pomodoro e fecho.
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {[1, 1.5, 2, 2.5, 3, 4].map((h) => (
@@ -574,11 +584,15 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         </ol>
       </Card>
 
-      {/* FRENTE 13 — O PLANO DE HOJE: o cronograma que se monta sozinho.
-          Recentes de aula primeiro, revisão espaçada dos antigos no meio,
-          prática no meio e sempre um próximo passo — some da lista conforme
-          você conclui. Cada bloco abre em 1 clique (material+tutor+foco). */}
-      {plan && plan.blocks.length > 0 && (
+      {/* TASK 30 — A SESSÃO SINTONIZADA: com orçamento no dia, ela assume a
+          vez do Plano de hoje (a MESMA fila, agora casada com o tempo — blocos
+          que cabem, fecho garantido, pomodoro encaixado, barra viva). Sem
+          check-in, a casa segue com o plano de sempre. */}
+      {sessionActive ? (
+        <SessionHarmonyCard onOpenBlock={openPlanBlock} />
+      ) : (
+        plan &&
+        plan.blocks.length > 0 && (
         <Card className="rounded-2xl p-5 sm:p-6" data-t="plano-card">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
             <h2 className="text-base font-semibold leading-tight">Plano de hoje</h2>
@@ -646,6 +660,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             })}
           </ul>
         </Card>
+        )
       )}
 
       {/* Lembrete PNAAT — compromisso externo (plataforma FIT): lembrar, não replicar */}
