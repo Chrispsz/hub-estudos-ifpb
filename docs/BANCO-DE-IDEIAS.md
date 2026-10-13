@@ -54,10 +54,15 @@ quick-action "escopo da prova", a folha impressa sai em versão véspera. O
 calendário de provas JÁ existe (`nextExam` + intel de materiais).
 **P: alta · I: alta · Int: alta · esforço: médio.**
 
-### 6. Fecho Interativo
-O bloco FECHO deixa de ser texto e vira ação: erros do dia → cartões em 1 toque,
-checklist das listas, "1º passo de amanhã" gravado de verdade (a home abre nele).
-**P: alta · I: média · Int: alta · esforço: médio.**
+### ✅ 6. Fecho Interativo — FEITA (4879b63, Task 206)
+O bloco FECHO virou painel de 3 gestos: erros → cartões (contagem ao vivo),
+listas de hoje com o que falta, e o 1º passo de amanhã gravado de verdade —
+a home do dia seguinte abre nele. O fecho agora existe TAMBÉM na sessão
+cumprida (antes sumia quando o dia virava espelho) e a casa abre nele
+sozinha. Descoberta E2E: apagar estado no mesmo clique que abre o leitor
+corre a corrida do write completo entre instâncias do hook — abrir não
+apaga; o passo expira sozinho.
+**P: alta (o ritual final executa, não decora) · I: média (conta do dado real) · Int: alta (fecho → home do amanhã → fila).**
 
 ### 7. Leitor com Meta
 No leitor: "este material ≈ 35min — cabe na sua sessão (sobram 1h20)" + ponto de
