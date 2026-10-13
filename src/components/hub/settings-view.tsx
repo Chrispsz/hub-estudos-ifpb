@@ -390,6 +390,29 @@ export function SettingsView() {
                 aria-label="Mostrar timer no título da aba"
               />
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <RotateCcw
+                  className={
+                    cfg.includeReviews !== false
+                      ? 'size-4 text-emerald-500'
+                      : 'size-4 text-muted-foreground'
+                  }
+                  aria-hidden
+                />
+                <div>
+                  <p className="text-sm font-medium">Revisar assuntos antigos</p>
+                  <p className="text-xs text-muted-foreground">
+                    O ciclo 1·3·7·14·30 volta ao plano — desligue para fila só de conteúdo novo e prova
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={cfg.includeReviews !== false}
+                onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
+                aria-label="Incluir revisão de assuntos antigos no cronograma"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

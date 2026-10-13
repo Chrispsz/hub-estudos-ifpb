@@ -122,6 +122,14 @@ export interface Preferences {
    * config de ontem; o botão Restaurar devolve exatamente o que era.
    */
   autoFit?: { dateKey: string; saved: PomodoroConfig };
+  /**
+   * REVISÃO SOB COMANDO (Task 27 — pedido do dono: "poder ativar se quer
+   * estudar/revisar assuntos antigos ou não — fica um cronograma mais
+   * direcionado ao que o usuário quer"). `undefined`/true = o ciclo espaçado
+   * 1·3·7·14·30 segue vivo na fila; `false` = a fila só tem conteúdo novo,
+   * prática e prova — os slots da revisão caem para atrasados/próximos.
+   */
+  includeReviews?: boolean;
 }
 
 // ---------- Preferências do cronograma (v2.0) ----------

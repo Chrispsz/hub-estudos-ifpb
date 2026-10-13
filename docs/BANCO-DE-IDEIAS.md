@@ -48,10 +48,12 @@ a agenda oficial e o relógio, não a grade pessoal (doutrina "nada pessoal no
 código" — a grade entra como dado do usuário).
 **P: média · I: média · Int: alta · esforço: médio.**
 
-### 5. Véspera Adaptativa
-Prova ≤7 dias: a fila da sessão pesa os tópicos da prova, o tutor ganha
-quick-action "escopo da prova", a folha impressa sai em versão véspera. O
-calendário de provas JÁ existe (`nextExam` + intel de materiais).
+### ▶ 5. Véspera Adaptativa — **FILA FEITA (Task 27)**
+Prova ≤7 dias: a fila da sessão pesa os tópicos da prova ✓ (Task 27: a régua
+agora é D-21 acende · D-7 pesa · D-3 manda, com selo D-N na fila e o radar
+explicando na home). FALTA: o tutor ganha quick-action "escopo da prova", a
+folha impressa sai em versão véspera. O calendário de provas JÁ existe
+(`nextExam` + intel de materiais).
 **P: alta · I: alta · Int: alta · esforço: médio.**
 
 ### ✅ 6. Fecho Interativo — FEITA (4879b63, Task 206)
@@ -63,6 +65,37 @@ sozinha. Descoberta E2E: apagar estado no mesmo clique que abre o leitor
 corre a corrida do write completo entre instâncias do hook — abrir não
 apaga; o passo expira sozinho.
 **P: alta (o ritual final executa, não decora) · I: média (conta do dado real) · Int: alta (fecho → home do amanhã → fila).**
+
+### ✅ 11. Revisão sob Comando — FEITA (Task 27, pedido do dono)
+"Poder ativar se quer estudar/revisar assuntos antigos ou não — fica um
+cronograma mais direcionado ao que o usuário quer." O toggle vive em 3 casas
+(plano, sessão, configurações), escreve `preferences.includeReviews` e a fila
+reflui no mesmo render: desligada, os slots da revisão caem para
+atrasados/próximos — a fila nunca esvazia, ela reorienta.
+**P: alta (o cronograma obedece ao dono, não a um ciclo fixo) · I: média (comando explícito vence heurística) · Int: alta (mesma preferência em plano + sessão + settings).**
+
+### ✅ 12. Fila com Pressão de Prova — FEITA (Task 27, mesmo pedido)
+"Só matemática fez prova, o restante vem ainda esse mês... dá pra priorizar
+as que vão trabalhar com prova." A régua: D-21 acende, D-7 pesa, D-3 manda —
+só DATA OFICIAL (anti-estimativa); prova feita sai da fila sozinha (a Av1 de
+Matemática já saiu). O Radar de provas na home espelha o semestre (feitas /
+agendadas D-N / a definir) e explica o porquê da fila.
+**P: alta (a fila mira o que vale nota agora) · I: alta (pressão = dado real de evaluationPeriods) · Int: alta (radar + fila + sessão + porquês = um cérebro só).**
+
+### 13. Nota que Cobra
+A calculadora já sabe a matemática da média; a fila ainda não. Disciplina
+onde a nota pede "X pontos na próxima avaliação" ganha prioridade extra na
+fila (o risco vira régua). Usa `realGrades` + `customEvaluations` que já
+existem — falta costurar na fila.
+**P: alta · I: alta (a nota real é o dado mais honesto que existe) · Int: alta · esforço: médio.**
+
+### 14. Atividade que Vale Nota
+O dono marcou: "RHT já fez atividade que vale como nota". Atividades sem
+data oficial (o caso do RHT) hoje não pesam em lugar nenhum. Idéia: o dono
+marca a atividade como "pendente/feita" e a fila a trata como prazo — o
+ radar a exibe como linha própria. Doutrina: nada pessoal no código, o
+marcação entra como dado do usuário.
+**P: média · I: média · Int: alta · esforço: baixo-médio.**
 
 ### 7. Leitor com Meta
 No leitor: "este material ≈ 35min — cabe na sua sessão (sobram 1h20)" + ponto de

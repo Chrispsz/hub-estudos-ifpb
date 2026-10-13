@@ -41,6 +41,8 @@ import { openPractice, openProgress, openSimulado } from '@/lib/hub-events';
 import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { upcomingEvents } from '@/lib/semester';
 import { PnaatReminderCard } from './pnaat-reminder-card';
+import { ExamRadarCard } from './exam-radar-card';
+import { Switch } from '@/components/ui/switch';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
 import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
 import { suggestBudgetFromHistory, syncPomodoroToBudget } from '@/lib/session-harmony';
@@ -686,14 +688,32 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         <Card className="rounded-2xl p-5 sm:p-6" data-t="plano-card">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
             <h2 className="text-base font-semibold leading-tight">Plano de hoje</h2>
-            <span className="text-xs tabular-nums text-muted-foreground" data-t="plano-total">
-              ~{fmtH(plan.totalMinutes / 60)} · {plan.blocks.length}{' '}
-              {plan.blocks.length === 1 ? 'bloco' : 'blocos'}
+            <span className="flex items-center gap-2">
+              {/* REVISÃO SOB COMANDO (Task 27): o dono decide se o ciclo de
+                  antigos entra na fila — o plano reflowa no mesmo render. */}
+              <label
+                htmlFor="toggle-revisao"
+                className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <Switch
+                  id="toggle-revisao"
+                  checked={sp.progress.preferences?.includeReviews !== false}
+                  onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
+                  aria-label="Incluir revisão de assuntos antigos no plano"
+                  data-t="toggle-revisao"
+                />
+                revisar antigos
+              </label>
+              <span className="text-xs tabular-nums text-muted-foreground" data-t="plano-total">
+                ~{fmtH(plan.totalMinutes / 60)} · {plan.blocks.length}{' '}
+                {plan.blocks.length === 1 ? 'bloco' : 'blocos'}
+              </span>
             </span>
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Recentes da aula primeiro, revisão espaçada dos antigos no meio — some da lista
-            conforme você conclui.
+            {sp.progress.preferences?.includeReviews === false
+              ? 'Só conteúdo novo, prática e prova — revisão espaçada desligada por você.'
+              : 'Recentes da aula primeiro, prova marcada pesa, revisão espaçada no meio — some da lista conforme você conclui.'}
           </p>
           <ul className="mt-2">
             {plan.blocks.map((b) => {
@@ -729,6 +749,14 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                         >
                           {PLAN_KIND_LABEL[b.kind]}
                         </span>
+                        {b.exam && (
+                          <span
+                            className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold tabular-nums text-amber-600 dark:text-amber-400"
+                            aria-label={`Prova de ${b.exam.name} em ${b.exam.daysLeft} dias`}
+                          >
+                            D-{b.exam.daysLeft}
+                          </span>
+                        )}
                         <span className="truncate text-[14px] font-medium leading-snug">
                           {b.title}
                         </span>
@@ -752,6 +780,11 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         </Card>
         )
       )}
+
+      {/* TASK 27 — O RADAR DE PROVAS: o ciclo real do semestre — o que foi,
+          o que tem data e o que está a definir. É o espelho do que a fila já
+          faz: prova marcada pesa, prova feita sai. */}
+      <ExamRadarCard />
 
       {/* Lembrete PNAAT — compromisso externo (plataforma FIT): lembrar, não replicar */}
       <PnaatReminderCard />

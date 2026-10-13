@@ -39,6 +39,7 @@ import {
   inStudyQueue,
   studyRank,
 } from './material-curation';
+import { examPressureFor, examPressureWhy } from './exam-radar';
 
 export type PlanKind = 'continuar' | 'revisao' | 'pratica' | 'atrasado' | 'proximo';
 
@@ -53,6 +54,8 @@ export interface PlanBlock {
   why: string;
   /** Estimativa honesta de tempo (minutos). */
   minutes: number;
+  /** A prova que pesou neste bloco (D-N para o selo da fila — Task 27). */
+  exam?: { name: string; daysLeft: number };
 }
 
 export interface DayPlan {
@@ -75,6 +78,23 @@ export function buildDayPlan(
 ): DayPlan {
   const maxBlocks = opts?.maxBlocks ?? 6;
   const nowMs = now.getTime();
+
+  // REVISÃO SOB COMANDO (Task 27 — pedido do dono: "poder ativar se quer
+  // estudar/revisar assuntos antigos ou não"): undefined = ligada (padrão).
+  const includeReviews = sp.preferences?.includeReviews !== false;
+
+  // RADAR DE PROVAS (Task 27): a pressão real por disciplina — D-21 acende,
+  // D-7 pesa, D-3 manda. Só data oficial (anti-estimativa); prova feita
+  // não pressiona (a Av1 de Matemática saiu da fila sozinha).
+  const pressureOf = (code: string) => examPressureFor(code, now);
+  const boostOf = (code: string): number => {
+    const p = pressureOf(code);
+    if (!p) return 0;
+    if (p.daysLeft <= 3) return 3;
+    if (p.daysLeft <= 7) return 2;
+    if (p.daysLeft <= 21) return 1;
+    return 0;
+  };
   const completed = new Set(sp.completedMaterials ?? []);
   const matOf = (id: string): Material | null =>
     materials.find((m) => m.id === id) ?? null;
@@ -128,6 +148,9 @@ export function buildDayPlan(
         );
       const ck = checklistWhy(last.id);
       if (ck) whys.push(ck);
+      const examWhy = m.disciplineCode ? examPressureWhy(m.disciplineCode, now) : null;
+      if (examWhy) whys.push(examWhy);
+      const press = m.disciplineCode ? pressureOf(m.disciplineCode) : null;
       push({
         kind: 'continuar',
         materialId: last.id,
@@ -135,6 +158,7 @@ export function buildDayPlan(
         title: m.title,
         why: whys.join(' · ') || 'onde o estudo parou',
         minutes: focusMin,
+        exam: press && press.daysLeft <= 7 ? press : undefined,
       });
     }
   }
@@ -142,7 +166,9 @@ export function buildDayPlan(
   // 2) REVISÕES ESPAÇADAS VENCIDAS — o antigo não apodrece: o ciclo o traz de
   //    volta. Material CONCLUÍDO revisa de propósito (o marcador de concluído
   //    não isenta da revisão — é ela que mantém o conteúdo vivo).
-  {
+  //    DESLIGÁVEL (Task 27): com revisão desligada, os slots livres caem para
+  //    os atrasados/próximos — a casa respeita o comando sem perder fila.
+  if (includeReviews) {
     const due = Object.entries(sp.materialReviews ?? {})
       .filter(([id, st]) => {
         const m = matOf(id);
@@ -205,9 +231,12 @@ export function buildDayPlan(
 
   // 4) ATRASADOS — material da disciplina que você anda seguindo, ainda sem
   //    concluir, na régua da curadoria (a evidência da aula, não o array cru).
+  //    A ordem das disciplinas agora RESPEITA A PROVA (Task 27): quem tem
+  //    prova à frente (D-21/D-7/D-3) vem antes das demais no mesmo nível.
   {
+    const orderedDiscs = [...discOrder].sort((a, b) => boostOf(b) - boostOf(a));
     let added = 0;
-    for (const code of discOrder) {
+    for (const code of orderedDiscs) {
       if (added >= 2 || blocks.length >= maxBlocks) break;
       const ranked = materials
         .filter((m) => m.disciplineCode === code && inStudyQueue(m) && !completed.has(m.id))
@@ -215,6 +244,8 @@ export function buildDayPlan(
       for (const m of ranked) {
         if (added >= 2 || blocks.length >= maxBlocks) break;
         const ck = checklistWhy(m.id);
+        const examWhy = examPressureWhy(m.disciplineCode, now);
+        const press = pressureOf(m.disciplineCode);
         // O retorno de push É o contrato: material que já entrou no plano
         // (continuar/revisão) não consome slot de atrasado — o mesmo PDF
         // nunca aparece duas vezes com etiquetas diferentes.
@@ -223,8 +254,11 @@ export function buildDayPlan(
           materialId: m.id,
           disciplineCode: m.disciplineCode,
           title: m.title,
-          why: ck ?? 'ainda sem concluir — o conteúdo que ficou para trás',
+          why: [ck ?? 'ainda sem concluir — o conteúdo que ficou para trás', examWhy]
+            .filter(Boolean)
+            .join(' · '),
           minutes: focusMin,
+          exam: press && press.daysLeft <= 7 ? press : undefined,
         });
         if (ok) added += 1;
       }
@@ -243,16 +277,21 @@ export function buildDayPlan(
     const picked = new Set<string>();
     const candidates: Material[] = [];
     // 1ª passada: o melhor candidato de cada disciplina que você anda seguindo
-    for (const code of discOrder) {
+    // — com a prova pesando (Task 27): quem tem prova mais próxima oferece
+    // o candidato primeiro, mesmo sem ser a disciplina mais recente
+    for (const code of [...discOrder].sort((a, b) => boostOf(b) - boostOf(a))) {
       const best = ranked.find((m) => m.disciplineCode === code);
       if (best) {
         candidates.push(best);
         picked.add(best.id);
       }
     }
-    // 2ª passada: completa com a fila inteira na régua da curadoria
+    // 2ª passada: completa com a fila inteira na régua da curadoria —
+    // a pressão de prova também reordena o resto (prova próxima sobe)
     for (const m of ranked) {
-      if (!picked.has(m.id)) candidates.push(m);
+      if (picked.has(m.id)) continue;
+      picked.add(m.id);
+      candidates.push(m);
     }
 
     let added = 0;
@@ -261,11 +300,14 @@ export function buildDayPlan(
       const short =
         disciplines.find((d) => d.code === m.disciplineCode)?.shortName ?? m.disciplineCode;
       const cur = curateMaterial(m);
-      const why = cur.warmup
+      const examWhy = examPressureWhy(m.disciplineCode, now);
+      const press = pressureOf(m.disciplineCode);
+      const baseWhy = cur.warmup
         ? `aquecimento de ${short} — o acervo já dado mantém a mente afiada`
         : cur.role === 'pratica'
           ? `próximo da fila de ${short} — a prática mais recente da aula`
           : `próximo da fila de ${short} — a leitura do assunto em curso`;
+      const why = [baseWhy, examWhy].filter(Boolean).join(' · ');
       const ok = push({
         kind: 'proximo',
         materialId: m.id,
@@ -273,6 +315,7 @@ export function buildDayPlan(
         title: m.title,
         why,
         minutes: focusMin,
+        exam: press && press.daysLeft <= 7 ? press : undefined,
       });
       if (ok) added += 1;
     }

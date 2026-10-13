@@ -47,6 +47,7 @@ import {
 } from '@/lib/session-harmony';
 import type { StudyProgressHook } from '@/lib/study-progress';
 import { PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
+import { Switch } from '@/components/ui/switch';
 import { openPractice } from '@/lib/hub-events';
 import { todayDateKey } from '@/lib/today-focus';
 import { useNow } from './clock-widget';
@@ -371,15 +372,32 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                   : `A fila da casa encaixada em ${fmtH(plannedMinutes)} — some da lista conforme você cumpre.`}
             </p>
           </div>
-          {stateMeta && (
-            <Badge
-              variant="outline"
-              aria-label={`Estado da sessão: ${stateMeta.label}`}
-              className={cn('shrink-0', stateMeta.cls, stateMeta.pulse && 'animate-pulse')}
+          <span className="flex shrink-0 items-center gap-3">
+            {stateMeta && (
+              <Badge
+                variant="outline"
+                aria-label={`Estado da sessão: ${stateMeta.label}`}
+                className={cn('shrink-0', stateMeta.cls, stateMeta.pulse && 'animate-pulse')}
+              >
+                {stateMeta.label}
+              </Badge>
+            )}
+            {/* REVISÃO SOB COMANDO (Task 27): o mesmo gesto do plano — a fila da
+                sessão é a MESMA inteligência, o comando vale nas duas casas. */}
+            <label
+              htmlFor="toggle-revisao-sessao"
+              className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
             >
-              {stateMeta.label}
-            </Badge>
-          )}
+              <Switch
+                id="toggle-revisao-sessao"
+                checked={sp.progress.preferences?.includeReviews !== false}
+                onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
+                aria-label="Incluir revisão de assuntos antigos na sessão"
+                data-t="toggle-revisao"
+              />
+              revisar antigos
+            </label>
+          </span>
         </div>
 
         {/* ----- a barra viva: foco REAL vs orçamento ----- */}
@@ -544,6 +562,14 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                         >
                           {isFecho ? 'Fecho' : PLAN_KIND_LABEL[b.kind as PlanKind]}
                         </span>
+                        {!isFecho && b.exam && (
+                          <span
+                            className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold tabular-nums text-amber-600 dark:text-amber-400"
+                            aria-label={`Prova de ${b.exam.name} em ${b.exam.daysLeft} dias`}
+                          >
+                            D-{b.exam.daysLeft}
+                          </span>
+                        )}
                         <span
                           className={cn(
                             'truncate text-[14px] font-medium leading-snug',

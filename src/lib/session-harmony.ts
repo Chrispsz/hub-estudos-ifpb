@@ -73,6 +73,8 @@ export interface HarmonyBlock {
   doneWhy?: string;
   /** true = o orçamento cortou este bloco (o conteúdo continua amanhã). */
   trimmed?: boolean;
+  /** A prova que pesou neste bloco (D-N para o selo da fila — Task 27). */
+  exam?: { name: string; daysLeft: number };
 }
 
 /** O encaixe do pomodoro na sessão — a matemática honesta do tempo. */
