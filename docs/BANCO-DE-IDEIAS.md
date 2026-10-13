@@ -153,3 +153,50 @@ Simulado novo · teste de chaves IA · backup · instalar app.
 faz: horas logadas, focos, erros, provas), devolve a decisão em 1 toque e
 alimenta o mesmo motor. A soma delas não é uma lista de recursos: é UMA casa
 que aprende o seu ritmo e conduz o dia — o resultado que a ideia-mãe pediu.
+
+## A Pauta de 20 (13/10/2026 — AGUARDANDO O OLHO DO DONO)
+
+O dono pediu: *"pense em 20 ideias indispensáveis para o projeto e eu vou
+revisar e ver o que passa — caso não tenha 20, seja realista falando que é
+desnecessário tantas coisas"*.
+
+**A resposta honesta da casa: o cérebro essencial já existe.** Fila conduzida
+pela prova, escadinha, sessão sintonizada, fecho que executa, FSRS, tutor com
+contexto — o motor gira. O que falta é o conteúdo virar RESULTADO de forma
+fechada. Por isso a pauta tem 20 candidatos mas **3 camadas, e não preciso
+fingir que as 20 são indispensáveis: as 10 primeiras sim; as 6 seguintes
+são fortes; as 4 últimas são extras**. Sem todas, a casa continua de pé.
+
+| # | Camada | Ideia | O que muda na casa (1 frase) | P · I · Int | Esforço |
+|---|---|---|---|---|---|
+| 1 | **A** | Ciclo do Erro | Todo erro registrado no Code Review vira tarefa de revisão na fila, no tópico que o gerou — a prova nasce dos seus erros. | alta · alta · alta | médio |
+| 2 | **A** | Mapa de Domínio | Domínio% por tópico, calculado de sinais reais (materiais concluídos, erros, cartões FSRS, questões), vira mapa de calor na home e régua da fila (reestudar vs. subir o degrau). | média · alta · alta | médio |
+| 3 | **A** | Revisão com Pressão de Prova | Quando a prova é D-7, os cartões FSRS dos tópicos dela sobem na fila da Revisão — hoje o FSRS e a prova vivem em abas separadas. | média · alta · alta | baixo |
+| 4 | **A** | Nota que Cobra (banco #13) | A nota real (o que a média exige) vira régua extra na fila — o risco de reprovação pesa como prova. | alta · alta · alta | médio |
+| 5 | **A** | Entrega Contada (fecha o #14) | Atividade que vale nota com estado pendente/feita, linha própria no radar e checklist de requisitos (LM: 4 páginas, HTML puro, W3C válido). | média · média · alta | baixo-médio |
+| 6 | **A** | Kit de Véspera (fecha o #5) | Quick-action "escopo da prova" no tutor + folha de 1 página imprimível por prova: fórmulas, P1–P14, escopo, MEUS erros comuns. | alta · alta · alta | médio |
+| 7 | **A** | Tutor que Herda a Sessão (banco #10) | A pergunta já nasce contextualizada: bloco atual, material aberto, página onde parou — `studentContext` existe, falta costurar o estado da sessão. | alta · alta · alta | médio |
+| 8 | **A** | Escadinha Guiada (banco #15b) | No leitor de um degrau-alto (S6, det-lista): "travei? desce um degrau → abrir a S5" com 1 clique (`ladderPrevMaterial` já existe). | média · alta · alta | baixo |
+| 9 | **A** | Prova Branca | Antes de cada prova: recall livre em página em branco ("escreva tudo que lembra"), autocorrigido contra os conceitos-chave do resumo IA — a prática de recuperação mais forte que existe. | alta · alta · média | médio |
+| 10 | **A** | Semana que Aprende (banco #9) | Relatório semanal que PROPÕE o orçamento da próxima semana pela média REAL (não pela meta) — fecha o ciclo aprender → planejar. | média · alta · média | médio |
+| 11 | B | Radar do Agora (banco #4) | Faixa viva na home: "agora: Bloco 2 · faltam ~40min · próximo: lanche" (a grade pessoal entra como dado do usuário — doutrina). | média · média · alta | médio |
+| 12 | B | Leitor com Meta (banco #7) | No leitor: "este material ≈ 35min — cabem na sua sessão (sobram 1h20)" + ponto de parada sugerido. | média · média · alta | médio |
+| 13 | B | Pausa com Prova do 9 (banco #8) | Na pausa do pomodoro, 1 cartão de recall de 2min (opt-out, nunca obrigatório). | média · média · média | baixo |
+| 14 | B | Contrato Semanal | Meta da semana derivada da pressão de prova, assinada em 1 toque, com barra de progresso na home — compromisso visível. | média · média · alta | baixo |
+| 15 | B | Retomada sem Culpa | Voltou depois de dias fora? A casa oferece re-plano em 1 toque e o que ficou para trás vai pro backlog com etiqueta honesta — recomeço sem peso. | alta · média · alta | médio |
+| 16 | C | Idade do Material | Badge "visto há X dias / nunca visto" no acervo — a escolha de reestudar fica óbvia. | baixa · média · média | baixo |
+| 17 | C | Cura da Rotina | A sessão avisa quando encosta no fim do bloco da grade (janta 19:15, dormir 22h) — usa a rotina que já mora na casa. | baixa · baixa · alta | baixo |
+| 18 | C | Aviso PWA leve | Notificação D-3 de prova / sessão não iniciada (sem "instalar app" — respeito ao congelado). | média · média · baixa | médio |
+| 19 | C | Fecho que Compara | No fecho: "planejado 3h · feito 2h40" + 1 pergunta opcional "por quê?" — alimenta a Semana que Aprende. | baixa · média · alta | baixo |
+| 20 | C | Pergunta do Dia | 1 recall diário escolhido pelo tópico mais frágil da prova mais próxima (usa os cartões FSRS que já existem; NÃO é simulado — respeito ao congelado). | média · alta · alta | baixo |
+
+**Veredito honesto, pedido pelo dono:** não são 20 indispensáveis — são
+**10 indispensáveis + 6 fortes + 4 extras**. As camadas B e C poliriam a
+experiência, mas a casa funciona sem elas. As 10 da camada A fecham o único
+ciclo que ainda está aberto: **erro → domínio → fila → prova → resultado**.
+
+**Ordem de execução proposta (se aprovado):** 3 → 8 → 13 (baratos que fecham
+o cérebro) → 1 → 5 → 6 → 7 → 9 → 4 → 2 → 10, depois B e C conforme o apetite.
+
+**STATUS: aguardando a revisão do dono — NADA da pauta entra no código antes
+do "passa".**
