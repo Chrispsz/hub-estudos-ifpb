@@ -28,6 +28,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Footprints,
   GripVertical,
   History,
   Image as ImageIcon,
@@ -62,6 +63,7 @@ import {
   renderPdfPageToCanvas,
 } from '@/lib/pdf-print';
 import { downscaleCanvas } from '@/lib/tutor-image';
+import { ladderNote, ladderPrevMaterial } from '@/lib/material-curation';
 import { instantChipAlive } from '@/lib/study-reader-door';
 import { MATERIAL_REVIEW_DAYS, type MaterialReviewState } from '@/lib/study-progress';
 import { PHASE_META, fmtSeconds, useStudyFocus } from '@/lib/pomodoro-engine';
@@ -115,6 +117,16 @@ interface Props {
    * leitura de progresso e o botão "concluir" seguem idênticos nos dois apps.
    */
   keepLegacyRecent?: boolean;
+  /**
+   * A ESCADINHA GUIADA (pauta #8 — dono, 13/10/2026: "travei? desce um
+   * degrau"): quando o material aberto é um degrau (LADDER em
+   * material-curation.ts), o leitor oferece a BASE com 1 clique — e quem
+   * manda é o dono do estado: o callback troca o material NO PAI (o diálogo
+   * segue aberto, agora no degrau de baixo). undefined = o pai não sabe
+   * trocar material — o convite não aparece (anti-ruído: a escada já vive
+   * na fila, no porquê e no badge do acervo).
+   */
+  onOpenMaterial?: (m: Material) => void;
 }
 
 /** Botões de ação: alvo de toque ≥44px no mobile, compacto no desktop. */
@@ -161,6 +173,7 @@ export function PdfViewerDialog({
   pendingAttachLabel,
   tutorPersist,
   keepLegacyRecent = true,
+  onOpenMaterial,
 }: Props) {
   const sp = useStudyProgress();
   /** O motor do foco (null fora do provider — ex.: console técnico v2): o chip
@@ -405,6 +418,14 @@ export function PdfViewerDialog({
     ? getDisciplineByCode(material.disciplineCode)
     : undefined;
   const color = getColorClasses(discipline?.color ?? 'slate');
+  // A ESCADINHA GUIADA (pauta #8): este material é um degrau? A base dele
+  // resolve do acervo UMA vez — o convite só nasce quando o pai sabe trocar
+  // material (onOpenMaterial); sem fiação, o leitor cala (anti-ruído).
+  const ladderRung = React.useMemo(() => {
+    if (!open || !material || !onOpenMaterial) return null;
+    const prev = ladderPrevMaterial(material.id);
+    return prev ? { mat: prev, note: ladderNote(material.id) ?? 'a base vem antes' } : null;
+  }, [open, material, onOpenMaterial]);
   const isImage = material?.type === 'image';
   // Arquivos de exemplo (.html) não são PDF — rótulo do botão de download honesto.
   const isHtmlFile = material?.pdfPath?.endsWith('.html') ?? false;
@@ -624,6 +645,28 @@ export function PdfViewerDialog({
             </DialogDescription>
           </div>
         </div>
+
+        {/* A ESCADINHA GUIADA — o gesto do degrau (a fila DESCE por você ao
+            planejar; aqui ela desce quando VOCÊ trava, no meio da leitura). */}
+        {ladderRung && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b bg-violet-500/[0.07] px-4 py-2">
+            <Footprints className="size-3.5 shrink-0 text-violet-500" aria-hidden />
+            <p className="min-w-0 flex-1 text-[11px] leading-snug text-violet-700 dark:text-violet-300">
+              <span className="font-semibold">travei? desça um degrau</span>{' '}
+              <span className="text-violet-600/80 dark:text-violet-300/70">— {ladderRung.note}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => onOpenMaterial?.(ladderRung.mat)}
+              data-testid="reader-ladder-down"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-3 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:h-8 dark:text-violet-300"
+              title={`Abrir o degrau da base: ${ladderRung.mat.title}`}
+            >
+              <Footprints className="size-3.5 shrink-0" aria-hidden />
+              <span className="max-w-[14rem] truncate">abrir a base: {ladderRung.mat.title}</span>
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 border-b bg-muted/40 p-3">
           {/* O FOCO ONDE SE ESTUDA (o coração do fluxo — motor global):

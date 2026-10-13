@@ -914,6 +914,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       <PdfViewerDialog
         material={leitorMat}
         open={leitorMat !== null}
+        onOpenMaterial={(m) => {
+          // A ESCADINHA GUIADA: desceu um degrau direto da home — o convite
+          // de página morre (a base abre do topo, com a pill honesta dela).
+          setLeitorPage(undefined);
+          setLeitorMat(m);
+        }}
         onOpenChange={(v) => {
           if (!v) setLeitorMat(null);
         }}

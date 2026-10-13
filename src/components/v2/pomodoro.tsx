@@ -11,7 +11,9 @@
 // Estado vivo no localStorage por sessão — sobrevive a reload, como tudo na casa.
 
 import * as React from 'react';
-import { Coffee, Play } from 'lucide-react';
+import { Brain, Coffee, Eye, Play } from 'lucide-react';
+import { examBoostLevel, examPressureFor } from '@/lib/exam-radar';
+import { useCards } from '@/lib/v2/use-v2';
 import { Btn } from './ui';
 
 const FOCUS_MIN = 25;
@@ -57,6 +59,14 @@ export function PomodoroBar({ sessionId }: { sessionId: string }) {
   const [st, setSt] = React.useState<PomoState>(() => load(sessionId));
   const [, force] = React.useReducer((x) => x + 1, 0);
 
+  // A PAUSA COM PROVA DO 9 (pauta #13 — 1 cartão de recall de 2min na pausa,
+  // opt-out, nunca obrigatório): o baralho FSRS do núcleo entra aqui como
+  // AQUECIMENTO — sem write, sem XP, sem cobrança (o avanço de verdade
+  // acontece na Revisão; a pausa só esperta a memória enquanto o café esfria).
+  const cards = useCards();
+  const [recallOff, setRecallOff] = React.useState<ReadonlySet<string>>(new Set());
+  const [recallOpen, setRecallOpen] = React.useState(false);
+
   React.useEffect(() => {
     const t = window.setInterval(force, 1000);
     return () => window.clearInterval(t);
@@ -90,6 +100,31 @@ export function PomodoroBar({ sessionId }: { sessionId: string }) {
 
   const nextCycle = st.cycles + 1;
   const isLongDue = nextCycle % LONG_EVERY === 0;
+
+  // O cartão da pausa: vencidos, SEM os pulados desta pausa; a PROVA MANDA
+  // no aquecimento (mesma régua da fila — matéria com prova D-7 primeiro);
+  // sem pressão, o mais vencido (a memória que mais precisa). Pausa fora →
+  // nada na tela (anti-ruído).
+  const recallCard = React.useMemo(() => {
+    if (st.phase !== 'pausa') return null;
+    const nowMs = Date.now();
+    const dueCards = cards.filter(
+      (c) => c.fsrs?.due != null && c.fsrs.due <= nowMs && !recallOff.has(c.id),
+    );
+    if (dueCards.length === 0) return null;
+    const boost = (subjectId: string) =>
+      examBoostLevel(examPressureFor(subjectId, new Date(nowMs))?.daysLeft ?? null);
+    return [...dueCards].sort((a, b) => {
+      const db = boost(b.subjectId) - boost(a.subjectId);
+      if (db !== 0) return db;
+      return (a.fsrs?.due ?? 0) - (b.fsrs?.due ?? 0);
+    })[0];
+  }, [st.phase, cards, recallOff]);
+
+  // Cartão troca → a resposta fecha de novo (o recall é DE CABEÇA, sempre).
+  React.useEffect(() => {
+    setRecallOpen(false);
+  }, [recallCard?.id]);
 
   return (
     <div className="w-full">
@@ -126,7 +161,11 @@ export function PomodoroBar({ sessionId }: { sessionId: string }) {
                 </Btn>
                 <Btn
                   variant="outline"
-                  onClick={() =>
+                  onClick={() => {
+                    // A pausa nasce limpa: o pulado da pausa anterior não
+                    // contamina esta (e o recall fecha de novo).
+                    setRecallOff(new Set());
+                    setRecallOpen(false);
                     patch({
                       phase: 'pausa',
                       cycles: nextCycle,
@@ -134,8 +173,8 @@ export function PomodoroBar({ sessionId }: { sessionId: string }) {
                       pausaLong: isLongDue,
                       budgetMin: FOCUS_MIN,
                       extended: false,
-                    })
-                  }
+                    });
+                  }}
                 >
                   <Coffee className="size-3.5" /> {isLongDue ? `pausa longa ${LONG_BREAK_MIN}min` : `pausa ${BREAK_MIN}min`}
                 </Btn>
@@ -167,6 +206,42 @@ export function PomodoroBar({ sessionId }: { sessionId: string }) {
           <p className="mt-1 font-mono text-[10px] text-zinc-600">
             a pausa termina sozinha e o foco volta — sem cobrança se você demorar
           </p>
+
+          {/* A PAUSA COM PROVA DO 9 (pauta #13): 1 cartão, 2min, opt-out —
+              o recall DE CABEÇA fixa mais que reler, e a pausa é o momento
+              honesto para ele. Pular é 1 toque e nunca cobra nada. */}
+          {recallCard && (
+            <div className="mt-2.5 rounded-md border border-violet-500/30 bg-violet-500/5 p-2.5">
+              <div className="flex items-center gap-2">
+                <Brain className="size-3.5 shrink-0 text-violet-300" aria-hidden />
+                <span className="font-mono text-[11px] text-violet-300">
+                  aquecimento de 2min — 1 cartão (opcional)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRecallOff((prev) => new Set(prev).add(recallCard.id))}
+                  className="ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
+                >
+                  pular
+                </button>
+              </div>
+              <p className="mt-1.5 text-[12px] leading-snug text-zinc-200">{recallCard.front}</p>
+              {recallOpen ? (
+                <div className="mt-2 space-y-1.5">
+                  <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[12px] leading-snug text-emerald-200">
+                    {recallCard.back}
+                  </p>
+                  <p className="font-mono text-[10px] text-zinc-500">
+                    lembrava? ótimo — aqui não conta nada: o avanço de verdade acontece na Revisão
+                  </p>
+                </div>
+              ) : (
+                <Btn variant="outline" className="mt-2" onClick={() => setRecallOpen(true)}>
+                  <Eye className="size-3.5" /> lembrar de cabeça — ver resposta
+                </Btn>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

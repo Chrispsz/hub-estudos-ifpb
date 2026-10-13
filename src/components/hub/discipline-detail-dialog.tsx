@@ -820,6 +820,12 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
       <PdfViewerDialog
         material={pdfFor}
         open={!!pdfFor}
+        onOpenMaterial={(m) => {
+          // A ESCADINHA GUIADA: desceu um degrau — o convite de página morre
+          // (a base abre do topo, com a pill honesta dela).
+          setPdfResumePage(undefined);
+          setPdfFor(m);
+        }}
         onOpenChange={(o) => {
           if (!o) {
             setPdfFor(null);

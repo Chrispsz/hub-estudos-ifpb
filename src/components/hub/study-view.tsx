@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Bot,
   BookOpen,
+  Brain,
   CalendarCheck,
   Camera,
   ChevronDown,
@@ -20,6 +21,7 @@ import {
   Copy,
   Crop,
   Download,
+  Eye,
   FileScan,
   FileText,
   History,
@@ -91,7 +93,11 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
-import { type StudyProgressHook } from '@/lib/study-progress';
+import {
+  flashcardsDueFor,
+  type StudyProgressHook,
+} from '@/lib/study-progress';
+import { examBoostLevel, examPressureFor } from '@/lib/exam-radar';
 import {
   PHASE_META,
   APP_BASE_TITLE,
@@ -331,6 +337,71 @@ function ThinkingBubble() {
 }
 
 // ---------- Componente ----------
+
+// A PAUSA COM PROVA DO 9 (pauta #13 — dono 13/10/2026): durante a pausa real
+// do motor de foco, 1 cartão de recall de 2min — opt-out (pular é 1 toque),
+// SEM write e sem XP: o avanço de verdade acontece na aba Flashcards. A prova
+// manda no aquecimento (mesma régua da fila: matéria com prova à frente
+// primeiro); sem pressão, o mais vencido (flashcardsDueFor já ordena).
+function BreakRecallCard({ sp }: { sp: StudyProgressHook }) {
+  const [off, setOff] = React.useState<ReadonlySet<string>>(new Set());
+  const [revealed, setRevealed] = React.useState(false);
+  const [nowMs, setNowMs] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const t = window.setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const card = React.useMemo(() => {
+    const due = flashcardsDueFor(sp.progress.flashcards ?? [], nowMs).filter(
+      (c) => !off.has(c.id),
+    );
+    if (due.length === 0) return null;
+    const boost = (code: string) =>
+      examBoostLevel(examPressureFor(code, new Date(nowMs))?.daysLeft ?? null);
+    return [...due].sort(
+      (a, b) => boost(b.disciplineCode) - boost(a.disciplineCode),
+    )[0];
+  }, [sp.progress.flashcards, off, nowMs]);
+  // Cartão troca → a resposta fecha de novo (o recall é DE CABEÇA, sempre).
+  React.useEffect(() => setRevealed(false), [card?.id]);
+  if (!card) return null;
+  return (
+    <div
+      className="rounded-xl border border-violet-500/30 bg-violet-500/[0.05] px-4 py-3"
+      data-testid="break-recall"
+    >
+      <div className="flex items-center gap-2">
+        <Brain className="size-3.5 shrink-0 text-violet-400" aria-hidden />
+        <span className="font-mono text-[11px] text-violet-400">
+          aquecimento de 2min — 1 cartão (opcional)
+        </span>
+        <button
+          type="button"
+          onClick={() => setOff((prev) => new Set(prev).add(card.id))}
+          className="ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          pular
+        </button>
+      </div>
+      <p className="mt-1.5 text-[13px] leading-snug">{card.front}</p>
+      {revealed ? (
+        <div className="mt-2 space-y-1.5">
+          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[13px] leading-snug text-emerald-300">
+            {card.back}
+          </p>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            lembrava? ótimo — aqui não conta nada: o avanço de verdade acontece na aba Flashcards
+          </p>
+        </div>
+      ) : (
+        <Button size="sm" variant="outline" className="mt-2" onClick={() => setRevealed(true)}>
+          <Eye className="size-4" />
+          lembrar de cabeça — ver resposta
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export function StudyView({
   initialDiscipline,
@@ -1596,6 +1667,13 @@ export function StudyView({
                   : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}.`}
               </p>
             </div>
+
+            {/* A PAUSA COM PROVA DO 9 (pauta #13): só na pausa real do motor —
+                correndo OU em espera ("pular fase" deixa a pausa pausada; o
+                aluno está em pausa nos dois casos) — 1 cartão de recall,
+                opt-out, sem write. Compacto: a doutrina do companheiro vale
+                aqui — a pausa comanda, o cartão acompanha. */}
+            {live.phase !== 'focus' && <BreakRecallCard sp={sp} />}
 
             {/* Continuidade + os números que o uso já gerou (a meta por sessões
                 saiu: número morto que o dono apontou — o retrato da home conta
@@ -2971,6 +3049,12 @@ export function StudyView({
       <PdfViewerDialog
         material={readerMaterial}
         open={readerOpen}
+        onOpenMaterial={(m) => {
+          // A ESCADINHA GUIADA: o leitor pediu o degrau de baixo — o convite
+          // de página morre (a base abre do topo, com a pill honesta dela).
+          setReaderInitialPage(undefined);
+          setMaterialId(m.id);
+        }}
         onOpenChange={(o) => {
           if (!o) {
             setReaderOpen(false);

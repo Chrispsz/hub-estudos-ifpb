@@ -198,5 +198,29 @@ ciclo que ainda está aberto: **erro → domínio → fila → prova → resulta
 **Ordem de execução proposta (se aprovado):** 3 → 8 → 13 (baratos que fecham
 o cérebro) → 1 → 5 → 6 → 7 → 9 → 4 → 2 → 10, depois B e C conforme o apetite.
 
-**STATUS: aguardando a revisão do dono — NADA da pauta entra no código antes
-do "passa".**
+**STATUS: AGUARDANDO REVISÃO — ✅ REVISADO (13/10/2026, mesma sessão).**
+
+## A Escolha do dono (13/10/2026) — o funil fechou
+
+O dono respondeu: *"agora separa só os melhores e que valem entrar de verdade
+sendo os mais valiosos"*. O funil: **20 → 6 + 1 bônus**. É a ESSENÇIA — o que
+fecha o ciclo **erro → domínio → fila → prova → resultado** sem inflar a casa:
+
+| # | Ideia | Estado |
+|---|---|---|
+| **3** | Revisão com Pressão de Prova | ✅ **FEITA (Task 212)** — nos DOIS mundos: a fila FSRS do núcleo (v2) sobe os tópicos da prova D-7 com etiqueta violeta "prova de …", e a casa REAL (`study-plan.ts`) agora ordena os blocos de revisão espaçada pela pressão de prova (mesma régua D-21/D-7/D-3) com o porquê na fila |
+| **8** | Escadinha Guiada | ✅ **FEITA (Task 212)** — o leitor de um degrau-alto mostra a faixa violeta "travei? desça um degrau" com o porquê e o botão "abrir a base: …" (1 clique troca o material no próprio diálogo). Verificado E2E: det-lista → det-teoria. Wired em TODOS os leitores: home (dashboard), Tutor IA (study-view), Biblioteca, diálogo de disciplina e o acervo do v2 |
+| **13** | Pausa com Prova do 9 | ✅ **FEITA (Task 212)** — na pausa REAL do motor de foco (correndo OU "em espera" — descoberta do E2E: "pular fase" deixa a pausa pausada), 1 cartão de recall de 2min, opt-out ("pular"), SEM write/XP (o avanço de verdade é na Revisão/Flashcards). A prova manda no aquecimento. Existe no companheiro da casa (hub) e no pomodoro do núcleo (v2) |
+| **1** | Ciclo do Erro | próxima da fila — o erro vira tarefa na fila do tópico |
+| **9** | Prova Branca | na fila — recall livre autocorrigido contra o resumo IA |
+| **6** | Kit de Véspera | na fila — escopo da prova + folha de 1 página |
+| **2** | Mapa de Domínio | na fila — o backbone de inteligência (domínio% por tópico) |
+
+**Os outros 14 ficam de fora** (as camadas B e C inteiras + 4, 5, 7, 10):
+realismo pedido pelo dono — a casa funciona melhor sem eles do que inflada com
+eles. Se um dia um deles doer a falta, o dono chama pelo número.
+
+**Achado da rodada (doutrina):** a casa é o HUB em `/` (decisão do dono
+10/10/2026) — o núcleo v2 é console técnico em `/?v2` SEM porta de entrada.
+Toda ideia nova nasce no hub primeiro; o v2 acompanha quando o mecanismo é do
+núcleo (FSRS, pomodoro).

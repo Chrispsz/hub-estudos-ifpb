@@ -179,22 +179,39 @@ export function buildDayPlan(
         const t = new Date(st.dueAt).getTime();
         return !Number.isNaN(t) && t <= nowMs;
       })
-      .sort((a, b) => new Date(a[1].dueAt).getTime() - new Date(b[1].dueAt).getTime());
+      // A PRESSÃO MANDA NA REVISÃO TAMBÉM (pauta #3, dono 13/10/2026): a
+      // revisão da matéria com prova à frente sobe na fila — D-21 acende,
+      // D-7 pesa, D-3 manda; dentro do mesmo nível, a mais vencida primeiro.
+      .sort((a, b) => {
+        const ma = matOf(a[0]);
+        const mb = matOf(b[0]);
+        const ba = ma ? boostOf(ma.disciplineCode) : 0;
+        const bb = mb ? boostOf(mb.disciplineCode) : 0;
+        if (ba !== bb) return bb - ba;
+        return new Date(a[1].dueAt).getTime() - new Date(b[1].dueAt).getTime();
+      });
     for (const [id, st] of due) {
       if (blocks.length >= maxBlocks) break;
       const m = matOf(id)!;
       const interval = MATERIAL_REVIEW_DAYS[Math.min(st.stage, MATERIAL_REVIEW_DAYS.length - 1)];
       const overdue = Math.floor((nowMs - new Date(st.dueAt).getTime()) / DAY);
+      const press = pressureOf(m.disciplineCode);
+      const examWhy = press && press.daysLeft <= 7 ? examPressureWhy(m.disciplineCode, now) : null;
       push({
         kind: 'revisao',
         materialId: id,
         disciplineCode: m.disciplineCode,
         title: m.title,
-        why:
+        why: [
           overdue > 0
             ? `revisão espaçada vencida há ${overdue === 1 ? '1 dia' : `${overdue} dias`} — a volta de ${interval}d que fixa`
             : `revisão espaçada do dia — a volta de ${interval}d que fixa`,
+          examWhy,
+        ]
+          .filter(Boolean)
+          .join(' · '),
         minutes: 15,
+        exam: press && press.daysLeft <= 7 ? press : undefined,
       });
     }
   }

@@ -246,6 +246,7 @@ export function TabMateriais({ onOpenTutor }: { onOpenTutor: (ctx: TutorMaterial
         material={viewer}
         open={!!viewer}
         onOpenChange={(o) => !o && setViewer(null)}
+        onOpenMaterial={(m) => setViewer(m)}
         tutorPersist={false}
         keepLegacyRecent={false}
       />
