@@ -1,0 +1,64 @@
+QUESTÕES DA SEMANA 5 — Algoritmos (Classroom)
+Fonte: PDF REAL "Questões Semana 5.pdf" enviado pelo dono do Hub (2 páginas,
+11 questões) — agora o arquivo oficial do professor está em
+public/pdfs/alg-questoes-semana5.pdf e esta transcrição foi conferida contra ele.
+11 questões — REPETIÇÃO NA BASE (Unidade 3): laços simples (for/while), o
+PRIMEIRO degrau da escadinha da repetição. Antes de subir para aninhamento
+(Semana 6), este degrau tem que estar firme.
+
+================================================================================
+Q1. Escreva um programa que leia um número inteiro positivo N e imprima os N
+    primeiros números ímpares positivos.
+
+Q2. Escreva um programa que leia 10 números inteiros e, para cada número,
+    informe se ele é par ou ímpar.
+
+Q3. Escreva um programa que leia um número inteiro N e imprima todos os seus
+    divisores exatos.
+
+Q4. Escreva um programa que leia dois números inteiros M e N e calcule a soma
+    de todos os números do intervalo [M, N].
+
+Q5. Escreva um programa que leia o termo inicial e a razão de uma progressão
+    aritmética e imprima os 20 primeiros termos da progressão.
+
+Q6. Escreva um programa que leia um número inteiro N e informe os dez primeiros
+    termos da sua tabuada. Por exemplo, se N for igual a 4, o programa deve
+    exibir a seguinte saída:
+        4 x 1 = 4
+        4 x 2 = 8
+        4 x 3 = 12
+        4 x 4 = 16
+        4 x 5 = 20
+        4 x 6 = 24
+        4 x 7 = 28
+        4 x 8 = 32
+        4 x 9 = 36
+        4 x 10 = 40
+
+Q7. Escreva um programa que leia o peso e a altura de 10 pessoas e informe a
+    quantidade de pessoas dentro da faixa de peso adequada, acima do peso e
+    abaixo do peso.
+
+Q8. Escreva um programa que leia um texto e, em seguida, leia um caractere x e
+    informe quantas vezes o caractere x aparece dentro do texto informado.
+
+Q9. Escreva um programa que leia um texto e, em seguida, leia dois caracteres
+    x e y e substitua, no texto informado, todas as ocorrências do caractere x
+    pelo caractere y. Por exemplo, se o texto informado foi "banana", o
+    caractere x for "a" e o caractere y for "e", o texto deve ser alterado
+    para "benene".
+
+Q10. Escreva um programa que leia um texto e verifique a quantidade de letras
+     maiúsculas, a quantidade de letras minúsculas, a quantidade de numerais e
+     a quantidade de demais caracteres.
+
+Q11. Escreva um programa que leia um texto e imprima o seu valor correspondente
+     em caixa alta. Por exemplo, se o texto informado foi "Eu amo programar", o
+     programa deve imprimir o texto "EU AMO PROGRAMAR". Para resolver a
+     questão, você não pode usar a função toupper oferecida pela linguagem C.
+================================================================================
+A ESCADINHA (dono, 13/10/2026): "em algoritmos, a depender do assunto, pode ser
+bom iniciar da base — é uma escadinha". A Semana 5 É essa base da repetição:
+um laço só, contador e acumulador. A Semana 6 sobe para laços aninhados — não
+suba sem firmar este degrau.

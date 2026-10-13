@@ -1,0 +1,67 @@
+DETERMINANTES — LISTA DE EXERCÍCIOS (prof. Eudes)
+Fonte: PDF REAL "03 - DETERMINANTES.pdf" enviado pelo dono do Hub (2 páginas,
+20 questões) — agora o arquivo oficial está em public/pdfs/mat-determinantes-lista.pdf
+e esta transcrição foi conferida contra ele. IFSP Cajazeiras · ADS · 2026.2.
+A PRÁTICA VIVA de Determinantes — o tópico que está sendo dado AGORA na
+Matemática Aplicada (Unidade 1, Álgebra Matricial).
+
+================================================================================
+1- Calcule os determinantes:
+   a) |−3 −2; 2  1/2|    b) |13 7; 11 5|    c) |sen x −cos x; cos x sen x|
+   d) |a b; a+b a−b|
+2- Determine x tal que:
+   a) |2x 3x+2; 1 x| = 0    b) |2x x−2; 4x+5 3x−1| = 11
+3- Calcule os determinantes pela REGRA DE SARRUS:
+   a) |9 7 11; −2 1 13; 5 3 6|    b) |0 a c; −c 0 b; a b 0|
+   c) |2 −1 0; m n 2; 3 5 4|
+   d) |2 log5 5 log5 5; 5 log5 125 log5 25; 8 log3 27 log3 243|
+4- Determine x tal que:
+   a) |1 x x; 2 2x 1; 3 x+1 1| = 0
+   b) |x−1 2 x; 0 1 −1; 3x x+1 2x| = |3x 2x; 4 −x|
+5- TRAÇO de uma matriz quadrada = soma dos elementos da diagonal principal.
+   Sabendo que o traço vale 9 e o determinante 15, calcule x e y da matriz
+   [1 2 3; 0 x z; 0 0 y].
+6- Calcule pelos cofatores (TEOREMA DE LAPLACE):
+   a) M = [3 4 2 1; 5 0 −1 −2; 0 0 4 0; −1 0 3 3]
+   b) M = [0 a b 1; 0 1 0 0; a a 0 b; 1 b a 0]
+   c) M = [1 2 3 4 5; 0 a −1 3 1; 0 0 b 2 3; 0 0 0 c 2; 0 0 0 0 d]
+7- Calcule os determinantes usando as PROPRIEDADES:
+   a) |ax 2a a²; x 4 1; 3x 6 2|
+   b) |x² xy² x; xy y³ y; x² y² x|
+   c) |2 7 6 11; −2 14 9 22; 4 21 15 55; 6 49 30 121|
+   d) |3 5 0 4 7; 2 13 0 19 17; 9 27 0 25 33; 16 51 0 −42 3; −π 10 0 49 −19|
+8- Prove que os determinantes são MÚLTIPLOS DE 12 sem desenvolvê-los:
+   a) |1 12 11; 5 24 13; 7 36 17|
+   b) |2 1 3 11; 4 8 12 8; 10 5 9 13; 14 7 −3 15|
+9- SEM desenvolver, diga por que o valor é ZERO:
+   a) |4 3 5 9; 12 11 15 27; 20 12 25 51; 28 23 35 64|
+   b) |a ab a a²b; b bc b c; c cd c b; d ad d d|
+   c) |x xy x²y; y yz xyz; z xz x²z|
+10- Sem desenvolver, prove que: |zy x 1; xz y 1; xy z 1| = |1 x² x; 1 y² y; 1 z² z|.
+11- Calcule o valor de: |1..5; 6..10; 11..15; 16..20; 21..25| (5x5 sequencial)
+    + |1 2 4 5; 0 1 0 0; 1 3 0 1; 1 4 2 1|.
+12- Demonstre a identidade: |a b c; x y z; m n p| = |a b+2c c; x y+2z z; m n+2p p|.
+13- Seja u = |x 1 2 0; 0 x 1 1; 0 0 x 1; 0 0 0 x| (matriz triangular). Determine
+    os valores reais de x para os quais u² − 2u + 1 = 0.
+14- Considere A = |2 1 0; 6 −1 3; 2 0 1|. Calcule o determinante de A^−1.
+15- Calcule:
+    a) |1 1 1 1; 1 2 2 2; 1 2 3 3; 1 2 3 4|
+    b) |a b b b; a a b b; a a a b; a a a a|
+    c) |1 2 0 4; 2 −3 5 1; 1 6 3 −1; 3 2 1 4|
+16- Determine o conjunto solução de |x 1 2 3; x x 4 5; x x x 6; x x x x| = 0.
+17- Calcule:
+    a) |1 1 1 1; 2 3 5 7; 4 9 25 49; 8 27 125 343|  (Vandermonde!)
+    b) |−3 6 12; −1 3 5; −1 9 25|
+    c) |1 1 1; a b a²; a² b² a⁴|
+18- Dado o polinômio P(x) = |1 1 1 1; x 1 2 3; x² 1 4 9; x³ 1 8 27|, diga quais
+    são as raízes de P(x).  (Vandermonde disfarçada!)
+19- Resolva a equação: |1 1 1 1; 1 2 x −5; 1 4 x² 25; 1 8 x³ −125| = 0.
+    (Vandermonde com o elemento −5!)
+20- Sejam A e B de ordem 4, det A = −1 e det B = 2. Calcule o determinante da
+    matriz X, sabendo que A^−1·B^t·X = 2A^t.  (Binet + det A^−1!)
+
+BONS ESTUDOS!
+================================================================================
+A casa nota: Q17-Q19 são VANDERMONDE (P14), Q20 é BINET (P12), Q8-Q10 são as
+PROPRIEDADES sem desenvolver (P3/P5/P6/P9/P10), Q13 é TRIANGULAR (P11),
+Q14 é a consequência do Binet (det A^−1 = 1/det A). A teoria (02) mapeia 1:1.

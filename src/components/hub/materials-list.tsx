@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ExternalLink,
   FileText,
+  Footprints,
   History,
   ImageIcon,
   SquareCode,
@@ -45,7 +46,7 @@ import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
 import { daysUntilDate } from '@/lib/semester';
 import { MATH_EXAM, MATH_SCOPE_MATERIALS } from '@/lib/math-exam-prep';
-import { curateMaterial } from '@/lib/material-curation';
+import { curateMaterial, ladderPrev, ladderNote, ladderPrevMaterial } from '@/lib/material-curation';
 import { recallPdfPage } from '@/lib/pdf-position';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
@@ -519,6 +520,21 @@ const MaterialRow = React.memo(function MaterialRow({
       </Badge>
     ) : null;
 
+  // A ESCADINHA (dono 13/10): quando o material tem um degrau anterior, o
+  // card diz de onde ele se apoia — a base é nomeada, o porquê é dito.
+  const ladderPrevM = ladderPrev(material.id) ? ladderPrevMaterial(material.id) : null;
+  const ladderBadge =
+    ladderPrevM && ladderNote(material.id) ? (
+      <Badge
+        variant="outline"
+        title={`Escadinha — base: ${ladderPrevM.title}. ${ladderNote(material.id)}`}
+        className="border-violet-300 bg-violet-50 text-[10px] text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/15 dark:text-violet-300"
+      >
+        <Footprints className="mr-1 h-3 w-3" />
+        escadinha · base: {ladderPrevM.title.length > 28 ? `${ladderPrevM.title.slice(0, 28)}…` : ladderPrevM.title}
+      </Badge>
+    ) : null;
+
   return (
     <motion.li
       initial={{ opacity: 0, y: 6 }}
@@ -531,6 +547,7 @@ const MaterialRow = React.memo(function MaterialRow({
           <p className="text-sm font-medium leading-tight">{material.title}</p>
           {statusBadge}
           {roleBadge}
+          {ladderBadge}
           {examScope && (
             <Badge
               variant="outline"

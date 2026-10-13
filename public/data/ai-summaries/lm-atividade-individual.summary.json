@@ -1,0 +1,97 @@
+{
+  "titulo": "Atividade Individual — Linguagens de Marcação (site pessoal em HTML puro)",
+  "disciplina": "Linguagem de Marcação",
+  "tipo": "lista_exercicios",
+  "tempo_estudo_minutos": 180,
+  "resumo_geral": "ATIVIDADE VALE NOTA da Linguagem de Marcação: construir a estrutura completa do site pessoal usando APENAS HTML — quatro páginas ligadas entre si (index, sobre, projetos, contato) SEM NENHUMA LINHA DE CSS. Na Etapa 2 essas mesmas páginas receberão estilo, então a base semântica construída agora é o fundamento do site inteiro. As regras gerais são duras e a primeira vale nota: nada de <style>, style= ou <link rel=stylesheet> (nem bgcolor, align, <font>, <center>); todas as páginas passam no Validador do W3C sem erros; e o conteúdo deve ser seu (persona coerente é permitida). O esqueleto é idêntico nas 4 páginas: <header> com nome + <nav> idêntico, <main> único com <section>/<article>, <footer> com <address> (mailto:) e <time> para o ano. Tipografia com hierarquia honesta: um <h1> por página e NUNCA pular níveis de título. Cada página tem conteúdo próprio esperado (apresentação+destaques, trajetória+habilidades, 2+ projetos com data e imagem, formulário+endereço+redes+FAQ). É o degrau prático de TUDO que a disciplina deu até aqui: estrutura, listas, tabelas, mídias, hyperlinks e formulários.",
+  "conceitos_chave": [
+    {
+      "conceito": "A regra que vale nota: NADA de CSS",
+      "explicacao": "Sem <style>, sem atributo style, sem <link rel=\"stylesheet\">. Atributos de apresentação antigos (bgcolor, align, <font>, <center>) também são proibidos — descumprir qualquer uma das três primeiras regras gerais PERDE a nota de 'Regras gerais' na avaliação. A atividade testa SEMÂNTICA, não aparência: a tag certa é a que descreve o significado.",
+      "exemplo": "✗ <font color=\"red\">Projetos</font>  ✓ <h2>Projetos</h2>"
+    },
+    {
+      "conceito": "Esqueleto semântico idêntico nas 4 páginas",
+      "explicacao": "<header> com seu nome e um <nav> com links para as 4 páginas (menu IDÊNTICO em todas — consistência de navegação); <main> ÚNICO por página dividido em <section> e <article>; <footer> com <address> (e-mail com mailto:) e o ano com <time>. O <main> não se repete: um por página.",
+      "exemplo": "<header><h1>Seu Nome</h1><nav><a href=\"index.html\">Início</a> · <a href=\"sobre.html\">Sobre</a> · <a href=\"projetos.html\">Projetos</a> · <a href=\"contato.html\">Contato</a></nav></header>"
+    },
+    {
+      "conceito": "Hierarquia de títulos sem pular níveis",
+      "explicacao": "Apenas UM <h1> por página (o título principal), e títulos sem pular níveis: um <h2> nunca vem seguido direto de um <h4>. A hierarquia h1→h2→h3 é o contorno do documento — leitores de tela e o validador usam isso.",
+      "exemplo": "✗ <h2>Projetos</h2><h4>Site pessoal</h4>  ✓ <h2>Projetos</h2><h3>Site pessoal</h3>"
+    },
+    {
+      "conceito": "index.html — a vitrine",
+      "explicacao": "Apresentação curta, foto (opcional), DESTAQUES e links para as outras páginas. É a página de entrada: quem chega tem que entender quem você é e para onde ir em 10 segundos. Lista de destaques é <ul> semântico, não asteriscos.",
+      "exemplo": "<section><h2>Destaques</h2><ul><li>Site pessoal em HTML puro</li><li>Estudos em ADS</li></ul></section>"
+    },
+    {
+      "conceito": "sobre.html — a trajetória",
+      "explicacao": "Trajetória, formação, habilidades e interesses profissionais. Cada bloco é uma <section> com seu <h2>; habilidades cabem em <ul>; a formação pode ser <article> com <time> das datas.",
+      "exemplo": "<section><h2>Formação</h2><p>ADS no IFPB — <time datetime=\"2026\">2026</time>…</p></section>"
+    },
+    {
+      "conceito": "projetos.html — 2+ projetos completos",
+      "explicacao": "Pelo menos 2 projetos (reais ou FICTÍCIOS), cada um com DESCRIÇÃO, DATA e IMAGEM. Cada projeto é um <article> (conteúdo independente e distribuível) com <figure>/<img> + <figcaption> e <time datetime=\"…\">. As imagens moram em midia/imagens/.",
+      "exemplo": "<article><h3>Hub de Estudos</h3><figure><img src=\"midia/imagens/hub.png\" alt=\"Tela do hub\"><figcaption>Visão geral</figcaption></figure><p>Descrição…</p><time datetime=\"2026-10\">Outubro de 2026</time></article>"
+    },
+    {
+      "conceito": "contato.html — formulário que não precisa funcionar",
+      "explicacao": "Formulário de contato (o atributo action pode apontar para # — não precisa funcionar), endereço, redes sociais e PERGUNTAS FREQUENTES. Formulário semântico: <form action=\"#\"> com <label for> ligado a cada <input id> — o label é acessibilidade obrigatória. FAQ é lista de definição ou sections curtas.",
+      "exemplo": "<form action=\"#\"><p><label for=\"email\">E-mail:</label> <input type=\"email\" id=\"email\" name=\"email\"></p><p><button>Enviar</button></p></form>"
+    },
+    {
+      "conceito": "Estrutura de arquivos e mídias",
+      "explicacao": "meu-site/ com os 4 HTML na raiz e a pasta midia/ com imagens/, audio/ e video/ — o caminho relativo nos src/href tem que bater (midia/imagens/foto.png). Pastas certas desde o início evitam reescrever caminhos na Etapa 2.",
+      "exemplo": "meu-site/index.html · sobre.html · projetos.html · contato.html · midia/imagens/ · midia/audio/ · midia/video/"
+    },
+    {
+      "conceito": "HTML válido no W3C",
+      "explicacao": "Todas as páginas devem passar no Validador do W3C SEM ERROS (validator.w3.org). Os erros mais comuns: atributo duplicado, <li> fora de lista, <input> sem <label>, charset faltando, e justamente os atributos proibidos desta atividade. Valide as 4 páginas, uma por uma.",
+      "exemplo": "<!DOCTYPE html><html lang=\"pt-br\"><head><meta charset=\"utf-8\"><title>…</title></head>…"
+    }
+  ],
+  "pontos_importantes": [
+    "VALE NOTA: descumprir as 3 primeiras regras (sem CSS, W3C válido, conteúdo seu) perde a nota de 'Regras gerais' — a régua dura da atividade.",
+    "ETAPA 1 de 2: agora é só HTML sem estilo; a Etapa 2 veste essas MESMAS páginas com CSS — semântica boa agora = estilo fácil depois.",
+    "O menu <nav> é IDÊNTICO nas 4 páginas — copie o bloco <header> inteiro de uma para as outras.",
+    "Um <h1> por página e sem pular níveis (h2 seguido de h4 é erro de hierarquia).",
+    "Footer com <address> contendo o e-mail em <a href=\"mailto:…\"> e o ano em <time datetime=\"2026\">.",
+    "Projetos: pelo menos 2, cada um com descrição + data (<time datetime>) + imagem (<img> com alt — alt é acessibilidade E validação).",
+    "O formulário NÃO precisa funcionar: action=\"#\" é oficialmente aceito pelo enunciado.",
+    "Persona é permitida ('o conteúdo deve ser seu... pode criar uma persona, desde que coerente do início ao fim') — coerência de ponta a ponta é o critério.",
+    "Coloque o <meta charset=\"utf-8\"> em TODAS as páginas — sem ele o validador acusa e os acentos quebram.",
+    "Esta atividade é o RETORNO PRÁTICO de tudo que a disciplina deu: estrutura, listas, tabelas, mídias, hyperlinks, formulários — use os slides correspondentes como referência enquanto constrói."
+  ],
+  "erros_comuns": [
+    "Deixar QUALQUER CSS vazar: <style> no head, style=\"\" na tag, <link rel=\"stylesheet\"> — qualquer um dos três perde a nota da regra 1.",
+    "Usar atributos proibidos 'só um pouquinho': bgcolor, align, <center>, <font> — proibidos também.",
+    "Menu diferente entre páginas (uma com 4 links, outra com 3) — o enunciado exige idêntico.",
+    "Dois <h1> na mesma página, ou <h4> logo depois de <h2> (pulou nível).",
+    "<img> sem atributo alt — acessibilidade e validação caem juntas.",
+    "<input> sem <label for> correspondente (ou label sem for).",
+    "Esquecer o <main> (colocar tudo direto no body) ou usar DOIS <main> na mesma página.",
+    "Campos de formulário fora de <form>, ou botão type submit sem form semântico.",
+    "Caminhos de mídia quebrados (src=\"imagens/foto.png\" quando a pasta é midia/imagens/) — a estrutura de pastas do enunciado é midia/{imagens,audio,video}.",
+    "Entregar sem validar: rodar as 4 páginas no Validador do W3C é parte da atividade (regra 2) — página com erro = nota de regras gerais perdida."
+  ],
+  "exercicios_sugeridos": [
+    "Monte o esqueleto comum: <!DOCTYPE html> + lang + charset + header/nav/footer nas 4 páginas (menu idêntico).",
+    "index.html: apresentação curta + destaques em <ul> + links para as outras 3 páginas.",
+    "sobre.html: trajetória + formação (com <time>) + habilidades (<ul>) + interesses.",
+    "projetos.html: 2 <article> com <h3>, <figure>/<img alt>, <figcaption>, descrição e <time datetime>.",
+    "contato.html: <form action=\"#\"> com labels ligados, endereço (<address>), redes (<ul> de links) e FAQ.",
+    "Crie a pasta midia/ com imagens/, audio/, video/ e mova os arquivos de mídia para lá, ajustando os caminhos.",
+    "Valide as 4 páginas no validator.w3.org e corrija TODOS os erros (regra 2).",
+    "Faça a auto-revisão da regra 1: grep por <style, style=, stylesheet, bgcolor, align=, <font, <center nos 4 arquivos — zero ocorrências."
+  ],
+  "perguntas_autoavaliacao": [
+    "Por que <article> para cada projeto e <section> para os blocos de sobre.html? Qual o critério semântico?",
+    "O que acontece com a acessibilidade quando se pula de <h2> para <h4>? Reescreva a hierarquia certa da página de projetos.",
+    "Como o <label for=\"email\"> se liga ao <input>? Por que isso importa para quem usa leitor de tela?",
+    "Por que a atividade proíbe CSS nesta etapa? O que a semântica tem a ver com a Etapa 2?",
+    "Seu menu <nav> é byte a byte igual nas 4 páginas? (Copiar o header inteiro resolve.)",
+    "Onde estão o <address> com mailto: e o <time> com o ano no seu footer?",
+    "Todas as 4 páginas passam no validador do W3C sem erro? Qual foi o erro mais comum que apareceu?"
+  ]
+}

@@ -87,6 +87,14 @@ const DECISIONS: Record<string, { role: MaterialRole; note: string; warmup?: boo
   'alg-questoes-semana2': { role: 'pratica', note: 'questões reais (17/09, já pegando repetição) — a frente da aula' },
   'alg-questoes-semana3': { role: 'pratica', note: 'questões reais (23/09) — a evidência mais nova da aula' },
   'alg-questoes-semana4': { role: 'pratica', note: 'questões reais mais recentes da aula — o estado da matéria' },
+  'alg-questoes-semana5': {
+    role: 'pratica',
+    note: 'questões reais da Unidade 3 NO DEGRAU DA BASE (laço simples: contador, acumulador, string caractere a caractere) — a escadinha da repetição começa aqui',
+  },
+  'alg-questoes-semana6': {
+    role: 'pratica',
+    note: 'questões reais no DEGRAU DE CIMA (aninhamento: Fibonacci, palíndromos, figuras) — só sobe com a base da S5 firme (dono: "é uma escadinha")',
+  },
   'alg-programas-c-autorais': { role: 'pratica', note: '19 programas resolvidos do autor — espelho pra conferir o próprio C' },
   'alg-tipos-operadores': { role: 'leitura', note: 'slides da Unidade 1 — leitura de base, complementar às questões' },
   'alg-monitoria-discord': { role: 'apoio', note: 'link de monitoria — apoio, não conteúdo de fila' },
@@ -100,7 +108,18 @@ const DECISIONS: Record<string, { role: MaterialRole; note: string; warmup?: boo
   'mat-logica-slides': { role: 'leitura', note: 'teoria da lógica — leitura complementar às listas' },
   'mat-logica-lista': { role: 'pratica', note: 'lista real de lógica — o que fixa é resolver' },
   'mat-00-matrizes': { role: 'leitura', note: 'slides da aula de matrizes — leitura do assunto em curso' },
-  'mat-01-matrizes': { role: 'pratica', note: 'lista da aula mais recente de matemática — a evidência viva' },
+  'mat-01-matrizes': {
+    role: 'pratica',
+    note: 'lista da aula de matrizes — o degrau ANTERIOR de determinantes (cofator apaga linha/coluna de matriz: sem matriz firme, sem det)',
+  },
+  'mat-determinantes-teoria': {
+    role: 'leitura',
+    note: 'teoria do assunto VIVO (14 propriedades, prof. Eudes) — a leitura que desbloqueia a lista questão por questão',
+  },
+  'mat-determinantes-lista': {
+    role: 'pratica',
+    note: 'a prática viva de matemática: 20 questões de determinantes em rampa (Sarrus → propriedades → Vandermonde/Binet) — o que a próxima prova vai cobrar',
+  },
   'mat-ementa': { role: 'apoio', note: 'plano de disciplina — consulta' },
 
   // ---------- TEC.1632 · Linguagem de Marcação ----------
@@ -116,6 +135,10 @@ const DECISIONS: Record<string, { role: MaterialRole; note: string; warmup?: boo
   'lm-web-css-seletores': {
     role: 'leitura',
     note: 'aula 08 (01/10) — PRIMEIRO CSS, base da A2 (45% da nota): intro + os 8 tipos de seletor da apostila',
+  },
+  'lm-atividade-individual': {
+    role: 'pratica',
+    note: 'ATIVIDADE VALE NOTA: site pessoal em HTML puro (4 páginas, zero CSS, W3C válido) — a entrega real da disciplina; o retorno prático de todo o HTML dado',
   },
   'lm-01-estrutura': { role: 'leitura', note: 'slides da estrutura do HTML — leitura de base' },
   'lm-intro-00': { role: 'leitura', note: 'introdução da disciplina — leitura de base' },
@@ -196,10 +219,15 @@ const EVIDENCE: Record<string, number> = {
   'alg-questoes-semana2': 25,
   'alg-questoes-semana3': 30,
   'alg-questoes-semana4': 40,
-  'mat-01-matrizes': 40, // aula 01 — a evidência mais nova de matemática
+  'alg-questoes-semana5': 50, // a evidência viva da Unidade 3 (dada agora)
+  'alg-questoes-semana6': 60, // ainda mais nova — mas a escadinha põe a S5 antes (LADDER)
+  'mat-01-matrizes': 40, // aula 01 — o degrau anterior do assunto vivo
   'mat-00-matrizes': 35,
   'mat-logica-lista': 20,
   'mat-logica-slides': 15,
+  'mat-determinantes-teoria': 45, // o assunto novo da aula (depois de matrizes)
+  'mat-determinantes-lista': 55, // a prática viva de matemática AGORA
+  'lm-atividade-individual': 50, // a entrega real e datada de LM
 };
 
 const ARRAY_INDEX = new Map(materials.map((m, i) => [m.id, i]));
@@ -222,4 +250,110 @@ export function studyRank(m: Material): number {
 /** Frase de retenção do antigo para a disciplina (a doutrina do dono). */
 export function retentionNote(disciplineCode: string): string | null {
   return DISCIPLINE_POLICY[disciplineCode]?.note ?? null;
+}
+
+// ----- A ESCADINHA (dono, 13/10/2026: "em algoritmos a depender do assunto
+// pode ser bom iniciar da base pois é uma escadinha") -----
+//
+// Nem tudo na fila é plano: alguns conteúdos SE APOIAM em outros. A S6 de
+// algoritmos (aninhamento) é a S5 (laço simples) + um laço dentro do outro —
+// começar por ela sem a base é despenca garantida. A escadinha registra esses
+// APOIOS explícitos e a fila obedece: um degrau nunca é oferecido antes da
+// base pendente — a base toma o lugar dele na fila, e o porquê é dito.
+//
+// Regras da casa:
+//   • a escadinha é POR MATERIAL (não por disciplina) — a S4 de condicionais
+//     não pede a S3 como base: são paralelas; a S6 pede a S5: é degrau.
+//   • concluiu o degrau? a escada some — o material novo volta a ser o
+//     "próximo" natural (a régua da evidência manda de novo).
+//   • a matemática entra na escada no eixo TEORIA → LISTA (a lista de
+//     determinantes apoiada na teoria da mesma aula), e o degrau anterior do
+//     tópico (matrizes) é reaquecimento — por-tópico, o que passou não volta
+//     por si só; volta quando o tópico novo PRECISA dele.
+
+const BY_ID = new Map(materials.map((m) => [m.id, m]));
+
+export interface LadderRung {
+  /** O degrau anterior — a base da qual este material se apoia. */
+  prev: string;
+  /** O porquê do apoio, em uma linha (a voz da casa). */
+  note: string;
+}
+
+/** Os degraus conhecidos: material → base dele. */
+export const LADDER: Record<string, LadderRung> = {
+  'alg-questoes-semana6': {
+    prev: 'alg-questoes-semana5',
+    note: 'aninhamento é a S5 + um laço dentro do outro — sem o degrau da base (contador, acumulador), a figura do asterisco despenca',
+  },
+  'mat-determinantes-lista': {
+    prev: 'mat-determinantes-teoria',
+    note: 'a lista usa as 14 propriedades — a teoria da aula mapeia 1:1 com as questões (Q8–Q10 são P3/P5/P6/P9; Q17–Q19 são P14)',
+  },
+};
+
+/** O degrau anterior deste material — null quando ele não é um degrau. */
+export function ladderPrev(materialId: string): string | null {
+  return LADDER[materialId]?.prev ?? null;
+}
+
+/** O porquê do apoio deste material — null quando não há escada. */
+export function ladderNote(materialId: string): string | null {
+  return LADDER[materialId]?.note ?? null;
+}
+
+/** O material do degrau anterior (resolvido do acervo) — null se não existe. */
+export function ladderPrevMaterial(materialId: string): Material | null {
+  const prevId = ladderPrev(materialId);
+  return prevId ? BY_ID.get(prevId) ?? null : null;
+}
+
+/**
+ * A ESCADINHA aplicada à fila: recebe a fila já ranqueada (studyRank) e os ids
+ * ainda PENDENTES, e devolve a fila reordenada onde NENHUM degrau aparece
+ * antes da base pendente dele — a base toma o lugar na frente.
+ * Também devolve `whyOverride`: quando um material entrou na frente POR SER
+ * base de outro, o porquê da fila explica a escadinha (o plano diz e ensina).
+ * Lib pura: nada lê storage; concluiu a base? a escada some sozinha.
+ */
+export function applyLadder(
+  queue: Material[],
+  pendingIds: Set<string>,
+): { queue: Material[]; whyOverride: Map<string, string> } {
+  const whyOverride = new Map<string, string>();
+  const seen = new Set<string>();
+  const out: Material[] = [];
+
+  for (const m of queue) {
+    if (seen.has(m.id)) continue;
+    // sobe a escada a partir de m até a base mais alta pendente (teto de 4
+    // degraus: o acervo é curto; laço infinito aqui é vergonha dobrada)
+    const chain: Material[] = [m];
+    let current = m;
+    for (let hops = 0; hops < 4; hops++) {
+      const prevId = ladderPrev(current.id);
+      if (!prevId || seen.has(prevId) || !pendingIds.has(prevId)) break;
+      const prev = BY_ID.get(prevId);
+      if (!prev) break;
+      chain.push(prev);
+      current = prev;
+    }
+    // desce empilhando do degrau mais alto ao mais baixo: a BASE entra na
+    // frente (no lugar do degrau) e o degrau de cima vem logo depois
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const rung = chain[i];
+      if (seen.has(rung.id)) continue;
+      out.push(rung);
+      seen.add(rung.id);
+      const above = chain[i - 1];
+      if (above) {
+        whyOverride.set(
+          rung.id,
+          `escadinha: é a base de "${above.title}" — ${ladderNote(above.id) ?? 'a base vem antes'}`,
+        );
+      }
+    }
+  }
+
+  return { queue: out, whyOverride };
 }

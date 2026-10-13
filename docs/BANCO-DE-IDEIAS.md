@@ -82,6 +82,24 @@ Matemática já saiu). O Radar de provas na home espelha o semestre (feitas /
 agendadas D-N / a definir) e explica o porquê da fila.
 **P: alta (a fila mira o que vale nota agora) · I: alta (pressão = dado real de evaluationPeriods) · Int: alta (radar + fila + sessão + porquês = um cérebro só).**
 
+### ✅ 15. A Escadinha — FEITA (Task 210, 13/10/2026)
+A ideia do dono, palavra por palavra: *"em algoritmos a depender do assunto
+pode ser bom iniciar da base pois é uma escadinha né"*. A fila agora tem
+DEGRAUS explícitos (`LADDER` em material-curation.ts): um material nunca é
+oferecido antes da base pendente dele — a base toma o lugar na frente, o
+porquê explica o degrau ("escadinha: é a base de …"), e concluiu a base? a
+escada some sozinha e o material novo volta a ser o próximo natural. Os dois
+primeiros degraus reais: **S6 (aninhamento) apoia-se na S5 (laço simples)** e
+a **lista de determinantes apoia-se na teoria da mesma aula**. O badge
+violeta "escadinha · base: …" no acervo mostra o apoio caso a caso.
+**P: alta (começar da base evita a despenca que custa 1h de tentativa) · I: alta (o apoio é registrado caso a caso, não por regra cega de disciplina) · Int: alta (a fila, o acervo e o porquê contam a mesma história).**
+
+### ▶ 15b. Escadinha Guiada — a fila FEITA, falta o gesto
+O degrau já reordena a fila e o badge explica. O próximo gesto natural: no
+LEITOR do material de degrau-alto (S6, det-lista), um lembrete com 1 clique —
+"travei? desça um degrau: abrir a S5" (usa `ladderPrevMaterial`, já existe).
+**P: média · I: alta (a escada reage ao TRAVAR, não só ao planejar) · Int: alta · esforço: baixo.**
+
 ### 13. Nota que Cobra
 A calculadora já sabe a matemática da média; a fila ainda não. Disciplina
 onde a nota pede "X pontos na próxima avaliação" ganha prioridade extra na
@@ -95,6 +113,9 @@ data oficial (o caso do RHT) hoje não pesam em lugar nenhum. Idéia: o dono
 marca a atividade como "pendente/feita" e a fila a trata como prazo — o
  radar a exibe como linha própria. Doutrina: nada pessoal no código, o
 marcação entra como dado do usuário.
+**Avanço (Task 210): a atividade individual de LM (site pessoal em HTML puro,
+VALE NOTA) entrou no acervo como PRÁTICA com nota de curadoria própria — a
+fila já a oferece como a entrega real de LM. Falta o estado pendente/feita.**
 **P: média · I: média · Int: alta · esforço: baixo-médio.**
 
 ### 7. Leitor com Meta

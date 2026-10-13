@@ -1,0 +1,98 @@
+{
+  "titulo": "Questões da Semana 6 — Algoritmos (Classroom)",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "lista_exercicios",
+  "tempo_estudo_minutos": 130,
+  "resumo_geral": "Sexta bateria semanal (Classroom): 10 questões em C e o DEGRAU DE CIMA da escadinha da repetição — laços ANINHADOS (um laço dentro do outro). A lista é um castelo sobre a Semana 5: Q1 é a Q7 da semana passada com percentuais; Q2 põe o laço de divisores DENTRO de um laço de 5 números; Q4 (número perfeito) e Q7 (palíndromos de 4 dígitos no intervalo inteiro [1000,9999]) são aninhamento puro com verificação; Q5 é a série de Fibonacci com a dança das três variáveis; Q6 é a simulação de votação com 20 eleitores e relatório final; e Q8-Q10 são as figuras de asteriscos (crescente, decrescente e com indentação) — o exercício-mestre do aninhamento: laço de LINHAS controlando um laço de COLUNAS. Sem a base firme da Semana 5 (um laço só), esta lista não desce.",
+  "conceitos_chave": [
+    {
+      "conceito": "Laço aninhado — a anatomia do degrau de cima",
+      "explicacao": "Um laço externo e um interno: PARA CADA volta do externo, o interno roda COMPLETO (do zero até a condição de parada). A regra de ouro: as variáveis do interno reinicializam DENTRO do externo, e o contador do interno é DIFERENTE do do externo (i de fora, j de dentro). A contagem total de execuções é externo × interno.",
+      "exemplo": "for (int i = 1; i <= n; i++) { for (int j = 1; j <= i; j++) { printf(\"*\"); } printf(\"\\n\"); }"
+    },
+    {
+      "conceito": "Percentual com base fixa (Q1)",
+      "explicacao": "A Q7 da Semana 5 agora fecha a conta: conte as 3 categorias num laço de 10 pessoas e DEPOIS do laço divida cada contador por 10 × 100.0. O detalhe honesto: multiplicar por 100.0 (double) ANTES de dividir não é necessário aqui (base fixa 10), mas o padrão percentual = (conta * 100.0) / total é o que evita divisão inteira que zera o resultado.",
+      "exemplo": "printf(\"abaixo: %.1f%%\\n\", abaixo * 100.0 / 10);"
+    },
+    {
+      "conceito": "Divisores de 5 números (Q2) — aninhamento disfarçado",
+      "exemplo": "for (int k = 0; k < 5; k++) { scanf(\"%d\", &num); for (int d = 1; d <= num; d++) { if (num % d == 0) printf(\"%d \", d); } printf(\"\\n\"); }",
+      "explicacao": "O laço de fora lê os 5 números; o de dentro é EXATAMENTE o laço de divisores da Semana 5 (Q3). É a prova viva de que a escadinha funciona: o degrau de cima reusa o de baixo como peça."
+    },
+    {
+      "conceito": "Pares (x, y) com x ≥ y no intervalo (Q3)",
+      "explicacao": "O externo anda x de M até N; o interno anda y de M até x (não até N!) — a condição 'x sempre maior ou igual a y' é codificada NO LIMITE do laço interno. Com M=2, N=5: x=2 gera (2,1) e (2,2); x=5 gera 5 pares. Perceba que (2,1) existe mas (1,2) não — a ordem importa.",
+      "exemplo": "for (int x = m; x <= n; x++) { for (int y = m; y <= x; y++) { printf(\"(%d,%d) \", x, y); } }"
+    },
+    {
+      "conceito": "Número perfeito (Q4) — aninhamento com verificação",
+      "explicacao": "Perfecto = soma dos divisores EXCETO ele mesmo. Laço interno soma os divisores d < n com n % d == 0 (ou d de 1 até n/2); DEPOIS do laço interno, compare soma == n. 6 = 1+2+3 ✓; 28 = 1+2+4+7+14 ✓. O erro clássico: incluir o próprio n na soma (aí NUNCA é perfeito, soma = 2n sempre).",
+      "exemplo": "int soma = 0; for (int d = 1; d <= n / 2; d++) { if (n % d == 0) soma += d; } if (soma == n) printf(\"perfeito\\n\");"
+    },
+    {
+      "conceito": "Série de Fibonacci e a dança das 3 variáveis (Q5)",
+      "explicacao": "1, 1, 2, 3, 5, 8…: o próximo é a soma dos dois anteriores. Com duas variáveis (a, b) e uma de troca: imprime a, depois (a, b) = (b, a+b). A dança tem que ser em UMA linha (ou com temporária) — atualizar a antes de usar o a velho no cálculo de b é o bug clássico.",
+      "exemplo": "long long a = 1, b = 1; for (int k = 1; k <= n; k++) { printf(\"%lld \", a); long long t = a + b; a = b; b = t; }"
+    },
+    {
+      "conceito": "Simulação de votação com relatório (Q6)",
+      "exemplo": "int c1 = 0, c2 = 0, c3 = 0, c4 = 0, nulo = 0; for (int e = 0; e < 20; e++) { scanf(\"%d\", &voto); if (voto == 1) c1++; else if (voto == 2) c2++; else if (voto == 3) c3++; else if (voto == 4) c4++; else nulo++; }",
+      "explicacao": "20 eleitores → 20 voltas de laço com switch/if encadeado acumulando 4 candidatos + nulos. O relatório (quantidade E percentual de cada um, incluindo nulos) sai DEPOIS do laço — acumule primeiro, imprima depois. Percentual de nulos: nulo * 100.0 / 20."
+    },
+    {
+      "conceito": "Palíndromos de 4 dígitos (Q7) — força bruta honesta",
+      "explicacao": "Palíndromo lê igual nos dois sentidos (1221 ✓, 1231 ✗). Para 4 dígitos: externo anda n de 1000 a 9999; interno reconstrói o reverso com a matemática do resto: rev = rev*10 + n%10; n /= 10 (numa CÓPIA de n, nunca no n do laço externo!). Compara copia == rev. É força bruta: 9000 testes × 4 dígitos — e o computador nem sente.",
+      "exemplo": "for (int n = 1000; n <= 9999; n++) { int copia = n, rev = 0; while (copia > 0) { rev = rev * 10 + copia % 10; copia /= 10; } if (rev == n) printf(\"%d\\n\", n); }"
+    },
+    {
+      "conceito": "Figuras de asteriscos (Q8-Q10) — o exercício-mestre",
+      "explicacao": "Q8 crescente: linha i imprime i asteriscos (interno j <= i). Q9 decrescente: linha i imprime n−i+1 asteriscos (interno j <= n - i + 1). Q10 alinhada à direita: ANTES dos asteriscos, imprime n−i espaços, depois n−i+1 asteriscos — TRÊS coisas por linha: espaços, asteriscos, \\n. O printf(\"\\n\") fecha cada linha NO laço externo, NUNCA no interno.",
+      "exemplo": "for (int i = 1; i <= n; i++) { for (int s = 0; s < n - i; s++) printf(\" \"); for (int j = 0; j < n - i + 1; j++) printf(\"*\"); printf(\"\\n\"); }"
+    }
+  ],
+  "pontos_importantes": [
+    "ESTE É O DEGRAU DE CIMA da escadinha (dono, 13/10): aninhamento. A Semana 5 (laço simples) é o pré-requisito — se uma questão daqui travar, a casa te manda descer um degrau antes.",
+    "Regra de ouro do aninhamento: contador do interno ≠ contador do externo (i e j), e a reinicialização do interno acontece DENTRO do externo.",
+    "Q3: o limite do laço interno codifica a condição do enunciado (y vai de M até x, não até N) — traduzir condição para LIMITE de laço é a habilidade da semana.",
+    "Q4: some divisores até n/2 e compare DEPOIS do laço interno; incluir o próprio n estraga a definição.",
+    "Q5: Fibonacci com troca simultânea (temporária) — atualizar 'a' antes de calcular o novo 'b' duplica o primeiro termo. E a série pede N termos, contados.",
+    "Q6: acumular DENTRO do laço, relatar DEPOIS — quantidade e percentual de cada candidato + nulos no fim.",
+    "Q7: o número do laço externo é intocável — copie para destruir (copia = n) antes do cálculo do reverso. Modificar o n do for cria laço infinito sutil.",
+    "Q8-Q10: o printf(\"\\n\") fica no laço EXTERNO (fecha a linha). Q10 = espaços + asteriscos + \\n por linha — desenhe a tabela linha × colunas no papel antes de codificar.",
+    "Divisão inteira zera percentual: use 100.0 (double) na conta. O padrão (conta * 100.0) / total vale para Q1 e Q6."
+  ],
+  "erros_comuns": [
+    "Usar o MESMO contador (i) nos dois laços aninhados — o interno destrói a contagem do externo e a figura sai errada.",
+    "Reinicializar a variável do laço interno FORA do laço externo — só a primeira linha da figura sai certa.",
+    "Q4: somar os divisores incluindo o próprio n (soma = 2n para todo n — nada é perfeito).",
+    "Q5: fazer a = b; b = a + b; sem temporária — o a velho se perde e a série duplica termos.",
+    "Q7: destruir o n do laço externo no cálculo do reverso (n /= 10 no próprio n) — laço infinito ou salto de intervalo.",
+    "Q7: conferir palíndromo comparando string sem construir o reverso direito (rev*10 + %10 é o canônico).",
+    "Q8-Q10: colocar o \\n dentro do laço interno (um asterisco por linha) — o \\n fecha a LINHA, fica no externo.",
+    "Q10: esquecer que a indentação pede um laço DE ESPAÇOS antes do laço de asteriscos (dois laços internos!).",
+    "Q1/Q6: dividir inteiros — abaixo / 10 com os dois int dá 0 para 4 pessoas; use 100.0 no meio.",
+    "Q6: imprimir o relatório DENTRO do laço de eleitores (imprime 20 vezes) — relatório é DEPOIS do laço."
+  ],
+  "exercicios_sugeridos": [
+    "Q1: peso/altura de 10 pessoas → percentuais abaixo/acima/adequada (a Q7 da S5 fechando a conta).",
+    "Q2: 5 números → divisores exatos de cada um (aninhamento com a Q3 da S5 dentro).",
+    "Q3: pares (x, y) de [M,N] com x ≥ y (teste com M=2, N=5 e a saída exata do enunciado).",
+    "Q4: N é perfeito? (6 e 28 são; some divisores exceto ele).",
+    "Q5: N primeiros termos de Fibonacci (1, 1, 2, 3, 5, 8…).",
+    "Q6: votação de 20 eleitores → quantidade + percentual por candidato e nulos.",
+    "Q7: todos os palíndromos de [1000, 9999] (reverso com %10 e /10 numa cópia).",
+    "Q8: figura crescente de asteriscos (linha i tem i asteriscos).",
+    "Q9: figura decrescente (linha i tem n−i+1 asteriscos).",
+    "Q10: figura decrescente alinhada à direita (espaços antes dos asteriscos)."
+  ],
+  "perguntas_autoavaliacao": [
+    "Desenhe a execução do aninhamento da Q8 com N=3: quantas vezes o printf(\"*\") roda no total? E o printf(\"\\n\")?",
+    "Na Q3, por que o laço interno vai de M até x e não de M até N? O que apareceria de errado na saída?",
+    "Na Q4, por que comparar soma == n DEPOIS do laço e não dentro dele?",
+    "Na Q5, escreva a dança das variáveis com temporária. O que quebra sem ela?",
+    "Na Q7, por que precisamos da variável copia? O que acontece se usar o n do laço direto no while?",
+    "Na Q10, quais TRÊS printf existem por linha e em que laço cada um vive?",
+    "Se a Q7 ou a Q10 travarem de cabeça, o degrau certo é a Semana 5 — qual questão dela você re faria primeiro?"
+  ]
+}

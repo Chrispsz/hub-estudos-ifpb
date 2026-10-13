@@ -401,7 +401,7 @@ export const disciplines: Discipline[] = [
       'PROVA 01/10: siga o plano do card "Foco: Prova de Matemática" — a ordem agora é FAZER as listas: Matrizes (3 blocos) → Lógica (2 partes)',
       'Monte tabelas-verdade para TODOS os exercícios de lógica',
       'Pratique as operações com matrizes sem calculadora',
-      'Determinantes e Sistemas Lineares: pós-prova — o professor ainda não deu (confirmado 24/09)',
+      'Determinantes é o assunto VIVO (prof. Eudes): teoria com as 14 propriedades + lista de 20 questões já no acervo',
       'Resolva exercícios extras de Lógica - base para programação',
       'Use a lista de exercícios do professor Eudes como referência',
     ],
@@ -412,7 +412,7 @@ export const disciplines: Discipline[] = [
       '3. Depois faça a Lista de Lógica (18 questões): Q1–12 valores e tabelas · Q13–18 argumentos',
       '4. Monte tabelas-verdade de TODOS os exercícios de lógica',
       '5. Faça o simulado no D-2 (29/09) e refaça os erros na véspera',
-      '6. Determinantes e Sistemas Lineares: pós-prova — o professor ainda não deu',
+      '6. Determinantes (o assunto AGORA): teoria da aula → lista de 20 questões em rampa — Sarrus (Q1–4) → propriedades (Q7–12) → Vandermonde/Binet (Q17–20); Sistemas Lineares vem depois',
       '7. Conjuntos (Un. 3) e Funções (Un. 4): foco DEPOIS da Av1',
     ],
     // POLÍTICA ANTI-ESTIMATIVA: Av1/Av2/Av3 sem data oficial ficam em
@@ -787,6 +787,24 @@ export const materials: Material[] = [
     // S3: switch, recorte de dígitos, fuso) — reforça o escopo da Prova 1, 30/10.
     topicosCobertos: ['Unidade 2: Desvios condicionais'],
   },
+  // A ESCADINHA (dono, 13/10/2026: "em algoritmos a depender do assunto pode
+  // ser bom iniciar da base pois é uma escadinha") — a S5 É o degrau da base
+  // (laço simples) e a S6 o degrau de cima (aninhamento). A ordem de estudo
+  // entre elas vive em material-curation.ts (LADDER), não aqui.
+  { id: 'alg-questoes-semana5', disciplineCode: 'TEC.1687', title: 'Questões da Semana 5 (Classroom) — repetição na base',
+    type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana5.pdf',
+    summaryFile: 'alg-questoes-semana5.summary.json', pages: 2, source: 'user_upload',
+    // Material-first: 11 questões 100% de repetição simples (for/while,
+    // contador, acumulador, string caractere a caractere) — a Unidade 3 dada.
+    topicosCobertos: ['Unidade 3: Comandos de repetição'],
+  },
+  { id: 'alg-questoes-semana6', disciplineCode: 'TEC.1687', title: 'Questões da Semana 6 (Classroom) — aninhamento (o degrau de cima)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana6.pdf',
+    summaryFile: 'alg-questoes-semana6.summary.json', pages: 2, source: 'user_upload',
+    // Material-first: 10 questões de laços ANINHADOS (pares, perfeito,
+    // Fibonacci, votação, palíndromos, figuras) — S5 + laço dentro do laço.
+    topicosCobertos: ['Unidade 3: Comandos de repetição'],
+  },
   { id: 'alg-programas-c-autorais', disciplineCode: 'TEC.1687', title: 'Programas C do autor — aula + Questões da Semana 1 (19 resolvidos)',
     type: 'exemplo', summaryFile: 'alg-programas-c-autorais.summary.json', source: 'user_upload',
     // Material-first: as soluções autorais comprovam DOMÍNIO da Unidade 1 (lidas/compiladas/rodadas)
@@ -938,6 +956,16 @@ export const materials: Material[] = [
     // Material-first: comprova aula de CSS (curriculum-state.ts)
     topicosCobertos: ['CSS'],
   },
+  // ATIVIDADE VALE NOTA (13/10/2026): site pessoal em HTML PURO, 4 páginas,
+  // sem CSS — Etapa 1 da construção do site. O retorno prático de toda a
+  // matéria HTML dada até aqui; regras duras (W3C válido, nada de style).
+  { id: 'lm-atividade-individual', disciplineCode: 'TEC.1632', title: 'Atividade Individual — site pessoal em HTML puro (vale nota)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/lm-atividade-individual.pdf',
+    summaryFile: 'lm-atividade-individual.summary.json', pages: 2, source: 'user_upload',
+    // Material-first: a atividade mobiliza TUDO do HTML dado (estrutura,
+    // listas, mídias, hyperlinks, formulários) — comprova a unidade HTML.
+    topicosCobertos: ['HTML'],
+  },
   { id: 'lm-ementa', disciplineCode: 'TEC.1632', title: 'Plano de Disciplina - Linguagens de Marcação',
     type: 'ementa', pdfPath: '/data/ementas/ementa-linguagens-marcacao.pdf',
     summaryFile: 'LM-ementa.summary.json', source: 'ifpb_site' },
@@ -1024,6 +1052,21 @@ export const materials: Material[] = [
     summaryFile: 'mat-01-matrizes.summary.json', source: 'user_upload',
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['1. Álgebra Matricial'],
+  },
+  // O tópico VIVO da matemática agora: Determinantes (prof. Eudes) — teoria +
+  // lista 20 questões. GATE FINO: liberam o sub-tópico 'Determinantes' dentro
+  // da Unidade 1 (topicosCobertosFino — curriculum-state.ts).
+  { id: 'mat-determinantes-teoria', disciplineCode: 'TEC.1984', title: 'Determinantes — Teoria da aula (prof. Eudes)',
+    type: 'slides', pdfPath: '/pdfs/mat-determinantes-teoria.pdf',
+    summaryFile: 'mat-determinantes-teoria.summary.json', pages: 4, source: 'user_upload',
+    topicosCobertos: ['1. Álgebra Matricial'],
+    topicosCobertosFino: ['Determinantes'],
+  },
+  { id: 'mat-determinantes-lista', disciplineCode: 'TEC.1984', title: 'Determinantes — Lista (20 questões, prof. Eudes)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/mat-determinantes-lista.pdf',
+    summaryFile: 'mat-determinantes-lista.summary.json', pages: 2, source: 'user_upload',
+    topicosCobertos: ['1. Álgebra Matricial'],
+    topicosCobertosFino: ['Determinantes'],
   },
   // t180 — A folha da prova: as questões do professor (espelhos extraídos do
   // áudio 30/09 + listas reais), tipografadas em LaTeX. Vive COMO MATERIAL

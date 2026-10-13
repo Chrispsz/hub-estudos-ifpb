@@ -1,0 +1,92 @@
+{
+  "titulo": "Determinantes — Teoria (prof. Eudes, aula atual)",
+  "disciplina": "Matemática Aplicada à Computação",
+  "tipo": "slides",
+  "tempo_estudo_minutos": 90,
+  "resumo_geral": "A teoria viva da Matemática Aplicada (prof. Eudes, IFSP Cajazeiras · 2026.2): DETERMINANTES, o degrau logo depois de matrizes na Álgebra Matricial (Unidade 1). O material é uma escadinha própria: definição por ordem (n=1 é o próprio elemento; n=2 é o produto cruzado a11·a22 − a12·a21; n=3 é a Regra de Sarrus), depois menor complementar Dij (apagar linha i e coluna j) e cofator Aij = (−1)^(i+j)·Dij — os sinais em tabuleiro de xadrez (+−+) — e então o caso geral por RECORRÊNCIA (expansão da 1ª coluna pelos cofatores) com o Teorema Fundamental de LAPLACE (qualquer fila serve). Fecha com as 14 PROPRIEDADES (P1–P14) que transformam cálculo pesado em raciocínio: transposta, fila nula, multiplicação por K, troca de filas troca o sinal, filas iguais/proporcionais zeram, combinação linear zera, Jacobi preserva, triangular = produto da diagonal, Binet (det AB = det A·det B), Chió (derruba a ordem com a11=1) e Vandermonde (o produto das diferenças). É a leitura que desbloqueia a lista de exercícios (mat-determinantes-lista) questões por questões.",
+  "conceitos_chave": [
+    {
+      "conceito": "Determinante por ordem da matriz",
+      "explicacao": "Só existe determinante de matriz QUADRADA. n=1: det = a11. n=2: produto da diagonal principal MENOS o da secundária. n=3: Regra de Sarrus — as 3 diagonais descendentes somadas menos as 3 ascendentes (6 termos). Estes três casos são a base de tudo; o resto da teoria existe para NUNCA MAIS precisar de Sarrus acima de 3.",
+      "exemplo": "|a b; c d| = ad − bc — o caso 2x2 vale decorar no osso (aparece em tudo: cofator, Chió, Binet 2x2)."
+    },
+    {
+      "conceito": "Menor complementar (Dij) e cofator (Aij)",
+      "explicacao": "Dij = determinante da matriz menor (apague a LINHA i e a COLUNA j). Cofator = Aij = (−1)^(i+j) · Dij — o sinal alterna como tabuleiro de xadrez: [ + − + ; − + − ; + − + ]. O erro de sinal do tabuleiro é a fonte nº1 de resposta errada em expansão de cofatores.",
+      "exemplo": "M = [4 3 4; 2 1 5; 3 3 2]: D11 = |1 5; 3 2| = 2−15 = −13; A12 = −|2 5; 3 2| = −(4−15) = +11."
+    },
+    {
+      "conceito": "Expansão por cofatores (recorrência) e Teorema de Laplace",
+      "explicacao": "Caso geral: det M = Σ ai1·Ai1 (expansão da 1ª COLUNA). Laplace generaliza: qualquer FILA (linha ou coluna) serve — multiplique cada elemento da fila pelo SEU cofator e some. A arte prática: escolher a fila com mais ZEROS (termo × 0 morre) — por isso a matriz 4x4 do exemplo com a linha (3 0 0 2) é rápida: dois cofatores apenas.",
+      "exemplo": "|3 4 2 1; 5 0 −1 −2; 0 0 4 0; −1 0 3 3|: expandir pela 3ª LINHA → 4·(cofator do meio) sozinho, os outros elementos são zero."
+    },
+    {
+      "conceito": "P1–P6 — as propriedades mecânicas",
+      "explicacao": "P1 transposta não muda nada (det M = det Mt). P2 fila nula ⇒ 0. P3 multiplicar UMA fila por K multiplica o det por K — e daí a OBSERVAÇÃO das observações: det(α·A) = α^n·det A (cada uma das n filas contribui um α). P4 trocar duas filas paralelas TROCA O SINAL. P5 filas iguais ⇒ 0. P6 filas proporcionais ⇒ 0 (P5 é caso particular de P6 com proporção 1).",
+      "exemplo": "A ordem 4 com det A = −6 ⇒ det 2A = 2⁴·(−6) = −96 ⇒ x − 97 = −96 ⇒ x = 1."
+    },
+    {
+      "conceito": "P7–P10 — as propriedades de combinação (as que provam igualdade sem desenvolver)",
+      "explicacao": "P7: coluna decomposta em soma ⇒ det vira soma de dois dets (válido por linha também). P8: combinação linear de filas — somar a uma fila outras multiplicadas por constantes. P9: uma fila que é combinação linear das outras ⇒ det = 0 (generaliza P5/P6!). P10 (JACOBI): somar a uma fila outra paralela multiplicada por constante NÃO muda o det — é a ferramenta de limpeza: cria zeros sem pagar nada.",
+      "exemplo": "|1 1 9; 1 8 7; 1 5 3| múltiplo de 17: L2 −= L1 (8−1, 7−9) = (0,7,−2); L3 −= L1 = (0,4,−6); expande pela 1ª coluna e nota o fator comum — sem desenvolver nada."
+    },
+    {
+      "conceito": "P11 triangular e P12 Binet",
+      "explicacao": "P11: matriz TRIANGULAR (zeros de um lado da diagonal) tem det = PRODUTO DA DIAGONAL PRINCIPAL — a recompensa por zerar a matriz com Jacobi. P12 (Binet): det(A·B) = det A · det B; a consequência matadora: det A^−1 = 1/(det A) — é ela que resolve a Q14 e a Q20 da lista em uma linha.",
+      "exemplo": "|1 2 3 4; 0 −2 5 7; 0 0 4 0; 0 0 0 5| = 1·(−2)·4·5 = −40, sem tocar em cofator."
+    },
+    {
+      "conceito": "P13 Regra de Chió",
+      "explicacao": "Com a11 = 1: apague a 1ª linha e a 1ª coluna; cada elemento restante diminui o PRODUTO das extremidades das perpendiculares (elemento da 1ª coluna da sua linha × elemento da 1ª linha da sua coluna). A matriz (n−1) resultante tem o MESMO determinante — derruba ordem 4 para ordem 3 de uma vez. Se a11 ≠ 1, primeiro produza o 1 (divida a 1ª fila ou use Jacobi).",
+      "exemplo": "|1 2 4 2; 3 7 5 6; 1 10 −4 5; 3 8 2 3| → matriz 3x3: 7−3·2=1, 5−3·4=−7, 6−3·2=0; 10−1·2=8, … e o det original = det dessa 3x3."
+    },
+    {
+      "conceito": "P14 Matriz de Vandermonde (das potências)",
+      "explicacao": "Linhas: 1, ai, ai², ai³, … (os 'elementos característicos' são os da 2ª linha). det V(a1,…,an) = produto de TODAS as diferenças (aj − ai) com j > i — o minuendo tem índice MAIOR. É o atalho das questões 17–19 da lista: uma 4x4 que custaria meia página sai em três subtrações e três multiplicações. Q18/Q19 são Vandermonde DISFARÇADAS (a 2ª linha fora de ordem).",
+      "exemplo": "|1 1 1; 2 3 4; 4 9 16| = (3−2)(4−2)(4−3) = 1·2·1 = 2. A 4x4 de Q17: (3−2)(5−2)(7−2)(5−3)(7−3)(7−5) = 1·5·5·2·4·2 = 400."
+    }
+  ],
+  "pontos_importantes": [
+    "Ordem da leitura (é uma escadinha): definição por ordem (n=1,2,3) → Dij/cofator → recorrência (1ª coluna) → Laplace (fila qualquer) → propriedades P1–P14. Cada degrau usa o anterior.",
+    "O tabuleiro de sinais do cofator: + − + / − + − / + − + — confundir o sinal é o erro nº1 da expansão.",
+    "Laplace na prática: escolha a fila com mais ZEROS. Linha nula inteira (P2) faz o det morrer sem cálculo.",
+    "det(α·A) = α^n·det A — o expoente n é a armadilha clássica (a Q2b da Av1 foi deste tipo; na lista é a questão do det 2A).",
+    "Troca de filas (P4) troca o sinal: para ZERAR a matriz com Jacobi, conte as trocas para saber o sinal final.",
+    "P9 engloba P5 e P6: fila combinação linear das demais ⇒ 0. Provar 'sem desenvolver' (lista Q8–Q10) é citar a propriedade certa com a justificativa certa.",
+    "Binet + consequência: det(A·B) = det A·det B e det A^−1 = 1/det A — a Q14 e a Q20 da lista são estas duas frases.",
+    "Chió exige a11 = 1 (senão produza o 1 antes) e o produto 'extremidades das perpendiculares' é da 1ª COLUNA × 1ª LINHA.",
+    "Vandermonde: diferenças com índice maior no minuendo — (a2−a1)(a3−a1)(a3−a2)(a4−a1)(a4−a2)(a4−a3) para ordem 4. Confira a ordem das linhas antes de aplicar (Q19 tem a coluna fora de ordem!)."
+  ],
+  "erros_comuns": [
+    "Aplicar Vandermonde sem conferir se as linhas são 1, ai, ai², ai³ NA ORDEM (a Q19 da lista traz a 2ª linha embaralhada — reordene/observe antes).",
+    "Esquecer o (−1)^(i+j) do cofator e usar sempre o sinal positivo.",
+    "det(α·A) = α·det A (faltou o expoente n) — a observação da P3 existe exatamente para esta pegadinha.",
+    "Achar que det(A+B) = det A + det B — NÃO existe tal propriedade; a P7 é sobre coluna decomposta, não sobre soma de matrizes.",
+    "Chió com a11 ≠ 1 sem produzir o 1 antes (a regra exige a11 = 1; a questão b da lista de Chió começa com 2).",
+    "Trocar filas na limpeza de Jacobi e esquecer de virar o sinal a cada troca (P4).",
+    "Triangular com zeros do lado ERRADO da diagonal e ainda multiplicar a diagonal principal — a regra vale para triangular superior E inferior, mas a diagonal é a PRINCIPAL sempre.",
+    "Vandermonde com subtração invertida: (a1−a2) em vez de (a2−a1) — só muda o sinal se o número de fatores for ímpar; seja consistente com a fórmula da teoria.",
+    "Expandir por uma fila sem zeros quando existe uma fila cheia de zeros disponível — trabalho dobrado à toa (o Laplace existe para escolher a fila barata)."
+  ],
+  "exercicios_sugeridos": [
+    "Da própria teoria: |−3|, |−2 5; −1 3| e |1 3 4; 5 2 −3; 1 4 2| (os três exemplos da definição).",
+    "Menor complementar: D11, D21, D31 de [4 3 4; 2 1 5; 3 3 2].",
+    "Cofatores: A11, A12, A13 de [2 3 −2; 1 4 8; 7 5 3].",
+    "Laplace pela linha dos zeros: |1 2 1 1; 2 1 4 3; 3 0 0 2; 4 3 2 5|.",
+    "Verificar P1 na matriz [1 4; 2 5] (det = det da transposta).",
+    "det 2A com A de ordem 4 e det A = −6 (a observação da P3).",
+    "Chió nas duas matrizes 4x4 dos exemplos (a e b).",
+    "Vandermonde: |1 1 1; 2 3 4; 4 9 16| e a 4x4 com elementos 2, 1, −3, 5.",
+    "Depois da teoria, a LISTA (mat-determinantes-lista) — 20 questões que mapeiam 1:1 com estas propriedades."
+  ],
+  "perguntas_autoavaliacao": [
+    "Escreva de cabeça o det 2x2 e a Sarrus 3x3. Quais os 6 termos da Sarrus?",
+    "Qual o sinal do cofator A23 numa matriz 3x3? E A32? Por que são iguais?",
+    "Por que a expansão de Laplace pela linha (3 0 0 2) é mais barata que pela primeira linha?",
+    "Enuncie a diferença entre P3 (fila × K) e a observação det(α·A) = α^n·det A. Onde o n nasce?",
+    "Por que filas iguais zeram o determinante? (Pense na P4 aplicada duas vezes.)",
+    "O que o Jacobi permite fazer sem alterar o det e por que isso 'cria zeros de graça'?",
+    "Quando vale a Regra de Chió e o que são as 'extremidades das perpendiculares'?",
+    "Escreva a fórmula de Vandermonde para n=3 e calcule |1 1 1; 2 3 4; 4 9 16| sem Sarrus."
+  ]
+}

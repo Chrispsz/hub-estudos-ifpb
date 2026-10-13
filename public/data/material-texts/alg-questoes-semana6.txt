@@ -1,0 +1,74 @@
+QUESTÕES DA SEMANA 6 — Algoritmos (Classroom)
+Fonte: PDF REAL "Questões Semana 6.pdf" enviado pelo dono do Hub (2 páginas,
+10 questões) — agora o arquivo oficial do professor está em
+public/pdfs/alg-questoes-semana6.pdf e esta transcrição foi conferida contra ele.
+10 questões — REPETIÇÃO NO DEGRAU DE CIMA (Unidade 3): laços ANINHADOS,
+percentuais, séries e figuras. É a Semana 5 + um laço dentro do laço.
+
+================================================================================
+Q1. Escreva um programa que leia o peso e a altura de um grupo de 10 pessoas e
+    calcule o percentual de pessoas abaixo do peso, o percentual de pessoas
+    acima do peso e o percentual de pessoas que estão dentro da faixa de peso
+    adequada.
+
+Q2. Escreva um programa que leia cinco números inteiros e, para cada valor
+    informado, informe todos os seus divisores exatos.
+
+Q3. Escreva um programa que leia dois números inteiros M e N e imprima todos os
+    pares (x, y) possíveis de forma que x e y sejam números inteiros que
+    pertençam ao intervalo [M, N] e que x seja sempre maior ou igual a y. Por
+    exemplo, se M = 2 e N = 5, o programa deve imprimir os seguintes pares
+    (2,1), (2,2), (3,1), (3,2), (3,3), (4,1), (4,2), (4,3), (4,4), (5,1),
+    (5,2), (5,3), (5,4), (5,5).
+
+Q4. Escreva um programa que leia um número inteiro N e verifique se ele é um
+    número perfeito. Um número é perfeito quando ele é igual à soma de todos os
+    seus divisores exatos exceto ele mesmo. Por exemplo, o número 6 (1+2+3) é
+    um número perfeito.
+
+Q5. Escreva um programa que leia um número inteiro N e imprima os N primeiros
+    termos da série de Fibonacci. Considere que a série de Fibonacci
+    1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...
+
+Q6. Escreva um programa que simule uma votação. O programa deve computar o voto
+    de 20 eleitores e depois deve imprimir a quantidade e o percentual de votos
+    recebidos por cada candidato, bem como a quantidade e o percentual de votos
+    nulos. As opções de voto são:
+        [1] João Borracheiro
+        [2] Zé do caminhão
+        [3] Maria da bodega
+        [4] Ana
+
+Q7. Escreva um programa que imprima todos os palíndromos que existem no
+    intervalo [1000, 9999].
+
+Q8. Escreva um programa que leia um número inteiro N e imprima a figura abaixo,
+    onde N é o número de elementos impressos na primeira linha. No exemplo
+    abaixo, foi considerado que N=5.
+        *
+        **
+        ***
+        ****
+        *****
+
+Q9. Escreva um programa que leia um número inteiro N e imprima a figura abaixo,
+    onde N é o número de elementos impressos na primeira linha. No exemplo
+    abaixo, foi considerado que N=5.
+        *****
+        ****
+        ***
+        **
+        *
+
+Q10. Escreva um programa que leia um número inteiro N e imprima a figura abaixo,
+     onde N é o número de elementos impressos na primeira linha. No exemplo
+     abaixo, foi considerado que N=5.
+        *****
+         ****
+          ***
+           **
+            *
+================================================================================
+A ESCADINHA (dono, 13/10/2026): este é o DEGRAU DE CIMA — aninhamento. A base
+(Q2, Q4: laço de divisores dentro do laço de números; Q8-Q10: linha dentro de
+coluna) só fica firme quando a Semana 5 (laço simples) já é automática.

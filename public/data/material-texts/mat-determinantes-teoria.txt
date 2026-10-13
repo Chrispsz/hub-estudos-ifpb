@@ -1,0 +1,68 @@
+DETERMINANTES — MATEMÁTICA APLICADA À COMPUTAÇÃO (teoria, prof. Eudes)
+Fonte: PDF REAL "02 - DETERMINANTES.pdf" enviado pelo dono do Hub (4 páginas)
+— agora o arquivo oficial está em public/pdfs/mat-determinantes-teoria.pdf e
+esta transcrição foi conferida contra ele. IFSP Cajazeiras · ADS · 2026.2.
+É o degrau DEPOIS de matrizes na Álgebra Matricial (Unidade 1) — e a matéria
+viva da lista de exercícios (mat-determinantes-lista).
+
+================================================================================
+1. DETERMINANTES — DEFINIÇÃO
+Conjunto das matrizes quadradas de elementos reais. det M = o número obtido
+operando com os elementos de M:
+• Ordem n=1: det M é o único elemento. M = [a11] ⇒ det M = a11
+• Ordem n=2: produto da diagonal principal menos o da secundária:
+  det M = a11·a22 − a12·a21
+• Ordem n=3 (Regra de Sarrus):
+  det M = a11a22a33 + a12a23a31 + a13a21a32 − a13a22a31 − a11a23a32 − a12a21a33
+EXEMPLOS: |-3|; |−2 5; −1 3|; matriz 3x3 |1 3 4; 5 2 −3; 1 4 2|.
+EXEMPLO: número de raízes reais distintas de |x² −1; −1 x²| = 0.
+EXEMPLO: conjunto solução de |0 3^x 1; 0 3^x 2; 4 3^x 3| = 0.
+
+2. MENOR COMPLEMENTAR E COMPLEMENTO ALGÉBRICO
+• Menor complementar Dij: determinante da matriz que se obtém suprimindo a
+  linha i e a coluna j de M.
+• Cofator Aij = (−1)^(i+j) · Dij.
+EXEMPLOS: M = [4 3 4; 2 1 5; 3 3 2] calcule D11, D21, D31.
+M = [2 3 −2; 1 4 8; 7 5 3] calcule A11, A12, A13.
+
+2.2. DEFINIÇÃO POR RECORRÊNCIA (CASO GERAL)
+det M = a11·A11 + a21·A21 + … + an1·An1 = Σ ai1·Ai1 — a soma dos produtos dos
+elementos da 1ª COLUNA pelos respectivos cofatores.
+
+3. TEOREMA FUNDAMENTAL DE LAPLACE
+O determinante de M (ordem n≥2) é a soma dos produtos dos elementos de uma FILA
+QUALQUER (linha ou coluna) pelos respectivos cofatores.
+EXEMPLO: matriz 4x4 |1 2 1 1; 2 1 4 3; 3 0 0 2; 4 3 2 5| (a linha dos zeros
+encurta o desenvolvimento).
+
+4. PROPIEDADES DOS DETERMINANTES
+P1. MATRIZ TRANSPOSTA: det M = det Mt.
+P2. FILA NULA: fila (linha/coluna) toda nula ⇒ det M = 0.
+P3. MULTIPLICAÇÃO DE UMA FILA POR K: det M' = K · det M.
+    OBSERVAÇÃO: det(α·A) = α^n · det A (A de ordem n).
+    EXEMPLO: A ordem 4, det A = −6; calcule x tal que det 2A = x − 97.
+P4. TROCA DE FILAS PARALELAS: det M' = −det M.
+P5. FILAS PARALELAS IGUAIS ⇒ det M = 0.
+P6. FILAS PARALELAS PROPORCIONAIS ⇒ det M = 0.
+P7. ADIÇÃO DE DETERMINANTES: elementos da j-ésima coluna decompostos em soma ⇒
+    det M = det M' + det M'' (válido também para linha decomposta).
+P8. COMBINAÇÃO LINEAR DE FILAS PARALELAS: somar a uma coluna uma combinação
+    linear de outras (multiplicadores c1..cp).
+P9. TEOREMA DA COMBINAÇÃO LINEAR: uma fila combinação linear das demais ⇒ det M = 0.
+P10. TEOREMA DE JACOBI: somar a uma fila outra fila paralela multiplicada por
+     constante ⇒ det M' = det M.
+     EXEMPLO: provar que D = |1 1 9; 1 8 7; 1 5 3| é múltiplo de 17 sem desenvolver.
+P11. MATRIZ TRIANGULAR: det = produto dos elementos da diagonal principal.
+P12. TEOREMA DE BINET: det(A·B) = det A · det B.
+     CONSEQUÊNCIA: det A^−1 = 1/(det A).
+P13. REGRA DE CHIÓ (com a11 = 1): suprimir 1ª linha e 1ª coluna; cada elemento
+     restante menos o produto das "extremidades das perpendiculares" à 1ª linha
+     e 1ª coluna; a matriz (n−1) resultante tem o MESMO determinante.
+     EXEMPLO: provar |a a a a; a b b b; a a c c; a a b d|... = a(b−a)(c−b)(d−c).
+P14. MATRIZ DE VANDERMONDE (OU DAS POTÊNCIAS): linhas 1, ai, ai², ai³…
+     V(a1,…,an) = produto de TODAS as diferenças (aj − ai) com j > i.
+     EXEMPLOS: |1 1 1; 2 3 4; 4 9 16| e a 4x4 com 2, 1, −3, 5.
+================================================================================
+CONEXÃO COM A CASA: matemática é POR TÓPICO (material-curation.ts) — o tópico
+"Determinantes" está SENDO dado agora; matrizes (o degrau anterior) é a base
+disto aqui. A lista 03 é a prática viva.

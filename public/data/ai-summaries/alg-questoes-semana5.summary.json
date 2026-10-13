@@ -1,0 +1,103 @@
+{
+  "titulo": "Questões da Semana 5 — Algoritmos (Classroom)",
+  "disciplina": "Algoritmos e Lógica de Programação",
+  "tipo": "lista_exercicios",
+  "tempo_estudo_minutos": 120,
+  "resumo_geral": "Quinta bateria semanal (Classroom): 11 questões em C e a matéria muda de eixo — começa a REPETIÇÃO (Unidade 3). É O PRIMEIRO DEGRAU DA ESCADINHA: um laço só por programa (for ou while), com contador, acumulador e validador de dígito. Vai de clássicos absolutos (N primeiros ímpares, tabuada, divisores exatos, soma do intervalo [M,N], PA) até a levada de strings lidas caractere a caractere com s[i] != '\\0' (contar ocorrência, substituir caractere, contar maiúsculas/minúsculas/dígitos e a Q11 proibindo toupper — caixa alta na mão com o intervalo 'a'..'z'). O padrão mental da semana: INICIALIZAR → TESTAR → EXECUTAR → ATUALIZAR. Esta base tem que ficar automática antes de subir para a Semana 6 (laços aninhados) — escadinha é isso.",
+  "conceitos_chave": [
+    {
+      "conceito": "O esqueleto do laço (Q1 a Q6)",
+      "explicacao": "Todo laço simples da semana tem a mesma anatomia: (1) inicializar o contador ANTES do laço; (2) condição de parada no for/while; (3) o corpo executa o trabalho; (4) atualizar o contador NO FINAL. Quem pula o passo 4 cria o loop infinito — o bug nº1 de quem está subindo esse degrau.",
+      "exemplo": "for (int i = 1; i <= n; i++) { /* corpo */ }  // ou: int i = 1; while (i <= n) { /* corpo */ i++; }"
+    },
+    {
+      "conceito": "N primeiros ímpares (Q1)",
+      "exemplo": "int impares = 0; for (int x = 1; impares < n; x += 2) { printf(\"%d\\n\", x); impares++; }",
+      "explicacao": "Duas técnicas em uma: os ímpares positivos são 1, 3, 5, 7… (de 2 em 2) e você precisa de UM contador para o laço (x) e OUTRO para quantos já imprimiu (impares). O N-ésimo ímpar é 2N−1 — serve para conferir a saída."
+    },
+    {
+      "conceito": "Repetição com leitura dentro (Q2 e Q7)",
+      "explicacao": "O scanf entra DENTRO do laço: 10 números lidos um por iteração (Q2) e 10 pares peso/altura (Q7). Em Q7 o laço também CONTA em três glicosímetros simultâneos (dentro/abaixo/acima) — contador com if dentro do laço, o mesmo padrão que a Semana 6 vai aninhar.",
+      "exemplo": "for (int i = 0; i < 10; i++) { scanf(\"%d\", &num); if (num % 2 == 0) printf(\"par\\n\"); else printf(\"impar\\n\"); }"
+    },
+    {
+      "conceito": "Divisores exatos (Q3)",
+      "explicacao": "d é divisor exato de N quando N % d == 0. O laço testa TODOS os candidatos de 1 até N (versão honesta) — a otimização de parar em sqrt(N) vem depois, não é o objetivo do degrau. Este padrão vira peça da Semana 6: número perfeito = somar os divisores exceto N.",
+      "exemplo": "for (int d = 1; d <= n; d++) { if (n % d == 0) printf(\"%d \", d); }"
+    },
+    {
+      "conceito": "Acumulador de soma no intervalo (Q4)",
+      "explicacao": "Acumulador: variável que começa em 0 e recebe soma acumulada dentro do laço (soma += i). O intervalo [M, N] começa em M e termina em N — se o usuário digitar M > N, troque os dois ANTES do laço (ou o laço simplesmente não roda).",
+      "exemplo": "int soma = 0; for (int i = m; i <= n; i++) { soma += i; }"
+    },
+    {
+      "conceito": "Progressão aritmética com 20 termos (Q5)",
+      "explicacao": "PA: termo atual = termo anterior + razão. Dois jeitos certos: pela fórmula an = a1 + (k−1)·r, ou carregando o termo e somando a razão a cada volta. A contagem é de TERMOS (20), não de valores — comece k em 1.",
+      "exemplo": "int termo = a1; for (int k = 1; k <= 20; k++) { printf(\"%d \", termo); termo += r; }"
+    },
+    {
+      "conceito": "A tabuada canônica (Q6)",
+      "exemplo": "for (int i = 1; i <= 10; i++) { printf(\"%d x %d = %d\\n\", n, i, n * i); }",
+      "explicacao": "O exercício-mestre do laço: o contador VAI PARA A TELA e também participa do cálculo. A saída pedida (4 x 1 = 4 … 4 x 10 = 40) define exatamente o formato do printf — respeite o enunciado à risca."
+    },
+    {
+      "conceito": "Percorrendo string caractere a caractere (Q8 a Q11)",
+      "explicacao": "Em C, string é vetor de char terminado em '\\0'. O laço canônico é for (int i = 0; s[i] != '\\0'; i++). Dentro dele, s[i] é UM char — comparável com == e manipulável pela tabela ASCII. A Q11 proíbe toupper: caixa alta na mão é if (s[i] >= 'a' && s[i] <= 'z') s[i] = s[i] - 'a' + 'A';",
+      "exemplo": "int conta = 0; for (int i = 0; s[i] != '\\0'; i++) { if (s[i] == x) conta++; }"
+    },
+    {
+      "conceito": "Contadores por categoria (Q10)",
+      "explicacao": "Quatro contadores zerados (maiúsculas, minúsculas, dígitos, demais) e uma cadeia de faixas ASCII dentro do laço: 'A'..'Z', 'a'..'z', '0'..'9', e o else final pega o resto. É o padrão do classificador da Semana 3 (faixas etárias) aplicado a caracteres.",
+      "exemplo": "if (s[i] >= 'A' && s[i] <= 'Z') mai++; else if (s[i] >= 'a' && s[i] <= 'z') min_; else if (s[i] >= '0' && s[i] <= '9') dig; else outros++;"
+    },
+    {
+      "conceito": "Substituir caractere in place (Q9)",
+      "explicacao": "banana com a→e vira benene: dentro do laço, if (s[i] == x) s[i] = y;. A substituição é IN PLACE — a própria string é alterada, sem criar segunda string. Cuidado só com o caractere de leitura: scanf(\" %c\", &x) com o espaço antes do %c para não engolir o Enter do scanf anterior.",
+      "exemplo": "for (int i = 0; s[i] != '\\0'; i++) { if (s[i] == x) s[i] = y; }"
+    }
+  ],
+  "pontos_importantes": [
+    "O DEGRAU DA ESCADINHA (dono: 'iniciar da base, é uma escadinha'): toda a Semana 5 é UM laço por programa. A Semana 6 põe um laço dentro do outro — não suba sem este degrau automático.",
+    "Anatomia obrigatória: inicializar → testar → executar → ATUALIZAR. Loop infinito = esqueceu a atualização (ou i++ dentro de um if que não roda sempre).",
+    "while vs for: os dois são equivalentes; o for é o while com inicialização e atualização embutidas na leitura. Escolha o que deixar a condição de parada visível.",
+    "Contador vs acumulador: contador soma 1 por evento relevante (i++, impares++); acumulador soma VALOR (soma += i, soma += nota). Q7 usa os dois ao mesmo tempo.",
+    "Strings em C: o terminador '\\0' é a condição de parada — NÃO use strlen como condição sem necessidade (percorre a string toda a cada volta).",
+    "Q11 é a questão-símbolo: proibido toupper — a casa quer ver o intervalo 'a'..'z' e a aritmética ASCII (s[i] - 'a' + 'A').",
+    "scanf(\" %c\", &c): o espaço antes do %c consome o Enter pendente — sem ele, o laço de leitura 'pula' a leitura do caractere.",
+    "Conferência de saída: Q1 (n=5 → 1 3 5 7 9), Q5 (a1=2, r=3 → 2 5 8 … 59), Q6 (formato exato pedido no enunciado). Testar com esses valores é parte da questão."
+  ],
+  "erros_comuns": [
+    "Loop infinito: esquecer i++ / esquecer de atualizar a variável de controle dentro do while.",
+    "Contador declarado DENTRO do laço (zerar a cada volta) — o acumulador e o contador nascem ANTES do laço.",
+    "Q3: testar divisores até n/2 e esquecer o próprio n (todo número é divisor de si mesmo).",
+    "Q4: assumir M < N sem tratar a troca — se o usuário digitar 5 e 2, a soma sai 0.",
+    "Q7: ler peso e altura e NÃO classificar dentro do laço, deixando 'para depois' — o if vive DENTRO da volta do laço.",
+    "Q8-Q11: usar scanf(\"%s\") e depois percorrer com strlen(s) como condição do for — funciona, mas o canônico da casa é s[i] != '\\0'.",
+    "Q8: esquecer o espaço no scanf(\" %c\", &x) — o Enter digitado antes é lido como o caractere procurado.",
+    "Q10: confundir dígito com número — '5' (char, ASCII 53) não é 5 (int); a faixa é '0' <= s[i] && s[i] <= '9'.",
+    "Q11: converter dígitos ou pontuação — o if do intervalo 'a'..'z' tem que isolar SÓ as minúsculas; maiúscula e resto passam intocados.",
+    "Declarar a string com tamanho fixo pequeno (char s[10]) e ler textos maiores — use um limite honesto (char s[1000]) e scanf com largura (scanf(\"%999s\", s))."
+  ],
+  "exercicios_sugeridos": [
+    "Q1: os N primeiros ímpares positivos (conferir com n=5 → 1 3 5 7 9).",
+    "Q2: 10 números lidos, par ou ímpar para cada um.",
+    "Q3: todos os divisores exatos de N.",
+    "Q4: soma de todos os inteiros do intervalo [M, N] (com a troca M>N).",
+    "Q5: termo inicial + razão → os 20 primeiros termos da PA.",
+    "Q6: tabuada de N no formato exato '4 x 3 = 12'.",
+    "Q7: peso/altura de 10 pessoas → quantas dentro/abaixo/acima da faixa.",
+    "Q8: texto + caractere x → quantas vezes x aparece.",
+    "Q9: texto + x + y → substituir x por y in place (banana → benene).",
+    "Q10: texto → contar maiúsculas, minúsculas, dígitos e demais.",
+    "Q11: caixa alta SEM toupper (aritmética ASCII do intervalo 'a'..'z')."
+  ],
+  "perguntas_autoavaliacao": [
+    "Consegue escrever o esqueleto do for de cabeça apontando qual parte é inicialização, condição e atualização?",
+    "Na Q1, qual a diferença entre o contador do laço e o contador de ímpares impressos? Dá para resolver com um só?",
+    "Na Q4, o que acontece se M > N e você não trocar? E se M == N?",
+    "Na Q7, por que os três contadores (dentro/abaixo/acima) têm que nascer ANTES do laço?",
+    "Na Q8, por que a condição do laço é s[i] != '\\0' e não i < algum número fixo?",
+    "Na Q11, escreva de cabeça a linha que converte uma minúscula em maiúscula sem toupper. Por que o -'a' + 'A' funciona?",
+    "Qual das 11 questões você resolveria sem olhar nada? Se alguma trava, esse é o ponto exato do degrau a revisar."
+  ]
+}

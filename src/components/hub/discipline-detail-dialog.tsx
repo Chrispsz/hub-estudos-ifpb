@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ExternalLink,
   FileText,
+  Footprints,
   GraduationCap,
   BookMarked,
   Image as ImageIcon,
@@ -75,6 +76,7 @@ import { toast } from 'sonner';
 import { openTutor } from '@/lib/hub-events';
 import { captureElementToDataUrl } from '@/lib/dom-capture';
 import { recallPdfPage } from '@/lib/pdf-position';
+import { curateMaterial, ladderNote, ladderPrevMaterial } from '@/lib/material-curation';
 import { MaterialSummaryDialog } from './material-summary-dialog';
 import { PdfViewerDialog } from './pdf-viewer-dialog';
 import { VideoPlayerDialog } from './video-player-dialog';
@@ -659,6 +661,23 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                                 <Badge variant="outline" className="border-border text-muted-foreground">
                                   {typeLabel[m.type]}
                                 </Badge>
+                                {(() => {
+                                  // A ESCADINHA no card: o degrau anterior nomeado + o porquê.
+                                  const prevM = ladderPrevMaterial(m.id);
+                                  const note = ladderNote(m.id);
+                                  if (!prevM || !note) return null;
+                                  const curatedHere = curateMaterial(m);
+                                  return curatedHere.queueable ? (
+                                    <Badge
+                                      variant="outline"
+                                      title={`Escadinha — base: ${prevM.title}. ${note}`}
+                                      className="border-violet-300 bg-violet-50 text-[10px] text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/15 dark:text-violet-300"
+                                    >
+                                      <Footprints aria-hidden className="mr-1 size-3" />
+                                      base: {prevM.title.length > 30 ? `${prevM.title.slice(0, 30)}…` : prevM.title}
+                                    </Badge>
+                                  ) : null;
+                                })()}
                                 {m.pages ? <span>{m.pages} páginas</span> : null}
                               </div>
                             </div>

@@ -35,6 +35,7 @@ import {
   type StudyProgress,
 } from './study-progress';
 import {
+  applyLadder,
   curateMaterial,
   inStudyQueue,
   studyRank,
@@ -238,9 +239,11 @@ export function buildDayPlan(
     let added = 0;
     for (const code of orderedDiscs) {
       if (added >= 2 || blocks.length >= maxBlocks) break;
-      const ranked = materials
+      const rankedRaw = materials
         .filter((m) => m.disciplineCode === code && inStudyQueue(m) && !completed.has(m.id))
         .sort((a, b) => studyRank(a) - studyRank(b));
+      // A escadinha também aqui: atrasado não pula degrau pendente.
+      const { queue: ranked } = applyLadder(rankedRaw, new Set(rankedRaw.map((m) => m.id)));
       for (const m of ranked) {
         if (added >= 2 || blocks.length >= maxBlocks) break;
         const ck = checklistWhy(m.id);
@@ -269,10 +272,17 @@ export function buildDayPlan(
   //    que você anda seguindo), depois a leitura do assunto em curso; o
   //    acervo-esparso aquece no fim. "Sempre ter o que estudar" — sem que o
   //    plano invente conteúdo que a aula não deu nem ofereça prova velha.
+  //    A ESCADINHA (dono 13/10) vem antes da escolha: um degrau nunca é
+  //    oferecido antes da base pendente — a S5 entra no lugar da S6, a teoria
+  //    de determinantes no lugar da lista, e o porquê explica o degrau.
   {
-    const ranked = materials
+    const rankedRaw = materials
       .filter((m) => inStudyQueue(m) && !completed.has(m.id))
       .sort((a, b) => studyRank(a) - studyRank(b));
+    const { queue: ranked, whyOverride: ladderWhys } = applyLadder(
+      rankedRaw,
+      new Set(rankedRaw.map((m) => m.id)),
+    );
 
     const picked = new Set<string>();
     const candidates: Material[] = [];
@@ -302,11 +312,12 @@ export function buildDayPlan(
       const cur = curateMaterial(m);
       const examWhy = examPressureWhy(m.disciplineCode, now);
       const press = pressureOf(m.disciplineCode);
-      const baseWhy = cur.warmup
-        ? `aquecimento de ${short} — o acervo já dado mantém a mente afiada`
-        : cur.role === 'pratica'
-          ? `próximo da fila de ${short} — a prática mais recente da aula`
-          : `próximo da fila de ${short} — a leitura do assunto em curso`;
+      const baseWhy = ladderWhys.get(m.id)
+        ?? (cur.warmup
+          ? `aquecimento de ${short} — o acervo já dado mantém a mente afiada`
+          : cur.role === 'pratica'
+            ? `próximo da fila de ${short} — a prática mais recente da aula`
+            : `próximo da fila de ${short} — a leitura do assunto em curso`);
       const why = [baseWhy, examWhy].filter(Boolean).join(' · ');
       const ok = push({
         kind: 'proximo',

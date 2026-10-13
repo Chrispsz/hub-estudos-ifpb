@@ -1,0 +1,118 @@
+{
+  "titulo": "Determinantes — Lista de Exercícios (prof. Eudes, 20 questões)",
+  "disciplina": "Matemática Aplicada à Computação",
+  "tipo": "lista_exercicios",
+  "tempo_estudo_minutos": 150,
+  "resumo_geral": "A PRÁTICA VIVA da Matemática Aplicada: 20 questões de DETERMINANTES (prof. Eudes) que mapeiam 1:1 com a teoria da aula (mat-determinantes-teoria). A lista é construída como rampa: Q1–Q4 aquecem com 2x2 e Sarrus (incluindo determinantes com seno/cosseno e logaritmos — a conta do log5 5 = 1, log5 125 = 3, log3 27 = 3, log3 243 = 5 vem ANTES do det); Q5 mistura traço + determinante na triangular; Q6 é Laplace puro (uma 4x4 com linha de zeros, uma genérica e uma triangular 5x5 que sai olhando); Q7–Q10 são o coração das PROPRIEDADES — calcular 'usando propriedades' e provar múltiplo/zero SEM desenvolver; Q11 soma um 5x5 sequencial (teorema da combinação linear: duas linhas iguais ⇒ 0) com uma 4x4; Q12 é Jacobi disfarçado de identidade; Q13 usa u² − 2u + 1 = (u − I)² com det triangular; Q14 é a consequência do Binet (det A^−1 = 1/det A); Q15 mistura as três técnicas; Q16 zera por combinação linear; e Q17–Q19 são VANDERMONDE (a 19ª com a coluna fora de ordem!), fechando com a Q20: Binet + transposta + inversa para achar det X sem montar matriz nenhuma.",
+  "conceitos_chave": [
+    {
+      "conceito": "Rampa da lista — o que cada bloco treina",
+      "explicacao": "Q1–Q4: mecânica base (2x2, Sarrus, equações em x). Q5–Q6: cofator/Laplace e triangular. Q7–Q10: PROPRIEDADES sem desenvolver (o que a prova cobra como raciocínio). Q11–Q16: combinação linear, Jacobi e binet na prática. Q17–Q20: Vandermonde e Binet como atalhos de fechamento. Resolva EM ORDEM — a lista é uma escadinha de matemática (mesma doutrina da de algoritmos).",
+      "exemplo": "Q1d: |a b; a+b a−b| = a(a−b) − b(a+b) = a² − ab − ab − b² = a² − 2ab − b²."
+    },
+    {
+      "conceito": "Q3d — Sarrus com logaritmos",
+      "explicacao": "Antes do determinante, resolva os logs: log5 5 = 1, log5 125 = 3, log5 25 = 2, log3 27 = 3, log3 243 = 5. A matriz vira numérica |2 1 1; 5 3 2; 8 3 5| e a Sarrus flui. Lição: sempre REDUZA os elementos primeiro — determinante de coisa simbólica custa caro.",
+      "exemplo": "|2 1 1; 5 3 2; 8 3 5| = 2·3·5 + 1·2·8 + 1·5·3 − 1·3·8 − 2·2·3 − 1·5·5 = 30+16+15−24−12−25 = 0 (filas proporcionais!)."
+    },
+    {
+      "conceito": "Q5 — traço + determinante juntos",
+      "explicacao": "Traço = soma da diagonal principal (aqui 1 + x + y = 9). Determinante da TRIANGULAR = produto da diagonal (1·x·y = 15). Sistema: x + y = 8 e xy = 15 → x=3, y=5 ou x=5, y=3. O z não aparece em nenhuma conta — ele é ruído proposital do enunciado.",
+      "exemplo": "Traço 9 ⇒ x + y = 8; det = 15 ⇒ xy = 15 ⇒ {x, y} = {3, 5}."
+    },
+    {
+      "conceito": "Q7 — 'usando propriedades' na prática",
+      "explicacao": "Q7a: coluna 1 = x·(coluna do x) → fator comum x sai (P3), sobra |a 2a a²; 1 4 1; 3 6 2| e L2/L3 são proporcionais às colunas seguintes… a resposta morre em P6/P9. Q7c: as colunas são (2,−2,4,6)=2·(1,−1,2,3) e potências de 7/11 — a matriz tem DUAS combinações lineares escondidas. O método: olhe as FILAS e pergunte 'quem é múltiplo de quem? quem é soma de quem?'.",
+      "exemplo": "Q7a: det = x · |a 2a a²; 1 4 1; 3 6 2| e aí C2 = 2·C1? Não — mas as LINHAS 2 e 3 dão a pista: (1,4,1) e (3,6,2)… o x sai de P3 e o resto é ver P9."
+    },
+    {
+      "conceito": "Q8 — provar múltiplo de 12 SEM desenvolver",
+      "explicacao": "Tire o fator comum das filas: Q8a tem 12 na coluna 2 de todas as linhas? Melhor: (1,5,7)=1·(1,…), (12,24,36)=12·(1,2,3), (11,13,17)… o caminho canônico: fator 12 sai da 2ª linha (P3: det = 12·det menor) — e o det restante é inteiro por construção. Q8b idem com a 2ª coluna (1,8,12,4)... ache a fila cujos elementos têm fator 12 e PADE o resto: Jacobi para limpar, P3 para tirar o fator.",
+      "exemplo": "|1 12 11; 5 24 13; 7 36 17|: 2ª coluna = 12·(1,2,3) → det = 12·|1 1 11; 5 2 13; 7 3 17| ⇒ múltiplo de 12. ∎"
+    },
+    {
+      "conceito": "Q9 — provar que é ZERO sem desenvolver",
+      "explicacao": "Três justificativas possíveis: P2 (fila nula), P5 (filas iguais), P6 (proporcionais), P9 (combinação linear). Q9a: L2 = 4·L1? (4·4=16≠12) — teste P6 com cuidado: (12,11,15,27) vs (4,3,5,9)... 3·(4,3,5,9)=(12,9,15,27) quase — e L4 vs L3? O caminho é achar a proporção CERTA (L2/L1 = 3 nos elementos 1,3,4 e não no 2 — então NÃO; procure L4 = ...). Q9b/Q9c são combinação linear nas COLUNAS com x, y, z.",
+      "exemplo": "Q9c: |x xy x²y; y yz xyz; z xz x²z| — coluna 2 = y·(x, y, z)? C2 = y·C1? (xy, yz, xz) = y·(x, y, x)… quase: C3 = y·C2? (x²y, xyz, x²z) = y·(x², xy, xz) = y·C2! ⇒ det = 0 por P6. ∎"
+    },
+    {
+      "conceito": "Q13 — matriz u e a equação u² − 2u + 1 = 0",
+      "explicacao": "u² − 2u + 1 = (u − I)². A equação vale ⟺ (u − I)² = 0. Como u é TRIANGULAR (diagonal toda x), u − I é triangular com diagonal (x−1) — e o det de (u−I)² é (det(u−I))² = (x−1)^(2·4). Para a matriz quadrada ser a nula… o caminho honesto do curso: calcule u − I, eleve ao quadrado (triangular ao quadrado fica triangular) e imponha os zeros da diagonal. Resposta: x = 1 (e confira as casas acima da diagonal!).",
+      "exemplo": "u − I = [x−1 1 2 0; 0 x−1 1 1; 0 0 x−1 1; 0 0 0 x−1] com x=1 vira nilpotente — (u−I)² ainda tem 1s acima; a conta completa decide: exija (u−I)² = 0 e varra x."
+    },
+    {
+      "conceito": "Q14 e Q20 — Binet e a consequência",
+      "explicacao": "Q14: det A^−1 = 1/det A — calcule det A = 2·(−1)·1 − 1·(6·1−3·2) … (expand pela 1ª linha) e inverta. Q20 é a versão prova: A^−1·B^t·X = 2A^t ⇒ tome det dos dois lados: det(A^−1)·det(B^t)·det X = 2⁴·det(A^t). Com det A = −1, det B = 2: (1/(−1))·2·detX = 16·(−1) ⇒ det X = 8. Nenhuma matriz montada — só propriedades (Binet P12, det transposta P1, det αA = α⁴·det A).",
+      "exemplo": "Q20: det(A^−1·B^t·X) = det(2A^t) ⇒ (−1)·(2)·detX = 16·(−1) ⇒ detX = 8."
+    },
+    {
+      "conceito": "Q17–Q19 — Vandermonde (inclusive disfarçada)",
+      "explicacao": "Q17a é Vandermonde pura: elementos característicos 2, 3, 5, 7 na 2ª linha → det = (3−2)(5−2)(7−2)(5−3)(7−3)(7−5) = 400. Q18: P(x) é Vandermonde com elementos x, 1, 2, 3 → P(x) = produto das diferenças ⇒ raízes onde dois elementos se igualam: x = 1, x = 2, x = 3. Q19: a coluna do x está na 3ª posição (1, 2, x, −5)… ordene os elementos na cabeça: (2, −5, x) → det = 0 quando x = 2 ou x = −5 (dois elementos iguais!). A lição: Vandermonde = 0 ⟺ dois elementos característicos iguais.",
+      "exemplo": "Q18: V(x,1,2,3) = (1−x)(2−x)(3−1)(3−2)(2−1)·(±1) ⇒ P(x)=0 ⟺ x ∈ {1, 2, 3}."
+    },
+    {
+      "conceito": "Q16 — conjunto solução de det = 0",
+      "explicacao": "|x 1 2 3; x x 4 5; x x x 6; x x x x|: L1 = L2 − (0,…)? O caminho: subtraia L2 − L1, L3 − L2, L4 − L3 (Jacobi) — as linhas viram (0, x−1, 2, 2), (0, 0, x−4, 1), (0, 0, 0, x−6) e a 1ª fica (x,1,2,3): expande pela 1ª coluna ⇒ det = x·(x−1)(x−4)(x−6). Zeros: x ∈ {0, 1, 4, 6}.",
+      "exemplo": "det = x·(x−1)·(x−4)·(x−6) = 0 ⇒ S = {0, 1, 4, 6}."
+    }
+  ],
+  "pontos_importantes": [
+    "RESOLVA EM ORDEM — a lista é rampa: 2x2/Sarrus (1–4) → traço/triangular (5) → Laplace (6) → propriedades (7–12) → Binet (13–14, 20) → combinação (15–16) → Vandermonde (17–19).",
+    "Q3d: resolva os LOGARITMOS antes do determinante (log5 125 = 3, log3 243 = 5) — e depois note que o resultado deu 0 por filas proporcionais.",
+    "Q5: o z da matriz não entra em traço nem em det triangular — enunciado com ruído proposital.",
+    "Q8: múltiplo de 12 ⇒ ache a fila/coluna com fator 12 comum e tire com P3; o resto é arredondar a justificativa.",
+    "Q9: as três saídas de 'det = 0' são fila nula (P2), iguais/proporcionais (P5/P6) e combinação linear (P9) — a prova é UMA frase citando a propriedade + a relação entre filas.",
+    "Q11: o 5x5 sequencial tem L2 − L1 = L3 − L2 = … = (1,1,1,1,1) — combinação linear ⇒ det nulo; a conta real é só a 4x4 do lado.",
+    "Q13: u é triangular ⇒ u² − 2u + 1 pede (u − I)² = 0 com aritmética de triangular — faça a multiplicação de matrizes com calma (a casa acima da diagonal acumula).",
+    "Q14: calcule det A primeiro (Laplace 3x3) e aplique det A^−1 = 1/det A — NÃO monte a inversa (trabalho dobrado).",
+    "Q18/Q19: Vandermonde ⇒ det = 0 ⟺ dois elementos característicos IGUAIS; procure as igualdades em vez de desenvolver. Na Q19 os elementos são 2, −5 e x.",
+    "Q20: prova de Álgebra Lin. disfarçada: det dos dois lados da EQUAÇÃO MATRICIAL; use P1 (transposta não muda), P12 (Binet), a consequência (det A^−1) e P3 global (2·A^t com A de ordem 4 → 2⁴)."
+  ],
+  "erros_comuns": [
+    "Começar a lista pela Q20 (a mais elaborada) — a rampa existe para aquecer cofator antes de Binet.",
+    "Q3d: aplicar Sarrus com os logs SIMBÓLICOS (log5 125 como se fosse variável) — reduza primeiro.",
+    "Q5: inventar que o z entra no traço (traço é SÓ a diagonal principal: 1 + x + y).",
+    "Q6a: expandir pela 1ª linha (sem zeros) quando existe a 3ª linha (0 0 4 0) de graça — Laplace existe para escolher a fila barata.",
+    "Q8: 'provar' desenvolvendo o determinante (o enunciado PROÍBE) — a prova é fator comum via P3.",
+    "Q9: afirmar 'por proporção' sem MOSTRAR a proporção (multiplique a fila e mostre a igualdade elemento a elemento).",
+    "Q13: tentar calcular u² elementar a elementar de cabeça — triangular 4x4 ao quadrado acumula somas na casa acima da diagonal; faça no papel.",
+    "Q14: montar A^−1 inteira para depois calcular seu det — a consequência do Binet dá a resposta em uma divisão.",
+    "Q17a: aplicar a fórmula de Vandermonde com as diferenças INVERTIDAS (a1−a2) — o sinal global importa; siga a fórmula da teoria (minuendo de índice maior).",
+    "Q19: aplicar Vandermonde sem perceber que a 2ª linha está fora de ordem (1, 2, x, −5) — os elementos característicos são {2, −5, x} e a igualdade pedida é com eles.",
+    "Q20: usar det(2A) = 2·det A (sem o expoente) — a matriz é de ordem 4: det(2A^t) = 2⁴·det A^t."
+  ],
+  "exercicios_sugeridos": [
+    "Q1: os quatro dets 2x2 (o d) pede álgebra com a e b — confira com números (a=2, b=3).",
+    "Q2: as duas equações em x (a: det = 0; b: det = 11 — uma quadrática e uma linear).",
+    "Q3: Sarrus nas quatro (a d tem LOGARITMOS: reduza primeiro; a resposta da b é 0 — descubra por quê).",
+    "Q4: determine x (a: det 3x3 = 0; b: igualdade entre det 3x3 e det 2x2 — Sarrus dos dois lados).",
+    "Q5: traço 9 e det 15 na triangular → x e y.",
+    "Q6: Laplace nas três (a 5x5 da letra c é triangular: resposta olhando).",
+    "Q7: determinantes por PROPRIEDADES (a e b têm fator comum escondido; c e d têm colunas kombinadas).",
+    "Q8: múltiplo de 12 sem desenvolver (fator comum de fila).",
+    "Q9: por que é zero — três justificativas diferentes (P5/P6/P9).",
+    "Q10: identidade entre 3x3s com Jacobi (some linhas e compare).",
+    "Q11: o 5x5 sequencial (vale 0! P9) + a 4x4 do lado (Laplace).",
+    "Q12: demonstre a identidade com P8 (combinação linear: C2 += 2·C3).",
+    "Q13: u² − 2u + 1 = 0 para a triangular de diagonal x.",
+    "Q14: det A^−1 sem montar A^−1.",
+    "Q15: três técnicas na mesma questão (a: Jacobi+triangular; b: fator comum; c: direto).",
+    "Q16: conjunto solução {0, 1, 4, 6}? — confira com Jacobi.",
+    "Q17: Vandermonde 4x4 (= 400?) e as outras duas.",
+    "Q18: raízes de P(x) pela Vandermonde disfarçada.",
+    "Q19: a equação com a coluna fora de ordem (x = 2 e x = −5?).",
+    "Q20: det X = 8 por propriedades — sem montar matriz NENHUMA."
+  ],
+  "perguntas_autoavaliacao": [
+    "Na Q3d, qual é o papel dos logaritmos e por que o resultado final é 0?",
+    "Na Q5, por que o z não aparece nas contas? O que o traço e o det de uma triangular olham?",
+    "Na Q6a, por qual fila você expande e POR QUÊ? Quantos cofatores sobram?",
+    "Na Q8a, escreva a frase exata da prova (qual propriedade, qual fator, qual fila).",
+    "Na Q9c, qual relação entre as colunas 2 e 3 faz o det zerar?",
+    "Na Q13, o que significa (u − I) e por que triangular ajuda a elevar ao quadrado?",
+    "Na Q14, enuncie a propriedade usada e calcule det A de cabeça.",
+    "Na Q18, por que as raízes de P(x) são exatamente 1, 2 e 3 sem nenhuma conta longa?",
+    "Na Q20, liste TODAS as propriedades usadas na cadeia de dets. Onde entra o 2⁴?",
+    "Se a Q17 deu diferente de 400, qual sinal/inversão de fator você provavelmente trocou?"
+  ]
+}

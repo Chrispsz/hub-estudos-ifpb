@@ -1,0 +1,59 @@
+ATIVIDADE INDIVIDUAL — LINGUAGENS DE MARCAÇÃO
+Fonte: PDF REAL "Atividade individual - Linguagens de Marcação.pdf" enviado
+pelo dono do Hub (2 páginas) — agora o arquivo oficial está em
+public/pdfs/lm-atividade-individual.pdf e esta transcrição foi conferida contra ele.
+ATIVIDADE VALE NOTA: construir a estrutura completa do site pessoal usando
+APENAS HTML — quatro páginas ligadas entre si, SEM NENHUMA LINHA DE CSS.
+Na Etapa 2 essas mesmas páginas recebem estilo.
+
+================================================================================
+OBJETIVO — finalizar sabendo:
+• Organizar o conteúdo com elementos SEMÂNTICOS, e não apenas com div e p;
+• Escolher a tag que descreve o SIGNIFICADO do conteúdo, e não a aparência dele;
+• Produzir páginas válidas e acessíveis.
+
+REGRAS GERAIS (descumprir qualquer uma das 3 primeiras = PERDE a nota de
+"Regras gerais" na avaliação):
+1. NADA DE CSS. Não use <style>, atributo style nem <link rel="stylesheet">.
+   Atributos de apresentação antigos (bgcolor, align, <font>, <center>)
+   também são proibidos.
+2. HTML VÁLIDO. Todas as páginas devem passar no Validador do W3C sem erros.
+3. O CONTEÚDO DEVE SER SEU. Se preferir não expor dados pessoais, pode criar
+   uma persona, desde que coerente do início ao fim.
+
+ESTRUTURA SEMÂNTICA — as quatro páginas seguem o MESMO esqueleto:
+• <header> com seu nome e um <nav> com links para as quatro páginas
+  (menu idêntico em todas);
+• <main> único por página, dividido em <section> e <article> conforme o conteúdo;
+• <footer> com <address> (seu e-mail com mailto:) e o ano com <time>;
+• Apenas UM <h1> por página, e títulos SEM PULAR NÍVEIS (um h2 nunca vem
+  seguido direto de um h4).
+
+ESTRUTURA DE ARQUIVOS:
+meu-site/
+  index.html
+  sobre.html
+  projetos.html
+  contato.html
+  midia/
+    imagens/
+    audio/
+    video/
+
+CONTEÚDO DE CADA PÁGINA:
+| Página     | Arquivo       | Conteúdo esperado |
+| Início     | index.html    | Apresentação curta, foto (opcional), destaques e links para as outras páginas |
+| Sobre mim  | sobre.html    | Trajetória, formação, habilidades, interesses profissionais |
+| Projetos   | projetos.html | Pelo menos 2 projetos (reais ou fictícios), cada um com descrição, data e imagem |
+| Contato    | contato.html  | Formulário de contato, endereço, redes sociais e perguntas frequentes. O formulário não precisa funcionar, podendo ter o atributo "action" apontando para # |
+================================================================================
+CHECKLIST DA CASA (nas caixinhas do acervo):
+□ 4 páginas com o mesmo esqueleto (header+nav idêntico, main único, footer com address+time)
+□ Zero CSS: sem <style>, sem style=, sem <link stylesheet>, sem bgcolor/align/font/center
+□ Validador W3C sem erros nas 4 páginas
+□ Um h1 por página, sem pular nível de título
+□ index: apresentação + destaques + links
+□ sobre: trajetória + formação + habilidades
+□ projetos: 2+ projetos com descrição, data (time) e imagem
+□ contato: formulário (action="#"), endereço, redes, FAQ
+□ midia/imagens + audio + video (pastas certas)
