@@ -34,6 +34,7 @@ import {
   type Preferences,
   type StudyProgress,
 } from './study-progress';
+import { mistakeCardSeedsFor } from './mistake-notebook';
 import { buildDayPlan, type PlanBlock, type PlanKind } from './study-plan';
 import { todayDateKey } from './today-focus';
 
@@ -106,6 +107,76 @@ export interface SessionHarmony {
   fit: PomodoroFit | null;
   /** Sugestão do amanhã (estado 'cumprida'): o primeiro pendente da fila. */
   nextHint?: { title: string; why: string };
+  /** O FECHO INTERATIVO — as 3 ações reais do fim de sessão (banco #6). */
+  fecho: FechoStatus;
+}
+
+// ---------- O FECHO INTERATIVO (Task 206 — banco de ideias #6) ----------
+//
+// O bloco FECHO deixa de ser texto e vira ação. Três gestos, na ordem do
+// ritual: (1) os erros do dia viram cartões em 1 toque — o semeio já existe
+// (mistakeCardSeedsFor), o fecho só conta e abre; (2) as listas de HOJE
+// (checklists abertas dos materiais da sessão) ganham um atalho com o que
+// falta; (3) o 1º passo de amanhã é gravado DE VERDADE (tomorrowStep) — e a
+// home do dia seguinte abre nele. O passo gravado é o que marca o fecho
+// como FEITO: registrar o que ficou é o gesto que encerra a sessão.
+
+/** Uma lista de hoje com caixinhas em aberto — o 2º gesto do fecho. */
+export interface FechoList {
+  materialId: string;
+  title: string;
+  disciplineCode?: string;
+  remaining: number;
+  total: number;
+}
+
+export interface FechoStatus {
+  /** Erros em aberto que ainda não viraram cartão (o 1º toque). */
+  pendingErrors: number;
+  /** Listas abertas dos materiais da sessão de hoje (máx. 3 — o resto é ruído). */
+  lists: FechoList[];
+  /** O 1º passo de amanhã já está gravado neste fecho? */
+  stepRecorded: boolean;
+  /** Sugestão do passo: o 1º bloco pendente da fila (1 toque grava). */
+  suggestion: { text: string; materialId?: string; disciplineCode?: string } | null;
+}
+
+function buildFechoStatus(
+  sp: StudyProgress,
+  dateKey: string,
+  blocks: HarmonyBlock[],
+): FechoStatus {
+  // (1) erros → cartões: o semeio da casa conta o que ainda falta virar cartão
+  const pendingErrors = mistakeCardSeedsFor(sp, Array.isArray(sp.flashcards) ? sp.flashcards : []).length;
+
+  // (2) as listas de hoje: checklists abertas dos materiais que entraram na sessão
+  const lists: FechoList[] = [];
+  for (const b of blocks) {
+    if (!b.materialId || b.kind === 'fecho') continue;
+    const items = sp.materialChecklists?.[b.materialId]?.items ?? [];
+    const remaining = items.filter((it) => !it.done).length;
+    if (remaining <= 0 || lists.length >= 3) continue;
+    lists.push({
+      materialId: b.materialId,
+      title: b.title,
+      disciplineCode: b.disciplineCode,
+      remaining,
+      total: items.length,
+    });
+  }
+
+  // (3) o passo de amanhã: gravado agora ou sugerido pela própria fila
+  const stepRecorded = sp.tomorrowStep?.setOn === dateKey && !!sp.tomorrowStep?.text;
+  const pending = blocks.find((b) => b.kind !== 'fecho' && !b.done && b.materialId);
+  const suggestion = pending?.materialId
+    ? {
+        text: pending.title,
+        materialId: pending.materialId,
+        disciplineCode: pending.disciplineCode,
+      }
+    : null;
+
+  return { pendingErrors, lists, stepRecorded, suggestion };
 }
 
 const DAY = 86_400_000;
@@ -343,6 +414,7 @@ export function buildSessionHarmony(
       blocks: [],
       doneCount: 0,
       fit: null,
+      fecho: { pendingErrors: 0, lists: [], stepRecorded: false, suggestion: null },
     };
   }
 
@@ -460,6 +532,28 @@ export function buildSessionHarmony(
   } else {
     // CUMPRIDA — a lista mostra o dia com o estado de cada bloco (espelho).
     for (const b of plan.blocks) blocks.push(toHarmony(b));
+    // O FECHO continua lá — com o foco cumprido ele é o ÚNICO ritual que
+    // falta ("falta só o fecho — e descansar"): erros → cartões, as listas
+    // de hoje e o 1º passo de amanhã. Antes ele sumia exatamente quando o
+    // dia virava espelho — o fim da sessão não podia ser o fim da fila.
+    blocks.push({
+      id: 'fecho:sessao',
+      kind: 'fecho',
+      title: 'Fecho da sessão',
+      why: 'erros → cartões · cheque as listas · escolha o 1º passo de amanhã',
+      minutes: WRAPUP_MIN,
+      done: false,
+    });
+  }
+
+  // ----- O FECHO INTERATIVO: as ações reais + o passo de amanhã marcando feito -----
+  const fecho = buildFechoStatus(sp, dateKey, blocks);
+  for (const b of blocks) {
+    if (b.kind !== 'fecho') continue;
+    if (fecho.stepRecorded) {
+      b.done = true;
+      b.doneWhy = 'o 1º passo de amanhã está gravado — a home abre nele';
+    }
   }
 
   // ----- o amanhã (estado cumprida): o primeiro pendente da fila da casa -----
@@ -478,6 +572,7 @@ export function buildSessionHarmony(
     doneCount: blocks.filter((b) => b.done).length,
     fit: state === 'cumprida' ? null : fitPomodoro(remaining, sp.preferences?.pomodoroConfig ?? { focus: 25, shortBreak: 5, longBreak: 15, cyclesBeforeLong: 4 }),
     nextHint,
+    fecho,
   };
 }
 

@@ -21,14 +21,17 @@ import {
   BookOpen,
   Check,
   CheckCheck,
+  ChevronDown,
   History,
   ListChecks,
+  PenLine,
   Sparkles,
   Timer,
   Undo2,
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { materials } from '@/data/course-data';
@@ -38,8 +41,11 @@ import {
   buildSessionHarmony,
   restorePomodoroConfig,
   syncPomodoroToBudget,
+  type FechoList,
   type HarmonyBlock,
+  type SessionHarmony,
 } from '@/lib/session-harmony';
+import type { StudyProgressHook } from '@/lib/study-progress';
 import { PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
 import { openPractice } from '@/lib/hub-events';
 import { todayDateKey } from '@/lib/today-focus';
@@ -123,6 +129,170 @@ function fmtH(min: number): string {
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
 }
 
+// ---------- O PAINEL DO FECHO (banco de ideias #6 — Fecho Interativo) ----------
+//
+// O fim de sessão deixa de ser uma frase e vira três gestos reais, na ordem
+// do ritual: (1) erros do dia → cartões em 1 toque; (2) as listas de hoje
+// com o que falta; (3) o 1º passo de amanhã gravado de verdade — a home do
+// dia seguinte abre nele. Gravar o passo É fechar a sessão.
+
+function FechoPanel({
+  harmony,
+  dateKey,
+  sp,
+  onOpenMaterial,
+}: {
+  harmony: SessionHarmony;
+  dateKey: string;
+  sp: StudyProgressHook;
+  onOpenMaterial: (list: FechoList) => void;
+}) {
+  const { fecho } = harmony;
+  const [draft, setDraft] = React.useState('');
+
+  const recordStep = (text: string, materialId?: string) => {
+    const t = text.trim();
+    if (!t) return;
+    sp.setTomorrowStep({ setOn: dateKey, text: t, materialId });
+    setDraft('');
+    toast.success('1º passo de amanhã gravado — a home abre nele.', {
+      description: t,
+    });
+  };
+
+  const recorded = sp.progress.tomorrowStep?.setOn === dateKey ? sp.progress.tomorrowStep : null;
+  const quiet = fecho.pendingErrors === 0 && fecho.lists.length === 0;
+
+  return (
+    <div
+      className="mt-1 space-y-3 rounded-xl border border-border/70 bg-muted/30 px-3 py-3"
+      data-t="fecho-painel"
+    >
+      {/* (1) erros → cartões — o semeio da casa, contado ao vivo */}
+      {fecho.pendingErrors > 0 && (
+        <div
+          className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+          data-t="fecho-erros"
+        >
+          <p className="text-sm leading-snug text-muted-foreground">
+            <PenLine className="mr-1.5 inline size-3.5 text-rose-600 dark:text-rose-400" aria-hidden />
+            <span className="font-medium text-foreground">{fecho.pendingErrors}</span>{' '}
+            {fecho.pendingErrors === 1 ? 'erro em aberto' : 'erros em aberto'} — virar cartão é
+            fechar a ferida em vez de reler a mágoa.
+          </p>
+          <button
+            type="button"
+            onClick={() => openPractice({ mode: 'flashcards' })}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-rose-400"
+            aria-label={`Abrir o Praticar para virar ${fecho.pendingErrors} erros em cartões`}
+          >
+            Virar cartões
+          </button>
+        </div>
+      )}
+
+      {/* (2) as listas de hoje — o que falta, com o leitor a 1 clique */}
+      {fecho.lists.length > 0 && (
+        <div data-t="fecho-listas">
+          <p className="text-sm text-muted-foreground">
+            <ListChecks className="mr-1.5 inline size-3.5 text-violet-600 dark:text-violet-400" aria-hidden />
+            Listas de hoje com caixinhas em aberto:
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {fecho.lists.map((l) => (
+              <button
+                key={l.materialId}
+                type="button"
+                onClick={() => onOpenMaterial(l)}
+                className="inline-flex max-w-full items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-violet-300"
+                aria-label={`Abrir ${l.title} — faltam ${l.remaining} de ${l.total} no checklist`}
+              >
+                <span className="max-w-56 truncate">{l.title}</span>
+                <span className="tabular-nums opacity-80">
+                  · faltam {l.remaining}/{l.total}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* (3) o 1º passo de amanhã — gravado de verdade, a home abre nele */}
+      {fecho.stepRecorded && recorded ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between" data-t="fecho-passo-gravado">
+          <p className="text-sm leading-snug">
+            <Check className="mr-1.5 inline size-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <span className="font-medium">{recorded.text}</span>{' '}
+            <span className="text-muted-foreground">— gravado. A home de amanhã abre nele.</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              sp.setTomorrowStep(null);
+              toast('Passo limpo — escolha outro ou deixe a fila decidir.');
+            }}
+            className="inline-flex shrink-0 items-center gap-1 self-start rounded-full px-2 py-1 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Limpar o 1º passo de amanhã gravado"
+          >
+            <Undo2 className="size-3" aria-hidden /> regravar
+          </button>
+        </div>
+      ) : (
+        <div data-t="fecho-passo">
+          <p className="text-sm text-muted-foreground">
+            <Sparkles className="mr-1.5 inline size-3.5 text-primary" aria-hidden />
+            O 1º passo de amanhã — a home abre nele:
+          </p>
+          <div className="mt-1.5 flex flex-col gap-1.5 sm:flex-row sm:items-center">
+            {fecho.suggestion && (
+              <button
+                type="button"
+                onClick={() => recordStep(fecho.suggestion!.text, fecho.suggestion!.materialId)}
+                className="inline-flex max-w-full items-center gap-1 self-start rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`Gravar como 1º passo de amanhã: ${fecho.suggestion.text}`}
+                data-t="fecho-passo-sugestao"
+              >
+                <span className="max-w-56 truncate">{fecho.suggestion.text}</span>
+                <span className="opacity-70">· 1 toque grava</span>
+              </button>
+            )}
+            <div className="flex w-full min-w-0 items-center gap-1.5">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') recordStep(draft);
+                }}
+                placeholder="ou escreva o seu…"
+                aria-label="Escrever o 1º passo de amanhã"
+                className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+                data-t="fecho-passo-input"
+              />
+              <button
+                type="button"
+                onClick={() => recordStep(draft)}
+                disabled={!draft.trim()}
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                aria-label="Gravar o 1º passo de amanhã"
+                data-t="fecho-passo-gravar"
+              >
+                Gravar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {quiet && fecho.stepRecorded && (
+        <p className="text-sm text-emerald-700 dark:text-emerald-400" data-t="fecho-completo">
+          <Check className="mr-1.5 inline size-4" aria-hidden />
+          Sessão fechada por inteiro — nada ficou para trás. Bom descanso.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function SessionHarmonyCard({ onOpenBlock }: Props) {
   const sp = useStudyProgress();
   // O AGORA do card — tick de 30s basta (a barra vive do registro, não do segundo).
@@ -139,6 +309,12 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
     () => (now ? buildSessionHarmony(sp.progress, now, { pageOf }) : null),
     [sp.progress, now, pageOf],
   );
+
+  // O FECHO INTERATIVO: o painel abre por vontade própria (1º clique) — e
+  // quando a sessão cumpre com o passo ainda em aberto, a casa abre nele
+  // sozinha: o fecho é o que resta do dia. (Estado ANTES do early return —
+  // a ordem dos hooks é contrato.)
+  const [fechoToggle, setFechoToggle] = React.useState<boolean | null>(null);
 
   if (!now || !harmony || harmony.state === 'sem-sessao') return null;
 
@@ -165,6 +341,8 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
   const stateMeta = STATE_META[state];
   const isMicro = state === 'micro';
   const done = state === 'cumprida';
+
+  const fechoExpanded = fechoToggle ?? (done && !harmony.fecho.stepRecorded);
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -321,22 +499,25 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
             {blocks.map((b) => {
               const meta = KIND_META[b.kind];
               const Icon = meta.icon;
-              const clickable = b.kind !== 'fecho' ? !b.done : true;
+              const isFecho = b.kind === 'fecho';
+              const clickable = !isFecho ? !b.done : true;
               return (
                 <li key={b.id}>
                   <button
                     type="button"
                     onClick={() => {
-                      if (b.kind === 'fecho') {
-                        // O ritual final: erros → cartões (o Praticar abre na fila).
-                        openPractice({ mode: 'flashcards' });
+                      if (isFecho) {
+                        // O ritual final virou PAINEL: três gestos reais —
+                        // erros → cartões, listas de hoje, 1º passo de amanhã.
+                        setFechoToggle(!fechoExpanded);
                         return;
                       }
                       if (!b.done) onOpenBlock(b);
                     }}
                     data-t={`sessao-${b.id}`}
                     data-testid={`plano-bloco-${b.kind}`}
-                    aria-label={`${PLAN_KIND_LABEL[b.kind as PlanKind] ?? 'Fecho'}: ${b.title} — ${b.done ? (b.doneWhy ?? 'concluído') : b.why} (≈${fmtH(b.minutes)})${b.kind !== 'fecho' && !b.done ? '. Clique para abrir com o tutor ao lado' : ''}`}
+                    aria-label={`${PLAN_KIND_LABEL[b.kind as PlanKind] ?? 'Fecho'}: ${b.title} — ${b.done ? (b.doneWhy ?? 'concluído') : b.why} (≈${fmtH(b.minutes)})${!isFecho && !b.done ? '. Clique para abrir com o tutor ao lado' : isFecho ? '. Clique para abrir o painel do fecho' : ''}`}
+                    aria-expanded={isFecho ? fechoExpanded : undefined}
                     className={cn(
                       'group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       clickable && 'hover:bg-muted/60',
@@ -361,7 +542,7 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                             meta.text,
                           )}
                         >
-                          {b.kind === 'fecho' ? 'Fecho' : PLAN_KIND_LABEL[b.kind as PlanKind]}
+                          {isFecho ? 'Fecho' : PLAN_KIND_LABEL[b.kind as PlanKind]}
                         </span>
                         <span
                           className={cn(
@@ -380,12 +561,35 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                       <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" aria-hidden>
                         <Check className="size-3.5" />
                       </span>
+                    ) : isFecho ? (
+                      <ChevronDown
+                        className={cn(
+                          'size-4 shrink-0 text-muted-foreground transition-transform',
+                          fechoExpanded && 'rotate-180',
+                        )}
+                        aria-hidden
+                      />
                     ) : (
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {b.trimmed ? `~${fmtH(b.minutes)}` : fmtH(b.minutes)}
                       </span>
                     )}
                   </button>
+                  {isFecho && fechoExpanded && (
+                    <FechoPanel
+                      harmony={harmony}
+                      dateKey={dateKey}
+                      sp={sp}
+                      onOpenMaterial={(l) =>
+                        onOpenBlock({
+                          id: l.materialId,
+                          kind: 'continuar',
+                          materialId: l.materialId,
+                          disciplineCode: l.disciplineCode,
+                        })
+                      }
+                    />
+                  )}
                 </li>
               );
             })}

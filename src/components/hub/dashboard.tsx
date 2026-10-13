@@ -26,7 +26,9 @@ import {
   PenLine,
   Printer,
   Sparkles,
+  Sunrise,
   Timer,
+  X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -183,6 +185,21 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         : null,
     [agora, sp.progress.dailyHours, nextExam],
   );
+
+  // O 1º passo gravado ONTEM no fecho (banco de ideias #6): a home abre nele.
+  // A faixa vive SÓ no dia seguinte (setOn === ontem) e expira sozinha —
+  // "Abrir agora" NÃO apaga o passo: abrir dispara markAccessed de outra
+  // instância do hook no MESMO tick, e o write completo de uma instância
+  // stale ressuscita o passo recém-apagado (descoberta E2E Task 206). O X
+  // ("deixar pra lá") é escrita solitária — sem corrida — e some na hora.
+  const ontemKey = agora ? todayDateKey(new Date(agora.getTime() - 86_400_000)) : '';
+  const passoOntem =
+    sp.progress.tomorrowStep?.setOn && sp.progress.tomorrowStep.setOn === ontemKey
+      ? sp.progress.tomorrowStep
+      : null;
+  const passoMaterial = passoOntem?.materialId
+    ? materials.find((m) => m.id === passoOntem.materialId) ?? null
+    : null;
   const applyHours = React.useCallback(
     (h: number) => {
       if (dateKey) {
@@ -469,6 +486,46 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             </>
           )}
         </p>
+        {/* O 1º passo de ontem — a promessa do fecho cobrada na hora certa (banco #6) */}
+        {passoOntem && (
+          <div
+            className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/[0.06] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between"
+            data-t="passo-ontem"
+          >
+            <p className="min-w-0 text-sm leading-snug">
+              <Sunrise className="mr-1.5 inline size-4 text-primary" aria-hidden />
+              No fecho de ontem você escolheu começar por:{' '}
+              <span className="font-semibold">{passoOntem.text}</span>
+            </p>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  // Só abre — o passo é a promessa do dia e expira sozinho
+                  // amanhã (apagar aqui corre a corrida do write completo
+                  // contra o markAccessed do leitor, no mesmo tick).
+                  if (passoMaterial) openMaterialFocused(passoMaterial);
+                  else onStartStudy();
+                }}
+                className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`Abrir agora o passo escolhido ontem: ${passoOntem.text}`}
+                data-t="passo-abrir"
+              >
+                Abrir agora
+                <ChevronRight className="size-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => sp.setTomorrowStep(null)}
+                className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Deixar o passo de ontem pra lá"
+                data-t="passo-fechar"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+        )}
         {/* Check-in de horas — 1 toque ao logar, editável sempre (dono 10/10/2026).
             A casa aprende (banco #3): com ritmo recente, a mediana vira o 1º chip. */}
         {agora && (plannedHours === null || editingHours) && (

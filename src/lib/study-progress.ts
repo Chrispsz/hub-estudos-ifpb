@@ -511,12 +511,29 @@ export interface StudyProgress {
   kaizenEntries: KaizenEntry[];
   /** Horas disponíveis lançadas por dia (check-in diário, editável). */
   dailyHours?: DailyHours;
+  /**
+   * O 1º passo de amanhã, gravado NO FECHO da sessão (banco de ideias #6).
+   * `setOn` é o dateKey do dia em que foi gravado — a casa o mostra no dia
+   * SEGUINTE ("você escolheu começar por...") e o consome no clique: o passo
+   * vira ação, não adorno. Stale (setOn ≠ ontem) simplesmente não aparece.
+   */
+  tomorrowStep?: TomorrowStep;
   /** Checklist de passos por material (frente 13). */
   materialChecklists: { [materialId: string]: MaterialChecklist };
   /** Ciclo de revisão espaçada por material (frente 13). */
   materialReviews: { [materialId: string]: MaterialReviewState };
   /** Lembrete de estudo do PNAAT (plataforma FIT — externo ao acervo). */
   pnaatReminder: PnaatReminderState;
+}
+
+/** O 1º passo de amanhã — a promessa que o fecho grava e a casa cobra. */
+export interface TomorrowStep {
+  /** dateKey do dia em que o passo foi gravado (a sessão que o escolheu). */
+  setOn: string;
+  /** Material da fila (quando o passo aponta para um PDF/lista do acervo). */
+  materialId?: string;
+  /** O passo em texto — título do material ou frase livre do dono. */
+  text: string;
 }
 
 const defaultDayAvailability: StudyPreferences['days'] = {
@@ -1058,6 +1075,21 @@ export function useStudyProgress() {
           ...prev,
           dailyHours: { ...(prev.dailyHours ?? {}), [dateKey]: hours },
         };
+      });
+    },
+    [setProgress],
+  );
+
+  /** Grava (ou consome) o 1º passo de amanhã — o fecho que a casa cobra. */
+  const setTomorrowStep = React.useCallback(
+    (step: TomorrowStep | null) => {
+      setProgress((prev) => {
+        if (!step || !step.text.trim()) {
+          if (!prev.tomorrowStep) return prev;
+          const { tomorrowStep: _drop, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, tomorrowStep: { ...step, text: step.text.trim() } };
       });
     },
     [setProgress],
@@ -1680,6 +1712,7 @@ export function useStudyProgress() {
       markNotebookRevised,
       unmarkNotebookRevised,
       setAvailableHours,
+      setTomorrowStep,
       // selectors
       sessionsToday,
       minutesToday,
@@ -1739,6 +1772,7 @@ export function useStudyProgress() {
       markNotebookRevised,
       unmarkNotebookRevised,
       setAvailableHours,
+      setTomorrowStep,
       sessionsToday,
       minutesToday,
       sessionsLast7d,
