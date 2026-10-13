@@ -112,6 +112,11 @@ const DECISIONS: Record<string, { role: MaterialRole; note: string; warmup?: boo
   'lm-html-07-metadados': { role: 'leitura', note: 'slides do assunto mais recente (metadados) — leitura guiada' },
   'lm-html-03-hyperlinks': { role: 'leitura', note: 'slides de hyperlinks — leitura do assunto dado' },
   'lm-html-04-midias': { role: 'leitura', note: 'slides de mídias — leitura do assunto dado' },
+  'lm-web-tabelas': { role: 'leitura', note: 'aula 05 (17/09) na apostila — leitura do assunto dado; tabela é para DADOS, nunca layout' },
+  'lm-web-css-seletores': {
+    role: 'leitura',
+    note: 'aula 08 (01/10) — PRIMEIRO CSS, base da A2 (45% da nota): intro + os 8 tipos de seletor da apostila',
+  },
   'lm-01-estrutura': { role: 'leitura', note: 'slides da estrutura do HTML — leitura de base' },
   'lm-intro-00': { role: 'leitura', note: 'introdução da disciplina — leitura de base' },
   'lm-listas-slides': { role: 'leitura', note: 'slides de listas — leitura do assunto dado' },

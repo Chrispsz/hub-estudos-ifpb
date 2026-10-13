@@ -45,11 +45,11 @@ function check(name: string, cond: boolean, extra = '') {
     [ex.id]: {
       tried: true,
       solved: false,
+      neededHelp: false,
       lastPracticedAt: new Date(now.getTime() - 3_600_000).toISOString(),
-      attempts: 1,
-      lapses: 0,
+      lapses: 1,
     },
-  } as StudyProgress['exerciseProgress'];
+  };
   const h = buildSessionHarmony(sp, now);
   check('B1: erro em aberto vira contagem no fecho', h.fecho.pendingErrors >= 1, `ex=${ex.id}, contagem=${h.fecho.pendingErrors}`);
 }
@@ -61,12 +61,12 @@ function check(name: string, cond: boolean, extra = '') {
   sp.materialChecklists = {
     [matId]: {
       items: [
-        { text: 'Q1', done: true },
-        { text: 'Q2', done: false },
-        { text: 'Q3', done: false },
+        { id: 'q1', text: 'Q1', done: true },
+        { id: 'q2', text: 'Q2', done: false },
+        { id: 'q3', text: 'Q3', done: false },
       ],
     },
-  } as StudyProgress['materialChecklists'];
+  };
   const h = buildSessionHarmony(sp, now);
   const inSession = h.blocks.some((b) => b.materialId === matId);
   const listed = h.fecho.lists.find((l) => l.materialId === matId);
@@ -102,7 +102,7 @@ function check(name: string, cond: boolean, extra = '') {
   ] as StudyProgress['pomodoroSessions'];
   const h = buildSessionHarmony(sp, now);
   check('F1: estado cumprida', h.state === 'cumprida');
-  check('F2: fit null quando cumprida', h.fecho.fit === undefined ? true : h.fit === null);
+  check('F2: fit null quando cumprida', h.fit === null);
   check('F3: sugestão do fecho = bloco pendente com material', !!h.fecho.suggestion?.materialId, h.fecho.suggestion?.text);
   check('F4: nextHint aponta o amanhã', !!h.nextHint?.title, h.nextHint?.title);
 }

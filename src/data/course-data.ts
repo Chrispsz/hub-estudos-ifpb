@@ -891,6 +891,13 @@ export const materials: Material[] = [
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['HTML'],
   },
+  // NOVO MATERIAL — LM aula 05 (Classroom 17/09: "Tabelas"; o array pulava da aula 04 para a 06)
+  { id: 'lm-web-tabelas', disciplineCode: 'TEC.1632', title: 'Tabelas (web — apostila da disciplina)',
+    type: 'web_page', summaryFile: 'lm-gitbook-tabelas.summary.json', source: 'external',
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/tabelas',
+    // Material-first: comprova aula (curriculum-state.ts)
+    topicosCobertos: ['HTML'],
+  },
   // NOVOS MATERIAIS — LM aula 06 (enviados pelo usuário em 19/09)
   { id: 'lm-html-06-formularios', disciplineCode: 'TEC.1632', title: 'HTML - Formulários (20 slides)',
     type: 'slides', pdfPath: '/pdfs/lm-html-06-formularios.pdf',
@@ -922,6 +929,14 @@ export const materials: Material[] = [
     externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/html/metadados',
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['HTML'],
+  },
+  // NOVO MATERIAL — LM aula 08 (Classroom 01/10: "Introdução e Seletores") — a PRIMEIRA aula de
+  // CSS: é a base da A2 (codificação visual, 45% da nota). Capítulos intro + seletores da apostila.
+  { id: 'lm-web-css-seletores', disciplineCode: 'TEC.1632', title: 'Introdução a CSS e Seletores (web — apostila da disciplina)',
+    type: 'web_page', summaryFile: 'lm-gitbook-css-seletores.summary.json', source: 'external',
+    externalUrl: 'https://diogomoreira.gitbook.io/linguagens-de-marcacao/css/introducao-a-css',
+    // Material-first: comprova aula de CSS (curriculum-state.ts)
+    topicosCobertos: ['CSS'],
   },
   { id: 'lm-ementa', disciplineCode: 'TEC.1632', title: 'Plano de Disciplina - Linguagens de Marcação',
     type: 'ementa', pdfPath: '/data/ementas/ementa-linguagens-marcacao.pdf',

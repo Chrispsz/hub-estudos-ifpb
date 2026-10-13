@@ -932,6 +932,88 @@
   "titulo": "Áudio — apostila da disciplina (web)"
  },
  {
+  "conceito": "CSS — separar conteúdo da apresentação",
+  "explicacao": "Cascading Style Sheets (Folha de Estilo em Cascatas) estiliza elementos de linguagens de marcação como HTML. Com ele se altera cor de texto e de fundo, fonte e espaçamento, e se criam variações de layout e ajustes de imagem por tela. O…",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Por que CSS existe — HTML não formata",
+  "explicacao": "HTML não é feito para formatar páginas da web; HTML é usado para DESCREVER CONTEÚDO. Por isso a estilização vive no CSS — e as definições de estilo DEVEM estar em arquivo separado do documento HTML, com extensão .css.",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<link> — ligando a folha de estilos",
+  "explicacao": "Para o browser interpretar HTML e .css em conjunto, cria-se um link por meio de um metadado (a tag <link>, vista na aula de metadados). Com estilo.css no mesmo nível do index.html, o href segue os padrões de URLs já estudados. Um MESMO…",
+  "exemplo": "<link rel=\"stylesheet\" href=\"estilo.css\">",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Regra CSS = seletor + propriedade + valor",
+  "explicacao": "A regra CSS na forma mais elementar tem três partes: seletor (acha os elementos), propriedade (a característica a estilizar — tamanho da fonte, cor do texto, altura) e valor (a característica específica — azul, verde, 300px). Um conjunto…",
+  "exemplo": "h1 { color: green; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Seletor universal (*)",
+  "explicacao": "Aplica estilos a elementos de QUALQUER tipo. Exemplo do professor: sublinhado vermelho em todos os textos do documento de uma vez.",
+  "exemplo": "* { text-decoration: underline red; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Seletor por tipo",
+  "explicacao": "Seleciona todas as tags de um mesmo tipo: p seleciona todos os parágrafos da página. Útil para estilos gerais; para maior especificidade usam-se os outros seletores.",
+  "exemplo": "p { background-color: black; color: white; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Seletor por identificador (#id)",
+  "explicacao": "Seleciona UM ÚNICO elemento da página pelo atributo global id — que deve ser um identificador EXCLUSIVO, único em todo o documento. #primeiro-paragrafo estiliza só o elemento com id=\"primeiro-paragrafo\".",
+  "exemplo": "<p id=\"primeiro-paragrafo\">Algum texto</p> #primeiro-paragrafo { color: blue; text-align: center; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Seletor por classe (.) — reutilizável e combinável",
+  "explicacao": "class é atributo global REUTILIZÁVEL: repete em vários elementos e combina com outras (um elemento pode ter mais de uma classe). A diferença para o id: no id UM único elemento é associado; na classe VÁRIOS elementos são associados (e cada…",
+  "exemplo": "<li class=\"item-menu\">Início</li> .item-menu { font-weight: bold; font-size: 20px; color: navy; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Seletores de atributos",
+  "explicacao": "Selecionam elementos pelo valor de um atributo. Sintaxe: [attr] tem o atributo; [attr=valor] valor exatamente igual; [attr~=valor] valor é UMA das palavras de uma lista separada por espaços (como classes); [attr^=valor] começa com…",
+  "exemplo": "li[data-genero] { font-weight: bold; } li[data-genero~=indie] { color: steelblue; } li[data-genero^=synth] { font-style: italic; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Filhos (>) e descendentes (espaço)",
+  "explicacao": "FILHO está direto dentro do ancestral (os <li> são filhos do <ul>; o <ul> e o <h1> são filhos do <body>); DESCENDENTE está contido em algum nível, não necessariamente direto. Regra de memória do professor: minha filha é filha E…",
+  "exemplo": "ul#lista1 > li { font-weight: bold; } /* só filhos diretos */ ul li { font-weight: bold; } /* descendentes de qualquer nível */",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Pseudoclasses — estados dos elementos",
+  "explicacao": "Palavra-chave adicionada ao seletor que especifica um ESTADO especial do elemento (clicado, mouse em cima...). Dinâmicas: :hover (mouse sobre o elemento), :active (ativando — clique sem soltar; também navegação por tab), :visited (link já…",
+  "exemplo": "ul li ul { display: none; } ul li:hover ul { display: block; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Negação — :not(X)",
+  "explicacao": "Pseudo-classe funcional que recebe um seletor simples X como argumento e seleciona o elemento que NÃO é representado por X. X não pode conter outra negação. No exemplo: p:not(.classico) pinta de vermelho só o parágrafo que NÃO tem a classe…",
+  "exemplo": "p:not(.classico) { color: red; } body *:not(p) { color: green; }",
+  "summaryFile": "lm-gitbook-css-seletores.summary.json",
+  "titulo": "Introdução a CSS e Seletores — apostila da disciplina (web)"
+ },
+ {
   "conceito": "Atributos comuns aos widgets",
   "explicacao": "autofocus (booleano: elemento com foco ao carregar a página), disabled (booleano: usuário não interage), name (nome do elemento — enviado com os dados; não obrigatório, mas recomendado) e value (valor inicial do elemento).",
   "summaryFile": "lm-gitbook-formularios.summary.json",
@@ -1069,6 +1151,45 @@
   "explicacao": "Metatags proprietárias criadas para redes sociais: o Open Graph Protocol do Facebook permite identificar o conteúdo de um link e criar pré-visualização (produto, vídeo, imagem); o Twitter tem as suas cards. A ferramenta metatags.io gera…",
   "summaryFile": "lm-gitbook-metadados.summary.json",
   "titulo": "Metadados — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<table> — a estrutura de linhas e colunas",
+  "explicacao": "Uma tabela é um conjunto estruturado de dados em linhas e colunas, útil para consultar rapidamente valores que têm relação entre tipos de dados diferentes. A tabela inteira vive dentro de UM elemento <table>; cada linha é um <tr> e cada…",
+  "exemplo": "<table> <tr><th>Banda</th><th>País</th><th>Ouvintes</th></tr> <tr><td>The Killers</td><td>Estados Unidos</td><td>4.624.348</td></tr> <tr><td>Arctic…",
+  "summaryFile": "lm-gitbook-tabelas.summary.json",
+  "titulo": "Tabelas — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "<tr>, <td> e <th> — linha, dado e cabeçalho",
+  "explicacao": "<tr> (table row) divide a tabela em linhas; <td> (table data) é a célula de dados dentro da linha; <th> (table header) substitui o <td> quando a célula é o cabeçalho da coluna. No exemplo do professor só a primeira linha usa <th>; todas as…",
+  "summaryFile": "lm-gitbook-tabelas.summary.json",
+  "titulo": "Tabelas — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "colspan — célula ocupando várias colunas",
+  "explicacao": "Atributo das células para expandir uma única célula por mais de uma COLUNA (o 'mesclar células' do Excel/Word). No exemplo reformulado, o cabeçalho <th colspan=\"2\">Banda e número de ouvintes</th> cobre as duas colunas de baixo de uma vez.",
+  "exemplo": "<tr> <th>País</th> <th colspan=\"2\">Banda e número de ouvintes</th> </tr>",
+  "summaryFile": "lm-gitbook-tabelas.summary.json",
+  "titulo": "Tabelas — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "rowspan — célula ocupando várias linhas",
+  "explicacao": "Atributo para expandir uma célula por mais de uma LINHA. No exemplo, <td rowspan=\"2\">Estados Unidos</td> aparece uma vez e vale para The Killers e The Strokes; <td rowspan=\"4\">Reino Unido</td> cobre as 4 bandas do Reino Unido — a célula…",
+  "exemplo": "<tr> <td rowspan=\"2\">Estados Unidos</td> <td>The Killers</td><td>4.624.348</td> </tr> <tr> <td>The Strokes</td><td>3.438.082</td> </tr>",
+  "summaryFile": "lm-gitbook-tabelas.summary.json",
+  "titulo": "Tabelas — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Tabela sem CSS não tem cara de tabela",
+  "explicacao": "O professor avisa: a tabela do Codesandbox não fica visualmente igual à mostrada no exemplo porque ainda não foi estilizada com CSS — a aparência (bordas, alinhamento) chega no módulo CSS da disciplina. A ESTRUTURA é papel do HTML; o…",
+  "summaryFile": "lm-gitbook-tabelas.summary.json",
+  "titulo": "Tabelas — apostila da disciplina (web)"
+ },
+ {
+  "conceito": "Quando NÃO usar tabelas — acessibilidade",
+  "explicacao": "Por muitos anos <table> foi usado para criar layouts de páginas inteiras — hoje é extremamente desencorajado: layouts com tabela reduzem a acessibilidade de usuários com deficiências visuais (a informação dada pelos leitores de tela fica…",
+  "summaryFile": "lm-gitbook-tabelas.summary.json",
+  "titulo": "Tabelas — apostila da disciplina (web)"
  },
  {
   "conceito": "URL",
