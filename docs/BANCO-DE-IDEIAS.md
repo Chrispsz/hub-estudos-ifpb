@@ -211,7 +211,7 @@ fecha o ciclo **erro → domínio → fila → prova → resultado** sem inflar 
 | **3** | Revisão com Pressão de Prova | ✅ **FEITA (Task 212)** — nos DOIS mundos: a fila FSRS do núcleo (v2) sobe os tópicos da prova D-7 com etiqueta violeta "prova de …", e a casa REAL (`study-plan.ts`) agora ordena os blocos de revisão espaçada pela pressão de prova (mesma régua D-21/D-7/D-3) com o porquê na fila |
 | **8** | Escadinha Guiada | ✅ **FEITA (Task 212)** — o leitor de um degrau-alto mostra a faixa violeta "travei? desça um degrau" com o porquê e o botão "abrir a base: …" (1 clique troca o material no próprio diálogo). Verificado E2E: det-lista → det-teoria. Wired em TODOS os leitores: home (dashboard), Tutor IA (study-view), Biblioteca, diálogo de disciplina e o acervo do v2 |
 | **13** | Pausa com Prova do 9 | ✅ **FEITA (Task 212)** — na pausa REAL do motor de foco (correndo OU "em espera" — descoberta do E2E: "pular fase" deixa a pausa pausada), 1 cartão de recall de 2min, opt-out ("pular"), SEM write/XP (o avanço de verdade é na Revisão/Flashcards). A prova manda no aquecimento. Existe no companheiro da casa (hub) e no pomodoro do núcleo (v2) |
-| **1** | Ciclo do Erro | próxima da fila — o erro vira tarefa na fila do tópico |
+| **1** | Ciclo do Erro | ✅ **FEITA (Task 213-b)** — o erro registrado no Code Review vira o bloco "Reestudar" na fila do dia (plano E sessão), no tópico que o gerou e com o porquê citando o erro real ("seu erro em …: \"…\""); o clique abre o re-teste da questão exata no Praticar e o item sai sozinho quando o Code Review domina (2 acertos de cabeça) — o reincidente atualiza a tarefa, nunca duplica |
 | **9** | Prova Branca | na fila — recall livre autocorrigido contra o resumo IA |
 | **6** | Kit de Véspera | na fila — escopo da prova + folha de 1 página |
 | **2** | Mapa de Domínio | na fila — o backbone de inteligência (domínio% por tópico) |
@@ -257,6 +257,6 @@ chave nem dado pessoal; ela dá LAR e DESTINO ao que a promoção produz:
 **Regra de ouro:** os limites 2x são para o VOLUME das semanas de prova — não
 gastar com pergunta que o tutor da casa já responde.
 
-**Execução da fila (com o gás):** nº 1 Ciclo do Erro — em execução (Task
-213-b) → nº 9 Prova Branca (sobe de valor: o NotebookLM Testes alimenta) →
+**Execução da fila (com o gás):** nº 1 Ciclo do Erro — ✅ FEITA (Task
+213-b, commit aa2e474) → nº 9 Prova Branca (sobe de valor: o NotebookLM Testes alimenta) →
 nº 6 Kit de Véspera → nº 2 Mapa de Domínio.
