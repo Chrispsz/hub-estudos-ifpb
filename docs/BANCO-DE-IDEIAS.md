@@ -260,3 +260,33 @@ gastar com pergunta que o tutor da casa já responde.
 **Execução da fila (com o gás):** nº 1 Ciclo do Erro — ✅ FEITA (Task
 213-b, commit aa2e474) → nº 9 Prova Branca (sobe de valor: o NotebookLM Testes alimenta) →
 nº 6 Kit de Véspera → nº 2 Mapa de Domínio.
+
+## A chave perfeita (13/10/2026, Task 214) — a casa fala Gemini por chave
+
+O dono: *"Eu quero a forma que vai ficar perfeita no site e que dê pra usar
+através da key — vou precisar atualizá-la ao assinar o plano ou a key do Google
+já terá acesso aos novos recursos?"*. Verdades verificadas (planos/suporte
+Google, 13/10/2026):
+
+- **Assinatura ≠ chave de API — mundos separados.** O Google AI Plus alimenta
+  os APPS (Gemini app, NotebookLM, Gmail, Flow, 400 GB). A chave da API nasce
+  no AI Studio (aistudio.google.com/app/apikey), tem tier GRÁTIS próprio, sem
+  cartão, e NÃO depende do plano — assinar não atualiza nem amplia a chave,
+  e a chave não precisa ser recriada depois de assinar.
+- **A casa JÁ fala Gemini** (cadeia no /api/tutor: Gemini → OpenRouter → Z.ai →
+  SDK local) — mas a chave só entrava por variável de ambiente (GEMINI_API_KEY).
+- **A forma perfeita (o dono pediu, a casa executa):** a chave entra COMO DADO
+  DO USUÁRIO, pela própria casa (Configurações → Inteligência da casa): mora no
+  banco do servidor, NUNCA no código/git, volta mascarada (só o fim), testável
+  ("Testar agora"), removível — e a cadeia lê: chave salva (DB) → env →
+  próximos elos. Se a chave falhar ou estourar cota, a casa NÃO morre: cai pro
+  elo seguinte e confessa qual cérebro respondeu (o campo `model` do
+  TutorMessage já registra).
+- **Doutrina evoluída:** o congelado "teste de chaves IA" passa a ser — *chave
+  é dado do dono, entra via UI/DB; NADA de chave hard-coded, nada de chave no
+  git, nada de painel público de chaves.* O espírito anti-vazamento fica mais
+  forte, não mais fraco.
+- TTS segue no elo atual (voz do Gemini por API é outra rota — fora do escopo).
+- Modelos: a casa usa aliases vivos (`gemini-flash-latest`,
+  `gemini-flash-lite-latest`) que sobrevivem à troca de versão do Google; o dono
+  pode fixar outro modelo nas configurações se quiser.
