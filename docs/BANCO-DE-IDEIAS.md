@@ -224,3 +224,39 @@ eles. Se um dia um deles doer a falta, o dono chama pelo número.
 10/10/2026) — o núcleo v2 é console técnico em `/?v2` SEM porta de entrada.
 Toda ideia nova nasce no hub primeiro; o v2 acompanha quando o mecanismo é do
 núcleo (FSRS, pomodoro).
+
+## O gás do dono + Plano Google AI Plus (13/10/2026)
+
+O dono: *"Estou a fim de dar um gás e começar com tudo, e nada melhor do que
+pegar essa promoção e extrair o máximo dela em nosso site"* — Google AI Plus,
+**12 meses grátis** (depois R$24,99/mês): 400 GB, NotebookLM com Resumos em
+Áudio/Vídeo e Testes (até 200 páginas), Gemini Flash com limites 2x, Nano
+Banana, Flow, Gemini no Gmail.
+
+**A pergunta do dono: "posso assinar e cancelar para não ter perigo de renovar
+ou isso cancela o período gratuito?"** — **PODE cancelar.** Termos do Google
+One: *"If you cancel your subscription during the Offer Period, your membership
+will remain active until the end of the Offer Period."* A cobrança automática
+só ocorre se NÃO cancelar antes do fim. Cuidado honesto: ao perder os 400 GB,
+os arquivos existentes ficam, mas upload novo trava acima de 15 GB — os 400 GB
+não são arquivo definitivo de nada crítico.
+
+**Princípio (doutrina): a promoção mora FORA do código.** A casa não integra
+chave nem dado pessoal; ela dá LAR e DESTINO ao que a promoção produz:
+
+| Recurso da promoção | Uso de estudo real | Onde entra na casa |
+|---|---|---|
+| **NotebookLM** (200 págs · Áudio/Vídeo · Testes) | Dump de PDFs + caderno por matéria; Áudio Overview no ônibus (repasso do tempo morto); Testes = quiz do tópico | nº 9 Prova Branca (o quiz do NotebookLM é a matéria-prima) · nº 6 Kit de Véspera (confere com as fontes) |
+| **Gemini Flash** (limites 2x) | Foto do caderno → explicação; modo voz para explicar em voz alta (Feynman); volume diário | O tutor da casa já entrega o contexto; os limites 2x são para as semanas D-21/D-7/D-3 |
+| **400 GB** (Drive/Fotos) | Pipeline: foto do caderno no dia → pasta Drive da matéria → NotebookLM | nº 2 Mapa de Domínio (fonte real por tópico) |
+| **Gemini no Gmail** | Aviso de professor / prazo resumido | Radar de provas: lançar a DATA OFICIAL |
+| **Nano Banana** (imagens) | 1 diagrama por tópico difícil (memória visual) | Materiais: índice/link do diagrama |
+| **Flow Music** | Jingle mnemônico para listas que não grudam (P1–P14, fórmulas de ED) | Fecho: "criou jingle? registra no tópico" |
+| **Flow** (vídeo) | Baixo valor de estudo — ignorar por ora | — |
+
+**Regra de ouro:** os limites 2x são para o VOLUME das semanas de prova — não
+gastar com pergunta que o tutor da casa já responde.
+
+**Execução da fila (com o gás):** nº 1 Ciclo do Erro — em execução (Task
+213-b) → nº 9 Prova Branca (sobe de valor: o NotebookLM Testes alimenta) →
+nº 6 Kit de Véspera → nº 2 Mapa de Domínio.
