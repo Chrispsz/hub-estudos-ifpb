@@ -4,7 +4,10 @@
 // NENHUM SDK proprietário: roda igual em qualquer servidor/Vercel e usa as
 // MESMAS Environment Variables já configuradas no deploy (nada reconfigurar):
 //
-//  1º Google Gemini (se GEMINI_API_KEY)    — RECOMENDADO: key grátis no AI Studio
+//  1º Google Gemini (chave SALVA na casa — dado do dono no banco, Task 214,
+//     lida a CADA requisição via getEffectiveGeminiConfig(); sem chave salva,
+//     cai para a env GEMINI_API_KEY/GOOGLE_AI_API_KEY)
+//                                          — RECOMENDADO: key grátis no AI Studio
 //                                            (aistudio.google.com/app/apikey, sem cartão),
 //                                            tier grátis com VISÃO nativa + forte em matemática/LaTeX.
 //                                            Resolve texto E leitura de print na Vercel.
@@ -47,6 +50,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 import { db } from '@/lib/db';
+import { getEffectiveGeminiConfig } from '@/lib/ai-settings';
 import { buildCourseBaseContext, buildCourseBaseShort } from '@/lib/tutor-course-base';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
@@ -212,19 +216,18 @@ const MODEL_CHAIN: Record<'tutor' | 'flashcards' | 'feynman', string[]> = {
  * Google Gemini (AI Studio) — o provedor que resolve TUDO com 1 key grátis:
  * texto (matemática/LaTeX forte) + visão nativa (leitura de prints) — direto via
  * REST, sem SDK, roda perfeito na Vercel. Key grátis em aistudio.google.com.
+ *
+ * A CHAVE PERFEITA (Task 214): a chave NÃO mora mais aqui (nada de módulo
+ * estático lendo env no boot) — a leitura é POR REQUISIÇÃO, async, via
+ * getEffectiveGeminiConfig(): chave SALVA pelo dono no banco (dado do usuário,
+ * entrada pela UI) → env GEMINI_API_KEY/GOOGLE_AI_API_KEY → sem chave (cadeia
+ * segue pro próximo elo). Modelo: preferência salva → env GEMINI_MODEL →
+ * aliases "-latest" (acompanham a versão GA disponível para a key; versões
+ * fixas gemini-2.5-flash-lite/-flash retornam 404 para keys novas — aliases
+ * nunca. flash-lite primeiro: limite free mais generoso; flash é o plano B).
  */
 const GEMINI = {
-  get key() {
-    return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
-  },
   baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-  // ALIASES "-latest": acompanham sempre a versão GA disponível para a key.
-  // (26/09/2026) versões fixas gemini-2.5-flash-lite/-flash retornam 404
-  // "no longer available to new users" para keys novas — aliases nunca.
-  // flash-lite primeiro: limite free mais generoso; flash é o plano B.
-  models: process.env.GEMINI_MODEL
-    ? [process.env.GEMINI_MODEL]
-    : ['gemini-flash-lite-latest', 'gemini-flash-latest'],
 };
 
 /** Modelos free da OpenRouter que aceitam IMAGEM (catálogo verificado 09/2026). */
@@ -255,8 +258,13 @@ function prettyModelName(id: string): string {
 }
 
 /** Qual provedor responde a leitura de imagem NESTE deploy (para a UI ser honesta). */
-function visionProviderLabel(): string | null {
-  if (GEMINI.key) return 'Gemini (key grátis do AI Studio)';
+async function visionProviderLabel(): Promise<string | null> {
+  const geminiCfg = await getEffectiveGeminiConfig();
+  if (geminiCfg.key) {
+    return geminiCfg.source === 'db'
+      ? 'Gemini (chave salva na casa)'
+      : 'Gemini (key grátis do AI Studio)';
+  }
   if (process.env.OPENROUTER_API_KEY) return 'OpenRouter (modelos free de visão)';
   if (ZAI_PUBLIC.key) return `Z.ai (${process.env.ZAI_VISION_MODEL || 'glm-4.5v'})`;
   if (localSdkConfigured()) return 'Z.ai local (SDK do ambiente)';
@@ -911,10 +919,11 @@ async function transcribeImage(dataUrl: string, userNote: string): Promise<strin
   const instruction = buildTranscriptionInstruction(userNote);
   const errors: string[] = [];
 
-  // 1º — Gemini: 1 key grátis resolve visão + texto na Vercel
-  const gKey = GEMINI.key;
+  // 1º — Gemini: 1 key grátis resolve visão + texto na Vercel (salva na casa → env)
+  const geminiCfg = await getEffectiveGeminiConfig();
+  const gKey = geminiCfg.key;
   if (gKey) {
-    for (const model of GEMINI.models) {
+    for (const model of geminiCfg.model) {
       try {
         const out = await callGemini(
           model,
@@ -1087,7 +1096,7 @@ async function callZAIVision(
  * com latência e a mensagem de erro exata quando falha (key inválida, quota,
  * região bloqueada…). Custo desprezível no tier grátis.
  */
-type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string };
+type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string; source?: string };
 
 async function probeRun(
   ms: number,
@@ -1108,14 +1117,24 @@ async function probeRun(
   }
 }
 
+/** Rótulo humano da fonte da chave do Gemini (o probe confessa de onde ela veio). */
+function geminiSourceLabel(source: 'db' | 'env' | null): string {
+  if (source === 'db') return 'salva na casa';
+  if (source === 'env') return 'variável de ambiente';
+  return 'nenhuma';
+}
+
 async function probeProviders(geminiModelOverride?: string | null): Promise<Response> {
   const jobs: Record<string, Promise<ProbeResult>> = {};
 
   // — Gemini: generateContent com 10 tokens (mesmo modelo que atende as dúvidas)
-  if (GEMINI.key) {
-    const key = GEMINI.key;
+  //   A CHAVE PERFEITA: o probe testa a chave EFETIVA (salva no banco → env) e
+  //   confessa a fonte — "salva na casa" vs "variável de ambiente" vs "nenhuma".
+  const geminiCfg = await getEffectiveGeminiConfig();
+  if (geminiCfg.key) {
+    const key = geminiCfg.key;
     // ?probe=1&geminiModel=X testa um modelo específico — descobre o que a key aceita
-    const model = geminiModelOverride || GEMINI.models[0];
+    const model = geminiModelOverride || geminiCfg.model[0];
     jobs.gemini = (async () => {
       const r = await probeRun(15_000, async (signal) => {
         const res = await fetch(`${GEMINI.baseUrl}/models/${model}:generateContent`, {
@@ -1140,10 +1159,15 @@ async function probeProviders(geminiModelOverride?: string | null): Promise<Resp
           .trim();
         if (!text) throw new Error('resposta vazia (quota esgotada ou bloqueio?)');
       });
-      return { ok: !r.error, ms: r.ms, model: prettyModelName(model) || model, error: r.error };
+      return { ok: !r.error, ms: r.ms, model: prettyModelName(model) || model, error: r.error, source: geminiSourceLabel(geminiCfg.source) };
     })();
   } else {
-    jobs.gemini = Promise.resolve({ ok: false, ms: 0, error: 'sem GEMINI_API_KEY' });
+    jobs.gemini = Promise.resolve({
+      ok: false,
+      ms: 0,
+      error: 'nenhuma chave — a casa usa o elo seguinte (OpenRouter → Z.ai → SDK local)',
+      source: geminiSourceLabel(null),
+    });
   }
 
   // — OpenRouter: 1ª posição da cadeia do tutor
@@ -1214,6 +1238,7 @@ async function probeProviders(geminiModelOverride?: string | null): Promise<Resp
     probe: {
       at: new Date().toISOString(),
       firstToAnswer: first,
+      geminiKeySource: geminiSourceLabel(geminiCfg.source),
       gemini,
       openrouter,
       zai,
@@ -1226,20 +1251,23 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   // diagnóstico das chaves — Configurações → "Testar agora" (aceita &geminiModel=X p/ testar modelo específico)
   if (params.get('probe')) return probeProviders(params.get('geminiModel'));
-  const vision = visionProviderLabel();
+  const vision = await visionProviderLabel();
+  const geminiCfg = await getEffectiveGeminiConfig();
   return Response.json({
     provider: 'gemini → openrouter → z.ai público → sdk local (primeiro disponível)',
-    vision: vision ?? 'não configurada — adicione GEMINI_API_KEY (grátis) para ler prints',
+    vision: vision ?? 'não configurada — salve a key grátis do Gemini (aistudio.google.com) em Configurações → Inteligência da casa para ler prints',
     chains: {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
       flashcards: MODEL_CHAIN.flashcards.map((id) => ({ id, label: prettyModelName(id) })),
       vision: [
-        ...(GEMINI.key ? GEMINI.models.map((id) => ({ id, label: prettyModelName(id) })) : []),
+        ...(geminiCfg.key ? geminiCfg.model.map((id) => ({ id, label: prettyModelName(id) })) : []),
         ...VISION_CHAIN_OPENROUTER.map((id) => ({ id, label: prettyModelName(id) })),
       ],
     },
     providers: {
-      gemini: Boolean(GEMINI.key),
+      gemini: Boolean(geminiCfg.key),
+      // fonte da chave do Gemini: 'db' (salva na casa) | 'env' | null — a UI é honesta sobre quem atende
+      geminiSource: geminiCfg.source,
       openrouter: Boolean(process.env.OPENROUTER_API_KEY),
       zaiPublic: Boolean(process.env.ZAI_API_KEY),
       localSdk: localSdkConfigured(),
@@ -1301,6 +1329,10 @@ export async function POST(req: Request) {
     const isFeynmanMode = body.mode === 'feynman';
     const useStream = !isFlashcardsMode && !isFeynmanMode && body.stream === true;
 
+    // A CHAVE PERFEITA — lida UMA vez por requisição (cache em memória no lib):
+    // chave SALVA pelo dono (DB) → env → sem chave (a cadeia segue ao próximo elo).
+    const geminiCfg = await getEffectiveGeminiConfig();
+
     const imageDataUrl =
       typeof body.imageDataUrl === 'string' &&
       body.imageDataUrl.startsWith('data:image/') &&
@@ -1344,14 +1376,15 @@ export async function POST(req: Request) {
           );
         } else if (!question) {
           const visionReady = Boolean(
-            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key || localSdkConfigured(),
+            geminiCfg.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key || localSdkConfigured(),
           );
           return Response.json(
             {
               error: visionReady
                 ? 'Não consegui ler a imagem agora. Tente de novo ou digite sua dúvida em texto.'
-                : 'Leitura de imagem ainda não configurada neste deploy. Dono: adicione a key grátis do ' +
-                  'Gemini (aistudio.google.com/app/apikey) como GEMINI_API_KEY na Vercel — ou digite sua dúvida em texto.',
+                : 'Leitura de imagem ainda não configurada neste deploy. Dono: cole a key grátis do ' +
+                  'Gemini (aistudio.google.com/app/apikey) em Configurações → Inteligência da casa ' +
+                  '(ou defina GEMINI_API_KEY no deploy) — ou digite sua dúvida em texto.',
             },
             { status: 502 },
           );
@@ -1363,14 +1396,15 @@ export async function POST(req: Request) {
         );
         if (!question) {
           const visionReady = Boolean(
-            GEMINI.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key || localSdkConfigured(),
+            geminiCfg.key || process.env.OPENROUTER_API_KEY || ZAI_PUBLIC.key || localSdkConfigured(),
           );
           return Response.json(
             {
               error: visionReady
                 ? 'A leitura de imagem falhou agora. Tente de novo em instantes ou digite sua dúvida em texto.'
-                : 'Leitura de imagem ainda não configurada neste deploy. Dono: adicione a key grátis do ' +
-                  'Gemini (aistudio.google.com/app/apikey) como GEMINI_API_KEY na Vercel — ou digite sua dúvida em texto.',
+                : 'Leitura de imagem ainda não configurada neste deploy. Dono: cole a key grátis do ' +
+                  'Gemini (aistudio.google.com/app/apikey) em Configurações → Inteligência da casa ' +
+                  '(ou defina GEMINI_API_KEY no deploy) — ou digite sua dúvida em texto.',
             },
             { status: 502 },
           );
@@ -1456,7 +1490,7 @@ export async function POST(req: Request) {
     if (useStream) {
       const apiKeyStream = process.env.OPENROUTER_API_KEY;
       const zaiPubStream = ZAI_PUBLIC.key;
-      const hasAnyKeyStream = Boolean(GEMINI.key || apiKeyStream || zaiPubStream);
+      const hasAnyKeyStream = Boolean(geminiCfg.key || apiKeyStream || zaiPubStream);
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           const enc = new TextEncoder();
@@ -1476,10 +1510,10 @@ export async function POST(req: Request) {
           const deadline = Date.now() + 55_000;
 
           try {
-            // 0º: Gemini (key grátis do AI Studio — visão nativa + matemática forte)
-            const gKeyStream = GEMINI.key;
+            // 0º: Gemini (chave salva na casa → env; visão nativa + matemática forte)
+            const gKeyStream = geminiCfg.key;
             if (gKeyStream) {
-              for (const model of GEMINI.models) {
+              for (const model of geminiCfg.model) {
                 if (answer || Date.now() > deadline - 8_000) break;
                 const t0 = Date.now();
                 try {
@@ -1571,9 +1605,10 @@ export async function POST(req: Request) {
                 t: 'error',
                 message: hasAnyKeyStream
                   ? 'O tutor IA está temporariamente indisponível (nenhum provedor respondeu). Tente novamente em instantes.'
-                  : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
-                    '(key grátis em aistudio.google.com/app/apikey) nas variáveis de ambiente do deploy ' +
-                    '(Vercel ou servidor próprio) — em seguida o tutor funciona completo, incluindo leitura de prints.',
+                  : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: cole a key grátis do ' +
+                    'Gemini (aistudio.google.com/app/apikey) em Configurações → Inteligência da casa ' +
+                    '(ou defina GEMINI_API_KEY no deploy) — em seguida o tutor funciona completo, ' +
+                    'incluindo leitura de prints.',
               });
               return;
             }
@@ -1609,15 +1644,15 @@ export async function POST(req: Request) {
       return new Response(stream, { headers: SSE_HEADERS });
     }
 
-    const geminiKey = GEMINI.key;
+    const geminiKey = geminiCfg.key;
     const apiKey = process.env.OPENROUTER_API_KEY;
     const zaiPubKey = ZAI_PUBLIC.key;
     let answer = '';
     let usedModel = '';
 
-    // 0º: Google Gemini (key grátis do AI Studio — visão nativa + matemática forte)
+    // 0º: Google Gemini (chave salva na casa → env; visão nativa + matemática forte)
     if (geminiKey) {
-      for (const model of GEMINI.models) {
+      for (const model of geminiCfg.model) {
         const t0 = Date.now();
         try {
           answer = await callGemini(model, geminiKey, systemPrompt, history, effectiveQuestion);
@@ -1695,10 +1730,10 @@ export async function POST(req: Request) {
           error: withVision
             ? 'O tutor IA está sobrecarregado agora (muitas perguntas em pouco tempo). ' +
               'Aguarde ~1 minuto e tente de novo — volta rapidinho.'
-            : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: adicione GEMINI_API_KEY ' +
-              '(key grátis em aistudio.google.com/app/apikey) nas variáveis de ambiente do deploy ' +
-              '(Vercel ou servidor próprio) — em seguida o tutor ' +
-              'funciona completo, incluindo leitura de prints.',
+            : 'O tutor IA ainda não tem chave de IA neste deploy. Dono: cole a key grátis do ' +
+              'Gemini (aistudio.google.com/app/apikey) em Configurações → Inteligência da casa ' +
+              '(ou defina GEMINI_API_KEY no deploy) — em seguida o tutor funciona completo, ' +
+              'incluindo leitura de prints.',
         },
         { status: 502 },
       );

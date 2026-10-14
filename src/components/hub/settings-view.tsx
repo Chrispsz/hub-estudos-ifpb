@@ -7,7 +7,9 @@ import {
   AppWindow,
   BellRing,
   CircleCheck,
+  KeyRound,
   ShieldAlert,
+  ShieldCheck,
   DatabaseBackup,
   Download,
   ExternalLink,
@@ -590,7 +592,8 @@ export function SettingsView() {
 
       {/* Sobre — versão mínima */}
       <p className="pb-2 text-center text-[11px] text-muted-foreground/70">
-        Hub de Estudos IFPB v2.0 • dados 100% no seu navegador • IA via OpenRouter (modelos free)
+        Hub de Estudos IFPB v2.0 • dados 100% no seu navegador • IA: Gemini → OpenRouter → Z.ai →
+        elo local (primeiro disponível)
       </p>
     </div>
   );
@@ -659,6 +662,10 @@ function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
           <XCircle className="size-3 shrink-0 text-destructive" aria-hidden />
         )}
         <span className="font-medium">{label}</span>
+        {/* fonte da chave do Gemini — o probe confessa de onde ela veio (214-b) */}
+        {r.source ? (
+          <span className="shrink-0 text-violet-600 dark:text-violet-400">· {r.source}</span>
+        ) : null}
         {r.model ? <span className="truncate text-muted-foreground">· {r.model}</span> : null}
       </span>
       <span
@@ -674,7 +681,7 @@ function ProbeRow({ label, r }: { label: string; r?: ProbeResult }) {
   );
 }
 
-type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string };
+type ProbeResult = { ok: boolean; ms: number; model?: string; error?: string; source?: string };
 type VisionTestState =
   | { status: 'running' }
   | { status: 'ok'; model?: string; ms: number; transcription: string }
@@ -682,9 +689,20 @@ type VisionTestState =
 type ProbeState = {
   at: string;
   firstToAnswer: string;
+  geminiKeySource?: string;
   gemini: ProbeResult;
   openrouter: ProbeResult;
   zai: ProbeResult;
+};
+/** Status da chave perfeita — GET/POST/DELETE /api/settings/ai (a chave NUNCA vem inteira). */
+type AiSettingsStatus = {
+  hasKey: boolean;
+  masked: string | null;
+  source: 'db' | 'env' | null;
+  model: string[];
+  modelSaved: string | null;
+  modelSource: 'db' | 'env' | null;
+  aliases: string[];
 };
 
 function AiInfoCard() {
@@ -694,6 +712,7 @@ function AiInfoCard() {
   } | null>(null);
   const [providers, setProviders] = React.useState<{
     gemini?: boolean;
+    geminiSource?: 'db' | 'env' | null;
     openrouter?: boolean;
     zaiPublic?: boolean;
   } | null>(null);
@@ -705,7 +724,8 @@ function AiInfoCard() {
 
   const visionAtiva = Boolean(vision && !vision.startsWith('somente'));
 
-  React.useEffect(() => {
+  /** Info viva do tutor (provedores/visão) — ao abrir e após salvar/remover a chave. */
+  const loadTutorInfo = React.useCallback(() => {
     fetch('/api/tutor')
       .then((r) => r.json())
       .then((d) => {
@@ -715,6 +735,10 @@ function AiInfoCard() {
       })
       .catch(() => {});
   }, []);
+
+  React.useEffect(() => {
+    loadTutorInfo();
+  }, [loadTutorInfo]);
 
   /** Diagnóstico: ping real de cada chave (GET ?probe=1) — roda ao abrir e no botão. */
   const runProbe = React.useCallback(() => {
@@ -732,6 +756,12 @@ function AiInfoCard() {
   React.useEffect(() => {
     runProbe();
   }, [runProbe]);
+
+  /** Chave salva/removida na casa → a casa inteira se atualiza: badges, visão e probe. */
+  const refreshAfterKeyChange = React.useCallback(() => {
+    loadTutorInfo();
+    runProbe();
+  }, [loadTutorInfo, runProbe]);
 
   /** Teste real de visão: lê uma imagem escolhida pelo usuário pela MESMA cadeia do tutor. */
   const runVisionTest = React.useCallback((file: File) => {
@@ -817,6 +847,9 @@ function AiInfoCard() {
             >
               {providers.gemini ? <CircleCheck className="size-3" aria-hidden /> : null}
               Gemini {providers.gemini ? 'ativo' : 'inativo'}
+              {providers.gemini && providers.geminiSource === 'db'
+                ? ' · chave da casa'
+                : ''}
             </span>
             <span
               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
@@ -857,6 +890,12 @@ function AiInfoCard() {
             {vision ?? 'verificando…'}
           </p>
         )}
+
+        {/* A CHAVE PERFEITA (214-b): a chave do Gemini como DADO DO DONO — entra
+            aqui, mora no servidor, volta mascarada, é removível. Salvar/remover
+            atualiza badges + probe na hora (o tutor já lê a chave nova no
+            próximo call — nada de rede a mais por chamada, cache no servidor). */}
+        <HouseIntelligenceCard onStatusChange={refreshAfterKeyChange} />
 
         {providers && visionAtiva && (
           <div className="rounded-lg border p-3" aria-live="polite">
@@ -976,7 +1015,7 @@ function AiInfoCard() {
               >
                 aistudio.google.com/app/apikey <ExternalLink className="size-3" aria-hidden />
               </a>{' '}
-              → variável <code className="rounded bg-amber-500/15 px-1 font-mono text-[10px]">GEMINI_API_KEY</code>.
+              → cole no card <b>Inteligência da casa</b> acima (mora no servidor como dado do dono).
               Uma key só resolve texto <b>e</b> leitura de prints, com bom limite diário grátis.
             </p>
             <p className="mt-1 leading-relaxed">
@@ -1077,6 +1116,237 @@ function InstallAppCard() {
     </Card>
   );
 }
+/**
+ * A CHAVE PERFEITA (Task 214-b) — "Inteligência da casa":
+ * o dono cola a chave do Gemini AI Studio e ela vira DADO DO USUÁRIO — mora na
+ * tabela Setting do servidor, volta mascarada ("AIza…abcd"), é removível, e a
+ * cadeia do tutor passa a usá-la ANTES das variáveis de ambiente. Nada de
+ * chave no código, no git ou no log — o input é type=password e o servidor só
+ * devolve a máscara. `onStatusChange` liga este card ao "Testar agora" e aos
+ * badges: salvar/remover refresca a casa inteira.
+ */
+function HouseIntelligenceCard({ onStatusChange }: { onStatusChange: () => void }) {
+  const [status, setStatus] = React.useState<AiSettingsStatus | null>(null);
+  const [keyDraft, setKeyDraft] = React.useState('');
+  const [modelDraft, setModelDraft] = React.useState('');
+  const [busy, setBusy] = React.useState<'save' | 'remove' | null>(null);
+
+  React.useEffect(() => {
+    fetch('/api/settings/ai')
+      .then((r) => r.json())
+      .then((d: AiSettingsStatus) => {
+        if (typeof d?.hasKey !== 'boolean') return;
+        setStatus(d);
+        setModelDraft(d.modelSaved ?? '');
+      })
+      .catch(() => {});
+  }, []);
+
+  const hasSavedKey = status?.source === 'db';
+
+  /** Salva chave e/ou preferência de modelo (o servidor re-valida tudo). */
+  const save = async () => {
+    const key = keyDraft.trim();
+    const model = modelDraft.trim();
+    const modelChanged = model !== (status?.modelSaved ?? '');
+    if (!key && !modelChanged) {
+      toast.error('Cole sua chave do Gemini (AI Studio) para salvar.');
+      return;
+    }
+    // Validação frouxa no cliente (a prova real é o "Testar agora" no servidor):
+    if (key && !key.startsWith('AIza')) {
+      toast.error('A chave do Gemini começa com "AIza" — confira o que você colou.');
+      return;
+    }
+    if (key && key.length < 30) {
+      toast.error('A chave parece curta demais — confira se copiou inteira.');
+      return;
+    }
+    setBusy('save');
+    try {
+      const body: Record<string, string> = {};
+      if (key) body.key = key;
+      if (modelChanged) body.model = model; // '' = automático (limpa a preferência)
+      const res = await fetch('/api/settings/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = (await res.json()) as AiSettingsStatus & { error?: string };
+      if (!res.ok) {
+        toast.error(d?.error ?? 'Não foi possível salvar a chave.');
+        return;
+      }
+      setStatus(d);
+      setModelDraft(d.modelSaved ?? '');
+      setKeyDraft('');
+      toast.success(
+        body.key
+          ? 'Chave salva na casa — o tutor já usa no próximo call.'
+          : 'Preferência de modelo salva.',
+      );
+      onStatusChange();
+    } catch {
+      toast.error('Falha de rede ao salvar a chave.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Remove a chave salva — a casa volta para a env (ou para o elo local). */
+  const remove = async () => {
+    setBusy('remove');
+    try {
+      const res = await fetch('/api/settings/ai', { method: 'DELETE' });
+      const d = (await res.json()) as AiSettingsStatus & { error?: string };
+      if (!res.ok) {
+        toast.error(d?.error ?? 'Não foi possível remover a chave.');
+        return;
+      }
+      setStatus(d);
+      setModelDraft(d.modelSaved ?? '');
+      toast.success('Chave removida — a casa volta para a variável de ambiente (ou o elo local).');
+      onStatusChange();
+    } catch {
+      toast.error('Falha de rede ao remover a chave.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // STATUS HONESTO — a casa confessa quem está atendendo (nunca a chave inteira).
+  const statusLine = !status
+    ? null
+    : status.hasKey && status.source === 'db'
+      ? { tone: 'db' as const, text: `chave salva na casa (${status.masked ?? '—'})` }
+      : status.hasKey && status.source === 'env'
+        ? { tone: 'env' as const, text: 'usando variável de ambiente (GEMINI_API_KEY)' }
+        : { tone: 'none' as const, text: 'nenhuma chave — a casa usa o elo local' };
+
+  const modelLine = !status
+    ? null
+    : status.modelSource === 'db'
+      ? `Agora em uso: modelo fixado por você (${status.model[0]}).`
+      : status.modelSource === 'env'
+        ? `Agora em uso: modelo pela env (${status.model[0]}).`
+        : `Agora em uso: automático — aliases vivos (${status.model.join(' → ')}).`;
+
+  return (
+    <div className="rounded-lg border border-violet-500/30 p-3" data-testid="house-intelligence">
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-xs font-semibold">
+          <KeyRound className="size-3.5 text-violet-500" aria-hidden />
+          Inteligência da casa
+        </p>
+        {hasSavedKey && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1.5 px-2.5 text-[11px] focus-visible:ring-rose-500/60"
+            onClick={() => void remove()}
+            disabled={busy !== null}
+          >
+            <Trash2 className="size-3 text-destructive" aria-hidden />
+            {busy === 'remove' ? 'Removendo…' : 'Remover chave'}
+          </Button>
+        )}
+      </div>
+
+      <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+        Cole a chave que você criou no AI Studio — ela vira <b>dado do dono</b> no servidor da casa
+        e o tutor passa a usá-la antes das variáveis de ambiente. Se ela falhar ou estourar cota, o
+        resto da cadeia (OpenRouter → Z.ai → elo local) assume sem drama.
+      </p>
+
+      {/* STATUS HONESTO */}
+      <div
+        data-testid="ai-key-status"
+        aria-live="polite"
+        className={cn(
+          'mt-2 flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[11px] font-medium',
+          statusLine?.tone === 'db' &&
+            'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+          statusLine?.tone === 'env' &&
+            'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+          statusLine?.tone === 'none' && 'border-border bg-muted/40 text-muted-foreground',
+        )}
+      >
+        {statusLine?.tone === 'db' ? (
+          <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+        ) : statusLine?.tone === 'env' ? (
+          <CircleCheck className="size-3.5 shrink-0" aria-hidden />
+        ) : (
+          <KeyRound className="size-3.5 shrink-0" aria-hidden />
+        )}
+        <span className="min-w-0 flex-1 break-words">
+          {statusLine?.text ?? 'consultando o servidor da casa…'}
+        </span>
+      </div>
+
+      {/* ENTRADA DA CHAVE + PREFERÊNCIA DE MODELO */}
+      <div className="mt-2 space-y-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            type="password"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="cole sua chave do Gemini (AI Studio)"
+            className="h-11 flex-1 font-mono text-xs sm:h-9"
+            aria-label="Chave da API do Google Gemini (AI Studio) — só fica no servidor da casa"
+            value={keyDraft}
+            onChange={(e) => setKeyDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void save();
+            }}
+          />
+          <Button
+            size="sm"
+            className="h-11 shrink-0 bg-violet-600 px-3 text-white hover:bg-violet-700 focus-visible:ring-violet-500/60 sm:h-9"
+            onClick={() => void save()}
+            disabled={busy !== null}
+          >
+            {busy === 'save' ? (
+              <RefreshCw className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <ShieldCheck className="size-3.5" aria-hidden />
+            )}
+            {busy === 'save' ? 'Salvando…' : 'Salvar'}
+          </Button>
+        </div>
+        <Input
+          placeholder="gemini-flash-latest (vazio = automático)"
+          autoCorrect="off"
+          spellCheck={false}
+          className="h-11 font-mono text-xs sm:h-9"
+          aria-label="Preferência de modelo do Gemini — opcional, vazio usa os aliases automáticos"
+          value={modelDraft}
+          onChange={(e) => setModelDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void save();
+          }}
+        />
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Aliases sugeridos (sobrevivem à troca de versão do Google):{' '}
+          <code className="rounded bg-muted px-1 font-mono text-[10px]">
+            gemini-flash-lite-latest
+          </code>{' '}
+          ·{' '}
+          <code className="rounded bg-muted px-1 font-mono text-[10px]">gemini-flash-latest</code>
+          {modelLine ? ` — ${modelLine}` : ''}
+        </p>
+      </div>
+
+      {/* DOUTRINA VISÍVEL */}
+      <p className="mt-2 flex items-start gap-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+        <ShieldCheck className="mt-0.5 size-3 shrink-0" aria-hidden />
+        a chave mora no servidor da casa como dado do usuário — nunca vai para o código nem para o
+        git.
+      </p>
+    </div>
+  );
+}
+
 /** Switch do Modo Foco — hook próprio isola re-render do card inteiro. */
 function FocusModeSwitch() {
   const [focusMode, setFocusMode] = useFocusMode();

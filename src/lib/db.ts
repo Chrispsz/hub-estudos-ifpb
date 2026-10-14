@@ -22,6 +22,13 @@ CREATE TABLE IF NOT EXISTS "TutorMessage" (
 );
 CREATE INDEX IF NOT EXISTS "TutorMessage_discipline_createdAt_idx"
   ON "TutorMessage"("discipline", "createdAt");
+CREATE TABLE IF NOT EXISTS "Setting" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "key" TEXT NOT NULL,
+  "value" TEXT NOT NULL,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "Setting_key_key" ON "Setting"("key");
 `;
 
 /** Construção + bootstrap acontecem na 1ª query real (preguiçoso). */

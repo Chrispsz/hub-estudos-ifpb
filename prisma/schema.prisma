@@ -13,6 +13,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Configurações da casa — DADO DO DONO no servidor (nunca código).
+// 1ª moradora: a chave do Gemini ("a chave perfeita", Task 214) — entra pela
+// UI (Configurações → Inteligência da casa), mora aqui, volta mascarada e é
+// removível. Nada de chave hard-coded ou no git.
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // Memória do Tutor IA — conversas salvas por disciplina (leve: podadas em 40/disciplina)
 // Nota Fase 1: models de template (User/Post) removidos — nunca foram usados.
 model TutorMessage {
