@@ -17,6 +17,11 @@
 //   2. REVISÃO — o ciclo espaçado 1·3·7·14·30 semeado ao concluir (o antigo
 //      volta ao dia quando a memória dele começa a desbotar);
 //   3. PRÁTICA — cartões vencidos (recall ativo, o teste que fixa);
+//   3b. CICLO DO ERRO (pauta nº 1) — o erro registrado no Code Review vira
+//      tarefa de revisão no tópico que o gerou ("a prova nasce dos seus
+//      erros"): depois dos cartões FSRS vencidos, antes dos materiais novos;
+//      com prova D-7/D-3 o erro sobe (a régua de prova manda aqui também);
+//      o item sai sozinho quando o Code Review o domina (2 acertos de cabeça).
 //   4. ATRASADO — material da disciplina que você anda seguindo, sem concluir;
 //   5. PRÓXIMO — a prática/leitura mais recente de cada disciplina na régua
 //      da curadoria (o acervo-esparso aquece no fim — a fila nunca fica vazia).
@@ -42,7 +47,31 @@ import {
 } from './material-curation';
 import { examPressureFor, examPressureWhy } from './exam-radar';
 
-export type PlanKind = 'continuar' | 'revisao' | 'pratica' | 'atrasado' | 'proximo';
+export type PlanKind = 'continuar' | 'revisao' | 'pratica' | 'erro' | 'atrasado' | 'proximo';
+
+/**
+ * CICLO DO ERRO (pauta nº 1, Task 213-b) — um erro do Code Review (núcleo v2)
+ * pronto para virar tarefa da fila. O CHAMADOR entrega a lista honesta (o hook
+ * da casa lê o núcleo e já devolve dedupe por unidade — o erro reincidente
+ * ATUALIZA a tarefa em vez de criar outra — e sem os dominados). Esta lib
+ * continua pura: não conhece IndexedDB, só o resultado.
+ */
+export interface ErrorReviewTask {
+  /** Identidade do erro (o attempt que o registrou — trace/dedupe). */
+  attemptId: string;
+  /** A unidade de prática que o gerou (o destino do re-teste). */
+  unitId: string;
+  /** Código da disciplina que o gerou — a régua de prova vale aqui também. */
+  disciplineCode: string;
+  /** O tópico que o gerou (rótulo do PPC), quando o núcleo conhece. */
+  topicName?: string;
+  /** O porquê real — 1 frase gravada no ato do erro. */
+  reason: string;
+  /** conceito | deslize | tempo — a categoria honesta do ato. */
+  category: string;
+  /** Quando o erro foi registrado (epoch ms) — a recência desempata. */
+  at: number;
+}
 
 export interface PlanBlock {
   /** Estável por construção — o dashboard usa como key e data-t de teste. */
@@ -57,6 +86,9 @@ export interface PlanBlock {
   minutes: number;
   /** A prova que pesou neste bloco (D-N para o selo da fila — Task 27). */
   exam?: { name: string; daysLeft: number };
+  /** CICLO DO ERRO — a unidade de prática do Code Review que gerou o bloco
+   *  (o clique abre o re-teste da questão exata no Praticar). */
+  errorUnitId?: string;
 }
 
 export interface DayPlan {
@@ -75,7 +107,12 @@ function daysAgo(iso: string, nowMs: number): number {
 export function buildDayPlan(
   sp: StudyProgress,
   now: Date,
-  opts?: { pageOf?: (materialId: string) => number | null; maxBlocks?: number },
+  opts?: {
+    pageOf?: (materialId: string) => number | null;
+    maxBlocks?: number;
+    /** CICLO DO ERRO — os erros abertos do Code Review, prontos pelo hook da casa. */
+    errorReviews?: ErrorReviewTask[];
+  },
 ): DayPlan {
   const maxBlocks = opts?.maxBlocks ?? 6;
   const nowMs = now.getTime();
@@ -106,13 +143,56 @@ export function buildDayPlan(
 
   const push = (b: Omit<PlanBlock, 'id'>) => {
     if (blocks.length >= maxBlocks) return false;
-    const id = `${b.kind}:${b.materialId ?? 'geral'}`;
+    const id = `${b.kind}:${b.materialId ?? b.errorUnitId ?? 'geral'}`;
     if (usedIds.has(id)) return false;
     if (b.materialId && usedMaterials.has(b.materialId)) return false;
     usedIds.add(id);
     if (b.materialId) usedMaterials.add(b.materialId);
     blocks.push({ ...b, id });
     return true;
+  };
+
+  // ----- CICLO DO ERRO (pauta nº 1, Task 213-b — "a prova nasce dos seus
+  //    erros"): o erro registrado no Code Review vira tarefa de revisão NO
+  //    TÓPICO QUE O GEROU, com o porquê citando o erro real ("seu erro em
+  //    …: \"…\""). DEDUPE estrutural: o id do bloco É a unidade do erro — o
+  //    mesmo erro nunca entra 2x, e o reincidente chega do hook já atualizado
+  //    (o registro mais recente vence). CICLO FECHA: quando o Code Review
+  //    domina o erro (2 acertos de cabeça), ele nem chega aqui — a fila o
+  //    esquece sozinha. A RÉGUA DE PROVA VALE (Task 27): prova D-7/D-3 sobe o
+  //    erro para ANTES da prática; D-21 só acende (selo + porquê). Teto
+  //    honesto: 2 erros/dia, compartilhado pelas duas injeções.
+  const errorTasks = [...(opts?.errorReviews ?? [])].sort((a, b) => {
+    const ba = boostOf(a.disciplineCode);
+    const bb = boostOf(b.disciplineCode);
+    if (ba !== bb) return bb - ba;
+    return b.at - a.at;
+  });
+  const discShort = (code: string): string =>
+    disciplines.find((d) => d.code === code)?.shortName ?? code;
+  const errorBlockOf = (t: ErrorReviewTask): Omit<PlanBlock, 'id'> => {
+    const press = pressureOf(t.disciplineCode);
+    const examWhy = examPressureWhy(t.disciplineCode, now);
+    // o rótulo do PPC vem com prefixo "Unidade N:" — o porquê fala humano
+    const where =
+      t.topicName?.replace(/^Unidade\s*\d+\s*:\s*/, '') || discShort(t.disciplineCode);
+    return {
+      kind: 'erro',
+      errorUnitId: t.unitId,
+      disciplineCode: t.disciplineCode,
+      title: t.topicName ?? `Erro de ${discShort(t.disciplineCode)}`,
+      why: [`seu erro em ${where}: “${t.reason}”`, examWhy].filter(Boolean).join(' · '),
+      minutes: 15,
+      exam: press && press.daysLeft <= 7 ? press : undefined,
+    };
+  };
+  let errorsAdded = 0;
+  const tryAddErrors = (onlyWithExamPressure: boolean): void => {
+    for (const t of errorTasks) {
+      if (errorsAdded >= 2 || blocks.length >= maxBlocks) return;
+      if (onlyWithExamPressure && boostOf(t.disciplineCode) < 2) continue;
+      if (push(errorBlockOf(t))) errorsAdded += 1;
+    }
   };
 
   const focusMin = Math.max(15, sp.preferences?.pomodoroConfig?.focus ?? 25);
@@ -216,6 +296,11 @@ export function buildDayPlan(
     }
   }
 
+  // CICLO DO ERRO — 1ª injeção (prova pesando, D-7/D-3): o erro do tópico
+  //    cobrado sobe para a frente — depois das revisões, antes até dos
+  //    cartões vencidos ("D-7 pesa, D-3 manda").
+  tryAddErrors(true);
+
   // 3) PRÁTICA — recall ativo dos cartões vencidos (o mesmo princípio da
   //    recomendação única: dez minutos de teste valem mais que uma hora lendo).
   {
@@ -233,6 +318,12 @@ export function buildDayPlan(
       });
     }
   }
+
+  // CICLO DO ERRO — 2ª injeção (posição padrão, sem prova pesando): depois
+  //    dos cartões FSRS vencidos, antes dos materiais novos. Os pressurizados
+  //    já entraram (o push dedupe pelo id da unidade — nada se repete); este
+  //    é o resto da fila de erros do dia.
+  tryAddErrors(false);
 
   // ----- as disciplinas que você anda seguindo (recentes + foco dos últimos
   //      14 dias) — a MESMA ordem serve para atrasados e para os próximos -----
@@ -360,6 +451,7 @@ export const PLAN_KIND_LABEL: Record<PlanKind, string> = {
   continuar: 'Continuar',
   revisao: 'Revisão',
   pratica: 'Prática',
+  erro: 'Reestudar',
   atrasado: 'Atrasado',
   proximo: 'Próximo',
 };

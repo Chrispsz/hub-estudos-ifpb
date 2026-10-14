@@ -22,6 +22,7 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
+  CircleAlert,
   History,
   ListChecks,
   PenLine,
@@ -47,6 +48,7 @@ import {
 } from '@/lib/session-harmony';
 import type { StudyProgressHook } from '@/lib/study-progress';
 import { PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
+import { useErrorReviewTasks } from '@/lib/error-review-feed';
 import { Switch } from '@/components/ui/switch';
 import { openPractice } from '@/lib/hub-events';
 import { todayDateKey } from '@/lib/today-focus';
@@ -81,6 +83,11 @@ const KIND_META: Record<PlanKind | 'fecho', { icon: LucideIcon; bg: string; text
     icon: ListChecks,
     bg: 'bg-violet-500/10',
     text: 'text-violet-700 dark:text-violet-400',
+  },
+  erro: {
+    icon: CircleAlert,
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-700 dark:text-orange-400',
   },
   atrasado: {
     icon: AlarmClock,
@@ -298,6 +305,9 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
   const sp = useStudyProgress();
   // O AGORA do card — tick de 30s basta (a barra vive do registro, não do segundo).
   const now = useNow(30_000);
+  // CICLO DO ERRO (pauta nº 1): a MESMA ponte do plano — os erros do Code
+  // Review entram na fila da sessão, o dominado sai sozinho.
+  const errorReviews = useErrorReviewTasks();
 
   // A página de retomada REAL (memória do leitor, hub:pdf-pos) — a mesma
   // injeção do dashboard: a lib continua pura, a casa entrega o valor pronto.
@@ -307,8 +317,8 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
   }, []);
 
   const harmony = React.useMemo(
-    () => (now ? buildSessionHarmony(sp.progress, now, { pageOf }) : null),
-    [sp.progress, now, pageOf],
+    () => (now ? buildSessionHarmony(sp.progress, now, { pageOf, errorReviews }) : null),
+    [sp.progress, now, pageOf, errorReviews],
   );
 
   // O FECHO INTERATIVO: o painel abre por vontade própria (1º clique) — e
@@ -534,7 +544,7 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                     }}
                     data-t={`sessao-${b.id}`}
                     data-testid={`plano-bloco-${b.kind}`}
-                    aria-label={`${PLAN_KIND_LABEL[b.kind as PlanKind] ?? 'Fecho'}: ${b.title} — ${b.done ? (b.doneWhy ?? 'concluído') : b.why} (≈${fmtH(b.minutes)})${!isFecho && !b.done ? '. Clique para abrir com o tutor ao lado' : isFecho ? '. Clique para abrir o painel do fecho' : ''}`}
+                    aria-label={`${PLAN_KIND_LABEL[b.kind as PlanKind] ?? 'Fecho'}: ${b.title} — ${b.done ? (b.doneWhy ?? 'concluído') : b.why} (≈${fmtH(b.minutes)})${!isFecho && !b.done ? (b.kind === 'erro' ? '. Clique para abrir o re-teste da questão no Praticar' : '. Clique para abrir com o tutor ao lado') : isFecho ? '. Clique para abrir o painel do fecho' : ''}`}
                     aria-expanded={isFecho ? fechoExpanded : undefined}
                     className={cn(
                       'group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',

@@ -7,6 +7,7 @@
 import * as React from 'react';
 import { GitBranch, Repeat2 } from 'lucide-react';
 import type { Attempt, ErrorCategory, PracticeUnit } from '@/lib/v2/domain';
+import { errorStatusFor } from '@/lib/v2/error-review';
 import { useAttempts, useSubjects, useTopics, useUnits } from '@/lib/v2/use-v2';
 import { Btn, Chip, Empty, PageHead, Stat } from './ui';
 import { UnitPractice } from './unit-practice';
@@ -44,29 +45,20 @@ export function TabCodeReview() {
   const unitById = React.useMemo(() => new Map(units.map((u) => [u.id, u])), [units]);
 
   const rows = React.useMemo<ErrorRow[]>(() => {
-    // todas as tentativas por unidade (ordenadas) para derivar status honesto
-    const byUnit = new Map<string, Attempt[]>();
-    for (const a of [...attempts].sort((x, y) => x.at - y.at)) {
-      const arr = byUnit.get(a.unitId) ?? [];
-      arr.push(a);
-      byUnit.set(a.unitId, arr);
-    }
+    // o status honesto vem do derivador do núcleo (error-review.ts) — a MESMA
+    // régua que a fila da casa usa no Ciclo do Erro (pauta nº 1): um critério
+    // só, dois lugares (o log e a fila nunca discordam).
     const out: ErrorRow[] = [];
     for (const a of attempts) {
       if (a.result !== 'wrong' || !a.error) continue;
       const unit = unitById.get(a.unitId);
       if (!unit) continue;
-      const hist = byUnit.get(a.unitId) ?? [];
-      const after = hist.filter((x) => x.at > a.at && x.result !== 'skipped');
-      const lastTwoCorrect =
-        after.length >= 2 && after.slice(-2).every((x) => x.result === 'correct' && x.noLookup);
-      const lastCorrect = after.at(-1)?.result === 'correct';
       const subShort = subjects.find((s) => s.id === unit.subjectId)?.shortName ?? unit.subjectId;
       const topicName = topics.find((t) => t.id === unit.topicId)?.name ?? 'tópico solto';
       out.push({
         attempt: a,
         unit,
-        status: lastTwoCorrect ? 'dominado' : lastCorrect ? 're-testado' : 'aberto',
+        status: errorStatusFor(a, attempts),
         subjectShort: subShort,
         topicName,
       });

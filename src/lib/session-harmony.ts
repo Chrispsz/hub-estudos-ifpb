@@ -35,7 +35,7 @@ import {
   type StudyProgress,
 } from './study-progress';
 import { mistakeCardSeedsFor } from './mistake-notebook';
-import { buildDayPlan, type PlanBlock, type PlanKind } from './study-plan';
+import { buildDayPlan, type ErrorReviewTask, type PlanBlock, type PlanKind } from './study-plan';
 import { todayDateKey } from './today-focus';
 
 // ---------- Tipos públicos ----------
@@ -400,7 +400,11 @@ function completedToday(materialId: string, sp: StudyProgress, nowMs: number): b
 export function buildSessionHarmony(
   sp: StudyProgress,
   now: Date,
-  opts?: { pageOf?: (materialId: string) => number | null },
+  opts?: {
+    pageOf?: (materialId: string) => number | null;
+    /** CICLO DO ERRO — os erros abertos do Code Review (a mesma ponte do plano). */
+    errorReviews?: ErrorReviewTask[];
+  },
 ): SessionHarmony {
   const dateKey = todayDateKey(now);
   const nowMs = now.getTime();
@@ -439,8 +443,13 @@ export function buildSessionHarmony(
   const state: SessionState =
     remaining <= 0 ? 'cumprida' : focusToday === 0 ? (remaining < MICRO_THRESHOLD ? 'micro' : 'pronta') : 'em-andamento';
 
-  // ----- a fila da casa (o Plano de hoje, a MESMA inteligência) -----
-  const plan = buildDayPlan(sp, now, { pageOf: opts?.pageOf, maxBlocks: 8 });
+  // ----- a fila da casa (o Plano de hoje, a MESMA inteligência — inclusive
+  //      o Ciclo do Erro: os erros do Code Review entram aqui também) -----
+  const plan = buildDayPlan(sp, now, {
+    pageOf: opts?.pageOf,
+    maxBlocks: 8,
+    errorReviews: opts?.errorReviews,
+  });
 
   const toHarmony = (b: PlanBlock, patch?: Partial<HarmonyBlock>): HarmonyBlock => {
     const doneByFocus = (minByMaterial.get(b.materialId ?? '') ?? 0) > 0;

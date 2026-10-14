@@ -21,6 +21,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronRight,
+  CircleAlert,
   History,
   ListChecks,
   PenLine,
@@ -47,6 +48,7 @@ import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/tod
 import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
 import { suggestBudgetFromHistory, syncPomodoroToBudget } from '@/lib/session-harmony';
 import { useStudyProgress } from '@/lib/study-progress';
+import { useErrorReviewTasks } from '@/lib/error-review-feed';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
 import { recallPdfPage } from '@/lib/pdf-position';
@@ -75,6 +77,11 @@ const PLAN_KIND_META: Record<PlanKind, { icon: LucideIcon; bg: string; text: str
     icon: ListChecks,
     bg: 'bg-violet-500/10',
     text: 'text-violet-700 dark:text-violet-400',
+  },
+  erro: {
+    icon: CircleAlert,
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-700 dark:text-orange-400',
   },
   atrasado: {
     icon: AlarmClock,
@@ -151,12 +158,18 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
 
   // FRENTE 13 — O PLANO DE HOJE: o cronograma que se monta sozinho do uso
   // diário (retomada + ciclo 1·3·7·14·30 dos concluídos + cartões vencidos
-  // + atrasados + próximos da fila). Recomputado pós-mount (mesmo `agora`
-  // do retrato — SSR e 1º render dividem o neutro) e a cada write do
-  // progresso (a checklist tiqueada no leitor muda o porquê aqui na hora).
+  // + CICLO DO ERRO + atrasados + próximos da fila). Recomputado pós-mount
+  // (mesmo `agora` do retrato — SSR e 1º render dividem o neutro), a cada
+  // write do progresso (a checklist tiqueada no leitor muda o porquê aqui na
+  // hora) e a cada write do Code Review (o erro registrado entra na fila;
+  // o dominado sai — a ponte é viva, useLiveQuery).
+  const errorReviews = useErrorReviewTasks();
   const plan = React.useMemo(
-    () => (agora ? buildDayPlan(sp.progress, agora, { pageOf: resumePageOf }) : null),
-    [sp.progress, agora],
+    () =>
+      agora
+        ? buildDayPlan(sp.progress, agora, { pageOf: resumePageOf, errorReviews })
+        : null,
+    [sp.progress, agora, errorReviews],
   );
 
   const nextExam = snap?.nextExam ?? null;
@@ -305,13 +318,33 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     [focusApi, onStartStudy],
   );
 
-  // FRENTE 13 + TASK 30 — o gesto de um bloco: plano cru (PlanBlock) e bloco
-  // da sessão (HarmonyBlock) compartilham a forma essencial — o MESMO clique
-  // abre os dois (material → openMaterialFocused; prática → flashcards).
+  // FRENTE 13 + TASK 30 + CICLO DO ERRO (pauta nº 1) — o gesto de um bloco:
+  // plano cru (PlanBlock) e bloco da sessão (HarmonyBlock) compartilham a
+  // forma essencial — o MESMO clique abre os dois (material →
+  // openMaterialFocused; prática → flashcards; ERRO → o re-teste da questão
+  // exata no Praticar, via a unidade do Code Review que o gerou).
   const openPlanBlock = React.useCallback(
-    (b: { kind: string; materialId?: string; disciplineCode?: string }) => {
+    (b: {
+      kind: string;
+      materialId?: string;
+      disciplineCode?: string;
+      errorUnitId?: string;
+    }) => {
       if (b.kind === 'pratica') {
         openPractice({ mode: 'flashcards' });
+        return;
+      }
+      if (b.kind === 'erro') {
+        // a unidade do núcleo nasce do acervo (`unit:${exerciseId}`) — o
+        // re-teste abre a questão EXATA que gerou o erro (filtro idêntico ao
+        // apoio do dia); unidade sem exercício na casa abre a disciplina.
+        const exerciseId = b.errorUnitId?.startsWith('unit:')
+          ? b.errorUnitId.slice('unit:'.length)
+          : undefined;
+        openPractice({
+          disciplineCode: b.disciplineCode,
+          ...(exerciseId ? { exerciseIds: [exerciseId] } : {}),
+        });
         return;
       }
       if (!b.materialId) return;
@@ -713,7 +746,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           <p className="mt-0.5 text-sm text-muted-foreground">
             {sp.progress.preferences?.includeReviews === false
               ? 'Só conteúdo novo, prática e prova — revisão espaçada desligada por você.'
-              : 'Recentes da aula primeiro, prova marcada pesa, revisão espaçada no meio — some da lista conforme você conclui.'}
+              : 'Recentes da aula primeiro, prova marcada pesa, seus erros registrados viram revisão — some da lista conforme você conclui.'}
           </p>
           <ul className="mt-2">
             {plan.blocks.map((b) => {
@@ -726,7 +759,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                     onClick={() => openPlanBlock(b)}
                     data-t={`plano-${b.id}`}
                     data-testid={`plano-bloco-${b.kind}`}
-                    aria-label={`${PLAN_KIND_LABEL[b.kind]}: ${b.title} — ${b.why} (≈${fmtH(b.minutes / 60)}). Clique para abrir com o tutor ao lado`}
+                    aria-label={`${PLAN_KIND_LABEL[b.kind]}: ${b.title} — ${b.why} (≈${fmtH(b.minutes / 60)}). ${b.kind === 'erro' ? 'Clique para abrir o re-teste da questão no Praticar' : 'Clique para abrir com o tutor ao lado'}`}
                     className="group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span
