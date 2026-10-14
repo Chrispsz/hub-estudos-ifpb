@@ -290,3 +290,4 @@ Google, 13/10/2026):
 - Modelos: a casa usa aliases vivos (`gemini-flash-latest`,
   `gemini-flash-lite-latest`) que sobrevivem à troca de versão do Google; o dono
   pode fixar outro modelo nas configurações se quiser.
+- ✅ FEITA (Task 214-b, commit 9f15c03): card Inteligência da casa no hub, Setting no Prisma, cadeia lê DB → env, probe informa a fonte.
