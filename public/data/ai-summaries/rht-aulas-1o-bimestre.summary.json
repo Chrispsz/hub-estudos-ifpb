@@ -1,0 +1,97 @@
+{
+  "titulo": "Aulas 1º bimestre — O trabalho no Brasil e RT contemporâneo (112 slides)",
+  "disciplina": "Relações Humanas no Trabalho",
+  "tipo": "slides",
+  "tempo_estudo_minutos": 60,
+  "resumo_geral": "Deck completo das aulas do 1º bimestre da Profa. Marília (RHT). Parte 1: apresentação da disciplina (PPC, ementa, objetivos, metodologia e bibliografia). Parte 2 — o miolo: O trabalho no Brasil — diferença entre relação de trabalho (gênero) e relação de emprego (espécie), as 7 características cumulativas da relação de emprego, sujeitos (empregado art. 3º e empregador art. 2º da CLT, com poder diretivo), a legislação (CF/88 arts. 7º a 11 — rol extenso de direitos — e CLT Decreto-lei 5.452/1943). Parte 3: RT no Brasil contemporâneo — resilição bilateral (art. 484-A), contrato intermitente (arts. 443 §3º e 452-A), telettrabalho (arts. 75A-E), uberização (dados IBGE 2025, jurisprudência da Uber, ADI 5826 suspensa no STF), redução à condição análoga à de escravo (art. 149 CP, GEFM, Lista Suja, IPE), racismo institucional (Djamila Ribeiro e Cida Bento) e assédio no ambiente de trabalho (Convenção 190 OIT, bullying Lei 14.811/2024, NUCA do IFPB). A Profa. Marília anunciou (13/10) atividade avaliativa ESCRITA cobrindo este conteúdo — este deck é a prova da prova.",
+  "conceitos_chave": [
+    {
+      "conceito": "Relação de trabalho × Relação de emprego",
+      "explicacao": "Relação de trabalho é gênero (toda forma de labor humano); relação de emprego é espécie (empregados urbanos, rurais, domésticos). Autônomo, voluntário e estagiário são relação de trabalho, NÃO de emprego.",
+      "exemplo": "O pedreiro contratado por obra específica pode ser trabalhador autônomo; o motorista de app pode ser reconhecido como empregado pelo TRT (Junho/2025)."
+    },
+    {
+      "conceito": "7 características cumulativas da relação de emprego",
+      "explicacao": "Bilateralidade, consensualidade, pessoalidade (intuitu personae), onerosidade, não assunção dos riscos patronais, duração não eventual (continuidade) e subordinação. É o teste jurídico para reconhecer vínculo.",
+      "exemplo": "O motorista da Uber laborava quase diariamente, não se substituía e era remunerado por corrida — logo, vínculo empregatício se forma (TRT-4, 2023.5.04.0411)."
+    },
+    {
+      "conceito": "Empregador e poder diretivo (art. 2º CLT)",
+      "explicacao": "Empresa, individual ou coletiva, que assume os riscos da atividade econômica, admite, assalaria e dirige a prestação pessoal de serviço. Poder diretivo = organização (RIT), fiscalização e disciplina (advertência, suspensão, justa causa).",
+      "exemplo": "O regulamento interno do trabalho é exercício do poder de organização do empregador."
+    },
+    {
+      "conceito": "Resilição bilateral (art. 484-A CLT)",
+      "explicacao": "Rescisão por acordo (Lei 13.467/2017): aviso prévio indenizado e FGTS 40% por METADE; demais verbas por INTEGRALIDADE; saque do FGTS limitado a 80%; NÃO dá direito ao seguro-desemprego.",
+      "exemplo": "Maria e o buffet acordam a saída: metade do aviso e da multa 40%, resto integral — e sem seguro-desemprego."
+    },
+    {
+      "conceito": "Contrato intermitente (arts. 443 §3º e 452-A CLT)",
+      "explicacao": "Alternância de períodos de prestação e inatividade, POR ESCRITO (segurança jurídica), convocação com 3 dias de antecedência, resposta em 1 dia útil; isonomia salarial com o efetivo da mesma função; direitos: remuneração, férias +1/3, 13º, RSR, adicionais, FGTS/INSS; pagamento ao fim de cada período.",
+      "exemplo": "Garçonete de eventos convocada para casamentos; mês sem convocação não gera remuneração, e a multa por não comparecer à convocação aceita é legal (caso prático da Profa.)."
+    },
+    {
+      "conceito": "Telettrabalho (arts. 75A-E CLT)",
+      "explicacao": "Trabalho FORA das dependências do empregador COM tecnologia de informação e comunicação; contrato expresso (art. 75-C); mudança de regime exige aditivo contratual (75-C §§1º e 2º); alcança estagiários/aprendizes (2022).",
+      "exemplo": "O analista que trabalha de casa em regime híbrido tem regime formalizado por aditivo no contrato."
+    },
+    {
+      "conceito": "Uberização e precarização",
+      "explicacao": "Lógica flexível via plataformas digitais (Uber 2010/Brasil 2014); 1,7 mi de trabalhadores em 2024 (IBGE), renda média R$ 15,40/h (8,3% abaixo), jornada 44,8h semanais (+5,5h), só 35,9% contribuem para a previdência; sem vínculo = sem as responsabilidades de empregador. STF (ADI 5826/Tema 1.291) suspendeu análise após a Convenção 193 da OIT (12/6/2026).",
+      "exemplo": "Conectar os % do IBGE com o documentário GIG e a jurisprudência do TRT-4 (vínculo reconhecido)."
+    },
+    {
+      "conceito": "Trabalho análogo à escravidão (art. 149 CP)",
+      "explicacao": "Trabalhos forçados, jornada exaustiva, condições degradantes, restrição de locomoção por dívida. Escravidão moderna vs antiga: propriedade legal proibida, mão-de-obra descartável e lucros altos. Fiscalização: GEFM (desde 1995, 66 mil resgates), Lista Suja (155 nomes, atualização semestral), Sistema IPE (denúncias sigilosas).",
+      "exemplo": "Caso Bento Gonçalves (2023): 150 trabalhadores resgatados em vinícolas — jornada exaustiva + dívida + ameaça."
+    },
+    {
+      "conceito": "Assédio moral e bullying (Convenção 190 OIT; Lei 14.811/2024)",
+      "explicacao": "Práticas abusivas repetidas que violam a dignidade; elementos: repetição, intencionalidade, direcionalidade, temporalidade. Modalidades: interpresoal × organizacional; vertical ↓/↑, horizontal, misto. Bullying (art. 146-A CP) e cyberbullying agora têm pena. 458 mil ações de assédio moral (2020-2024). Diferença do assédio sexual: conotação sexual.",
+      "exemplo": "Troféu tartaruga ao pior vendedor pode configurar assédio moral; exigir metas e dar feedback não configura (atos de gestão)."
+    }
+  ],
+  "pontos_importantes": [
+    "A CF/88 (arts. 7º a 11) traz o rol de direitos: FGTS, 13º, jornada 8h/44h, repouso semanal remunerado, aviso prévio mínimo de 30 dias, proibição de diferença de salário por sexo/idade/cor.",
+    "Cumulativos: as características da relação de emprego somam-se para configurar vínculo.",
+    "Atenção da Profa.: trabalhador autônomo, trabalho voluntário e contrato de estágio NÃO são relação de emprego (slide 'Atenção').",
+    "Convenção 190 da OIT define violência e assédio no mundo do trabalho — base legal internacional do módulo de assédio.",
+    "O IFPB-Cajazeiras tem NUCA (Núcleo de Combate ao Assédio) — canal institucional dentro do campus.",
+    "Racismo institucional: estudos de Djamila Ribeiro (negritude/branquitude/epistemicídio) e Cida Bento (pacto narcísico da branquitude) são a leitura de apoio pedida."
+  ],
+  "formulas_regras": [
+    "Vínculo = soma CUMULATIVA das 7 características (pessoalidade + onerosidade + subordinação + continuidade + ...).",
+    "Resilição bilateral: aviso prévio e multa 40% por METADE; FGTS sacável até 80%; SEM seguro-desemprego.",
+    "Contrato intermitente: convoca com 3 dias; responde em 1 dia útil; hora nunca inferior ao mínimo nem ao salário do efetivo da mesma função (isonomia salarial).",
+    "Ação trabalhista: prazo prescricional de 5 anos (até 2 anos após extinção do contrato).",
+    "Lista Suja: inclusão por 2 anos, atualização a cada 6 meses (Portaria Interministerial 18/2024)."
+  ],
+  "erros_comuns": [
+    "Trocar gênero e espécie: relação de trabalho engloba mais que a de emprego (autônomo ≠ empregado).",
+    "Achar que acordo bilateral dá seguro-desemprego — NÃO dá (§ 2º art. 484-A).",
+    "Achar que contrato intermitente dispensa contrato escrito — é exigido POR ESCRITO.",
+    "Achar que telettrabalho é 'trabalho externo' — é espécie de trabalho à distância com TIC (art. 75-B), exige contrato expresso.",
+    "Confundir assédio moral com assédio sexual (conotação sexual diferencia) ou com atos de gestão (metas, avaliações, transferências).",
+    "Achar que escravidão moderna exige propriedade legal da pessoa — o que define é a condição (jornada exaustiva, degradante, dívida)."
+  ],
+  "exercicios_sugeridos": [
+    "Resolva o caso prático da Maria (buffet, contrato intermitente): há vínculo? ausência de convocação descarta o contrato? direito à remuneração do mês vazio? a multa é legal?",
+    "Liste as 7 características da relação de emprego de cabeça e teste com o caso do motorista da Uber (TRT-4).",
+    "Escreva de memória o desenho financeiro da resilição bilateral (o que é pela metade, o que é integral, o que é vedado).",
+    "Explique a diferença antiga × nova escravidão em 4 eixos: propriedade, custo, mão-de-obra, lucro.",
+    "Dê 2 exemplos de assédio organizacional e 2 de assédio interpresoal (slides 77-78)."
+  ],
+  "proximos_passos": [
+    "ATIVIDADE AVALIATIVA ESCRITA anunciada (13/10): proposta na próxima aula, cobre TODO o conteúdo dado até hoje — revisar este deck antes.",
+    "Ver o documentário GIG — a uberização do trabalho (Reporter Brasil, YouTube) e anotar 3 pontos que conectam com a unidade de uberização.",
+    "Ler os capítulos 'Enxergue a negritude' e 'Transforme seu ambiente de trabalho' do Pequeno Manual Antirracista (Djamila Ribeiro)."
+  ],
+  "perguntas_autoavaliacao": [
+    "Qual a diferença entre relação de trabalho e relação de emprego (com exemplo de cada)?",
+    "Quais são as 7 características cumulativas da relação de emprego?",
+    "Como funciona a resilição bilateral e quais verbas ela não garante?",
+    "O que caracteriza o contrato intermitente e quais são seus direitos?",
+    "O que o art. 149 do Código Penal pune e quais são as 4 condições que o configuram?",
+    "Quais os elementos para caracterizar assédio moral e qual lei criminalizou o bullying (2024)?"
+  ]
+}

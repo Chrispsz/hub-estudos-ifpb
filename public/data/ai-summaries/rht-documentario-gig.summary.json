@@ -1,0 +1,59 @@
+{
+  "titulo": "Documentário: GIG — a Uberização do Trabalho (Reporter Brasil, YouTube)",
+  "disciplina": "Relações Humanas no Trabalho",
+  "tipo": "video",
+  "tempo_estudo_minutos": 45,
+  "resumo_geral": "Documentário indicado pela Profa. Marília para discutir a fundo o conteúdo da uberização (unidade II — 'A uberização do trabalho: novas formas e precarização'). Produzido pelo Reporter Brasil (site oficial: reporterbrasil.org.br/documentarios/gig — disponível no YouTube). O filme acompanha trabalhadores de plataformas digitais (transporte e entrega) e mostra na prática o que os slides trazem em números: renda por corrida entregue ao algoritmo, horas de espera não pagas, ausência de vínculo empregatício e seus custos (previdência, saúde, descanso), e a luta por reconhecimento do vínculo. Assistir ANTES da atividade avaliativa: a Profa. anunciou discussão mais a fundo sobre uberização a partir dele.",
+  "conceitos_chave": [
+    {
+      "conceito": "Uberização",
+      "explicacao": "Lógica flexível de trabalho em que o profissional presta serviços conforme a demanda, conectado a clientes por plataformas digitais; originada com a Uber (2010, EUA; 2014 no Brasil).",
+      "exemplo": "Motorista e entregador trabalham 'quando querem' — mas obedecem algoritmo, tarifas e avaliações definidos pela plataforma."
+    },
+    {
+      "conceito": "Precarização pela ausência de vínculo",
+      "explicacao": "Sem vínculo empregatício, a plataforma não tem as responsabilidades de um empregador tradicional: sem férias, 13º, RSR, FGTS previdência regular. O custo do risco é transferido ao trabalhador.",
+      "exemplo": "Dados IBGE citados em aula: só 35,9% dos trabalhadores por app contribuem para a previdência (2024); jornada média de 44,8h semanais (+5,5h que os demais)."
+    },
+    {
+      "conceito": "Algoritmo como chefe",
+      "explicacao": "A subordinação não desaparece: ela migra do chefe humano para o aplicativo — metas, tarifa, rota, aceitação de corrida e avaliação decidem a renda. É o argumento central da jurisprudência que reconhece vínculo.",
+      "exemplo": "TRT-4 (2025): 'existe a subordinação da parte autora aos ditames da empresa, que fornece o aplicativo e arregimenta os motoristas' — vínculo de emprego reconhecido."
+    },
+    {
+      "conceito": "O debate judicial (ADI 5826 / Tema 1.291)",
+      "explicacao": "O STF analisa a constitucionalidade do trabalho por plataforma, em conjunto com a Reclamação 64.018 (Rappi); análise suspensa após pedido da DPU e do MPT para avaliar a Convenção 193 da OIT (12/6/2026) — 'ainda sem martelo batido'.",
+      "exemplo": "A Convenção 193 impõe obrigações aos países-membros sobre direitos de trabalhadores e plataformas — pode redesenhar o marco legal."
+    }
+  ],
+  "pontos_importantes": [
+    "Conecte cada cena do filme com os % do IBGE dos slides 30-34 (1,7 mi de trabalhadores; 53,1% transporte; 29,3% entrega; renda R$ 15,40/h; 8,3% abaixo da média).",
+    "Anote 3 cenas que ilustram a ausência de vínculo e o que cada uma custaria ao trabalhador se houvesse vínculo (férias, 13º, RSR, previdência).",
+    "Atenção à contraposição: a flexibilidade real ('trabalhar quando quiser') vs. a subordinação algorítmica — é o núcleo da discussão em sala.",
+    "A Profa. Marília marcou: 'discutimos mais a fundo a partir do documentário' — preparar 2 perguntas para o debate."
+  ],
+  "formulas_regras": [
+    "Regra para o debate: plataforma que controla (fiscaliza, tarifa, avalia, arregimenta) e remunera por tarefa mantém as características da relação de emprego — mesmo sem contrato formal.",
+    "Prescrição trabalhista: 5 anos de créditos, limitados a 2 anos após a extinção do contrato (aplicável se reconhecido vínculo)."
+  ],
+  "erros_comuns": [
+    "Reduzir uberização a 'liberdade de horário' — o filme mostra a jornada estendida (44,8h semanais) para atingir a renda.",
+    "Confundir autonomia real com autonomia aparente: quem define preço e regras é a plataforma.",
+    "Ignorar que a discussão ainda NÃO foi decidida no STF (pauta suspensa em 2026) — não afirmar conclusão definitiva."
+  ],
+  "exercicios_sugeridos": [
+    "Assistir ao documentário (link no material, Reporter Brasil) e escrever 1 parágrafo: 'o que eu vi no filme que confirma e o que problematiza os dados do IBGE dos slides'.",
+    "Comparar o caso do motorista do TRT-4 com a situação retratada no filme: quais das 7 características da relação de emprego aparecem?",
+    "Preparar 2 perguntas para a discussão em sala sobre uberização (a Profa. avisou que a discussão parte do filme)."
+  ],
+  "proximos_passos": [
+    "Assistir antes da próxima aula (atividade avaliativa escrita anunciada cobre o conteúdo dado até hoje, incluindo uberização).",
+    "Reler os slides 29-36 (uberização + jurisprudência + ADI 5826) logo depois do filme para fixar a ponte filme → lei."
+  ],
+  "perguntas_autoavaliacao": [
+    "O que caracteriza a uberização como 'nova forma de trabalho' e onde ela pega emprestado da relação de emprego?",
+    "Quais dados do IBGE quantificam a precarização (renda/hora, jornada, previdência)?",
+    "Como o 'algoritmo como chefe' sustenta o reconhecimento de vínculo pelo TRT-4?",
+    "O que é a ADI 5826 e por que a análise foi suspensa no STF?"
+  ]
+}

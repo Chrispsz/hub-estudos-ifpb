@@ -7,6 +7,7 @@ import {
   AppWindow,
   BellRing,
   CircleCheck,
+  Cloud,
   KeyRound,
   ShieldAlert,
   ShieldCheck,
@@ -1342,6 +1343,14 @@ function HouseIntelligenceCard({ onStatusChange }: { onStatusChange: () => void 
         <ShieldCheck className="mt-0.5 size-3 shrink-0" aria-hidden />
         a chave mora no servidor da casa como dado do usuário — nunca vai para o código nem para o
         git.
+      </p>
+      {/* REALIDADE DO DEPLOY (13/10/2026) */}
+      <p className="mt-1 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+        <Cloud className="mt-0.5 size-3 shrink-0" aria-hidden />
+        No deploy da Vercel, o banco do servidor é efêmero — lá a casa usa a variável de ambiente{' '}
+        <code className="rounded bg-muted px-1 font-mono text-[10px]">GEMINI_API_KEY</code>{' '}
+        (Settings → Environment Variables → redeploy). A cadeia lê a chave salva (aqui) → env
+        (Vercel) → próximos elos.
       </p>
     </div>
   );

@@ -558,6 +558,7 @@ export const disciplines: Discipline[] = [
       'Prepare o seminário com antecedência (pesquisa + ensaio)',
       'Estude ética - tema transversal em todas as unidades',
       'Atividade I (Classroom, 15/09): leia o artigo do teletrabalho no Serpro (Biblioteca) e anote 2 pontos positivos e 2 negativos por ator — cite os % exatos dos Quadros 1-6',
+      'Atividade avaliativa ESCRITA anunciada (13/10): proposta na próxima aula, cobre TODO o conteúdo dado até hoje — sem data oficial ainda. Revise os slides do 1º bimestre + leituras de apoio (Djamila Ribeiro e documentário GIG) antes dela',
     ],
     prioridade: 'media',
     ordemEstudo: [
@@ -980,6 +981,24 @@ export const materials: Material[] = [
     // Material-first: comprova aula (curriculum-state.ts)
     topicosCobertos: ['II. Trabalho humano no Brasil'],
   },
+  // NOVOS MATERIAIS RHT (13/10/2026, Prof.ª Marília Aguiar — enviados pelo dono)
+  { id: 'rht-aulas-1o-bimestre', disciplineCode: 'TEC.0953',
+    title: 'Aulas 1º bimestre — O trabalho no Brasil e RT contemporâneo (112 slides)',
+    type: 'slides', pdfPath: '/pdfs/rht-aulas-1o-bimestre.pdf',
+    summaryFile: 'rht-aulas-1o-bimestre.summary.json', pages: 112, source: 'user_upload',
+    // Material-first: comprova aula (curriculum-state.ts) — CLT, flexibilização,
+    // uberização, trabalho análogo à escravidão, racismo institucional e assédio
+    topicosCobertos: ['II. Trabalho humano no Brasil', 'III. Ética no trabalho'],
+  },
+  { id: 'rht-manual-antirracista', disciplineCode: 'TEC.0953',
+    title: 'Pequeno Manual Antirracista (Djamila Ribeiro) — leitura de apoio (foco: Enxergue a negritude + Transforme seu ambiente de trabalho)',
+    type: 'pdf', pdfPath: '/pdfs/rht-pequeno-manual-antirracista.pdf',
+    summaryFile: 'rht-manual-antirracista.summary.json', pages: 69, source: 'user_upload' },
+  { id: 'rht-documentario-gig', disciplineCode: 'TEC.0953',
+    title: 'Documentário: GIG — a Uberização do Trabalho (Reporter Brasil, YouTube)',
+    type: 'video',
+    externalUrl: 'https://reporterbrasil.org.br/documentarios/gig',
+    summaryFile: 'rht-documentario-gig.summary.json', source: 'external' },
   { id: 'fund-ementa', disciplineCode: '53647', title: 'Plano de Disciplina - Fundamentos',
     type: 'ementa', pdfPath: '/data/ementas/ementa-fundamentos.pdf',
     summaryFile: 'fundamentos-ementa.summary.json', source: 'ifpb_site' },
@@ -1197,6 +1216,7 @@ export const evaluationPeriods: EvaluationPeriod[] = [
   { disciplineCode: '53647', evaluationName: 'Av2', description: '2ª avaliação (Representação de dados, operações binárias)' },
   { disciplineCode: '53647', evaluationName: 'Av3', description: '3ª avaliação (Sistemas e Portas Lógicas)' },
   { disciplineCode: 'TEC.0953', evaluationName: 'Seminário', description: 'Apresentação de seminário' },
+  { disciplineCode: 'TEC.0953', evaluationName: 'Atividade escrita', description: 'Atividade avaliativa ESCRITA anunciada pela Profa. Marília (13/10): proposta na próxima aula, cobre todo o conteúdo dado até hoje — sem data oficial ainda' },
   { disciplineCode: 'ING.001', evaluationName: 'N1', description: 'Conjunto de 3 atividades (A1+A2+A3)' },
   { disciplineCode: 'ING.001', evaluationName: 'N2', description: 'Conjunto de 3 atividades (B1+B2+B3)' },
 ];
