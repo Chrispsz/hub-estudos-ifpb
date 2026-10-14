@@ -43,6 +43,7 @@ import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { upcomingEvents } from '@/lib/semester';
 import { PnaatReminderCard } from './pnaat-reminder-card';
 import { ExamRadarCard } from './exam-radar-card';
+import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { Switch } from '@/components/ui/switch';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
 import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
@@ -818,6 +819,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           o que tem data e o que está a definir. É o espelho do que a fila já
           faz: prova marcada pesa, prova feita sai. */}
       <ExamRadarCard />
+
+      {/* TASK 216 — A GRADE OFICIAL DE AULAS: "você não puxou os horários?"
+          respondido de vez — a casa sabe quando cada aula acontece (fonte
+          horarios.ifpb.edu.br/cajazeiras, 2026.2) e daqui sai o dia certo de
+          avaliações anunciadas "para a próxima aula" (RHT: quarta, M3–M5). */}
+      <WeeklyScheduleCard />
 
       {/* Lembrete PNAAT — compromisso externo (plataforma FIT): lembrar, não replicar */}
       <PnaatReminderCard />

@@ -558,7 +558,7 @@ export const disciplines: Discipline[] = [
       'Prepare o seminário com antecedência (pesquisa + ensaio)',
       'Estude ética - tema transversal em todas as unidades',
       'Atividade I (Classroom, 15/09): leia o artigo do teletrabalho no Serpro (Biblioteca) e anote 2 pontos positivos e 2 negativos por ator — cite os % exatos dos Quadros 1-6',
-      'Atividade avaliativa ESCRITA anunciada (13/10): proposta na próxima aula, cobre TODO o conteúdo dado até hoje — sem data oficial ainda. Revise os slides do 1º bimestre + leituras de apoio (Djamila Ribeiro e documentário GIG) antes dela',
+      'Atividade avaliativa ESCRITA: QUARTA 21/10, 08:40–11:25 (M3–M5) na sala S19 — única aula da RHT na grade oficial do campus. Cobre TODO o conteúdo dado até hoje — revise os slides do 1º bimestre + leituras de apoio (Djamila Ribeiro e documentário GIG) antes dela',
     ],
     prioridade: 'media',
     ordemEstudo: [
@@ -569,6 +569,7 @@ export const disciplines: Discipline[] = [
       '5. Pratique argumentação para os debates',
     ],
     datasImportantes: [
+      { data: 'Qua 21/10 · 08:40', descricao: 'Atividade avaliativa ESCRITA (M3–M5, sala S19) — todo o conteúdo dado até hoje' },
       { data: 'Semana 14', descricao: 'Apresentação do Seminário (peso 40%)' },
     ],
   },
@@ -1216,10 +1217,154 @@ export const evaluationPeriods: EvaluationPeriod[] = [
   { disciplineCode: '53647', evaluationName: 'Av2', description: '2ª avaliação (Representação de dados, operações binárias)' },
   { disciplineCode: '53647', evaluationName: 'Av3', description: '3ª avaliação (Sistemas e Portas Lógicas)' },
   { disciplineCode: 'TEC.0953', evaluationName: 'Seminário', description: 'Apresentação de seminário' },
-  { disciplineCode: 'TEC.0953', evaluationName: 'Atividade escrita', description: 'Atividade avaliativa ESCRITA anunciada pela Profa. Marília (13/10): proposta na próxima aula, cobre todo o conteúdo dado até hoje — sem data oficial ainda' },
+  { disciplineCode: 'TEC.0953', evaluationName: 'Atividade escrita', description: 'Atividade avaliativa ESCRITA anunciada pela Profa. Marília — cobre todo o conteúdo dado até hoje. Data oficial (grade do campus): quarta 21/10, 08:40–11:25 (M3–M5), sala S19', date: '2026-10-21' },
   { disciplineCode: 'ING.001', evaluationName: 'N1', description: 'Conjunto de 3 atividades (A1+A2+A3)' },
   { disciplineCode: 'ING.001', evaluationName: 'N2', description: 'Conjunto de 3 atividades (B1+B2+B3)' },
 ];
+
+// ---------------------------------------------------------------------------
+// GRADE OFICIAL DE AULAS — P1 ADS, Turma 2026.2, turno da manhã
+// (Task 216, pedido do dono: "você não puxou os horários?").
+// Fonte: horarios.ifpb.edu.br/cajazeiras — horário acadêmico 2026.2
+// (IFSertãoPB, Campus Cajazeiras), conferido em 14/10/2026. É a resposta
+// durável: a casa sabe QUANDO cada aula acontece — e daqui saem a próxima
+// aula, o dia certo da RHT (quarta, M3–M5) e a data oficial de avaliações
+// anunciadas "para a próxima aula".
+export interface WeeklySlotTime {
+  slot: string; // 'M1'..'M5'
+  start: string; // '07:00'
+  end: string; // '07:50'
+}
+
+export interface WeeklyClassSlot {
+  slot: string;
+  label: string; // nome curto exibido na grade
+  room: string; // sala oficial (S19, LAB-INF4)
+  disciplineCode?: DisciplineCode; // liga com a disciplina da casa
+}
+
+export interface WeeklyClassDay {
+  dow: number; // 1=Seg..5=Sex (getDay(): 0=Dom..6=Sáb)
+  label: string;
+  slots: WeeklyClassSlot[];
+}
+
+export const weeklySchedule: {
+  turma: string;
+  turno: string;
+  fonte: string;
+  conferidaEm: string;
+  intervalo: string;
+  slotTimes: WeeklySlotTime[];
+  dias: WeeklyClassDay[];
+} = {
+  turma: 'P1 - ADS',
+  turno: 'Manhã',
+  fonte: 'horarios.ifpb.edu.br/cajazeiras',
+  conferidaEm: '2026-10-14',
+  intervalo: '09:30–09:45',
+  slotTimes: [
+    { slot: 'M1', start: '07:00', end: '07:50' },
+    { slot: 'M2', start: '07:50', end: '08:40' },
+    { slot: 'M3', start: '08:40', end: '09:30' },
+    { slot: 'M4', start: '09:45', end: '10:35' },
+    { slot: 'M5', start: '10:35', end: '11:25' },
+  ],
+  dias: [
+    {
+      dow: 1, label: 'Segunda', slots: [
+        { slot: 'M1', label: 'Fund. Comp.', room: 'S19', disciplineCode: '53647' },
+        { slot: 'M2', label: 'Fund. Comp.', room: 'S19', disciplineCode: '53647' },
+        { slot: 'M3', label: 'Fund. Comp.', room: 'S19', disciplineCode: '53647' },
+        { slot: 'M4', label: 'Inglês', room: 'S19', disciplineCode: 'ING.001' },
+        { slot: 'M5', label: 'Inglês', room: 'S19', disciplineCode: 'ING.001' },
+      ],
+    },
+    {
+      dow: 2, label: 'Terça', slots: [
+        { slot: 'M1', label: 'Algoritmos', room: 'S19', disciplineCode: 'TEC.1687' },
+        { slot: 'M2', label: 'Algoritmos', room: 'S19', disciplineCode: 'TEC.1687' },
+        { slot: 'M3', label: 'Fund. Comp.', room: 'S19', disciplineCode: '53647' },
+        { slot: 'M4', label: 'Português', room: 'S19', disciplineCode: 'PORT.001' },
+        { slot: 'M5', label: 'Português', room: 'S19', disciplineCode: 'PORT.001' },
+      ],
+    },
+    {
+      dow: 3, label: 'Quarta', slots: [
+        { slot: 'M1', label: 'Matemática', room: 'S19', disciplineCode: 'TEC.1984' },
+        { slot: 'M2', label: 'Matemática', room: 'S19', disciplineCode: 'TEC.1984' },
+        { slot: 'M3', label: 'RHT', room: 'S19', disciplineCode: 'TEC.0953' },
+        { slot: 'M4', label: 'RHT', room: 'S19', disciplineCode: 'TEC.0953' },
+        { slot: 'M5', label: 'RHT', room: 'S19', disciplineCode: 'TEC.0953' },
+      ],
+    },
+    {
+      dow: 4, label: 'Quinta', slots: [
+        { slot: 'M1', label: 'Linguagens', room: 'LAB-INF4', disciplineCode: 'TEC.1632' },
+        { slot: 'M2', label: 'Linguagens', room: 'LAB-INF4', disciplineCode: 'TEC.1632' },
+        { slot: 'M3', label: 'Algoritmos', room: 'S19', disciplineCode: 'TEC.1687' },
+        { slot: 'M4', label: 'Matemática', room: 'S19', disciplineCode: 'TEC.1984' },
+        { slot: 'M5', label: 'Matemática', room: 'S19', disciplineCode: 'TEC.1984' },
+      ],
+    },
+    {
+      dow: 5, label: 'Sexta', slots: [
+        { slot: 'M1', label: 'Algoritmos', room: 'S19', disciplineCode: 'TEC.1687' },
+        { slot: 'M2', label: 'Algoritmos', room: 'S19', disciplineCode: 'TEC.1687' },
+        { slot: 'M3', label: 'Algoritmos', room: 'S19', disciplineCode: 'TEC.1687' },
+        { slot: 'M4', label: 'Linguagens', room: 'LAB-INF4', disciplineCode: 'TEC.1632' },
+        { slot: 'M5', label: 'Linguagens', room: 'LAB-INF4', disciplineCode: 'TEC.1632' },
+      ],
+    },
+  ],
+};
+
+/** Horário oficial de um slot — null = slot fora da grade (nada inventado). */
+export function slotTimeOf(slot: string): WeeklySlotTime | undefined {
+  return weeklySchedule.slotTimes.find((s) => s.slot === slot);
+}
+
+export interface NextClassInfo {
+  /** Date real da aula (dia + hora de início). */
+  at: Date;
+  /** 'hoje' | 'amanhã' | dias até a aula (0 = hoje). */
+  daysLeft: number;
+  dow: number;
+  dowLabel: string;
+  label: string; // disciplina curta da grade oficial
+  room: string;
+  slot: WeeklySlotTime;
+}
+
+/**
+ * A próxima aula da grade oficial a partir de `now` (aula que ainda vai
+ * começar — aula em curso não conta). Pura no `now`, nada lê storage.
+ */
+export function nextClassFrom(now: Date): NextClassInfo | null {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let offset = 0; offset < 8; offset++) {
+    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
+    const dia = weeklySchedule.dias.find((d) => d.dow === day.getDay());
+    if (!dia || dia.slots.length === 0) continue;
+    for (const s of dia.slots) {
+      const t = slotTimeOf(s.slot);
+      if (!t) continue;
+      const [h, m] = t.start.split(':').map(Number);
+      const at = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m);
+      if (at.getTime() <= now.getTime()) continue; // já começou/passou
+      return {
+        at,
+        daysLeft: Math.round((at.getTime() - today.getTime()) / 86_400_000),
+        dow: dia.dow,
+        dowLabel: dia.label,
+        label: s.label,
+        room: s.room,
+        slot: t,
+      };
+    }
+  }
+  return null;
+}
 
 export function getDisciplineByCode(code: string): Discipline | undefined {
   return disciplines.find((d) => d.code === code);
