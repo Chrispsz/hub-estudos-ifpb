@@ -57,7 +57,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Discipline, Material } from '@/data/course-data';
-import { getMaterialsByDiscipline, evaluationPeriods } from '@/data/course-data';
+import { getMaterialsByDiscipline, evaluationPeriods, classSlotsForDiscipline } from '@/data/course-data';
 import {
   NUCLEUS_DOT_BG,
   CURRENT_PERIOD,
@@ -179,6 +179,9 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
     () => (discipline ? getCurriculumInfo(discipline.code) : undefined),
     [discipline],
   );
+  // A GRADE OFICIAL fala aqui (Task 217): "quando são as aulas desta
+  // disciplina" — janelas mescladas da turma ativa (P1), sala oficial.
+  const classInfo = discipline ? classSlotsForDiscipline(discipline.code) : [];
 
   // PRINT DOS ASSUNTOS (140 — a terceira via da captura): o corpo do diálogo
   // (a aba ativa — assuntos, avaliação, dicas) vira imagem e entra DIRETO no
@@ -281,6 +284,17 @@ export function DisciplineDetailDialog({ discipline, open, onOpenChange, initial
                   <GraduationCap className="size-3 shrink-0" /> {discipline.professor}
                   {discipline.professorTitle ? ` · ${discipline.professorTitle}` : ''}
                 </Badge>
+                {classInfo.map((ci) => (
+                  <Badge
+                    key={ci.dowLabel}
+                    variant="outline"
+                    className="max-w-full !whitespace-normal gap-1 border-border text-muted-foreground"
+                    title={`Aulas na grade oficial: ${ci.dowLabel}, ${ci.start}–${ci.end}, sala ${ci.room}`}
+                  >
+                    <CalendarDays className="size-3 shrink-0" aria-hidden />
+                    Aulas: {ci.dowLabel.slice(0, 3)} {ci.start}–{ci.end} · {ci.room}
+                  </Badge>
+                ))}
                 {matrixInfo && (
                   <Badge
                     variant="outline"

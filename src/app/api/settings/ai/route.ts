@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       return Response.json(
         {
           error:
-            'Não parece uma chave do AI Studio — deve começar com "AIza" e ter pelo menos 30 caracteres. Confira em aistudio.google.com/app/apikey.',
+            'Não parece uma chave do AI Studio — deve começar com "AIza" (clássica) ou "AQ." (nova) e ter pelo menos 30 caracteres. Confira em aistudio.google.com/app/apikey.',
         },
         { status: 400 },
       );

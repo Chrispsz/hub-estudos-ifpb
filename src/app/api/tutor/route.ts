@@ -241,10 +241,12 @@ const VISION_CHAIN_OPENROUTER = [
 function prettyModelName(id: string): string {
   const clean = id.replace(':free', '');
   const map: Record<string, string> = {
+    'gemini-3.8-flash': 'Gemini 3.8 Flash',
+    'gemini-3.6-flash': 'Gemini 3.6 Flash',
     'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite',
     'gemini-2.5-flash': 'Gemini 2.5 Flash',
     'gemini-flash-lite-latest': 'Gemini Flash-Lite',
-    'gemini-flash-latest': 'Gemini Flash',
+    'gemini-flash-latest': 'Gemini Flash (3.8)',
     'nvidia/nemotron-3-super-120b-a12b': 'Nemotron 3 Super',
     'nvidia/nemotron-3-ultra-550b-a55b': 'Nemotron 3 Ultra',
     'nex-agi/nex-n2.5-pro': 'Nex N2.5 Pro',
@@ -574,7 +576,10 @@ function parseDataUrl(dataUrl: string): { mime: string; b64: string } | null {
 /**
  * Google Gemini via REST puro (sem SDK — roda em qualquer serverless, incl. Vercel).
  * Suporta histórico, streaming SSE (alt=sse) e imagem anexada (inline_data).
- * Tier grátis do AI Studio: gemini-2.5-flash-lite ~1000 req/dia — sem cartão.
+ * Tier grátis do AI Studio: a família Flash 3.x (gemini-flash-latest → 3.8) — sem cartão.
+ * RACIOCÍNIO IDEAL (Task 217): modelos gemini-3.x recebem thinkingLevel 'high'
+ * (o default dinâmico deles — explicitado aqui); aliases -latest já pensam HIGH
+ * por padrão, e 2.5.x mantém comportamento dinâmico sem parâmetro.
  */
 async function callGemini(
   model: string,
@@ -608,6 +613,14 @@ async function callGemini(
     ];
 
     const method = onDelta ? 'streamGenerateContent?alt=sse' : 'generateContent';
+    // Raciocínio ideal por geração (docs ai.google.dev, out/2026): a família 3.x
+    // usa thinkingLevel (minimal/low/medium/high); 2.5 usa thinkingBudget.
+    // Enviar o campo ERRADO para a geração ERRADA dá 400 — por isso o gate por id.
+    const thinkingConfig = model.startsWith('gemini-3')
+      ? { thinkingLevel: 'high' }
+      : model.startsWith('gemini-2.5')
+        ? { thinkingBudget: -1 } // dinâmico: o modelo decide quando pensar
+        : undefined;
     const res = await fetch(`${GEMINI.baseUrl}/models/${model}:${method}`, {
       method: 'POST',
       signal: controller.signal,
@@ -615,7 +628,11 @@ async function callGemini(
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents,
-        generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
+        generationConfig: {
+          temperature: 0.6,
+          maxOutputTokens: 4096,
+          ...(thinkingConfig ? { thinkingConfig } : {}),
+        },
         // aulas/matemática não podem travar em filtro conservador — só bloqueia alto risco
         safetySettings: [
           'HARM_CATEGORY_HARASSMENT',
@@ -1124,6 +1141,19 @@ function geminiSourceLabel(source: 'db' | 'env' | null): string {
   return 'nenhuma';
 }
 
+/**
+ * Traduz erros conhecidos do Gemini para a linguagem da casa (probe honesto):
+ * bloqueio geográfico é do SERVIDOR onde a casa roda, não da key — no Vercel
+ * (EUA/Europa) a mesma key responde.
+ */
+function hintGeminiError(error?: string): string | undefined {
+  if (!error) return undefined;
+  if (/location is not supported/i.test(error)) {
+    return `${error} → o SERVIDOR desta casa está numa região que o Google não atende (ex.: sandbox em HK); a key está válida — no Vercel a mesma key responde`;
+  }
+  return error;
+}
+
 async function probeProviders(geminiModelOverride?: string | null): Promise<Response> {
   const jobs: Record<string, Promise<ProbeResult>> = {};
 
@@ -1159,7 +1189,7 @@ async function probeProviders(geminiModelOverride?: string | null): Promise<Resp
           .trim();
         if (!text) throw new Error('resposta vazia (quota esgotada ou bloqueio?)');
       });
-      return { ok: !r.error, ms: r.ms, model: prettyModelName(model) || model, error: r.error, source: geminiSourceLabel(geminiCfg.source) };
+      return { ok: !r.error, ms: r.ms, model: prettyModelName(model) || model, error: hintGeminiError(r.error), source: geminiSourceLabel(geminiCfg.source) };
     })();
   } else {
     jobs.gemini = Promise.resolve({

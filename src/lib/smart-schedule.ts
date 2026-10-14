@@ -7,6 +7,7 @@ import {
   disciplines,
   evaluationPeriods,
   getDisciplineByCode,
+  classWindowForDay,
   type Discipline,
   type EvaluationPeriod,
 } from '@/data/course-data';
@@ -226,6 +227,15 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     const todayCount = new Map<string, number>();
     let cursorHour = cap.startHour;
     let cursorMinute = 0;
+    // A GRADE OFICIAL MANDA (Task 217): dia com aula (P1 = seg-sex 07:00–11:25)
+    // → o estudo começa DEPOIS do fim da última aula (+15min de respiro).
+    // A preferência do dono vence quando for mais tarde que a aula.
+    const classWindow = classWindowForDay(day);
+    if (classWindow) {
+      const effStartMin = Math.max(cap.startHour * 60, classWindow.endMin + 15);
+      cursorHour = Math.floor(effStartMin / 60);
+      cursorMinute = effStartMin % 60;
+    }
     let usedMinutes = 0;
     let usedBlocks = 0;
     const maxRepeat = Math.max(1, Math.ceil(cap.blocks / 2)); // nunca domina o dia

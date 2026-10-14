@@ -1328,12 +1328,15 @@ function HouseIntelligenceCard({ onStatusChange }: { onStatusChange: () => void 
           }}
         />
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Aliases sugeridos (sobrevivem à troca de versão do Google):{' '}
+          Aceita os dois formatos vivos do AI Studio — clássica{' '}
+          <code className="rounded bg-muted px-1 font-mono text-[10px]">AIza…</code> e nova{' '}
+          <code className="rounded bg-muted px-1 font-mono text-[10px]">AQ.…</code>. Aliases
+          sugeridos (sobrevivem à troca de versão do Google; hoje apontam para a família 3.x,
+          raciocínio HIGH por padrão):{' '}
+          <code className="rounded bg-muted px-1 font-mono text-[10px]">gemini-flash-latest</code> ·{' '}
           <code className="rounded bg-muted px-1 font-mono text-[10px]">
             gemini-flash-lite-latest
-          </code>{' '}
-          ·{' '}
-          <code className="rounded bg-muted px-1 font-mono text-[10px]">gemini-flash-latest</code>
+          </code>
           {modelLine ? ` — ${modelLine}` : ''}
         </p>
       </div>

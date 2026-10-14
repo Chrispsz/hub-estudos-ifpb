@@ -19,8 +19,13 @@ import { db } from '@/lib/db';
 const SETTING_GEMINI_KEY = 'gemini.api_key';
 const SETTING_GEMINI_MODEL = 'gemini.model';
 
-/** Aliases vivos do AI Studio: sobrevivem à troca de versão do Google. */
-export const DEFAULT_GEMINI_ALIASES = ['gemini-flash-lite-latest', 'gemini-flash-latest'] as const;
+/**
+ * Aliases vivos do AI Studio: sobrevivem à troca de versão do Google.
+ * ORDEM DO MAIS CAPAZ (Task 217): `gemini-flash-latest` hoje aponta para a
+ * família 3.x (gemini-3.8-flash, out/2026) — raciocínio HIGH por padrão;
+ * `gemini-flash-lite-latest` é o elo rápido. O mais capaz responde primeiro.
+ */
+export const DEFAULT_GEMINI_ALIASES = ['gemini-flash-latest', 'gemini-flash-lite-latest'] as const;
 
 /** Fonte da chave efetiva: 'db' (salva na casa) | 'env' (variável de ambiente) | null (nenhuma). */
 export type GeminiKeySource = 'db' | 'env' | null;
@@ -167,7 +172,7 @@ export async function clearSavedGeminiModel(): Promise<void> {
 // Máscara — a ÚNICA forma de chave que chega ao cliente.
 // ---------------------------------------------------------------------------
 
-/** "AIza…abcd" — começo fixo da marca + só o fim. Nunca a chave inteira. */
+/** "AQ.A…abcd" ou "AIza…abcd" — começo da marca + só o fim. Nunca a chave inteira. */
 export function maskKey(key: string): string {
   const clean = key.trim();
   if (clean.length <= 8) return '…' + clean.slice(-2);
@@ -175,11 +180,14 @@ export function maskKey(key: string): string {
 }
 
 /**
- * Validação FROUXA do formato de chave Gemini (AI Studio): começa com "AIza"
- * e tem >= 30 caracteres. Serve para rejeitar erro de digitação grosseiro —
- * a prova real continua sendo o "Testar agora" (probe de verdade na API).
+ * Validação FROUXA do formato de chave Gemini (AI Studio): aceita os DOIS
+ * formatos vivos — clássico "AIza…" (39 chars) e o novo "AQ.…" (Task 217:
+ * o AI Studio passou a emitir chaves neste formato). Serve para rejeitar
+ * erro de digitação grosseiro — a prova real continua sendo o "Testar agora"
+ * (probe de verdade na API).
  */
 export function isValidGeminiKeyFormat(key: string): boolean {
   const clean = key.trim();
-  return clean.startsWith('AIza') && clean.length >= 30;
+  const okPrefix = clean.startsWith('AIza') || clean.startsWith('AQ.');
+  return okPrefix && clean.length >= 30;
 }

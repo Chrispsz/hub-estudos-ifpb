@@ -1319,10 +1319,290 @@ export const weeklySchedule: {
   ],
 };
 
-/** Horário oficial de um slot — null = slot fora da grade (nada inventado). */
+/**
+ * Horários OFICIAIS de TODOS os slots do campus (2026.2) — manhã, tarde e
+ * noite. Fonte única para resolver o início/fim de qualquer slot de qualquer
+ * turma (P1 usa M1–M5; P2/P4/P6 usam T; etc.). Task 217.
+ */
+export const classSlotTimes: WeeklySlotTime[] = [
+  { slot: 'M1', start: '07:00', end: '07:50' },
+  { slot: 'M2', start: '07:50', end: '08:40' },
+  { slot: 'M3', start: '08:40', end: '09:30' },
+  { slot: 'M4', start: '09:45', end: '10:35' },
+  { slot: 'M5', start: '10:35', end: '11:25' },
+  { slot: 'M6', start: '11:25', end: '12:15' },
+  { slot: 'T1', start: '13:00', end: '13:50' },
+  { slot: 'T2', start: '13:50', end: '14:40' },
+  { slot: 'T3', start: '14:40', end: '15:30' },
+  { slot: 'T4', start: '15:45', end: '16:35' },
+  { slot: 'T5', start: '16:35', end: '17:25' },
+  { slot: 'T6', start: '17:25', end: '18:15' },
+  { slot: 'N1', start: '18:40', end: '19:30' },
+  { slot: 'N2', start: '19:30', end: '20:20' },
+  { slot: 'N3', start: '20:35', end: '21:25' },
+  { slot: 'N4', start: '21:25', end: '22:15' },
+];
+
+/** Horário oficial de um slot — undefined = slot fora da grade (nada inventado). */
 export function slotTimeOf(slot: string): WeeklySlotTime | undefined {
-  return weeklySchedule.slotTimes.find((s) => s.slot === slot);
+  return classSlotTimes.find((s) => s.slot === slot);
 }
+
+// ---------------------------------------------------------------------------
+// TODOS OS PERÍODOS — as grades P2..P6 (consulta; o dono está no P1).
+// Mesma fonte oficial; salas exatamente como publicadas pelo campus.
+// ---------------------------------------------------------------------------
+
+export interface WeeklyGrade {
+  id: string; // 'P1'..'P6'
+  turma: string; // 'P1 - ADS'
+  turno: string; // 'Manhã' | 'Tarde'
+  turnoCode: 'M' | 'T';
+  intervalo: string;
+  /** true na turma DO DONO (P1) — fonte de "próxima aula" e dos cronogramas. */
+  ativa: boolean;
+  dias: WeeklyClassDay[];
+}
+
+export const weeklySchedules: WeeklyGrade[] = [
+  {
+    id: 'P1',
+    turma: 'P1 - ADS',
+    turno: 'Manhã',
+    turnoCode: 'M',
+    intervalo: '09:30–09:45',
+    ativa: true,
+    dias: [
+      { dow: 1, label: 'Segunda', slots: weeklySchedule.dias[0].slots },
+      { dow: 2, label: 'Terça', slots: weeklySchedule.dias[1].slots },
+      { dow: 3, label: 'Quarta', slots: weeklySchedule.dias[2].slots },
+      { dow: 4, label: 'Quinta', slots: weeklySchedule.dias[3].slots },
+      { dow: 5, label: 'Sexta', slots: weeklySchedule.dias[4].slots },
+    ],
+  },
+  {
+    id: 'P2',
+    turma: 'P2 - ADS',
+    turno: 'Tarde',
+    turnoCode: 'T',
+    intervalo: '15:30–15:45',
+    ativa: false,
+    dias: [
+      { dow: 1, label: 'Segunda', slots: [
+        { slot: 'T1', label: 'Gerência de Config.', room: 'LAB-INF4' },
+        { slot: 'T2', label: 'Gerência de Config.', room: 'LAB-INF4' },
+        { slot: 'T3', label: 'Estruturas de Dados', room: 'S19' },
+        { slot: 'T4', label: 'Estruturas de Dados', room: 'S19' },
+        { slot: 'T5', label: 'Estruturas de Dados', room: 'S19' },
+      ] },
+      { dow: 2, label: 'Terça', slots: [
+        { slot: 'T1', label: 'Probabilidade e Estat.', room: 'S19' },
+        { slot: 'T2', label: 'Probabilidade e Estat.', room: 'S19' },
+        { slot: 'T3', label: 'Inclusão Digital e Social', room: 'S19' },
+        { slot: 'T4', label: 'Inclusão Digital e Social', room: 'S19' },
+        { slot: 'T5', label: 'Inclusão Digital e Social', room: 'S19' },
+      ] },
+      { dow: 3, label: 'Quarta', slots: [
+        { slot: 'T1', label: 'Probabilidade e Estat.', room: 'S19' },
+        { slot: 'T2', label: 'Probabilidade e Estat.', room: 'S19' },
+        { slot: 'T3', label: 'Estruturas de Dados', room: 'S19' },
+        { slot: 'T4', label: 'Estruturas de Dados', room: 'S19' },
+        { slot: 'T5', label: 'Estruturas de Dados', room: 'S19' },
+      ] },
+      { dow: 4, label: 'Quinta', slots: [
+        { slot: 'T1', label: 'Metodologia Científica', room: 'S19' },
+        { slot: 'T2', label: 'Metodologia Científica', room: 'S19' },
+        { slot: 'T3', label: 'Sistemas Operacionais', room: 'S19' },
+        { slot: 'T4', label: 'Sistemas Operacionais', room: 'S19' },
+        { slot: 'T5', label: 'Sistemas Operacionais', room: 'S19' },
+      ] },
+      { dow: 5, label: 'Sexta', slots: [
+        { slot: 'T1', label: 'Sistemas Operacionais', room: 'S19' },
+        { slot: 'T2', label: 'Linguagens', room: 'LAB-INF4' },
+        { slot: 'T3', label: 'Linguagens', room: 'LAB-INF4' },
+        { slot: 'T4', label: 'Linguagens', room: 'LAB-INF4' },
+        { slot: 'T5', label: 'Linguagens', room: 'LAB-INF4' },
+      ] },
+    ],
+  },
+  {
+    id: 'P3',
+    turma: 'P3 - ADS',
+    turno: 'Manhã',
+    turnoCode: 'M',
+    intervalo: '09:30–09:45',
+    ativa: false,
+    dias: [
+      { dow: 1, label: 'Segunda', slots: [
+        { slot: 'M1', label: 'Programação Orientada', room: 'LAB-INF5' },
+        { slot: 'M2', label: 'Programação Orientada', room: 'LAB-INF5' },
+        { slot: 'M3', label: 'Programação Orientada', room: 'LAB-INF5' },
+        { slot: 'M4', label: 'Bancos I', room: 'S03' },
+        { slot: 'M5', label: 'Bancos I', room: 'S03' },
+      ] },
+      { dow: 2, label: 'Terça', slots: [
+        { slot: 'M1', label: 'Programação Orientada', room: 'LAB-INF5' },
+        { slot: 'M2', label: 'Programação Orientada', room: 'LAB-INF5' },
+        { slot: 'M3', label: 'Programação Orientada', room: 'LAB-INF5' },
+        { slot: 'M4', label: 'Fund. Engenharia', room: 'LAB-INF6' },
+        { slot: 'M5', label: 'Fund. Engenharia', room: 'LAB-INF6' },
+      ] },
+      { dow: 3, label: 'Quarta', slots: [
+        { slot: 'M1', label: 'Relações e Direitos', room: 'S03' },
+        { slot: 'M2', label: 'Relações e Direitos', room: 'S03' },
+        { slot: 'M3', label: 'Fund. Engenharia', room: 'LAB-INF6' },
+        { slot: 'M4', label: 'Fund. Engenharia', room: 'LAB-INF6' },
+        { slot: 'M5', label: 'Fund. Engenharia', room: 'LAB-INF6' },
+      ] },
+      { dow: 4, label: 'Quinta', slots: [
+        { slot: 'M1', label: 'Bancos I', room: 'S03' },
+        { slot: 'M2', label: 'Bancos I', room: 'S03' },
+        { slot: 'M3', label: 'Redes', room: 'LAB-INF6' },
+        { slot: 'M4', label: 'Redes', room: 'LAB-INF6' },
+        { slot: 'M5', label: 'Redes', room: 'LAB-INF6' },
+      ] },
+      { dow: 5, label: 'Sexta', slots: [
+        { slot: 'M1', label: 'Redes', room: 'LAB-INF6' },
+        { slot: 'M2', label: 'Redes', room: 'LAB-INF6' },
+        { slot: 'M3', label: 'Redes', room: 'LAB-INF6' },
+        { slot: 'M4', label: 'Bancos I', room: 'S03' },
+        { slot: 'M5', label: 'Bancos I', room: 'S03' },
+      ] },
+    ],
+  },
+  {
+    id: 'P4',
+    turma: 'P4 - ADS',
+    turno: 'Tarde',
+    turnoCode: 'T',
+    intervalo: '15:30–15:45',
+    ativa: false,
+    dias: [
+      { dow: 1, label: 'Segunda', slots: [
+        { slot: 'T1', label: 'Lab. Engenharia', room: 'LAB-INF5' },
+        { slot: 'T2', label: 'Lab. Engenharia', room: 'LAB-INF5' },
+        { slot: 'T3', label: 'Lab. Engenharia', room: 'LAB-INF5' },
+        { slot: 'T4', label: 'Gerência de Projetos', room: 'LAB-INF5' },
+        { slot: 'T5', label: 'Gerência de Projetos', room: 'LAB-INF5' },
+      ] },
+      { dow: 2, label: 'Terça', slots: [
+        { slot: 'T1', label: 'Bancos II', room: 'LAB-INF5' },
+        { slot: 'T2', label: 'Bancos II', room: 'LAB-INF5' },
+        { slot: 'T3', label: 'Bancos II', room: 'LAB-INF5' },
+        { slot: 'T4', label: 'Lab. Engenharia', room: 'LAB-INF5' },
+        { slot: 'T5', label: 'Lab. Engenharia', room: 'LAB-INF5' },
+      ] },
+      { dow: 3, label: 'Quarta', slots: [
+        { slot: 'T1', label: 'Testes', room: 'LAB-INF5' },
+        { slot: 'T2', label: 'Gerência de Projetos', room: 'LAB-INF5' },
+        { slot: 'T3', label: 'Gerência de Projetos', room: 'LAB-INF5' },
+        { slot: 'T4', label: 'Bancos II', room: 'LAB-INF5' },
+        { slot: 'T5', label: 'Bancos II', room: 'LAB-INF5' },
+      ] },
+      { dow: 4, label: 'Quinta', slots: [
+        { slot: 'T1', label: 'Testes', room: 'LAB-INF5' },
+        { slot: 'T2', label: 'Testes', room: 'LAB-INF5' },
+        { slot: 'T3', label: 'Programação I', room: 'LAB-INF5' },
+        { slot: 'T4', label: 'Programação I', room: 'LAB-INF5' },
+        { slot: 'T5', label: 'Programação I', room: 'LAB-INF5' },
+      ] },
+      { dow: 5, label: 'Sexta', slots: [
+        { slot: 'T1', label: 'Lab. Redes', room: 'LAB-INF6' },
+        { slot: 'T2', label: 'Lab. Redes', room: 'LAB-INF6' },
+        { slot: 'T3', label: 'Lab. Redes', room: 'LAB-INF6' },
+        { slot: 'T4', label: 'Programação I', room: 'LAB-INF5' },
+        { slot: 'T5', label: 'Programação I', room: 'LAB-INF5' },
+      ] },
+    ],
+  },
+  {
+    id: 'P5',
+    turma: 'P5 - ADS',
+    turno: 'Manhã',
+    turnoCode: 'M',
+    intervalo: '09:30–09:45',
+    ativa: false,
+    dias: [
+      { dow: 1, label: 'Segunda', slots: [
+        { slot: 'M1', label: 'Práticas I', room: 'S02' },
+        { slot: 'M2', label: 'Práticas I', room: 'S02' },
+        { slot: 'M3', label: 'Práticas I', room: 'S02' },
+        { slot: 'M4', label: 'Empreendedorismo', room: 'S02' },
+        { slot: 'M5', label: 'Empreendedorismo', room: 'S02' },
+      ] },
+      { dow: 2, label: 'Terça', slots: [
+        { slot: 'M1', label: 'Programação II', room: 'LAB-INF3' },
+        { slot: 'M2', label: 'Programação II', room: 'LAB-INF3' },
+        { slot: 'M3', label: 'Práticas I', room: 'S02' },
+        { slot: 'M4', label: 'Práticas I', room: 'S02' },
+        { slot: 'M5', label: 'Práticas I', room: 'S02' },
+      ] },
+      { dow: 3, label: 'Quarta', slots: [
+        { slot: 'M1', label: 'Arquitetura', room: 'S02 + LAB-INF6' },
+        { slot: 'M2', label: 'Arquitetura', room: 'S02 + LAB-INF6' },
+        { slot: 'M3', label: 'Empreendedorismo', room: 'S02' },
+        { slot: 'M4', label: 'Gestão de Tecnologia', room: 'S02 + LAB-INF5' },
+        { slot: 'M5', label: 'Gestão de Tecnologia', room: 'S02 + LAB-INF5' },
+      ] },
+      { dow: 4, label: 'Quinta', slots: [
+        { slot: 'M1', label: 'Segurança', room: 'LAB-INF6' },
+        { slot: 'M2', label: 'Segurança', room: 'LAB-INF6' },
+        { slot: 'M3', label: 'Programação II', room: 'LAB-INF3' },
+        { slot: 'M4', label: 'Programação II', room: 'LAB-INF3' },
+        { slot: 'M5', label: 'Programação II', room: 'LAB-INF3' },
+      ] },
+      { dow: 5, label: 'Sexta', slots: [
+        { slot: 'M1', label: 'Arquitetura', room: 'S02 + LAB-INF2' },
+        { slot: 'M2', label: 'Arquitetura', room: 'S02 + LAB-INF2' },
+        { slot: 'M3', label: 'Arquitetura', room: 'S02 + LAB-INF2' },
+        { slot: 'M4', label: 'Segurança', room: 'LAB-INF6' },
+        { slot: 'M5', label: 'Segurança', room: 'LAB-INF6' },
+      ] },
+    ],
+  },
+  {
+    id: 'P6',
+    turma: 'P6 - ADS',
+    turno: 'Tarde',
+    turnoCode: 'T',
+    intervalo: '15:30–15:45',
+    ativa: false,
+    dias: [
+      { dow: 1, label: 'Segunda', slots: [
+        { slot: 'T1', label: 'Sistemas Distribuídos', room: 'S02 + LAB-INF6' },
+        { slot: 'T2', label: 'Sistemas Distribuídos', room: 'S02 + LAB-INF6' },
+        { slot: 'T3', label: 'Sistemas Distribuídos', room: 'S02 + LAB-INF6' },
+        { slot: 'T4', label: 'Desenvolvimento Web', room: 'S02 + LAB-INF6' },
+        { slot: 'T5', label: 'Desenvolvimento Web', room: 'S02 + LAB-INF6' },
+      ] },
+      { dow: 2, label: 'Terça', slots: [
+        { slot: 'T1', label: 'Desenvolvimento Web', room: 'S02 + LAB-INF6' },
+        { slot: 'T2', label: 'Desenvolvimento Web', room: 'S02 + LAB-INF6' },
+        { slot: 'T3', label: 'Desenvolvimento Web', room: 'S02 + LAB-INF6' },
+        { slot: 'T4', label: 'Prog. p/ Dispositivos', room: 'LAB-INF6' },
+        { slot: 'T5', label: 'Prog. p/ Dispositivos', room: 'LAB-INF6' },
+      ] },
+      { dow: 3, label: 'Quarta', slots: [
+        { slot: 'T1', label: 'Prog. p/ Dispositivos', room: 'LAB-INF6' },
+        { slot: 'T2', label: 'Prog. p/ Dispositivos', room: 'LAB-INF6' },
+      ] },
+      { dow: 4, label: 'Quinta', slots: [
+        { slot: 'T1', label: 'Práticas II', room: 'S02' },
+        { slot: 'T2', label: 'Práticas II', room: 'S02' },
+        { slot: 'T3', label: 'Práticas II', room: 'S02' },
+        { slot: 'T4', label: 'Interação Humano-Comp.', room: 'S02 + LAB-INF6' },
+        { slot: 'T5', label: 'Interação Humano-Comp.', room: 'S02 + LAB-INF6' },
+      ] },
+      { dow: 5, label: 'Sexta', slots: [
+        { slot: 'T1', label: 'Interação Humano-Comp.', room: 'S02 + LAB-INF5' },
+        { slot: 'T2', label: 'Interação Humano-Comp.', room: 'S02 + LAB-INF5' },
+        { slot: 'T3', label: 'Práticas II', room: 'S02' },
+        { slot: 'T4', label: 'Práticas II', room: 'S02' },
+        { slot: 'T5', label: 'Práticas II', room: 'S02' },
+      ] },
+    ],
+  },
+];
 
 export interface NextClassInfo {
   /** Date real da aula (dia + hora de início). */
@@ -1338,13 +1618,18 @@ export interface NextClassInfo {
 
 /**
  * A próxima aula da grade oficial a partir de `now` (aula que ainda vai
- * começar — aula em curso não conta). Pura no `now`, nada lê storage.
+ * começar — aula em curso não conta). Por padrão usa a turma do dono (P1);
+ * para consulta, aceita qualquer grade (ex.: ver a próxima do P3).
+ * Pura no `now`, nada lê storage.
  */
-export function nextClassFrom(now: Date): NextClassInfo | null {
+export function nextClassFrom(
+  now: Date,
+  grade: { dias: WeeklyClassDay[] } = weeklySchedule,
+): NextClassInfo | null {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   for (let offset = 0; offset < 8; offset++) {
     const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
-    const dia = weeklySchedule.dias.find((d) => d.dow === day.getDay());
+    const dia = grade.dias.find((d) => d.dow === day.getDay());
     if (!dia || dia.slots.length === 0) continue;
     for (const s of dia.slots) {
       const t = slotTimeOf(s.slot);
@@ -1364,6 +1649,75 @@ export function nextClassFrom(now: Date): NextClassInfo | null {
     }
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// A INTELIGÊNCIA DA GRADE — o que o site faz com os horários oficiais:
+//   · cronogramas de estudo que RESPEITAM a aula (smart-schedule.ts usa
+//     classWindowForDay para não marcar estudo em cima do 07:00–11:25);
+//   · "quando são as aulas de X" por disciplina (detalhe da disciplina);
+//   · aula em curso agora (banner honesto no card da grade).
+// ---------------------------------------------------------------------------
+
+/** Janela de aula de um dia da semana (minutos do dia) — null = sem aula. */
+export function classWindowForDay(
+  dow: number,
+  grade: { dias: WeeklyClassDay[] } = weeklySchedule,
+): { startMin: number; endMin: number } | null {
+  const dia = grade.dias.find((d) => d.dow === dow);
+  if (!dia || dia.slots.length === 0) return null;
+  const first = slotTimeOf(dia.slots[0].slot);
+  const last = slotTimeOf(dia.slots[dia.slots.length - 1].slot);
+  if (!first || !last) return null;
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  return { startMin: toMin(first.start), endMin: toMin(last.end) };
+}
+
+/** Aula em curso AGORA (ou a até 15 min de começar) — para avisos honestos. */
+export function classHappeningNow(
+  now: Date,
+  grade: { dias: WeeklyClassDay[] } = weeklySchedule,
+): { label: string; room: string; endsAt: string } | null {
+  const cw = classWindowForDay(now.getDay(), grade);
+  if (!cw) return null;
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const dia = grade.dias.find((d) => d.dow === now.getDay())!;
+  for (const s of dia.slots) {
+    const t = slotTimeOf(s.slot);
+    if (!t) continue;
+    const toMin = (x: string) => Number(x.slice(0, 2)) * 60 + Number(x.slice(3, 5));
+    const start = toMin(t.start);
+    const end = toMin(t.end);
+    if (cur >= start - 15 && cur < end) {
+      return { label: s.label, room: s.room, endsAt: t.end };
+    }
+  }
+  void cw;
+  return null;
+}
+
+export interface DisciplineClassInfo {
+  dowLabel: string;
+  start: string;
+  end: string;
+  room: string;
+}
+
+/** "Quando são as aulas de X" na grade ativa — ex.: RHT → Quarta 08:40–11:25 · S19. */
+export function classSlotsForDiscipline(
+  code: string,
+  grade: { dias: WeeklyClassDay[] } = weeklySchedule,
+): DisciplineClassInfo[] {
+  const out: DisciplineClassInfo[] = [];
+  for (const dia of grade.dias) {
+    const mine = dia.slots.filter((s) => s.disciplineCode === code);
+    if (mine.length === 0) continue;
+    const first = slotTimeOf(mine[0].slot);
+    const last = slotTimeOf(mine[mine.length - 1].slot);
+    if (!first || !last) continue;
+    out.push({ dowLabel: dia.label, start: first.start, end: last.end, room: mine[0].room });
+  }
+  return out;
 }
 
 export function getDisciplineByCode(code: string): Discipline | undefined {

@@ -1,27 +1,30 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarDays, Clock, MapPin } from 'lucide-react';
+import { CalendarDays, Clock, GraduationCap, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
   weeklySchedule,
+  weeklySchedules,
   nextClassFrom,
   slotTimeOf,
   getDisciplineByCode,
   type WeeklyClassDay,
-  type WeeklyClassSlot,
+  type WeeklyGrade,
 } from '@/data/course-data';
-import { getColorClasses } from '@/lib/discipline-colors';
+import { getColorClasses, type DisciplineColor } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 
 // WeeklyScheduleCard — A GRADE OFICIAL DE AULAS no dashboard (Task 216,
-// pedido do dono: "você não puxou os horários? horarios.ifpb.edu.br/cajazeiras
-// nesse site tem perfeitamente de todos os períodos").
+// pedido do dono: "você não puxou os horários?"; Task 217: "não procure só
+// RHT, puxe os horários semanais completos POR PERÍODO").
 //
-// A casa agora sabe QUANDO cada aula acontece: a semana real da turma
-// (P1 ADS, manhã, salas oficiais), HOJE destacado, a PRÓXIMA AULA apontada —
-// e é daqui que saem datas como a da atividade escrita da RHT (quarta,
-// M3–M5, S19), anunciada "para a próxima aula".
+// A casa sabe QUANDO cada aula acontece — de TODOS os períodos do ADS:
+//  · P1 (turma do dono): "próxima aula" real, coluna de hoje, e é daqui que
+//    saem datas de avaliações "na próxima aula" (RHT = quarta, M3–M5, S19);
+//  · P2..P6: consulta — como será a semana nos períodos à frente;
+//  · e o CRONOGRAMA DE ESTUDO obedece à grade (smart-schedule.ts começa
+//    os blocos DEPOIS da última aula nos dias letivos).
 //
 // Render-time puro (lição do radar): o relógio só existe depois do mount —
 // SSR e 1º render dividem o neutro, nada de hidratação brigando.
@@ -32,14 +35,21 @@ interface MergedBlock {
   label: string;
   room: string;
   color: string;
-  short: string;
   slots: string[];
   isNext: boolean;
 }
 
+/** Paleta giratória para disciplinas de períodos futuros (sem code na casa). */
+const FUTURE_COLORS: DisciplineColor[] = ['violet', 'teal', 'cyan', 'orange', 'rose', 'emerald'];
+function colorForLabel(label: string): string {
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+  return FUTURE_COLORS[h % FUTURE_COLORS.length];
+}
+
 /** Mescla slots consecutivos da mesma disciplina num bloco (ex.: RHT M3–M5). */
-function dayBlocks(day: WeeklyClassDay, now: Date): MergedBlock[] {
-  const next = nextClassFrom(now);
+function dayBlocks(day: WeeklyClassDay, now: Date, grade: WeeklyGrade): MergedBlock[] {
+  const next = grade.ativa ? nextClassFrom(now) : null;
   const blocks: MergedBlock[] = [];
   for (const s of day.slots) {
     const t = slotTimeOf(s.slot);
@@ -55,8 +65,7 @@ function dayBlocks(day: WeeklyClassDay, now: Date): MergedBlock[] {
         end: t.end,
         label: s.label,
         room: s.room,
-        color: disc?.color ?? 'slate',
-        short: disc?.shortName ?? s.label,
+        color: disc?.color ?? colorForLabel(s.label),
         slots: [s.slot],
         isNext: false,
       });
@@ -72,12 +81,14 @@ function dayBlocks(day: WeeklyClassDay, now: Date): MergedBlock[] {
 
 export function WeeklyScheduleCard() {
   const [now, setNow] = React.useState<Date | null>(null);
+  const [gradeId, setGradeId] = React.useState('P1');
   React.useEffect(() => setNow(new Date()), []);
 
   if (!now) return null;
 
+  const grade = weeklySchedules.find((g) => g.id === gradeId) ?? weeklySchedule;
   const todayDow = now.getDay();
-  const next = nextClassFrom(now);
+  const next = grade.ativa ? nextClassFrom(now) : null;
 
   const quando = next
     ? next.daysLeft === 0
@@ -95,12 +106,46 @@ export function WeeklyScheduleCard() {
           Grade de aulas
         </h2>
         <span className="text-xs text-muted-foreground" data-t="grade-turma">
-          {weeklySchedule.turma} · {weeklySchedule.turno} · 2026.2
+          {grade.turma} · {grade.turno} · 2026.2
         </span>
       </div>
       <p className="mt-0.5 text-sm text-muted-foreground">
-        A semana real do campus — quando cada aula acontece, com sala oficial.
+        {grade.ativa
+          ? 'A semana real do campus — quando cada aula acontece, com sala oficial.'
+          : 'Consulta — a semana dos períodos à frente. Seu cronograma obedece à grade do P1.'}
       </p>
+
+      {/* Seletor de período — "por período", pedido do dono */}
+      <div
+        className="mt-3 flex flex-wrap items-center gap-1.5"
+        role="tablist"
+        aria-label="Período da grade"
+        data-t="grade-seletor"
+      >
+        {weeklySchedules.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            role="tab"
+            aria-selected={g.id === gradeId}
+            onClick={() => setGradeId(g.id)}
+            className={cn(
+              'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+              g.id === gradeId
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+            )}
+            title={g.ativa ? 'Sua turma' : `Consulta — ${g.turma}`}
+          >
+            {g.id}
+            {g.ativa ? ' ★' : ''}
+          </button>
+        ))}
+        <span className="ml-1 hidden items-center gap-1 text-[11px] text-muted-foreground sm:inline-flex">
+          <GraduationCap className="size-3" aria-hidden />
+          {grade.ativa ? 'sua turma' : 'período futuro'}
+        </span>
+      </div>
 
       {next && quando && (
         <p
@@ -120,9 +165,9 @@ export function WeeklyScheduleCard() {
 
       <div className="mt-4 overflow-x-auto pb-1" data-t="grade-semana">
         <div className="grid min-w-[660px] grid-cols-5 gap-2">
-          {weeklySchedule.dias.map((day) => {
+          {grade.dias.map((day) => {
             const isToday = day.dow === todayDow;
-            const blocks = dayBlocks(day, now);
+            const blocks = dayBlocks(day, now, grade);
             const labelCurto = day.label.slice(0, 3);
             return (
               <div
@@ -153,7 +198,7 @@ export function WeeklyScheduleCard() {
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  {blocks.map((b, i) => {
+                  {blocks.map((b) => {
                     const c = getColorClasses(b.color);
                     return (
                       <div
@@ -162,16 +207,12 @@ export function WeeklyScheduleCard() {
                           'rounded-lg border-l-2 px-1.5 py-1',
                           c.border,
                           c.bgSoft,
-                          b.isNext &&
-                            'ring-1 ring-amber-500/60 dark:ring-amber-400/50',
+                          b.isNext && 'ring-1 ring-amber-500/60 dark:ring-amber-400/50',
                         )}
                         data-t={b.isNext ? 'aula-proxima' : undefined}
                       >
                         <p
-                          className={cn(
-                            'truncate text-[11px] font-semibold leading-tight',
-                            c.text,
-                          )}
+                          className={cn('truncate text-[11px] font-semibold leading-tight', c.text)}
                           title={`${b.label} · ${b.start}–${b.end} · ${b.room}`}
                         >
                           {b.label}
@@ -203,15 +244,14 @@ export function WeeklyScheduleCard() {
       <p className="mt-3 text-xs text-muted-foreground/80">
         Fonte:{' '}
         <a
-          href={`https://${weeklySchedule.fonte}/`}
+          href="https://horarios.ifpb.edu.br/cajazeiras/"
           target="_blank"
           rel="noreferrer"
           className="underline decoration-dotted underline-offset-2 hover:text-foreground"
         >
-          {weeklySchedule.fonte}
+          horarios.ifpb.edu.br/cajazeiras
         </a>{' '}
-        · conferida em {weeklySchedule.conferidaEm.split('-').reverse().join('/')} · intervalo{' '}
-        {weeklySchedule.intervalo}
+        · conferida em 14/10/2026 · intervalo {grade.intervalo}
       </p>
     </Card>
   );
