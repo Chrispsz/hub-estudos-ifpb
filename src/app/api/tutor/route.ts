@@ -7,6 +7,10 @@
 //  1º Google Gemini (chave SALVA na casa — dado do dono no banco, Task 214,
 //     lida a CADA requisição via getEffectiveGeminiConfig(); sem chave salva,
 //     cai para a env GEMINI_API_KEY/GOOGLE_AI_API_KEY)
+//     COMBUSTÍVEL (Task 218): antes de chamar, o roteador lê o uso do dia vs
+//     os limites reais da key (painel do AI Studio — lib/ai-quota.ts) e PULA
+//     o modelo sem saldo; 429 visto marca o balde exausto. O 429 nunca mais
+//     chega até o usuário: quem responde é o próximo com combustível.
 //                                          — RECOMENDADO: key grátis no AI Studio
 //                                            (aistudio.google.com/app/apikey, sem cartão),
 //                                            tier grátis com VISÃO nativa + forte em matemática/LaTeX.
@@ -51,6 +55,14 @@ export const maxDuration = 60;
 
 import { db } from '@/lib/db';
 import { getEffectiveGeminiConfig } from '@/lib/ai-settings';
+import {
+  fuelPanel,
+  isQuotaError,
+  markExhaustedToday,
+  pickWithFuel,
+  recordAiUse,
+  QUOTA_SOURCE,
+} from '@/lib/ai-quota';
 import { buildCourseBaseContext, buildCourseBaseShort } from '@/lib/tutor-course-base';
 import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
@@ -936,11 +948,12 @@ async function transcribeImage(dataUrl: string, userNote: string): Promise<strin
   const instruction = buildTranscriptionInstruction(userNote);
   const errors: string[] = [];
 
-  // 1º — Gemini: 1 key grátis resolve visão + texto na Vercel (salva na casa → env)
+  // 1º — Gemini: 1 key grátis resolve visão + texto na Vercel (salva na casa → env).
+  // Combustível (218): pula balde exausto ANTES de tentar; sucesso conta, 429 marca.
   const geminiCfg = await getEffectiveGeminiConfig();
   const gKey = geminiCfg.key;
   if (gKey) {
-    for (const model of geminiCfg.model) {
+    for (const model of await pickWithFuel(geminiCfg.model)) {
       try {
         const out = await callGemini(
           model,
@@ -951,9 +964,14 @@ async function transcribeImage(dataUrl: string, userNote: string): Promise<strin
           undefined,
           dataUrl,
         );
-        if (out) return out;
+        if (out) {
+          void recordAiUse(model);
+          return out;
+        }
       } catch (err) {
-        errors.push(`gemini/${model}: ${err instanceof Error ? err.message : err}`);
+        const msg = err instanceof Error ? err.message : String(err);
+        if (isQuotaError(msg)) void markExhaustedToday(model);
+        errors.push(`gemini/${model}: ${msg}`);
       }
     }
   }
@@ -1283,9 +1301,14 @@ export async function GET(req: Request) {
   if (params.get('probe')) return probeProviders(params.get('geminiModel'));
   const vision = await visionProviderLabel();
   const geminiCfg = await getEffectiveGeminiConfig();
+  // Painel de combustível (218): uso de hoje vs os limites reais da key do dono
+  // (fonte citada no payload — a UI mostra e a casa roteia por esses números).
+  const fuel = geminiCfg.key ? await fuelPanel(geminiCfg.model) : [];
   return Response.json({
     provider: 'gemini → openrouter → z.ai público → sdk local (primeiro disponível)',
     vision: vision ?? 'não configurada — salve a key grátis do Gemini (aistudio.google.com) em Configurações → Inteligência da casa para ler prints',
+    fuel,
+    fuelSource: QUOTA_SOURCE,
     chains: {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
       flashcards: MODEL_CHAIN.flashcards.map((id) => ({ id, label: prettyModelName(id) })),
@@ -1541,9 +1564,10 @@ export async function POST(req: Request) {
 
           try {
             // 0º: Gemini (chave salva na casa → env; visão nativa + matemática forte)
+            // Combustível (218): a lista chega JÁ sem os baldes queimados do dia.
             const gKeyStream = geminiCfg.key;
             if (gKeyStream) {
-              for (const model of geminiCfg.model) {
+              for (const model of await pickWithFuel(geminiCfg.model)) {
                 if (answer || Date.now() > deadline - 8_000) break;
                 const t0 = Date.now();
                 try {
@@ -1556,11 +1580,14 @@ export async function POST(req: Request) {
                     (piece) => send({ t: 'delta', v: piece }),
                   );
                   usedModel = prettyModelName(model);
+                  void recordAiUse(model);
                   console.log(`[api/tutor] ${model} (stream) → ${Date.now() - t0}ms`);
                 } catch (err) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  if (isQuotaError(msg)) void markExhaustedToday(model);
                   console.warn(
                     `[api/tutor] modelo ${model} falhou (stream) em ${Date.now() - t0}ms:`,
-                    err instanceof Error ? err.message : err,
+                    msg,
                   );
                 }
               }
@@ -1681,19 +1708,20 @@ export async function POST(req: Request) {
     let usedModel = '';
 
     // 0º: Google Gemini (chave salva na casa → env; visão nativa + matemática forte)
+    // Combustível (218): mesmo tratamento do stream — pula balde seco, conta uso.
     if (geminiKey) {
-      for (const model of geminiCfg.model) {
+      for (const model of await pickWithFuel(geminiCfg.model)) {
         const t0 = Date.now();
         try {
           answer = await callGemini(model, geminiKey, systemPrompt, history, effectiveQuestion);
           usedModel = prettyModelName(model);
+          void recordAiUse(model);
           console.log(`[api/tutor] ${model} → ${Date.now() - t0}ms`);
           break;
         } catch (err) {
-          console.warn(
-            `[api/tutor] modelo ${model} falhou em ${Date.now() - t0}ms:`,
-            err instanceof Error ? err.message : err,
-          );
+          const msg = err instanceof Error ? err.message : String(err);
+          if (isQuotaError(msg)) void markExhaustedToday(model);
+          console.warn(`[api/tutor] modelo ${model} falhou em ${Date.now() - t0}ms:`, msg);
         }
       }
     }

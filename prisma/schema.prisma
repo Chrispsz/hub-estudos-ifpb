@@ -36,3 +36,20 @@ model TutorMessage {
 
   @@index([discipline, createdAt])
 }
+
+// Painel de combustível (Task 218) — uso DIÁRIO por modelo da key do dono.
+// Uma linha por (modelo, dia). O roteador do tutor lê ANTES de chamar o Gemini
+// e pula o modelo que já queimou o RPD do painel "Limites de taxa" do AI
+// Studio (limites reais conferidos pelo dono em 14/10/2026) — assim o 429
+// nunca chega: o próximo elo assume ANTES da falha, não depois.
+model AiUsage {
+  id        String   @id @default(cuid())
+  model     String // chave de quota (ex.: gemini-3.8-flash; aliases resolvem p/ o id real)
+  day       String // "AAAA-MM-DD" no fuso America/Sao_Paulo (RPD do Google reseta à meia-noite PT — aproximação de 1h)
+  count     Int      @default(0) // requisições registradas hoje
+  exhausted Boolean  @default(false) // 429/RESOURCE_EXHAUSTED visto hoje → pular até o dia virar
+  updatedAt DateTime @updatedAt
+
+  @@unique([model, day])
+  @@index([day])
+}

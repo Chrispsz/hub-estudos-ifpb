@@ -29,6 +29,7 @@ import {
   Volume2,
   VolumeX,
   XCircle,
+  Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -723,6 +724,12 @@ function AiInfoCard() {
   const [visionTest, setVisionTest] = React.useState<VisionTestState | null>(null);
   const visionInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Painel de combustível (218): uso de hoje vs limites reais da key (AI Studio).
+  const [fuel, setFuel] = React.useState<
+    { id: string; quotaKey: string; tier: string; limit: number | null; used: number; exhausted: boolean }[]
+  >([]);
+  const [fuelSource, setFuelSource] = React.useState<string | null>(null);
+
   const visionAtiva = Boolean(vision && !vision.startsWith('somente'));
 
   /** Info viva do tutor (provedores/visão) — ao abrir e após salvar/remover a chave. */
@@ -733,6 +740,8 @@ function AiInfoCard() {
         if (d?.chains) setChains(d.chains);
         if (d?.providers) setProviders(d.providers);
         if (typeof d?.vision === 'string') setVision(d.vision);
+        if (Array.isArray(d?.fuel)) setFuel(d.fuel);
+        if (typeof d?.fuelSource === 'string') setFuelSource(d.fuelSource);
       })
       .catch(() => {});
   }, []);
@@ -833,8 +842,9 @@ function AiInfoCard() {
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">
           O tutor, a leitura de prints e o gerador de flashcards rodam em modelos <b>gratuitos</b>{' '}
-          com fallback automático: se um atingir o limite diário, o próximo assume instantaneamente
-          — sem erro para você.
+          com fallback automático <b>ciente de combustível</b>: os limites reais da sua key são
+          vigiados — quando um modelo chega perto do teto diário, o próximo assume <b>antes</b> do
+          429. Sem erro para você, sem interrupção para a casa.
         </p>
 
         {providers && (
@@ -997,6 +1007,76 @@ function AiInfoCard() {
                 </>
               ) : null}
             </div>
+          </div>
+        )}
+
+        {/* COMBUSTÍVEL DE HOJE (218): os limites reais da key do dono (painel
+            "Limites de taxa" do AI Studio) + o que a casa registrou hoje. O
+            roteador pula o balde seco ANTES do 429 — "sem interrupções" virou
+            engenharia, não promessa. */}
+        {providers?.gemini && fuel.length > 0 && (
+          <div className="rounded-lg border p-3" aria-live="polite">
+            <p className="flex items-center gap-1.5 text-xs font-semibold">
+              <Gauge className="size-3.5 text-violet-500" aria-hidden />
+              Combustível de hoje — limites reais da sua key
+            </p>
+            <div className="mt-2 space-y-2.5">
+              {fuel.map((f) => {
+                const pct = f.limit ? Math.min(100, Math.round((f.used / f.limit) * 100)) : 0;
+                const bar =
+                  f.exhausted || pct >= 100
+                    ? 'bg-destructive'
+                    : pct >= 60
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500';
+                return (
+                  <div key={f.id}>
+                    <div className="flex items-baseline justify-between gap-2 text-[11px]">
+                      <span className="font-medium">
+                        {f.quotaKey
+                          .split('-')
+                          .map((w) =>
+                            /^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1),
+                          )
+                          .join(' ')}
+                        {f.id !== f.quotaKey && (
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                            via {f.id}
+                          </span>
+                        )}
+                        <span className="ml-1.5 text-muted-foreground">
+                          ({f.tier === 'premium' ? 'o mais capaz · 20/dia' : f.tier === 'workhorse' ? 'o trabalhador' : 'extra'})
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          'font-mono',
+                          f.exhausted ? 'text-destructive' : 'text-muted-foreground',
+                        )}
+                      >
+                        {f.used}/{f.limit ?? '—'}
+                        {f.exhausted ? ' · exausto — próximo assume' : ''}
+                      </span>
+                    </div>
+                    {f.limit ? (
+                      <div
+                        className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
+                        role="presentation"
+                      >
+                        <div
+                          className={cn('h-full rounded-full transition-all', bar)}
+                          style={{ width: `${Math.max(pct, f.used > 0 ? 3 : 0)}%` }}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Quando um modelo seca, o próximo da cadeia assume <b>antes</b> do 429 — premium para
+              o difícil, lite (500/dia) para o volume. {fuelSource ?? ''}
+            </p>
           </div>
         )}
 
