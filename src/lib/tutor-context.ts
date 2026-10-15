@@ -30,6 +30,9 @@ import {
 import { flashcardsDueFor, type useStudyProgress } from '@/lib/study-progress';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { getExerciseStats } from '@/lib/exercise-extractor';
+import { computeTriage } from '@/lib/study-triage';
+import { escadaPosicao } from '@/lib/content-strategy';
+import { suggestPractice, superficieLabel } from '@/lib/practice-methods';
 
 /** Dados do app que o front envia ao /api/tutor (contrato do route.ts). */
 export interface HubEvaluation {
@@ -45,6 +48,19 @@ export interface HubEvent {
   name: string;
   date: string;
   daysLeft: number;
+}
+
+/**
+ * Fila essencial do MOTOR (Task 219) — o app já decidiu o que priorizar hoje
+ * (datas oficiais + tipo de avaliação + dívida de prática + escada de conteúdo
+ * + método com evidência). O tutor alinha planos e respostas a esta fila.
+ */
+export interface HubPriority {
+  disciplina: string;
+  motivo: string;
+  metodo?: string;
+  superficie?: string;
+  proximoPasso?: string;
 }
 
 export interface HubStudentStats {
@@ -105,6 +121,8 @@ export interface HubContext {
   upcomingEvents?: HubEvent[];
   studentStats?: HubStudentStats;
   examWeek?: HubExamWeek;
+  /** Fila essencial do motor — o "o quê" já decidido; o tutor cuida do "como". */
+  prioridades?: HubPriority[];
 }
 
 type StudyProgressReturn = ReturnType<typeof useStudyProgress>;
@@ -120,6 +138,57 @@ function readLocalMap(key: string): Record<string, boolean> {
       : {};
   } catch {
     return {};
+  }
+}
+
+/**
+ * A fila essencial do motor (Task 219) — a MESMA triagem do TriageCard,
+ * enriquecida com a escada de conteúdo e o método de prática. O tutor passa a
+ * RESPONDER em sintonia com o que o app já decidiu: "o quê" vem daqui, o
+ * "como" é onde a IA contribui. Falha silenciosa → undefined (nunca quebra o
+ * pedido do tutor por causa da fila).
+ */
+function buildPriorities(sp: StudyProgressReturn): HubPriority[] | undefined {
+  try {
+    if (typeof window === 'undefined') return undefined;
+    const triage = computeTriage({
+      topicProgress: sp.progress.topicProgress,
+      disciplineProgress: sp.progress.disciplineProgress,
+      customEvaluations: sp.progress.customEvaluations,
+      now: new Date(),
+    });
+    return triage.foco.slice(0, 3).map((e) => {
+      const d = getDisciplineByCode(e.code);
+      let metodo: string | undefined;
+      let superficie: string | undefined;
+      let proximoPasso: string | undefined;
+      if (d) {
+        const all = d.conteudoProgramatico.flatMap((u) => u.topicos);
+        const feitos = all.filter((t) => sp.progress.topicProgress[e.code]?.[t] === true).length;
+        const sug = suggestPractice({
+          d,
+          evalKind: e.eval?.kind,
+          evalDaysLeft: e.eval?.daysLeft,
+          debtDays: e.debtDays,
+          topicosFeitos: feitos,
+          topicosTotal: all.length,
+          nuncaPraticou: !sp.progress.disciplineProgress[e.code]?.lastStudiedAt,
+        });
+        metodo = sug.method.nome;
+        superficie = superficieLabel(sug.method.superficie);
+        proximoPasso = sug.primeiroPasso;
+      }
+      const pos = d ? escadaPosicao(d, sp.progress.topicProgress[e.code] ?? {}) : null;
+      return {
+        disciplina: e.shortName,
+        motivo: pos ? `${e.reasons[0]} · ${pos.frase}` : e.reasons[0],
+        metodo,
+        superficie,
+        proximoPasso,
+      };
+    });
+  } catch {
+    return undefined;
   }
 }
 
@@ -250,6 +319,7 @@ export function buildHubContext(
     nextEvaluations,
     upcomingEvents: events,
     examWeek,
+    prioridades: buildPriorities(sp),
     studentStats: {
       materialsDone: sp.progress.completedMaterials.length,
       materialsTotal: allMaterials.length,

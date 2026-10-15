@@ -65,6 +65,21 @@ export interface Discipline {
    * períodos futuros herdam o campo, nada é específico de uma fase.
    */
   perfilPratica: 'pratica' | 'mista' | 'teoria';
+  /**
+   * Como o conteúdo da disciplina se constrói (Task 219 camada 2 — dado do
+   * CURSO, vale do 1º ao 6º período):
+   * 'escada'       = unidades se apoiam em sequência (Unidade N pisa na N-1);
+   *                  pular degrau derruba a escada (ex.: Algoritmos);
+   * 'assunto-novo' = acompanha a aula — foco no assunto novo da semana,
+   *                  material anterior só como apoio (ex.: Matemática);
+   * 'acumulo'      = o que veio antes É matéria-prima do que vem agora e das
+   *                  entregas — consolidar o anterior É avançar (ex.: LM);
+   * 'fluencia'     = repetição/produção contínua, sem escada rígida —
+   *                  cadência e FSRS mandam (leitura, escrita, vocabulário).
+   * O motor usa isso para decidir o próximo degrau e SE vale voltar ao
+   * material anterior (pergunta do dono 15/10/2026).
+   */
+  estrategiaConteudo: 'escada' | 'assunto-novo' | 'acumulo' | 'fluencia';
   // Ordem recomendada de estudo (do PDF da ementa/professor)
   ordemEstudo?: string[];
   // Datas importantes mencionadas nos PDFs
@@ -252,6 +267,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'alta',
     perfilPratica: 'pratica', // só aprende codando — prova pode puxar da Lista (289 exercícios)
+    estrategiaConteudo: 'escada', // variáveis → if → laços → vetores → funções: pular degrau derruba a escada
     ordemEstudo: [
       '1. Leia o PDF "Introdução" da pasta de materiais',
       '2. Estude Unidade 1 (variáveis, entrada/saída, operadores)',
@@ -334,6 +350,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'alta',
     perfilPratica: 'pratica', // HTML/CSS só fixa escrevendo código
+    estrategiaConteudo: 'acumulo', // HTML alimenta CSS alimenta o trabalho A2 — consolidar o anterior É avançar
     ordemEstudo: [
       '1. Estude "00 - Introdução a linguagens de marcação"',
       '2. Aprenda estrutura básica (01 - HTML, elementos, atributos)',
@@ -419,6 +436,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'alta',
     perfilPratica: 'mista', // teoria só vira nota com lista de exercícios resolvida
+    estrategiaConteudo: 'assunto-novo', // acompanha a aula: foco no assunto novo, anterior só como apoio
     ordemEstudo: [
       '1. FAÇA a Lista de Matrizes (35 questões) com a teoria da Aula 00 ao lado só para consultar',
       '2. Blocos da lista: Q1–16 construir/igualdade/soma · Q17–30 produtos/simetria · Q31–35 inversa',
@@ -496,6 +514,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'media',
     perfilPratica: 'mista', // leitura + fixação por perguntas
+    estrategiaConteudo: 'assunto-novo', // acompanha a aula, sem escada rígida
     ordemEstudo: [
       '1. Estude histórico e evolução dos computadores',
       '2. Aprenda conceitos de hardware e software',
@@ -576,6 +595,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'media',
     perfilPratica: 'teoria', // leitura + escrita argumentativa
+    estrategiaConteudo: 'fluencia', // produção contínua — cadência semanal manda
     ordemEstudo: [
       '1. Leia os textos indicados ANTES da aula',
       '2. Faça resumos de cada unidade',
@@ -653,6 +673,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'media',
     perfilPratica: 'mista', // vocabulário fixa por repetição espaçada
+    estrategiaConteudo: 'fluencia', // repetição espaçada — FSRS cuida do que já veio
     ordemEstudo: [
       '1. Estude estratégias de leitura (skimming, scanning, prediction)',
       '2. Memorize lista de cognatos e falsos cognatos',
@@ -739,6 +760,7 @@ export const disciplines: Discipline[] = [
     ],
     prioridade: 'baixa',
     perfilPratica: 'teoria', // leitura + produção de texto
+    estrategiaConteudo: 'fluencia', // produção contínua — cadência semanal manda
     ordemEstudo: [
       '1. Leia ativamente fazendo anotações',
       '2. Pratique resumos e resenhas',

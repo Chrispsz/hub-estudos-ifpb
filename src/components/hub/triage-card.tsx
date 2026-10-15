@@ -14,9 +14,11 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Crosshair, CircleCheck, PauseCircle, Flame } from 'lucide-react';
+import { Crosshair, CircleCheck, PauseCircle, Flame, Footprints, FilePenLine } from 'lucide-react';
 import { useStudyProgress } from '@/lib/study-progress';
 import { computeTriage, triageHeadlinePhrase, type TriageEntry } from '@/lib/study-triage';
+import { escadaPosicao, oldMaterialAdvice } from '@/lib/content-strategy';
+import { suggestPractice, superficieLabel, type PracticeSuggestion } from '@/lib/practice-methods';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { getDisciplineByCode } from '@/data/course-data';
 
@@ -67,7 +69,82 @@ function ReasonChips({ e }: { e: TriageEntry }) {
   );
 }
 
-function TriageRow({ e, top }: { e: TriageEntry; top: boolean }) {
+/**
+ * Camada 2+3 do motor (Task 219 — "o que praticar hoje, como e por quê"):
+ * para uma matéria do foco, devolve a posição na escada de conteúdo, o
+ * método de prática com evidência e o veredito do material anterior.
+ */
+interface PracticePlan {
+  fraseEscada: string | null;
+  sugestao: PracticeSuggestion;
+  materialAnterior: string | null;
+}
+
+function practicePlanFor(
+  e: TriageEntry,
+  topicProgress: { [topic: string]: boolean },
+  nuncaPraticou: boolean,
+): PracticePlan | null {
+  const d = getDisciplineByCode(e.code);
+  if (!d) return null;
+  const pos = escadaPosicao(d, topicProgress);
+  const all = d.conteudoProgramatico.flatMap((u) => u.topicos);
+  const feitos = all.filter((t) => topicProgress[t] === true).length;
+  const sugestao = suggestPractice({
+    d,
+    evalKind: e.eval?.kind,
+    evalDaysLeft: e.eval?.daysLeft,
+    debtDays: e.debtDays,
+    topicosFeitos: feitos,
+    topicosTotal: all.length,
+    nuncaPraticou,
+  });
+  const adv = oldMaterialAdvice(d, pos, topicProgress);
+  return {
+    fraseEscada: pos?.frase ?? null,
+    sugestao,
+    // Só aparece quando a casa tem um MANDATO ("volte e feche a lacuna") —
+    // 'apoio' e 'nao' são o estado neutro e não merecem linha no card.
+    materialAnterior: adv.verdict === 'sim' ? adv.motivo : null,
+  };
+}
+
+/** Método + escada + mandato do material anterior — a linha prática do foco. */
+function PracticeDetail({ e, sp }: { e: TriageEntry; sp: ReturnType<typeof useStudyProgress>['progress'] }) {
+  const plan = practicePlanFor(
+    e,
+    sp.topicProgress[e.code] ?? {},
+    !sp.disciplineProgress[e.code]?.lastStudiedAt,
+  );
+  if (!plan) return null;
+  const m = plan.sugestao.method;
+  return (
+    <div className="mt-1.5 space-y-1 border-l-2 border-violet-500/30 pl-2" data-t="practice-detail">
+      <p
+        className="flex items-center gap-1 text-[11px] font-medium text-violet-700 dark:text-violet-300"
+        title={`${m.quando} · ${m.evidencia}`}
+      >
+        <Footprints className="size-3 shrink-0" aria-hidden />
+        <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-1.5 py-px">
+          {m.nome}
+        </span>
+        <span className="text-[10px] font-normal text-muted-foreground">{superficieLabel(m.superficie)}</span>
+      </p>
+      <p className="text-[11px] leading-snug text-muted-foreground" title={m.passos.join('\n')}>
+        {plan.sugestao.primeiroPasso}
+      </p>
+      {plan.fraseEscada && <p className="text-[10px] leading-snug text-muted-foreground">{plan.fraseEscada}</p>}
+      {plan.materialAnterior && (
+        <p className="flex items-start gap-1 text-[10px] leading-snug text-amber-700 dark:text-amber-400">
+          <FilePenLine className="mt-px size-3 shrink-0" aria-hidden />
+          {plan.materialAnterior}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TriageRow({ e, top, sp }: { e: TriageEntry; top: boolean; sp: ReturnType<typeof useStudyProgress>['progress'] }) {
   const meta = BUCKET_META[e.bucket];
   return (
     <li className={`flex items-start gap-2 ${top ? '' : 'opacity-90'}`}>
@@ -87,6 +164,7 @@ function TriageRow({ e, top }: { e: TriageEntry; top: boolean }) {
           )}
         </p>
         <ReasonChips e={e} />
+        {e.bucket === 'foco' && <PracticeDetail e={e} sp={sp} />}
       </div>
     </li>
   );
@@ -127,9 +205,10 @@ export function TriageCard() {
         {headline && (
           <p className="text-xs leading-relaxed text-muted-foreground" data-t="triagem-headline">
             O motor decidiu: <b className="font-semibold text-foreground">{headline}</b> — os
-            motivos abaixo são derivados das datas oficiais, do tipo de avaliação, do perfil
-            prático de cada matéria e do seu histórico. Recalculado todo dia, do 1º ao 6º
-            período.
+            motivos abaixo derivam das datas oficiais, do tipo de avaliação, do perfil
+            prático de cada matéria, do seu histórico e de como o conteúdo de cada matéria
+            se constrói (escada, acúmulo, assunto novo, fluência). Recalculado todo dia, do
+            1º ao 6º período.
           </p>
         )}
 
@@ -148,7 +227,7 @@ export function TriageCard() {
                   </p>
                   <ul className="space-y-2" data-t={`triagem-${bucket}`}>
                     {list.map((e, i) => (
-                      <TriageRow key={e.code} e={e} top={bucket === 'foco' && i === 0} />
+                      <TriageRow key={e.code} e={e} top={bucket === 'foco' && i === 0} sp={sp.progress} />
                     ))}
                   </ul>
                 </div>

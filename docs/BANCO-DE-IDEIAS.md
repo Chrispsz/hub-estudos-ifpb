@@ -291,3 +291,27 @@ Google, 13/10/2026):
   `gemini-flash-lite-latest`) que sobrevivem à troca de versão do Google; o dono
   pode fixar outro modelo nas configurações se quiser.
 - ✅ FEITA (Task 214-b, commit 9f15c03): card Inteligência da casa no hub, Setting no Prisma, cadeia lê DB → env, probe informa a fonte.
+
+## Métodos de prática com evidência — alicerce do motor (Task 219 camada 2+3, 15/10/2026)
+- Pesquisa feita a pedido do dono ("pesquise bons métodos que combinem com o site"):
+  - **PRIMM** (Predict·Run·Investigate·Modify·Make — Sentance & Waite 2019): começar por
+    código PRONTO (prever no caderno → rodar → investigar → modificar → criar). Combate o
+    travamento de quem tenta escrever do zero sem fluência.
+  - **Parson's problems** (Ericson et al., revisão 2020): reordenar linhas embaralhadas é
+    mais eficiente para iniciantes que escrever do zero — a ponte ler→escrever.
+  - **Retrieval practice / página em branco** (Agarwal): produzir SEM OLHAR fixa mais que
+    reler; velocidade chega de graça com repetição — QUALIDADE antes de velocidade (pedido
+    literal do dono).
+  - **Tracing de mesa** (dry-run com tabela de variáveis): é o treino da prova ESCRITA de
+    Algoritmos (3 questões no papel) e do raciocínio passo a passo — caderno como lugar de
+    raciocínio, não de cópia.
+  - **Worked examples → fading** (Sweller) + **intercalação**: exemplo resolvido primeiro,
+    refazer sem olhar, intercalar velho+novo na sessão.
+  - **Feynman + geração**: explicar em voz alta sem olhar → a lacuna da explicação É a
+    lacuna de estudo → produzir texto do zero (teoria: RHT, Português).
+- Escada de fluência (resposta ao "sair de quem trava"): código pronto → reordenar →
+  variar/completar → página em branco. O motor escolhe o degrau pelo progresso REAL
+  (tópicos fechados), nunca por sentimentos.
+- Conexões com o site: caderno-papel-sheet (tracing/esqueleto), code-lab (PRIMM/rodar),
+  FSRS (revisão leve), Lista 289 + gabarito autoral (material das sessões), tutor recebe
+  a fila + método para alinhar o "como".

@@ -113,6 +113,14 @@ interface HubContext {
   nextEvaluations?: HubEvaluation[];
   upcomingEvents?: HubEvent[];
   studentStats?: HubStudentStats;
+  /** Fila essencial do motor (espelho de HubPriority em tutor-context). */
+  prioridades?: {
+    disciplina: string;
+    motivo: string;
+    metodo?: string;
+    superficie?: string;
+    proximoPasso?: string;
+  }[];
   /** Estado ao vivo da semana da Av1 (espelho de HubExamWeek em tutor-context). */
   examWeek?: {
     provaDaysLeft: number;
@@ -362,6 +370,17 @@ function buildHubBlock(hub?: HubContext): string {
     const s = hub.studentStats;
     lines.push(
       `- Progresso do aluno: ${s.materialsDone}/${s.materialsTotal} materiais concluídos · ${s.topicsDone}/${s.topicsTotal} tópicos dominados · ${s.pomodoroMinutes} min de foco (Pomodoro) · ${s.flashcardsDue} flashcard(s) para revisar hoje · ${s.exercisesSolved}/${s.exercisesTotal} exercícios resolvidos`,
+    );
+  }
+  if (hub.prioridades?.length) {
+    const prs = hub.prioridades
+      .map(
+        (p) =>
+          `    • ${p.disciplina} — ${p.motivo}${p.metodo ? `\n      método sugerido: ${p.metodo} (${p.superficie ?? ''})${p.proximoPasso ? ` — comece assim: "${p.proximoPasso}"` : ''}` : ''}`,
+      )
+      .join('\n');
+    lines.push(
+      `- FILA ESSENCIAL do motor de prioridade do app (o "o quê" já foi decidido por dados: datas oficiais, tipo de avaliação, dívida de prática, escada de conteúdo e método com evidência):\n${prs}\n    • Se o aluno pedir o que estudar, plano ou ordem do dia: alinhe COM esta fila — refine o COMO, não contrarie o O QUÊ sem justificar com os mesmos dados. Não transforme a fila em plano de recuperação: ela é o motor permanente do curso inteiro.`,
     );
   }
   if (hub.examWeek) {
