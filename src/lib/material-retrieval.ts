@@ -396,3 +396,78 @@ export async function buildMaterialBlock(material: Material, question: string): 
     '',
   ].join('\n');
 }
+
+// ---------------------------------------------------------------------------
+// PAINEL DO ACERVO (Task 219-b): a cobertura REAL da memória de conteúdo do
+// tutor — quantos materiais, quantos com resumo IA, quantos com texto
+// pesquisável. Visível nas Configurações; a mesma fonte que o retrieval usa
+// (nenhum número inventado: é o FileSystem + course-data conferidos agora).
+// ---------------------------------------------------------------------------
+
+import { disciplines } from '@/data/course-data';
+
+export interface AcervoDisciplineStats {
+  code: string;
+  shortName: string;
+  materials: number;
+  summaries: number;
+  texts: number;
+}
+
+export interface AcervoStats {
+  materialsTotal: number;
+  summariesTotal: number;
+  textsTotal: number;
+  perDiscipline: AcervoDisciplineStats[];
+}
+
+/** Lê os diretórios do acervo uma vez e cruza com a lista de materiais. */
+export async function acervoStats(): Promise<AcervoStats> {
+  let summaryFiles = new Set<string>();
+  let textFiles = new Set<string>();
+  try {
+    summaryFiles = new Set(await fs.readdir(path.join(process.cwd(), SUMMARIES_DIR)));
+  } catch {
+    /* diretório ausente — acervo vazio de resumos */
+  }
+  try {
+    textFiles = new Set(await fs.readdir(path.join(process.cwd(), TEXTS_DIR)));
+  } catch {
+    /* idem para textos */
+  }
+
+  const byDiscipline = new Map<string, AcervoDisciplineStats>();
+  for (const d of disciplines) {
+    byDiscipline.set(d.code, {
+      code: d.code,
+      shortName: d.shortName,
+      materials: 0,
+      summaries: 0,
+      texts: 0,
+    });
+  }
+
+  for (const m of materials) {
+    const row =
+      byDiscipline.get(m.disciplineCode) ??
+      ({
+        code: m.disciplineCode,
+        shortName: m.disciplineCode,
+        materials: 0,
+        summaries: 0,
+        texts: 0,
+      } as AcervoDisciplineStats);
+    row.materials += 1;
+    if (m.summaryFile && summaryFiles.has(m.summaryFile)) row.summaries += 1;
+    if (textFiles.has(`${m.id}.txt`)) row.texts += 1;
+    byDiscipline.set(row.code, row);
+  }
+
+  const perDiscipline = [...byDiscipline.values()];
+  return {
+    materialsTotal: perDiscipline.reduce((a, r) => a + r.materials, 0),
+    summariesTotal: perDiscipline.reduce((a, r) => a + r.summaries, 0),
+    textsTotal: perDiscipline.reduce((a, r) => a + r.texts, 0),
+    perDiscipline,
+  };
+}

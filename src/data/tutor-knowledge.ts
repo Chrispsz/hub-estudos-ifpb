@@ -233,3 +233,42 @@ export function materialFirstPolicyLines(now: Date = new Date()): string[] {
     ...activeItems(MATERIAL_FIRST, now),
   ];
 }
+
+// ---------------------------------------------------------------------------
+// PAINEL "O QUE O TUTOR SABE" (Task 219-b): a memória de conteúdo do tutor,
+// visível e auditável pelo dono nas Configurações. Mesma fonte do prompt —
+// o painel NUNCA mostra algo que o tutor não ouve, nem esconde o que ouve.
+// ---------------------------------------------------------------------------
+
+export interface KnowledgeWindowItem {
+  id: string;
+  /** Texto do item (a linha pronta que o tutor ouve hoje). */
+  text: string;
+}
+
+export interface KnowledgePanel {
+  /** Fatos duráveis do acervo (sem janela). */
+  durableCount: number;
+  /** Itens de estado do semestre com janela ATIVA hoje. */
+  windowedActive: KnowledgeWindowItem[];
+  /** Itens com janela já expirada (sumiram do prompt sozinhos). */
+  windowedExpired: number;
+  /** Itens com janela futura (ainda não entram). */
+  windowedFuture: number;
+}
+
+export function knowledgePanel(now: Date = new Date()): KnowledgePanel {
+  const today = localISODate(now);
+  const windowed = [
+    ...SEMESTER_STATE,
+    ...MATERIAL_FIRST.filter((i) => i.from || i.until),
+  ];
+  const isActive = (i: KnowledgeItem) =>
+    (!i.from || today >= i.from) && (!i.until || today <= i.until);
+  return {
+    durableCount: DURABLE.length + MATERIAL_FIRST.filter((i) => !i.from && !i.until).length,
+    windowedActive: windowed.filter(isActive).map((i) => ({ id: i.id, text: i.text })),
+    windowedExpired: windowed.filter((i) => (i.until ? today > i.until : false)).length,
+    windowedFuture: windowed.filter((i) => (i.from ? today < i.from : false)).length,
+  };
+}

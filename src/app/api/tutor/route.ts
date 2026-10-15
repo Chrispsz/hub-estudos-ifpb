@@ -64,9 +64,9 @@ import {
   QUOTA_SOURCE,
 } from '@/lib/ai-quota';
 import { buildCourseBaseContext, buildCourseBaseShort } from '@/lib/tutor-course-base';
-import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial } from '@/lib/material-retrieval';
+import { buildMaterialBlock, findBestMaterialForQuestion, findMaterial, acervoStats } from '@/lib/material-retrieval';
 import { normalizeMath } from '@/lib/sanitize-latex';
-import { contentKnowledgeLines, materialFirstPolicyLines } from '@/data/tutor-knowledge';
+import { contentKnowledgeLines, materialFirstPolicyLines, knowledgePanel } from '@/data/tutor-knowledge';
 import { TUTOR_HISTORY_KEEP } from '@/lib/tutor-history-view';
 import ZAI from 'z-ai-web-dev-sdk';
 import { readFileSync } from 'fs';
@@ -1323,11 +1323,16 @@ export async function GET(req: Request) {
   // Painel de combustível (218): uso de hoje vs os limites reais da key do dono
   // (fonte citada no payload — a UI mostra e a casa roteia por esses números).
   const fuel = geminiCfg.key ? await fuelPanel(geminiCfg.model) : [];
+  // Painel "O que o tutor sabe" (219-b): cobertura REAL do acervo + janelas
+  // ativas do conhecimento — a memória de conteúdo visível e auditável.
+  const [acervo, knowledge] = await Promise.all([acervoStats(), Promise.resolve(knowledgePanel())]);
   return Response.json({
     provider: 'gemini → openrouter → z.ai público → sdk local (primeiro disponível)',
     vision: vision ?? 'não configurada — salve a key grátis do Gemini (aistudio.google.com) em Configurações → Inteligência da casa para ler prints',
     fuel,
     fuelSource: QUOTA_SOURCE,
+    acervo,
+    knowledge,
     chains: {
       tutor: MODEL_CHAIN.tutor.map((id) => ({ id, label: prettyModelName(id) })),
       flashcards: MODEL_CHAIN.flashcards.map((id) => ({ id, label: prettyModelName(id) })),

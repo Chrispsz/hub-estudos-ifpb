@@ -30,6 +30,7 @@ import {
   VolumeX,
   XCircle,
   Gauge,
+  Library,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -730,6 +731,21 @@ function AiInfoCard() {
   >([]);
   const [fuelSource, setFuelSource] = React.useState<string | null>(null);
 
+  // Painel "O que o tutor sabe" (219-b): cobertura real do acervo + janelas
+  // ativas do conhecimento — a memória de conteúdo do tutor, auditável.
+  const [acervo, setAcervo] = React.useState<{
+    materialsTotal: number;
+    summariesTotal: number;
+    textsTotal: number;
+    perDiscipline: { code: string; shortName: string; materials: number; summaries: number; texts: number }[];
+  } | null>(null);
+  const [knowledge, setKnowledge] = React.useState<{
+    durableCount: number;
+    windowedActive: { id: string; text: string }[];
+    windowedExpired: number;
+    windowedFuture: number;
+  } | null>(null);
+
   const visionAtiva = Boolean(vision && !vision.startsWith('somente'));
 
   /** Info viva do tutor (provedores/visão) — ao abrir e após salvar/remover a chave. */
@@ -742,6 +758,8 @@ function AiInfoCard() {
         if (typeof d?.vision === 'string') setVision(d.vision);
         if (Array.isArray(d?.fuel)) setFuel(d.fuel);
         if (typeof d?.fuelSource === 'string') setFuelSource(d.fuelSource);
+        if (d?.acervo) setAcervo(d.acervo);
+        if (d?.knowledge) setKnowledge(d.knowledge);
       })
       .catch(() => {});
   }, []);
@@ -1077,6 +1095,100 @@ function AiInfoCard() {
               Quando um modelo seca, o próximo da cadeia assume <b>antes</b> do 429 — premium para
               o difícil, lite (500/dia) para o volume. {fuelSource ?? ''}
             </p>
+          </div>
+        )}
+
+        {/* O QUE O TUTOR SABE (219-b): a memória de conteúdo do tutor, visível e
+            auditável — a mesma fonte que o retrieval usa. Responde ao dono:
+            "a IA tem contexto máximo de qualquer conteúdo? e dos novos?" */}
+        {acervo && acervo.materialsTotal > 0 && (
+          <div className="rounded-lg border p-3" aria-live="polite" data-t="acervo-panel">
+            <p className="flex items-center gap-1.5 text-xs font-semibold">
+              <Library className="size-3.5 text-violet-500" aria-hidden />
+              O que o tutor sabe — memória de conteúdo
+            </p>
+
+            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+              {[
+                { n: acervo.materialsTotal, l: 'materiais no acervo' },
+                { n: acervo.summariesTotal, l: 'com resumo IA' },
+                { n: acervo.textsTotal, l: 'com texto pesquisável' },
+              ].map((s) => (
+                <div key={s.l} className="rounded-md border bg-muted/30 px-1 py-1.5">
+                  <p className="text-sm font-semibold tabular-nums">{s.n}</p>
+                  <p className="text-[10px] leading-tight text-muted-foreground">{s.l}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-2.5 space-y-1.5">
+              {acervo.perDiscipline
+                .filter((r) => r.materials > 0)
+                .map((r) => {
+                  const pctSum = Math.round((r.summaries / r.materials) * 100);
+                  const pctTxt = Math.round((r.texts / r.materials) * 100);
+                  const dot =
+                    pctSum >= 100 && pctTxt >= 100
+                      ? 'bg-emerald-500'
+                      : pctSum > 0 || pctTxt > 0
+                        ? 'bg-amber-500'
+                        : 'bg-muted-foreground/40';
+                  return (
+                    <div key={r.code} className="flex items-center gap-2 text-[11px]">
+                      <span className={cn('size-1.5 shrink-0 rounded-full', dot)} aria-hidden />
+                      <span className="w-28 shrink-0 truncate font-medium">{r.shortName}</span>
+                      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-emerald-500/80"
+                          style={{ width: `${pctSum}%` }}
+                          title={`resumo IA: ${r.summaries}/${r.materials}`}
+                        />
+                      </div>
+                      <span className="w-24 shrink-0 text-right font-mono text-[10px] text-muted-foreground">
+                        {r.summaries}·{r.texts}/{r.materials}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+            <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+              Resumo IA estruturado + texto do PDF pesquisável por trecho (com páginas). A pergunta
+              escolhe o material certo — o tutor não lê tudo de uma vez, ele <b>busca</b> o trecho
+              relevante a cada dúvida.
+            </p>
+
+            {knowledge && (knowledge.windowedActive.length > 0 || knowledge.durableCount > 0) && (
+              <div className="mt-2.5 border-t pt-2">
+                <p className="text-[11px] font-semibold">
+                  Estado do semestre que o tutor ouve HOJE
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    ({knowledge.durableCount} fatos duráveis · {knowledge.windowedActive.length} janela(s)
+                    ativa(s)
+                    {knowledge.windowedExpired > 0 ? ` · ${knowledge.windowedExpired} expirada(s) somem sozinhas` : ''}
+                    {knowledge.windowedFuture > 0 ? ` · ${knowledge.windowedFuture} futura(s)` : ''})
+                  </span>
+                </p>
+                <ul className="mt-1 max-h-36 space-y-1 overflow-y-auto pr-1">
+                  {knowledge.windowedActive.map((w) => (
+                    <li key={w.id} className="text-[11px] leading-snug text-muted-foreground">
+                      <span className="mr-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-600 dark:text-violet-400">
+                        janela
+                      </span>
+                      {w.text.replace(/^- /, '')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-2.5 border-t pt-2">
+              <p className="text-[11px] font-semibold">Como alimentar (o acervo cresce com você):</p>
+              <ol className="mt-1 list-inside list-decimal space-y-0.5 text-[11px] leading-snug text-muted-foreground">
+                <li>Mande aqui no chat o PDF, print, lista ou programa em C;</li>
+                <li>a casa acerva: arquivo + resumo IA + texto pesquisável (a IA já “estudou” quando o painel acima sobe);</li>
+                <li>de lá em diante o tutor acessa SOZINHO em qualquer pergunta — sem você precisar reenviar nada.</li>
+              </ol>
+            </div>
           </div>
         )}
 
