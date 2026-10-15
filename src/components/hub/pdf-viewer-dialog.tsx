@@ -912,11 +912,11 @@ export function PdfViewerDialog({
               }}
               data-testid="review-due-chip"
               className="inline-flex h-11 items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 sm:h-8 dark:text-amber-400"
-              title={`Revisão espaçada vencida (${reviewVolta}ª volta, intervalo que fixa) — registrar avança o ciclo 1·3·7·14·30 e reagenda para daqui a ${reviewNextDays} dias`}
-              aria-label={`Registrar a ${reviewVolta}ª revisão deste material — próxima volta em ${reviewNextDays} dias`}
+              title={`Revisão espaçada vencida (${reviewVolta}ª volta, intervalo que fixa${reviewState?.pulledForExam ? ' — antecipada pela prova, que venceria esta volta' : ''}) — registrar avança o ciclo 1·3·7·14·30 e reagenda para daqui a ${reviewNextDays} dias`}
+              aria-label={`Registrar a ${reviewVolta}ª revisão deste material${reviewState?.pulledForExam ? ', antecipada pela prova' : ''} — próxima volta em ${reviewNextDays} dias`}
             >
               <History className="size-3.5" aria-hidden />
-              Revisão de hoje · {reviewVolta}ª volta — concluí
+              Revisão de hoje · {reviewVolta}ª volta{reviewState?.pulledForExam ? ' · antes da prova' : ''} — concluí
             </button>
           )}
           {/* FRENTE 13 — O CHECKLIST DO MATERIAL: o PDF vira fila de passos

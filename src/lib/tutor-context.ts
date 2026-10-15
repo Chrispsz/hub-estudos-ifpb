@@ -33,6 +33,7 @@ import { getExerciseStats } from '@/lib/exercise-extractor';
 import { computeTriage } from '@/lib/study-triage';
 import { escadaPosicao } from '@/lib/content-strategy';
 import { suggestPractice, superficieLabel } from '@/lib/practice-methods';
+import { degrauProvaAviso } from '@/lib/mastery';
 
 /** Dados do app que o front envia ao /api/tutor (contrato do route.ts). */
 export interface HubEvaluation {
@@ -179,9 +180,18 @@ function buildPriorities(sp: StudyProgressReturn): HubPriority[] | undefined {
         proximoPasso = sug.primeiroPasso;
       }
       const pos = d ? escadaPosicao(d, sp.progress.topicProgress[e.code] ?? {}) : null;
+      // TASK 220 — o tutor sabe quando o check é só intenção: o aviso da prova
+      // (degrau de trás fechado no check / degrau atual com checks e zero
+      // evidência) entra no motivo — a IA cobra recall em vez de aceitar "já
+      // marquei". MESMO helper da fila essencial (zero segunda derivação).
+      const motivoBase = pos ? `${e.reasons[0]} · ${pos.frase}` : e.reasons[0];
+      const aviso = pos
+        ? degrauProvaAviso(e.code, pos, sp.progress, metodo ?? 'prática de recall')
+        : null;
+      const motivo = aviso ? `${motivoBase} · ${aviso}` : motivoBase;
       return {
         disciplina: e.shortName,
-        motivo: pos ? `${e.reasons[0]} · ${pos.frase}` : e.reasons[0],
+        motivo,
         metodo,
         superficie,
         proximoPasso,

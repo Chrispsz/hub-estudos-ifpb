@@ -14,11 +14,12 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Crosshair, CircleCheck, PauseCircle, Flame, Footprints, FilePenLine } from 'lucide-react';
+import { Crosshair, CircleCheck, PauseCircle, Flame, Footprints, FilePenLine, ListChecks } from 'lucide-react';
 import { useStudyProgress } from '@/lib/study-progress';
 import { computeTriage, triageHeadlinePhrase, type TriageEntry } from '@/lib/study-triage';
 import { escadaPosicao, oldMaterialAdvice } from '@/lib/content-strategy';
 import { suggestPractice, superficieLabel, type PracticeSuggestion } from '@/lib/practice-methods';
+import { degrauProvaAviso } from '@/lib/mastery';
 import { DisciplineIcon } from '@/lib/discipline-icons';
 import { getDisciplineByCode } from '@/data/course-data';
 
@@ -70,23 +71,28 @@ function ReasonChips({ e }: { e: TriageEntry }) {
 }
 
 /**
- * Camada 2+3 do motor (Task 219 — "o que praticar hoje, como e por quê"):
- * para uma matéria do foco, devolve a posição na escada de conteúdo, o
- * método de prática com evidência e o veredito do material anterior.
+ * Camada 2+3 do motor (Task 219 — "o que praticar hoje, como e por quê") +
+ * a prova de aprendizagem (Task 220 — "como vou ter certeza de que aprendi?"):
+ * para uma matéria do foco, devolve a posição na escada de conteúdo, o método
+ * de prática com evidência, o veredito do material anterior e — quando o
+ * degrau atual está marcado mas sem evidência — o alerta honesto.
  */
 interface PracticePlan {
   fraseEscada: string | null;
   sugestao: PracticeSuggestion;
   materialAnterior: string | null;
+  /** O degrau atual está 'só marcado' (check completo, zero prática registrada)? */
+  degrauSemProva: string | null;
 }
 
 function practicePlanFor(
   e: TriageEntry,
-  topicProgress: { [topic: string]: boolean },
+  progress: ReturnType<typeof useStudyProgress>['progress'],
   nuncaPraticou: boolean,
 ): PracticePlan | null {
   const d = getDisciplineByCode(e.code);
   if (!d) return null;
+  const topicProgress = progress.topicProgress[e.code] ?? {};
   const pos = escadaPosicao(d, topicProgress);
   const all = d.conteudoProgramatico.flatMap((u) => u.topicos);
   const feitos = all.filter((t) => topicProgress[t] === true).length;
@@ -100,20 +106,28 @@ function practicePlanFor(
     nuncaPraticou,
   });
   const adv = oldMaterialAdvice(d, pos, topicProgress);
+  // TASK 220 — a prova de aprendizagem mora na fila: a escada nunca aponta
+  // para unidade toda marcada (quem marca tudo sobe), então o "só marquei"
+  // aparece onde é REAL — degrau de trás fechado no check sem evidência, ou
+  // degrau atual com checks parciais e zero prática. O helper acusa sozinho.
+  const degrauSemProva = pos
+    ? degrauProvaAviso(e.code, pos, progress, sugestao.method.nome)
+    : null;
   return {
     fraseEscada: pos?.frase ?? null,
     sugestao,
     // Só aparece quando a casa tem um MANDATO ("volte e feche a lacuna") —
     // 'apoio' e 'nao' são o estado neutro e não merecem linha no card.
     materialAnterior: adv.verdict === 'sim' ? adv.motivo : null,
+    degrauSemProva,
   };
 }
 
-/** Método + escada + mandato do material anterior — a linha prática do foco. */
+/** Método + escada + mandato do material anterior + prova de aprendizagem. */
 function PracticeDetail({ e, sp }: { e: TriageEntry; sp: ReturnType<typeof useStudyProgress>['progress'] }) {
   const plan = practicePlanFor(
     e,
-    sp.topicProgress[e.code] ?? {},
+    sp,
     !sp.disciplineProgress[e.code]?.lastStudiedAt,
   );
   if (!plan) return null;
@@ -134,6 +148,16 @@ function PracticeDetail({ e, sp }: { e: TriageEntry; sp: ReturnType<typeof useSt
         {plan.sugestao.primeiroPasso}
       </p>
       {plan.fraseEscada && <p className="text-[10px] leading-snug text-muted-foreground">{plan.fraseEscada}</p>}
+      {plan.degrauSemProva && (
+        <p
+          className="flex items-start gap-1 text-[10px] leading-snug text-amber-700 dark:text-amber-400"
+          data-t="degrau-sem-prova"
+          title="Marcar concluído é o seu aviso; a certeza de que aprendeu vem da evidência — resolver sem ajuda é a prova (mastery)."
+        >
+          <ListChecks className="mt-px size-3 shrink-0" aria-hidden />
+          {plan.degrauSemProva}
+        </p>
+      )}
       {plan.materialAnterior && (
         <p className="flex items-start gap-1 text-[10px] leading-snug text-amber-700 dark:text-amber-400">
           <FilePenLine className="mt-px size-3 shrink-0" aria-hidden />

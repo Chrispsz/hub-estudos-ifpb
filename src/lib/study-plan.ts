@@ -277,19 +277,20 @@ export function buildDayPlan(
       const overdue = Math.floor((nowMs - new Date(st.dueAt).getTime()) / DAY);
       const press = pressureOf(m.disciplineCode);
       const examWhy = press && press.daysLeft <= 7 ? examPressureWhy(m.disciplineCode, now) : null;
+      // TASK 220 — a volta antecipada confessa o motivo: a cadência natural
+      // cairia depois da prova; a prova puxou a revisão para antes dela.
+      const cadencia = overdue > 0
+        ? `revisão espaçada vencida há ${overdue === 1 ? '1 dia' : `${overdue} dias`} — a volta de ${interval}d que fixa`
+        : `revisão espaçada do dia — a volta de ${interval}d que fixa`;
+      const why = st.pulledForExam
+        ? `antecipada pela prova (a volta de ${interval}d cairia depois dela) — revisitar antes de ser avaliado`
+        : cadencia;
       push({
         kind: 'revisao',
         materialId: id,
         disciplineCode: m.disciplineCode,
         title: m.title,
-        why: [
-          overdue > 0
-            ? `revisão espaçada vencida há ${overdue === 1 ? '1 dia' : `${overdue} dias`} — a volta de ${interval}d que fixa`
-            : `revisão espaçada do dia — a volta de ${interval}d que fixa`,
-          examWhy,
-        ]
-          .filter(Boolean)
-          .join(' · '),
+        why: [why, examWhy].filter(Boolean).join(' · '),
         minutes: 15,
         exam: press && press.daysLeft <= 7 ? press : undefined,
       });

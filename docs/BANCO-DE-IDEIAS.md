@@ -315,3 +315,27 @@ Google, 13/10/2026):
 - Conexões com o site: caderno-papel-sheet (tracing/esqueleto), code-lab (PRIMM/rodar),
   FSRS (revisão leve), Lista 289 + gabarito autoral (material das sessões), tutor recebe
   a fila + método para alinhar o "como".
+
+## A prova de aprendizagem + a volta que chega antes da prova (Task 220, 15/10/2026)
+- Pergunta do dono: "o que acontece quando marco um conteúdo como concluído? Como vou ter
+  CERTEZA de que aprendi? As técnicas de memorização com o tempo estão aplicadas e ADAPTADAS
+  ao curso onde as avaliações acontecem mais cedo?"
+- **Resposta 1 (o que acontece ao marcar)**: tópico → escada sobe, triagem recalcula,
+  método de fluência avança; material → entra no ciclo espaçado 1·3·7·14·30 com 1ª volta
+  amanhã. Tudo em dados, nada em texto.
+- **Resposta 2 (a certeza)**: marcar é o seu AVISO, não a prova. Escada de maestria
+  (mastery.ts) por evidência real da unidade: `marcado` (check completo, zero prática) →
+  `praticado` (material concluído ou questão tentada) → `consolidado` (≥2 questões
+  resolvidas SEM ajuda e ≥60% de acerto — piso de 2: um acerto é sorte, não prova).
+  Selo na unidade (âmbar/violeta/esmeralda) e aviso na fila essencial — com a descoberta
+  estrutural: a escada nunca aponta para unidade toda marcada (quem marca tudo sobe),
+  então o "só marquei" aparece onde é REAL: degrau de trás fechado no check (base oca)
+  ou degrau atual com checks parciais e zero prática (check-anotação) — `degrauProvaAviso`.
+- **Resposta 3 (memorização × prova cedo)**: o ciclo 1·3·7·14·30 é a cadência da memória,
+  mas a prova NÃO espera o ciclo — `scheduleReviewDue` comprime: se a volta natural cairia
+  DEPOIS da próxima avaliação oficial da disciplina, ela nasce em D-2 (clamp em hoje);
+  a volta cumprida, o degrau volta a valer sozinho. O porquê do plano confessa
+  ("antecipada pela prova — a volta de Nd cairia depois dela") e o chip do leitor também.
+- Base da evidência: retrieval practice (resolver sem ajuda fixa mais que reler — Agarwal);
+  o selo é o mesmo princípio aplicado ao RELATÓRIO de estudo: o que vale é o registro do
+  recall, não a intenção marcada.

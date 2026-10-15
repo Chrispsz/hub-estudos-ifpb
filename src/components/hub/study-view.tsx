@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDown,
   ArrowUpRight,
+  BadgeCheck,
   Bot,
   BookOpen,
   Brain,
@@ -27,6 +28,7 @@ import {
   History,
   ImagePlus,
   Lightbulb,
+  ListChecks,
   Loader2,
   Maximize2,
   Minimize2,
@@ -108,6 +110,7 @@ import {
 import { isNearBottom } from '@/lib/tutor-follow';
 import { getDisciplineTopics } from '@/lib/study-topics';
 import { lastActivityLabel, unitActivityFor } from '@/lib/discipline-activity';
+import { masteryBadgeFor, masteryFromActivity } from '@/lib/mastery';
 import { buildHubContext } from '@/lib/tutor-context';
 import { buildChatMarkdown, downloadTextFile } from '@/lib/tutor-chat-export';
 import {
@@ -1809,6 +1812,36 @@ export function StudyView({
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <h4 className="text-sm font-medium leading-snug">{unit.name}</h4>
                           <div className="flex shrink-0 items-center gap-1.5">
+                            {/* A PROVA DE APRENDIZAGEM (Task 220 — "como vou ter
+                                certeza de que aprendi?"): o selo da maestria lê a
+                                EVIDÊNCIA real da unidade (questões resolvidas sem
+                                ajuda, materiais concluídos) e confessa quando o
+                                check ainda é só intenção. Fonte: a mesma atividade
+                                real memoizada acima (masteryFromActivity). */}
+                            {(() => {
+                              const mas = masteryFromActivity(unitActivity.get(unit.name), unit.done);
+                              const mb = masteryBadgeFor(mas);
+                              if (!mb) return null;
+                              const toneCls =
+                                mb.tone === 'emerald'
+                                  ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                                  : mb.tone === 'violet'
+                                    ? 'border-violet-500/40 bg-violet-500/5 text-violet-600 dark:text-violet-400'
+                                    : 'border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400';
+                              const MasIcon =
+                                mb.tone === 'emerald' ? BadgeCheck : mb.tone === 'violet' ? PenLine : ListChecks;
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  title={mb.title}
+                                  className={`text-[9px] ${toneCls}`}
+                                  data-t={`mastery-${mb.tone}`}
+                                >
+                                  <MasIcon className="mr-1 size-3" aria-hidden />
+                                  {mb.label}
+                                </Badge>
+                              );
+                            })()}
                             {/* EVIDÊNCIA VISÍVEL (118): unidade com atividade real
                                 ganha o selo 'em estudo' (a família da espera —
                                 amber, sem pulso: não é prazo) — o aluno vê que o

@@ -40,6 +40,8 @@ export interface UnitActivity {
   /** Exercícios do acervo da unidade — só os "em sala" (material-first). */
   questoesTotal: number;
   questoesTentadas: number;
+  /** Das tentadas, as resolvidas SEM ajuda — a prova do recall (mastery.ts). */
+  questoesResolvidasSemAjuda: number;
   /** Última atividade real desta unidade (material aberto ou questão tentada). */
   lastActivityAt: string | null;
   /** Evidência real: ≥1 material visto, questão tentada ou tópicos todos marcados. */
@@ -123,6 +125,10 @@ export function unitActivityFor(
     const ep = progress.exerciseProgress?.[e.id];
     return !!ep && (ep.tried || ep.solved);
   }).length;
+  const resolvSemAjuda = emSala.filter((e) => {
+    const ep = progress.exerciseProgress?.[e.id];
+    return !!ep && ep.solved && !ep.neededHelp;
+  }).length;
 
   let lastActivityAt: string | null = null;
   for (const m of mats) {
@@ -149,6 +155,7 @@ export function unitActivityFor(
     materiaisConcluidos: concluidos,
     questoesTotal: emSala.length,
     questoesTentadas: tentadas,
+    questoesResolvidasSemAjuda: resolvSemAjuda,
     lastActivityAt,
     tocada,
   };
@@ -184,6 +191,10 @@ export function disciplineActivityFor(
       lastActivityAt = latestIso(ep.lastPracticedAt, lastActivityAt);
       return true;
     }).length;
+    const resolvSemAjuda = emSala.filter((e) => {
+      const ep = progress.exerciseProgress?.[e.id];
+      return !!ep && ep.solved && !ep.neededHelp;
+    }).length;
 
     const manualDone = u.topicos.filter((t) => progress.topicProgress?.[code]?.[t]).length;
     const tocada =
@@ -212,6 +223,7 @@ export function disciplineActivityFor(
       materiaisConcluidos: concluidos,
       questoesTotal: emSala.length,
       questoesTentadas: tentadas,
+      questoesResolvidasSemAjuda: resolvSemAjuda,
       lastActivityAt: unitLast,
       tocada,
     };

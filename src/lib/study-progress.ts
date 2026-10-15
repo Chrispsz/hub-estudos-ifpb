@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
 import type { AttemptMode } from './simulado-resume';
 import { materials } from '@/data/course-data';
+import { examPressureFor } from './exam-radar';
 import { exercises } from './exercise-extractor';
 
 const STORAGE_KEY = 'hub-estudos-ifpb:v2';
@@ -472,6 +473,52 @@ export interface MaterialReviewState {
   lastReviewedAt?: string; // ISO
   /** Quando a próxima revisão vence. */
   dueAt: string; // ISO
+  /**
+   * A volta foi ANTECIPADA pela prova (Task 220 — a natural cairia depois da
+   * avaliação oficial da disciplina e foi puxada para D-2)? O porquê do plano
+   * confessa ("antecipada pela prova") e some sozinho quando a volta cumpre.
+   */
+  pulledForExam?: boolean;
+}
+
+/**
+ * A VOLTA QUE CHEGA ANTES DA PROVA (Task 220, pergunta do dono: "as técnicas
+ * de memorização com o tempo estão aplicadas e adaptadas ao curso onde as
+ * avaliações acontecem mais cedo?").
+ *
+ * O ciclo 1·3·7·14·30 é a cadência da memória; a prova NÃO espera o ciclo.
+ * Quem concluir um material com prova próxima corre o risco de a volta
+ * natural nascer DEPOIS do teste — o conteúdo revisado uma vez e nunca mais
+ * antes de ser cobrado. A compressão manda a prova:
+ *   · a volta natural cai ANTES da avaliação  → segue o degrau (nada muda);
+ *   · a volta natural cairia DEPOIS (ou no dia) da avaliação → a revisão é
+ *     antecipada para D-2 (clamp em hoje): a última volta calma antes de ser
+ *     avaliado — D-1/D-0 são da véspera, não da primeira revisão.
+ * No ciclo seguinte o degrau volta a valer sozinho (a compressão é por
+ * agendamento, nunca um estado preso). Pura: relógio por parâmetro
+ * (lição 113/115) — `nextEvalDaysLeft` vem de examPressureFor (data oficial,
+ * doutrina anti-estimativa; null = sem prova à frente, ciclo integral).
+ */
+export function scheduleReviewDue(
+  nowMs: number,
+  stage: number,
+  nextEvalDaysLeft: number | null,
+): { dueAt: string; pulledForExam: boolean; intervalDays: number } {
+  const intervalDays =
+    MATERIAL_REVIEW_DAYS[Math.min(stage, MATERIAL_REVIEW_DAYS.length - 1)];
+  const natural = nowMs + intervalDays * 86_400_000;
+  if (nextEvalDaysLeft === null) {
+    return { dueAt: new Date(natural).toISOString(), pulledForExam: false, intervalDays };
+  }
+  const examStartMs = nowMs + nextEvalDaysLeft * 86_400_000;
+  // A prova chega depois da volta natural — o ciclo cuida, ninguém antecipa.
+  if (natural < examStartMs) {
+    return { dueAt: new Date(natural).toISOString(), pulledForExam: false, intervalDays };
+  }
+  // A prova venceria a volta: puxa para D-2 (nunca antes de hoje).
+  const target = nowMs + Math.max(0, nextEvalDaysLeft - 2) * 86_400_000;
+  const due = Math.min(natural, Math.max(nowMs, target));
+  return { dueAt: new Date(due).toISOString(), pulledForExam: true, intervalDays };
 }
 
 // ---------- Lembrete PNAAT (plataforma externa — pedido do dono:
@@ -778,15 +825,23 @@ export function useStudyProgress() {
         // no leitor (pdfPath) — ementa/calendário/página não voltam à fila;
         // e o ciclo em curso NUNCA reinicia (concluir de novo não zera o
         // agendamento — a revisão é um compromisso, não um placar).
+        // TASK 220 — a prova que chega mais cedo comprime: se a 1ª volta
+        // natural cairia depois da avaliação oficial da disciplina, ela nasce
+        // em D-2 (a prova puxa a revisão — ninguém é avaliado sem revisitar).
         const matMeta = materials.find((m) => m.id === materialId);
         const reviews = { ...(prev.materialReviews ?? {}) };
         if (matMeta?.pdfPath && matMeta.type !== 'web_page' && !reviews[materialId]) {
+          const evalP = examPressureFor(disciplineCode, new Date(nowIso));
+          const sched = scheduleReviewDue(
+            new Date(nowIso).getTime(),
+            0,
+            evalP ? evalP.daysLeft : null,
+          );
           reviews[materialId] = {
             stage: 0,
             startedAt: nowIso,
-            dueAt: new Date(
-              new Date(nowIso).getTime() + MATERIAL_REVIEW_DAYS[0] * 86_400_000,
-            ).toISOString(),
+            dueAt: sched.dueAt,
+            ...(sched.pulledForExam ? { pulledForExam: true } : {}),
           };
         }
         return {
@@ -945,6 +1000,10 @@ export function useStudyProgress() {
    * próxima vence MATERIAL_REVIEW_DAYS[stage+1] dias depois; no último
    * degrau o material permanece em revisão a cada 30 dias (nunca sai da
    * rotação — "sempre ter o que estudar", diretriz do dono).
+   * TASK 220 — o reagendamento também OBEDECE À PROVA: se a volta seguinte
+   * cairia depois da avaliação oficial da disciplina, ela é antecipada para
+   * D-2. A compressão é por agendamento: cumprida a volta antecipada, o
+   * degrau normal volta a valer sozinho.
    */
   const markMaterialReviewDone = React.useCallback(
     (materialId: string) => {
@@ -952,6 +1011,13 @@ export function useStudyProgress() {
         const cur = prev.materialReviews?.[materialId];
         if (!cur) return prev;
         const nextIdx = Math.min(cur.stage + 1, MATERIAL_REVIEW_DAYS.length - 1);
+        const matCode = materials.find((m) => m.id === materialId)?.disciplineCode;
+        const evalP = matCode ? examPressureFor(matCode, new Date()) : null;
+        const sched = scheduleReviewDue(
+          Date.now(),
+          nextIdx,
+          evalP ? evalP.daysLeft : null,
+        );
         return {
           ...prev,
           materialReviews: {
@@ -960,9 +1026,8 @@ export function useStudyProgress() {
               ...cur,
               stage: nextIdx,
               lastReviewedAt: new Date().toISOString(),
-              dueAt: new Date(
-                Date.now() + MATERIAL_REVIEW_DAYS[nextIdx] * 86_400_000,
-              ).toISOString(),
+              dueAt: sched.dueAt,
+              ...(sched.pulledForExam ? { pulledForExam: true } : {}),
             },
           },
         };
