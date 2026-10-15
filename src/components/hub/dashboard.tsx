@@ -43,6 +43,7 @@ import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { upcomingEvents } from '@/lib/semester';
 import { PnaatReminderCard } from './pnaat-reminder-card';
 import { ExamRadarCard } from './exam-radar-card';
+import { TriageCard } from './triage-card';
 import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { Switch } from '@/components/ui/switch';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
@@ -814,6 +815,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         </Card>
         )
       )}
+
+      {/* TASK 219 — FILA ESSENCIAL: a triagem do motor (foco/manter/em espera)
+          — onde os blocos do dia vão, o que fica em manutenção e o que está
+          estacionado com motivo. Derivada de datas oficiais + tipo de avaliação
+          + dívida de prática — nada fixado à mão, recalculado todo dia. */}
+      <TriageCard />
 
       {/* TASK 27 — O RADAR DE PROVAS: o ciclo real do semestre — o que foi,
           o que tem data e o que está a definir. É o espelho do que a fila já

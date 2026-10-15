@@ -55,6 +55,16 @@ export interface Discipline {
   bibliografiaComplementar: string[];
   dicasEstudo: string[];
   prioridade: 'alta' | 'media' | 'baixa';
+  /**
+   * Perfil de prática da disciplina (Task 219 — dado do CURSO, não do aluno):
+   * 'pratica' = só aprende fazendo (código/exercícios TODO dia útil de estudo);
+   * 'mista'   = teoria + lista de exercícios;
+   * 'teoria'  = leitura/escrita/apresentação.
+   * O motor de prioridade usa isso para cadência de prática (dívida) e para
+   * escolher o TIPO de bloco (exercícios vs leitura). Vale para TODO o curso —
+   * períodos futuros herdam o campo, nada é específico de uma fase.
+   */
+  perfilPratica: 'pratica' | 'mista' | 'teoria';
   // Ordem recomendada de estudo (do PDF da ementa/professor)
   ordemEstudo?: string[];
   // Datas importantes mencionadas nos PDFs
@@ -241,6 +251,7 @@ export const disciplines: Discipline[] = [
       'Frequência mínima de 75% para aprovação — o professor NÃO abona faltas; justificativas vão para a coordenação do curso (tema "Justificativa de falta", ou "Realização de segunda chamada" em dias de avaliação)',
     ],
     prioridade: 'alta',
+    perfilPratica: 'pratica', // só aprende codando — prova pode puxar da Lista (289 exercícios)
     ordemEstudo: [
       '1. Leia o PDF "Introdução" da pasta de materiais',
       '2. Estude Unidade 1 (variáveis, entrada/saída, operadores)',
@@ -322,6 +333,7 @@ export const disciplines: Discipline[] = [
       'Estude acessibilidade (atributos ARIA, semântica) - cai na A3',
     ],
     prioridade: 'alta',
+    perfilPratica: 'pratica', // HTML/CSS só fixa escrevendo código
     ordemEstudo: [
       '1. Estude "00 - Introdução a linguagens de marcação"',
       '2. Aprenda estrutura básica (01 - HTML, elementos, atributos)',
@@ -406,6 +418,7 @@ export const disciplines: Discipline[] = [
       'Use a lista de exercícios do professor Eudes como referência',
     ],
     prioridade: 'alta',
+    perfilPratica: 'mista', // teoria só vira nota com lista de exercícios resolvida
     ordemEstudo: [
       '1. FAÇA a Lista de Matrizes (35 questões) com a teoria da Aula 00 ao lado só para consultar',
       '2. Blocos da lista: Q1–16 construir/igualdade/soma · Q17–30 produtos/simetria · Q31–35 inversa',
@@ -482,6 +495,7 @@ export const disciplines: Discipline[] = [
       'Pesquise sobre lixo eletrônico - tema de prova e atual',
     ],
     prioridade: 'media',
+    perfilPratica: 'mista', // leitura + fixação por perguntas
     ordemEstudo: [
       '1. Estude histórico e evolução dos computadores',
       '2. Aprenda conceitos de hardware e software',
@@ -561,6 +575,7 @@ export const disciplines: Discipline[] = [
       'Atividade avaliativa ESCRITA: QUARTA 21/10, 08:40–11:25 (M3–M5) na sala S19 — única aula da RHT na grade oficial do campus. Cobre TODO o conteúdo dado até hoje — revise os slides do 1º bimestre + leituras de apoio (Djamila Ribeiro e documentário GIG) antes dela',
     ],
     prioridade: 'media',
+    perfilPratica: 'teoria', // leitura + escrita argumentativa
     ordemEstudo: [
       '1. Leia os textos indicados ANTES da aula',
       '2. Faça resumos de cada unidade',
@@ -637,6 +652,7 @@ export const disciplines: Discipline[] = [
       'Assista ao vídeo indicado pelo prof. Fernando (16/09): "15 partes do corpo que também são VERBOS" — anote os 15 pares substantivo/verbo no seu glossário (Biblioteca)'
     ],
     prioridade: 'media',
+    perfilPratica: 'mista', // vocabulário fixa por repetição espaçada
     ordemEstudo: [
       '1. Estude estratégias de leitura (skimming, scanning, prediction)',
       '2. Memorize lista de cognatos e falsos cognatos',
@@ -722,6 +738,7 @@ export const disciplines: Discipline[] = [
       'Faça exercícios de interpretação de texto variados',
     ],
     prioridade: 'baixa',
+    perfilPratica: 'teoria', // leitura + produção de texto
     ordemEstudo: [
       '1. Leia ativamente fazendo anotações',
       '2. Pratique resumos e resenhas',
@@ -1187,6 +1204,12 @@ export interface EvaluationPeriod {
   estimatedWeek?: number;
   /** Data REAL confirmada (professor/calendário). Obrigatória para exibir prazo na UI. */
   date?: string; // 'YYYY-MM-DD'
+  /**
+   * Tipo da avaliação (Task 219 — o motor prioriza diferente cada um):
+   * 'prova' = pico de urgência · 'trabalho' = maratona (projeto por blocos) ·
+   * 'atividade' = meio. Ausente → derivado do nome/descrição (keyword).
+   */
+  kind?: 'prova' | 'trabalho' | 'atividade';
   /** Avaliação condicional (ex.: reposição) — não entra no destaque de "próxima avaliação". */
   conditional?: boolean;
 }
@@ -1205,7 +1228,7 @@ export const evaluationPeriods: EvaluationPeriod[] = [
   { disciplineCode: 'TEC.1632', evaluationName: 'A1', description: 'Estrutura de um website (HTML) - peso 45%. 1ª etapa (Classroom, 24/09): proposta em slides — entrega 09/10' },
   // Etapa com data oficial publicada no Classroom (prof. Diogo, 24/09) — entra no destaque de prazo.
   { disciplineCode: 'TEC.1632', evaluationName: 'Projeto 1ª etapa', description: 'Proposta do website em slides (~5 min, nomes de todos): nome do site, tema, stakeholders e mínimo 6 tópicos. Entrega no Classroom + apresentação em sala', date: '2026-10-09' },
-  { disciplineCode: 'TEC.1632', evaluationName: 'A2', description: 'Codificação visual (CSS) - peso 45%' },
+  { disciplineCode: 'TEC.1632', evaluationName: 'A2', kind: 'trabalho', description: 'Trabalho — Codificação visual (CSS), peso 45%. Dono (15/10/2026): o trabalho vem no PRÓXIMO MÊS; sem data oficial publicada (anti-estimativa: prazo só quando o professor publicar). O motor de prioridade trata como trabalho EM ABERTO: cadência constante de projeto até a data sair' },
   { disciplineCode: 'TEC.1632', evaluationName: 'A3', description: 'Apresentação do projeto - peso 10%' },
   // Data confirmada pelo dono (19/09): prova de Matemática no dia 01/10.
   // Escopo real confirmado (24/09): Matrizes (até inversa) + Lógica. SEM

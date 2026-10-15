@@ -3,7 +3,7 @@
 import * as React from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Dumbbell, Settings2, Sparkles } from 'lucide-react';
+import { BookOpen, CalendarRange, Dumbbell, Settings2, Sparkles } from 'lucide-react';
 import { Header } from '@/components/hub/header';
 import { CommandPalette } from '@/components/hub/command-palette';
 import { BackToTop } from '@/components/hub/back-to-top';
@@ -13,6 +13,7 @@ import { StudyView } from '@/components/hub/study-view';
 import { LibraryView } from '@/components/hub/library-view';
 import { PracticeView } from '@/components/hub/practice-view';
 import { SettingsView } from '@/components/hub/settings-view';
+import { ScheduleView } from '@/components/hub/schedule-view';
 import { useStudyProgress } from '@/lib/study-progress';
 import { StudyFocusProvider } from '@/lib/pomodoro-engine';
 import { OPEN_SIMULADO_EVENT, OPEN_PRACTICE_EVENT, OPEN_PROGRESS_EVENT, type OpenPracticeDetail, type OpenSimuladoDetail } from '@/lib/hub-events';
@@ -38,7 +39,9 @@ const GradeCalculator = dynamic(
 // 'settings' volta à casa: a A CHAVE PERFEITA (Task 214-b) mora em
 // Configurações → Inteligência da casa — o dono precisa da porta de novo
 // (o SettingsView ficou órfão quando o hub foi reerguido; TabKey sempre existiu).
-const VALID_TABS: TabKey[] = ['library', 'study', 'practice', 'settings'];
+// Abas válidas no hash — 'schedule' de volta (Task 219: o dono VÊ a semana que
+// o motor planejou; SECONDARY_TABS no sidebar a guarda sob "Mais" no modo foco).
+const VALID_TABS: TabKey[] = ['library', 'study', 'practice', 'schedule', 'settings'];
 
 function tabFromHash(): TabKey | null {
   if (typeof window === 'undefined') return null;
@@ -227,6 +230,12 @@ export default function Page() {
         'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300',
     },
     {
+      value: 'schedule',
+      label: 'Cronograma',
+      shortLabel: 'Cronograma',
+      icon: <CalendarRange className="size-4" />,
+    },
+    {
       value: 'settings',
       label: 'Configurações',
       shortLabel: 'Ajustes',
@@ -248,6 +257,8 @@ export default function Page() {
         return <StudyView initialDiscipline={studyDiscipline} initialMaterial={studyMaterial} tutorReq={tutorReq} sp={sp} />;
       case 'practice':
         return <PracticeView simuladoReq={simuladoReq} practiceReq={practiceReq} />;
+      case 'schedule':
+        return <ScheduleView />;
       case 'settings':
         return <SettingsView />;
       default:

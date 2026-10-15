@@ -198,10 +198,11 @@ export function ScheduleView() {
             preferences: prefs,
             topicProgress: sp.progress.topicProgress,
             disciplineProgress: discProg,
+            customEvaluations: sp.progress.customEvaluations,
             now,
           })
         : [],
-    [prefs, sp.progress.topicProgress, discProg, now],
+    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, now],
   );
 
   // Blocos manuais do usuário → SmartBlock com prefixo "manual-" no id.

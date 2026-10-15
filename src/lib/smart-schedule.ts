@@ -1,19 +1,35 @@
-// smart-schedule.ts v2.0 — Cronograma inteligente ROTATIVO
+// smart-schedule.ts v2.1 — Cronograma inteligente ROTATIVO
 // Reescrita completa: distribuição rotativa proporcional à CH (deficit scheduling).
 // Garante que NENHUMA disciplina aparece todos os dias e que a CH de cada uma
 // é respeitada no agregado da semana.
+//
+// v2.1 (Task 219 — "algoritmo inteligente, não plano de recuperação"):
+//   · TIPO de avaliação manda: prova = pico (revisão/prática dirigida),
+//     trabalho = maratona (blocos de projeto sustentados), atividade = meio.
+//   · DÍVIDA DE PRÁTICA (perfilPratica do curso) pesa na fila e ganha bloco
+//     próprio "Prática constante" — sem hard-code de matéria.
+//   · TRIAGEM (study-triage.ts): disciplinas "em espera" têm peso reduzido
+//     (×0.25) em vez de sumir — deixar para trás é decisão visível e reversível.
+//   · customEvaluations do dono entram na mesma régua (op North da casa).
 
 import {
   disciplines,
-  evaluationPeriods,
   getDisciplineByCode,
   classWindowForDay,
   type Discipline,
-  type EvaluationPeriod,
 } from '@/data/course-data';
-import type { StudyPreferences, TopicProgress } from './study-progress';
+import type { CustomEvaluation, StudyPreferences, TopicProgress } from './study-progress';
 // Fonte única do calendário — funções reexportadas p/ compatibilidade com os views.
 import { currentWeekOfSemester, daysUntilDate } from './semester';
+export { daysUntilDate };
+import {
+  computeTriage,
+  evalsFor,
+  practiceDebtDays,
+  urgencyFactor,
+  type DiscEval,
+  type Triage,
+} from './study-triage';
 
 export { currentWeekOfSemester };
 
@@ -46,6 +62,8 @@ export interface SmartScheduleInput {
   preferences: StudyPreferences;
   topicProgress: TopicProgress;
   disciplineProgress?: { [code: string]: ScheduleDisciplineState };
+  /** Avaliações customizadas do dono (radar/calculadora) — entram na régua. */
+  customEvaluations?: CustomEvaluation[];
   now?: Date;
 }
 
@@ -90,10 +108,14 @@ interface DiscWeight {
   code: string;
   weight: number;         // peso normalizado (soma = 1)
   evalBoostDays?: number; // dias restantes p/ avaliação mais próxima
+  evalKind?: DiscEval['kind']; // prova | trabalho | atividade (muda o TIPO de bloco)
+  debtDays?: number;      // dívida de prática (muda o título/tipo do bloco)
 }
 
 /**
- * Pesos de distribuição: CH proporcional × prioridade × urgência de avaliação.
+ * Pesos de distribuição (v2.1): CH × prioridade × pendência × URGÊNCIA POR TIPO
+ * × DÍVIDA DE PRÁTICA, com balde da triagem amortizando "em espera" (×0.25).
+ * A fonte de verdade de tipo/dívida/prazos é study-triage.ts (1 motor só).
  * rotationMode:
  *  - 'proportional' → CH + prioridade (recomendado)
  *  - 'fixed'        → rotação igualitária (mesma fatia para todas)
@@ -103,10 +125,16 @@ function computeWeights(
   mode: StudyPreferences['rotationMode'],
   topicProgress: TopicProgress,
   disciplineProgress: { [code: string]: ScheduleDisciplineState },
+  customEvaluations: CustomEvaluation[] | undefined,
+  triage: Triage,
   now: Date,
 ): Map<string, DiscWeight> {
   const result = new Map<string, DiscWeight>();
   const raw = new Map<string, number>();
+  const bucketOf = new Map<string, Triage['foco'][number]['bucket']>();
+  for (const list of [triage.foco, triage.manter, triage.espera]) {
+    for (const e of list) bucketOf.set(e.code, e.bucket);
+  }
 
   for (const d of disciplines) {
     const pend = pendingTopics(d.code, topicProgress);
@@ -122,35 +150,37 @@ function computeWeights(
       // Tópicos pendentes pesam um pouco (mais pendente → leve reforço)
       w *= 1 + Math.min(0.3, pend * 0.02);
     }
-    // Avaliação com DATA OFICIAL próxima → urgência.
-    // Política ANTI-ESTIMATIVA: sem `date` oficial não há boost de urgência.
-    const upcoming = evaluationPeriods
-      .filter((e): e is EvaluationPeriod & { date: string } => e.disciplineCode === d.code && !!e.date)
-      .map((e) => daysUntilDate(e.date, now))
-      .filter((days) => days >= 0)
-      .sort((a, b) => a - b);
-    if (upcoming.length > 0 && upcoming[0] <= 14) {
-      const days = upcoming[0];
-      if (days <= 3) w *= 4;
-      else if (days <= 7) w *= 2.5;
-      else w *= 1.5;
-      result.set(d.code, { code: d.code, weight: w, evalBoostDays: days });
-      continue;
-    }
-    // Esquecida (≥5 dias) → reforço moderado
-    if (isStale(d.code, disciplineProgress[d.code], now)) w *= 1.4;
-    raw.set(d.code, w);
+
+    // URGÊNCIA POR TIPO (v2.1): a avaliação mais pressionante da disciplina
+    // (oficial datada/em aberto + customização do dono) decide o fator.
+    const evals = evalsFor(d.code, customEvaluations, now);
+    const pressing = evals
+      .slice()
+      .sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999))[0];
+    w *= urgencyFactor(pressing);
+
+    // DÍVIDA DE PRÁTICA (v2.1): perfil do CURSO × último toque do aluno.
+    const debt = practiceDebtDays(d, disciplineProgress[d.code]?.lastStudiedAt, now);
+    if (d.perfilPratica !== 'teoria') w *= 1 + Math.min(0.5, debt * 0.08);
+
+    const entry: DiscWeight = {
+      code: d.code,
+      weight: w,
+      ...(pressing?.daysLeft !== undefined ? { evalBoostDays: pressing.daysLeft } : {}),
+      ...(pressing ? { evalKind: pressing.kind } : {}),
+      ...(debt > 0 ? { debtDays: debt } : {}),
+    };
+    // TRIAGEM: em espera não some — respira (×0.25) até o radar trazê-la de volta.
+    if (bucketOf.get(d.code) === 'espera') entry.weight *= 0.25;
+    raw.set(d.code, entry.weight);
+    result.set(d.code, entry);
   }
 
-  // Normaliza (soma = 1)
+  // Normaliza (soma = 1) preservando os metadados
   const sum = Array.from(raw.values()).reduce((a, b) => a + b, 0) || 1;
-  for (const [code, w] of raw) {
-    const prev = result.get(code);
-    result.set(code, { code, weight: w / sum, evalBoostDays: prev?.evalBoostDays });
-  }
-  // Disciplinas concluídas ficam com peso 0
-  for (const d of disciplines) {
-    if (!result.has(d.code)) result.set(d.code, { code: d.code, weight: 0 });
+  for (const [code, dw] of result) {
+    if (dw.weight === 0) continue;
+    result.set(code, { ...dw, weight: dw.weight / sum });
   }
   return result;
 }
@@ -175,7 +205,15 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   const disciplineProgress = input.disciplineProgress ?? {};
   const now = input.now ?? new Date();
   const mode = preferences.rotationMode ?? 'proportional';
-  const weights = computeWeights(mode, topicProgress, disciplineProgress, now);
+  // MOTOR v2.1: a triagem é calculada UMA vez e manda nos pesos, nos blocos
+  // urgentes e na prática constante — 1 fonte de verdade para toda a casa.
+  const triage = computeTriage({
+    topicProgress,
+    disciplineProgress,
+    customEvaluations: input.customEvaluations,
+    now,
+  });
+  const weights = computeWeights(mode, topicProgress, disciplineProgress, input.customEvaluations, triage, now);
 
   // Capacidade planejada da semana (para calcular metas proporcionais)
   const dayCapacity = new Map<number, { blocks: number; minutes: number; startHour: number }>();
@@ -212,10 +250,18 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     .filter((d) => isStale(d.code, disciplineProgress[d.code], now) && (weights.get(d.code)?.weight ?? 0) > 0)
     .map((d) => d.code);
 
-  // Avaliações urgentes (≤7 dias) por disciplina
+  // Avaliações urgentes (≤7 dias) por disciplina — o TIPO decide o bloco:
+  // prova/atividade = prática dirigida (antes de D-4) ou revisão (D-3);
+  // trabalho = avanço de projeto (maratona, não véspera).
   const urgentEvalCodes = Array.from(weights.values())
     .filter((dw) => dw.evalBoostDays !== undefined && dw.evalBoostDays <= 7)
-    .map((dw) => dw.code);
+    .map((dw) => dw);
+
+  // Prática constante (v2.1): dívida ≥ cadência → bloco garantido por dia
+  // para as disciplinas de FOCO (capacidade já comprometida com elas).
+  const debtCodes = triage.foco
+    .filter((e) => e.debtDays >= e.cadence)
+    .map((e) => ({ code: e.code, debt: e.debtDays, short: e.shortName }));
 
   const blocks: SmartBlock[] = [];
   const staleQueue = [...staleCodes];
@@ -293,18 +339,40 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     }
 
     // 3. Urgentes por avaliação (≤7 dias) — 1 bloco intensivo garantido por dia
-    for (const code of urgentEvalCodes) {
+    for (const dw of urgentEvalCodes) {
       if (usedBlocks >= cap.blocks) break;
-      const daysLeft = weights.get(code)?.evalBoostDays;
+      const daysLeft = dw.evalBoostDays;
+      const code = dw.code;
       const d = getDisciplineByCode(code);
       if (d && !todayCodes.has(code)) {
-        push(
-          code,
-          `${d.shortName} — Revisão intensiva (avaliação em ${daysLeft}d)`,
-          'revisao',
-          { intensive: true },
-        );
+        const kind = dw.evalKind ?? 'prova';
+        // TIPO MANDA: prova/atividade viram revisão na reta final; antes disso
+        // é PRÁTICA dirigida (a prova pode puxar da lista — dado do curso).
+        const finalStraight = daysLeft !== undefined && daysLeft <= 3;
+        const activity: SmartBlock['activity'] =
+          kind === 'trabalho' ? 'projeto' : finalStraight ? 'revisao' : 'exercicios';
+        const what =
+          kind === 'trabalho'
+            ? `Trabalho em ${daysLeft}d — avançar projeto`
+            : finalStraight
+              ? `Revisão intensiva (avaliação em ${daysLeft}d)`
+              : `Prática dirigida (avaliação em ${daysLeft}d)`;
+        push(code, `${d.shortName} — ${what}`, activity, { intensive: true });
       }
+    }
+
+    // 3.5 Prática constante (v2.1): dívida ≥ cadência no foco — 1 bloco/dia,
+    // nunca antes do urgente de avaliação (a prova manda, a dívida cobre o resto).
+    for (const dc of debtCodes) {
+      if (usedBlocks >= cap.blocks) break;
+      if (todayCodes.has(dc.code)) continue;
+      if (!getDisciplineByCode(dc.code)) continue;
+      push(
+        dc.code,
+        `${dc.short} — Prática constante (dívida ${dc.debt}d)`,
+        'exercicios',
+        { intensive: true },
+      );
     }
 
     // 4. Esquecidas (≥5 dias) — 1 por dia até esgotar a fila
