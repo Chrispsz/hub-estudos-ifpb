@@ -3,7 +3,7 @@
 import * as React from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CalendarRange, Dumbbell, Settings2, Sparkles } from 'lucide-react';
+import { BookOpen, CalendarRange, Dumbbell, Settings2, Sparkles, SquareTerminal } from 'lucide-react';
 import { Header } from '@/components/hub/header';
 import { CommandPalette } from '@/components/hub/command-palette';
 import { BackToTop } from '@/components/hub/back-to-top';
@@ -35,13 +35,19 @@ const GradeCalculator = dynamic(
   () => import('@/components/hub/grade-calculator').then((m) => m.GradeCalculator),
   { ssr: false },
 );
+// LAB DE CÓDIGO (Task 220): interpretador de C passo a passo — variáveis,
+// memória, pilha de chamadas e "E se...?". Compila no cliente, zero backend.
+const CodeLab = dynamic(
+  () => import('@/components/clab/code-lab').then((m) => m.CodeLab),
+  { ssr: false },
+);
 
 // 'settings' volta à casa: a A CHAVE PERFEITA (Task 214-b) mora em
 // Configurações → Inteligência da casa — o dono precisa da porta de novo
 // (o SettingsView ficou órfão quando o hub foi reerguido; TabKey sempre existiu).
 // Abas válidas no hash — 'schedule' de volta (Task 219: o dono VÊ a semana que
 // o motor planejou; SECONDARY_TABS no sidebar a guarda sob "Mais" no modo foco).
-const VALID_TABS: TabKey[] = ['library', 'study', 'practice', 'schedule', 'settings'];
+const VALID_TABS: TabKey[] = ['library', 'study', 'practice', 'schedule', 'settings', 'lab'];
 
 function tabFromHash(): TabKey | null {
   if (typeof window === 'undefined') return null;
@@ -236,6 +242,12 @@ export default function Page() {
       icon: <CalendarRange className="size-4" />,
     },
     {
+      value: 'lab',
+      label: 'Lab de Código',
+      shortLabel: 'Lab',
+      icon: <SquareTerminal className="size-4" />,
+    },
+    {
       value: 'settings',
       label: 'Configurações',
       shortLabel: 'Ajustes',
@@ -259,6 +271,8 @@ export default function Page() {
         return <PracticeView simuladoReq={simuladoReq} practiceReq={practiceReq} />;
       case 'schedule':
         return <ScheduleView />;
+      case 'lab':
+        return <CodeLab />;
       case 'settings':
         return <SettingsView />;
       default:

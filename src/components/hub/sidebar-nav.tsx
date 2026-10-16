@@ -26,7 +26,8 @@ export type TabKey =
   | 'method'
   | 'schedule'
   | 'progress'
-  | 'settings';
+  | 'settings'
+  | 'lab';
 
 export interface NavItem {
   value: TabKey;
