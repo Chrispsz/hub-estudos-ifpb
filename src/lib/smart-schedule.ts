@@ -10,6 +10,13 @@
 //     próprio "Prática constante" — sem hard-code de matéria.
 //   · TRIAGEM (study-triage.ts): disciplinas "em espera" têm peso reduzido
 //     (×0.25) em vez de sumir — deixar para trás é decisão visível e reversível.
+// v2.2 (Mensagem 7 do dono — "por que tanta prioridade para RHT?"):
+//   · PESOS DO PERFIL valem aqui também: priorityMultiplierOf (alta 1.35 /
+//     media 0.95 / baixa 0.75) + strategyMultiplierOf (escada 1.15, acúmulo
+//     1.1, fluência 0.9) — a MESMA régua da triagem, 1 motor só.
+//   · BLOCO INTENSIVO DIÁRIO só para PROVA ≤7d: atividade/trabalho ganham o
+//     bloco garantido só na véspera real (≤3d) — antes disso competem pelos
+//     pesos como todo mundo (a atividade de sala não ocupa o dia, D-5).
 //   · customEvaluations do dono entram na mesma régua (op North da casa).
 
 import {
@@ -26,6 +33,8 @@ import {
   computeTriage,
   evalsFor,
   practiceDebtDays,
+  priorityMultiplierOf,
+  strategyMultiplierOf,
   urgencyFactor,
   type DiscEval,
   type Triage,
@@ -79,11 +88,16 @@ function chShare(d: Discipline): number {
   return d.chTotal / (TOTAL_CH || 1);
 }
 
-/** Multiplicador de prioridade — ajuste fino sobre a CH (não domina a rotação). */
-function priorityMultiplier(d: Discipline): number {
-  if (d.prioridade === 'alta') return 1.2;
-  if (d.prioridade === 'media') return 1.0;
-  return 0.85;
+/**
+ * Blocos INTENSIVOS DIÁRIOS por avaliação — com dose (Mensagem 7 do dono):
+ * prova é PICO (diário a partir de D-7); atividade/trabalho são meio-termo e
+ * maratona — o bloco garantido é só na VÉSPERA real (≤3d); antes disso eles
+ * disputam vagas pelos pesos como todas as demais.
+ */
+function shouldIntensify(kind: DiscEval['kind'], daysLeft: number | undefined): boolean {
+  if (daysLeft === undefined) return false;
+  if (kind === 'prova') return daysLeft <= 7;
+  return daysLeft <= 3;
 }
 
 function pendingTopics(code: string, topicProgress: TopicProgress): number {
@@ -146,7 +160,9 @@ function computeWeights(
     if (mode === 'fixed') {
       w = 1; // igualitário
     } else {
-      w = chShare(d) * priorityMultiplier(d);
+      // CH × prioridade do perfil × estratégia de conteúdo (a MESMA régua da
+      // triagem: página do curso + perfil do dono + escada/acúmulo/fluência).
+      w = chShare(d) * priorityMultiplierOf(d) * strategyMultiplierOf(d);
       // Tópicos pendentes pesam um pouco (mais pendente → leve reforço)
       w *= 1 + Math.min(0.3, pend * 0.02);
     }
@@ -250,17 +266,25 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     .filter((d) => isStale(d.code, disciplineProgress[d.code], now) && (weights.get(d.code)?.weight ?? 0) > 0)
     .map((d) => d.code);
 
-  // Avaliações urgentes (≤7 dias) por disciplina — o TIPO decide o bloco:
+  // Avaliações com BLOCO GARANTIDO (com dose — shouldIntensify): prova ≤7d é
+  // diária; atividade/trabalho só na véspera real (≤3d). O TIPO decide o bloco:
   // prova/atividade = prática dirigida (antes de D-4) ou revisão (D-3);
   // trabalho = avanço de projeto (maratona, não véspera).
   const urgentEvalCodes = Array.from(weights.values())
-    .filter((dw) => dw.evalBoostDays !== undefined && dw.evalBoostDays <= 7)
+    .filter(
+      (dw) =>
+        dw.evalBoostDays !== undefined &&
+        shouldIntensify(dw.evalKind ?? 'prova', dw.evalBoostDays),
+    )
     .map((dw) => dw);
 
   // Prática constante (v2.1): dívida ≥ cadência → bloco garantido por dia
   // para as disciplinas de FOCO (capacidade já comprometida com elas).
+  // Teoria/fluência FORA (Mensagem 7 do dono: RHT é trabalhada em aula,
+  // discursiva — o toque em casa é leve, vive na fila e no FSRS, não em
+  // bloco diário que engarrafa a semana).
   const debtCodes = triage.foco
-    .filter((e) => e.debtDays >= e.cadence)
+    .filter((e) => e.debtDays >= e.cadence && e.perfilPratica !== 'teoria')
     .map((e) => ({ code: e.code, debt: e.debtDays, short: e.shortName }));
 
   const blocks: SmartBlock[] = [];
@@ -338,7 +362,8 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
       );
     }
 
-    // 3. Urgentes por avaliação (≤7 dias) — 1 bloco intensivo garantido por dia
+    // 3. Urgentes com dose (prova ≤7d diário; atividade/trabalho só ≤3d)
+    //    — 1 bloco intensivo garantido por dia para quem se qualifica
     for (const dw of urgentEvalCodes) {
       if (usedBlocks >= cap.blocks) break;
       const daysLeft = dw.evalBoostDays;

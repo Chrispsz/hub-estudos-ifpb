@@ -6,6 +6,7 @@ import {
   Activity,
   AppWindow,
   BellRing,
+  ChevronDown,
   CircleCheck,
   Cloud,
   KeyRound,
@@ -40,6 +41,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -148,448 +155,481 @@ export function SettingsView() {
       <div>
         <h2 className="text-xl font-semibold">Configurações</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Aparência, Pomodoro, backup e dados — tudo fica no seu navegador.
+          Aparência, Tutor IA, Pomodoro e dados — tudo fica no seu navegador.
         </p>
       </div>
 
-      {/* Aparência */}
-      <Card className="rounded-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sun className="size-4 text-amber-500" aria-hidden />
+      {/* ABAS (Task 221-b): o scroll único virou 4 casas — Aparência, Tutor IA,
+          Pomodoro e Dados. No toque, grade 2×2 com alvo mínimo de 44px; no
+          desktop, a linha clássica. O estado continua no pai — abas são só layout. */}
+      <Tabs defaultValue="aparencia" className="gap-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-lg p-1 md:inline-flex md:h-9 md:w-auto md:gap-0">
+          <TabsTrigger value="aparencia" className="min-h-11 px-3 md:min-h-0">
+            <Sun className="size-4" aria-hidden />
             Aparência
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Tema</p>
-              <p className="text-xs text-muted-foreground">
-                AMOLED usa preto puro (padrão em telas OLED).
-              </p>
-            </div>
-            <Select value={theme ?? 'dark'} onValueChange={setTheme}>
-              <SelectTrigger className="w-40" aria-label="Selecionar tema">
-                <SelectValue placeholder="Tema" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dark">
-                  <span className="flex items-center gap-2">
-                    <Moon className="size-3.5" /> Escuro (AMOLED)
-                  </span>
-                </SelectItem>
-                <SelectItem value="light">
-                  <span className="flex items-center gap-2">
-                    <Sun className="size-3.5" /> Claro
-                  </span>
-                </SelectItem>
-                <SelectItem value="system">Sistema</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Modo foco (navegação simples)</p>
-              <p className="text-xs text-muted-foreground">
-                Esconde <b>Método</b>, <b>Cronograma</b> e <b>Progresso</b> atrás do botão "Mais"
-                na barra lateral — só o estudo do dia a dia na frente. Nada é apagado; um toque
-                em "Mais" traz de volta.
-              </p>
-            </div>
-            <FocusModeSwitch />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* IA (OpenRouter) */}
-      <AiInfoCard />
-
-      {/* Instalar como app (PWA) */}
-      <InstallAppCard />
-
-      {/* Pomodoro */}
-      <Card className="rounded-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Timer className="size-4 text-emerald-500" aria-hidden />
+          </TabsTrigger>
+          <TabsTrigger value="tutor" className="min-h-11 px-3 md:min-h-0">
+            <Sparkles className="size-4" aria-hidden />
+            Tutor IA
+          </TabsTrigger>
+          <TabsTrigger value="pomodoro" className="min-h-11 px-3 md:min-h-0">
+            <Timer className="size-4" aria-hidden />
             Pomodoro
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <NumberSetting
-              label="Foco (min)"
-              description="Duração de cada bloco"
-              ariaLabel="Minutos de foco"
-              value={cfg.pomodoroConfig.focus}
-              min={5}
-              max={90}
-              step={5}
-              fallback={25}
-              onCommit={(focus) =>
-                sp.updatePreferences({
-                  pomodoroConfig: { ...cfg.pomodoroConfig, focus },
-                })
-              }
-            />
-            <NumberSetting
-              label="Pausa curta (min)"
-              description="Entre focos"
-              ariaLabel="Minutos de pausa curta"
-              value={cfg.pomodoroConfig.shortBreak}
-              min={1}
-              max={30}
-              fallback={5}
-              onCommit={(shortBreak) =>
-                sp.updatePreferences({
-                  pomodoroConfig: { ...cfg.pomodoroConfig, shortBreak },
-                })
-              }
-            />
-            <NumberSetting
-              label="Pausa longa (min)"
-              description="A cada N ciclos"
-              ariaLabel="Minutos de pausa longa"
-              value={cfg.pomodoroConfig.longBreak}
-              min={5}
-              max={60}
-              step={5}
-              fallback={15}
-              onCommit={(longBreak) =>
-                sp.updatePreferences({
-                  pomodoroConfig: { ...cfg.pomodoroConfig, longBreak },
-                })
-              }
-            />
-            <NumberSetting
-              label="Ciclos p/ pausa longa"
-              description="Focos antes da longa"
-              ariaLabel="Ciclos antes da pausa longa"
-              value={cfg.pomodoroConfig.cyclesBeforeLong}
-              min={2}
-              max={8}
-              fallback={4}
-              onCommit={(cyclesBeforeLong) =>
-                sp.updatePreferences({
-                  pomodoroConfig: { ...cfg.pomodoroConfig, cyclesBeforeLong },
-                })
-              }
-            />
-            <NumberSetting
-              label="Meta diária"
-              description="Pomodoros por dia"
-              ariaLabel="Meta diária de pomodoros"
-              value={cfg.dailyGoal}
-              min={1}
-              max={12}
-              fallback={4}
-              onCommit={(dailyGoal) => sp.updatePreferences({ dailyGoal })}
-            />
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                {cfg.silentMode ? (
-                  <VolumeX className="size-4 text-muted-foreground" aria-hidden />
-                ) : (
-                  <Volume2 className="size-4 text-emerald-500" aria-hidden />
-                )}
-                <div>
-                  <p className="text-sm font-medium">Som ao trocar de fase</p>
-                  <p className="text-xs text-muted-foreground">Beep discreto</p>
-                </div>
-              </div>
-              <Switch
-                checked={!cfg.silentMode}
-                onCheckedChange={(v) => sp.updatePreferences({ silentMode: !v })}
-                aria-label="Ativar som do Pomodoro"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <ExternalLink
-                  className={
-                    cfg.backgroundTimer !== false
-                      ? 'size-4 text-emerald-500'
-                      : 'size-4 text-muted-foreground'
-                  }
-                  aria-hidden
-                />
-                <div>
-                  <p className="text-sm font-medium">Rodar em outra guia</p>
-                  <p className="text-xs text-muted-foreground">
-                    O foco segue contando enquanto você pesquisa fora do Hub
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={cfg.backgroundTimer !== false}
-                onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
-                aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <BellRing
-                  className={
-                    cfg.notifyPhaseEnd ? 'size-4 text-emerald-500' : 'size-4 text-muted-foreground'
-                  }
-                  aria-hidden
-                />
-                <div>
-                  <p className="text-sm font-medium">Notificar fim das fases</p>
-                  <p className="text-xs text-muted-foreground">Aviso do sistema ao concluir</p>
-                </div>
-              </div>
-              <Switch
-                checked={cfg.notifyPhaseEnd}
-                onCheckedChange={(v) => {
-                  if (!v) {
-                    sp.updatePreferences({ notifyPhaseEnd: false });
-                    return;
-                  }
-                  if (!('Notification' in window)) {
-                    toast.error('Este navegador não suporta notificações.');
-                    return;
-                  }
-                  if (Notification.permission === 'granted') {
-                    sp.updatePreferences({ notifyPhaseEnd: true });
-                    toast.success('Notificações ativadas!');
-                    return;
-                  }
-                  if (Notification.permission === 'denied') {
-                    toast.error(
-                      'Notificações bloqueadas — libere o site nas permissões do navegador.',
-                    );
-                    return;
-                  }
-                  Notification.requestPermission().then((p) => {
-                    if (p === 'granted') {
-                      sp.updatePreferences({ notifyPhaseEnd: true });
-                      toast.success('Notificações ativadas!');
-                    } else {
-                      toast.info('Permissão não concedida — ative nas configurações do navegador.');
-                    }
-                  });
-                }}
-                aria-label="Ativar notificações do Pomodoro"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <AppWindow
-                  className={
-                    cfg.tabTitleTimer ? 'size-4 text-teal-500' : 'size-4 text-muted-foreground'
-                  }
-                  aria-hidden
-                />
-                <div>
-                  <p className="text-sm font-medium">Timer no título da aba</p>
-                  <p className="text-xs text-muted-foreground">Ex.: “24:31 • Foco — Hub”</p>
-                </div>
-              </div>
-              <Switch
-                checked={cfg.tabTitleTimer}
-                onCheckedChange={(v) => sp.updatePreferences({ tabTitleTimer: v })}
-                aria-label="Mostrar timer no título da aba"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <RotateCcw
-                  className={
-                    cfg.includeReviews !== false
-                      ? 'size-4 text-emerald-500'
-                      : 'size-4 text-muted-foreground'
-                  }
-                  aria-hidden
-                />
-                <div>
-                  <p className="text-sm font-medium">Revisar assuntos antigos</p>
-                  <p className="text-xs text-muted-foreground">
-                    O ciclo 1·3·7·14·30 volta ao plano — desligue para fila só de conteúdo novo e prova
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={cfg.includeReviews !== false}
-                onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
-                aria-label="Incluir revisão de assuntos antigos no cronograma"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </TabsTrigger>
+          <TabsTrigger value="dados" className="min-h-11 px-3 md:min-h-0">
+            <DatabaseBackup className="size-4" aria-hidden />
+            Dados
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Backup */}
-      <Card className="rounded-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <DatabaseBackup className="size-4 text-teal-500" aria-hidden />
-            Backup do progresso
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            {pomodoroStats.sessions}{' '}
-            {pomodoroStats.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro (
-            {pomodoroStats.minutes} min de foco acumulados) salvos no navegador. Exporte um JSON
-            para não perder nada ao limpar o cache — um hábito semanal cobre o semestre inteiro.
-          </p>
-          {/* O MEDIDOR DO SEGURO (172): o export já existia; o que faltava era o
-              hábito ter um medidor. Cor = significado (a gramática da casa):
-              esmeralda em dia, âmbar semanal vencido, rosa mensal vencido, zinc
-              nunca exportou. O selo mora numa chave própria — importar um backup
-              antigo não finge que o backup é novo. */}
-          <div
-            className={cn(
-              'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium',
-              backup.tone === 'ok' && 'border-emerald-500/40 bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-300',
-              backup.tone === 'warn' && 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 dark:text-amber-300',
-              backup.tone === 'danger' && 'border-rose-500/40 bg-rose-500/[0.07] text-rose-700 dark:text-rose-300',
-              backup.tone === 'never' && 'border-border bg-muted/40 text-muted-foreground',
-            )}
-            data-testid="backup-status"
-          >
-            {backup.tone === 'ok' ? (
-              <CircleCheck className="size-4 shrink-0" aria-hidden />
-            ) : backup.tone === 'danger' ? (
-              <ShieldAlert className="size-4 shrink-0" aria-hidden />
-            ) : (
-              <DatabaseBackup className="size-4 shrink-0" aria-hidden />
-            )}
-            <span className="min-w-0 flex-1">{backup.label}</span>
-            {worth.total > 0 && (
-              <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
-                {worth.total === 1 ? '1 registro' : `${worth.total} registros`} no seguro
-              </span>
-            )}
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              variant="outline"
-              className="justify-start focus-visible:ring-emerald-500/60"
-              onClick={handleExport}
-            >
-              <Download className="size-4 text-emerald-500" />
-              Exportar progresso (JSON)
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start focus-visible:ring-amber-500/60"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="size-4 text-amber-500" />
-              Importar progresso (JSON)
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              aria-label="Arquivo de backup JSON"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImportFile(f);
-                e.target.value = '';
-              }}
-            />
-          </div>
-          {/* A CONFIRMAÇÃO DA IMPORTAÇÃO (172): substituir o progresso é o mesmo
-              tipo de ato da Zona de risco — destrutivo e sem desfazer. Com algo
-              a perder, o diálogo confessa EM NÚMEROS o que vai embora; com o
-              estado vazio, a importação entra sem cerimônia (não há o que
-              destruir — pedir confirmação seria cerimônia disfarçada). */}
-          <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Substituir o progresso atual pelo backup?</AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className="space-y-2">
-                    <p>
-                      O progresso atual deste navegador será totalmente substituído pelo arquivo
-                      escolhido. Nesta hora existem:
-                    </p>
-                    <ul className="space-y-1 text-xs">
-                      <li className="tabular-nums">
-                        • {worth.sessions} {worth.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro
-                      </li>
-                      <li className="tabular-nums">
-                        • {worth.materials}{' '}
-                        {worth.materials === 1 ? 'material concluído' : 'materiais concluídos'}
-                      </li>
-                      <li className="tabular-nums">
-                        • {worth.flashcards} {worth.flashcards === 1 ? 'cartão' : 'cartões'} de
-                        flashcards
-                      </li>
-                      <li className="tabular-nums">
-                        • {worth.runs} {worth.runs === 1 ? 'corrida' : 'corridas'} de simulado
-                      </li>
-                    </ul>
-                    <p>Esta ação não pode ser desfeita — exporte o atual antes, se precisar.</p>
+        <TabsContent value="aparencia" className="space-y-5">
+          {/* Aparência */}
+          <Card className="rounded-xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Sun className="size-4 text-amber-500" aria-hidden />
+                Aparência
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Tema</p>
+                  <p className="text-xs text-muted-foreground">
+                    AMOLED usa preto puro (padrão em telas OLED).
+                  </p>
+                </div>
+                <Select value={theme ?? 'dark'} onValueChange={setTheme}>
+                  <SelectTrigger className="w-40" aria-label="Selecionar tema">
+                    <SelectValue placeholder="Tema" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dark">
+                      <span className="flex items-center gap-2">
+                        <Moon className="size-3.5" /> Escuro (AMOLED)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="light">
+                      <span className="flex items-center gap-2">
+                        <Sun className="size-3.5" /> Claro
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="system">Sistema</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Modo foco (navegação simples)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Esconde <b>Método</b>, <b>Cronograma</b> e <b>Progresso</b> atrás do botão "Mais"
+                    na barra lateral — só o estudo do dia a dia na frente. Nada é apagado; um toque
+                    em "Mais" traz de volta.
+                  </p>
+                </div>
+                <FocusModeSwitch />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Instalar como app (PWA) */}
+          <InstallAppCard />
+        </TabsContent>
+
+        <TabsContent value="tutor" className="space-y-5">
+          {/* Tutor IA (OpenRouter) */}
+          <AiInfoCard />
+        </TabsContent>
+
+        <TabsContent value="pomodoro" className="space-y-5">
+          {/* Pomodoro */}
+          <Card className="rounded-xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Timer className="size-4 text-emerald-500" aria-hidden />
+                Pomodoro
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <NumberSetting
+                  label="Foco (min)"
+                  description="Duração de cada bloco"
+                  ariaLabel="Minutos de foco"
+                  value={cfg.pomodoroConfig.focus}
+                  min={5}
+                  max={90}
+                  step={5}
+                  fallback={25}
+                  onCommit={(focus) =>
+                    sp.updatePreferences({
+                      pomodoroConfig: { ...cfg.pomodoroConfig, focus },
+                    })
+                  }
+                />
+                <NumberSetting
+                  label="Pausa curta (min)"
+                  description="Entre focos"
+                  ariaLabel="Minutos de pausa curta"
+                  value={cfg.pomodoroConfig.shortBreak}
+                  min={1}
+                  max={30}
+                  fallback={5}
+                  onCommit={(shortBreak) =>
+                    sp.updatePreferences({
+                      pomodoroConfig: { ...cfg.pomodoroConfig, shortBreak },
+                    })
+                  }
+                />
+                <NumberSetting
+                  label="Pausa longa (min)"
+                  description="A cada N ciclos"
+                  ariaLabel="Minutos de pausa longa"
+                  value={cfg.pomodoroConfig.longBreak}
+                  min={5}
+                  max={60}
+                  step={5}
+                  fallback={15}
+                  onCommit={(longBreak) =>
+                    sp.updatePreferences({
+                      pomodoroConfig: { ...cfg.pomodoroConfig, longBreak },
+                    })
+                  }
+                />
+                <NumberSetting
+                  label="Ciclos p/ pausa longa"
+                  description="Focos antes da longa"
+                  ariaLabel="Ciclos antes da pausa longa"
+                  value={cfg.pomodoroConfig.cyclesBeforeLong}
+                  min={2}
+                  max={8}
+                  fallback={4}
+                  onCommit={(cyclesBeforeLong) =>
+                    sp.updatePreferences({
+                      pomodoroConfig: { ...cfg.pomodoroConfig, cyclesBeforeLong },
+                    })
+                  }
+                />
+                <NumberSetting
+                  label="Meta diária"
+                  description="Pomodoros por dia"
+                  ariaLabel="Meta diária de pomodoros"
+                  value={cfg.dailyGoal}
+                  min={1}
+                  max={12}
+                  fallback={4}
+                  onCommit={(dailyGoal) => sp.updatePreferences({ dailyGoal })}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {cfg.silentMode ? (
+                      <VolumeX className="size-4 text-muted-foreground" aria-hidden />
+                    ) : (
+                      <Volume2 className="size-4 text-emerald-500" aria-hidden />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">Som ao trocar de fase</p>
+                      <p className="text-xs text-muted-foreground">Beep discreto</p>
+                    </div>
                   </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={confirmImport}
-                  className="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500/60"
-                >
-                  Substituir tudo
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+                  <Switch
+                    checked={!cfg.silentMode}
+                    onCheckedChange={(v) => sp.updatePreferences({ silentMode: !v })}
+                    aria-label="Ativar som do Pomodoro"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <ExternalLink
+                      className={
+                        cfg.backgroundTimer !== false
+                          ? 'size-4 text-emerald-500'
+                          : 'size-4 text-muted-foreground'
+                      }
+                      aria-hidden
+                    />
+                    <div>
+                      <p className="text-sm font-medium">Rodar em outra guia</p>
+                      <p className="text-xs text-muted-foreground">
+                        O foco segue contando enquanto você pesquisa fora do Hub
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={cfg.backgroundTimer !== false}
+                    onCheckedChange={(v) => sp.updatePreferences({ backgroundTimer: v })}
+                    aria-label="Continuar o Pomodoro quando o Hub estiver em outra guia"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <BellRing
+                      className={
+                        cfg.notifyPhaseEnd ? 'size-4 text-emerald-500' : 'size-4 text-muted-foreground'
+                      }
+                      aria-hidden
+                    />
+                    <div>
+                      <p className="text-sm font-medium">Notificar fim das fases</p>
+                      <p className="text-xs text-muted-foreground">Aviso do sistema ao concluir</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={cfg.notifyPhaseEnd}
+                    onCheckedChange={(v) => {
+                      if (!v) {
+                        sp.updatePreferences({ notifyPhaseEnd: false });
+                        return;
+                      }
+                      if (!('Notification' in window)) {
+                        toast.error('Este navegador não suporta notificações.');
+                        return;
+                      }
+                      if (Notification.permission === 'granted') {
+                        sp.updatePreferences({ notifyPhaseEnd: true });
+                        toast.success('Notificações ativadas!');
+                        return;
+                      }
+                      if (Notification.permission === 'denied') {
+                        toast.error(
+                          'Notificações bloqueadas — libere o site nas permissões do navegador.',
+                        );
+                        return;
+                      }
+                      Notification.requestPermission().then((p) => {
+                        if (p === 'granted') {
+                          sp.updatePreferences({ notifyPhaseEnd: true });
+                          toast.success('Notificações ativadas!');
+                        } else {
+                          toast.info('Permissão não concedida — ative nas configurações do navegador.');
+                        }
+                      });
+                    }}
+                    aria-label="Ativar notificações do Pomodoro"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AppWindow
+                      className={
+                        cfg.tabTitleTimer ? 'size-4 text-teal-500' : 'size-4 text-muted-foreground'
+                      }
+                      aria-hidden
+                    />
+                    <div>
+                      <p className="text-sm font-medium">Timer no título da aba</p>
+                      <p className="text-xs text-muted-foreground">Ex.: “24:31 • Foco — Hub”</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={cfg.tabTitleTimer}
+                    onCheckedChange={(v) => sp.updatePreferences({ tabTitleTimer: v })}
+                    aria-label="Mostrar timer no título da aba"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <RotateCcw
+                      className={
+                        cfg.includeReviews !== false
+                          ? 'size-4 text-emerald-500'
+                          : 'size-4 text-muted-foreground'
+                      }
+                      aria-hidden
+                    />
+                    <div>
+                      <p className="text-sm font-medium">Revisar assuntos antigos</p>
+                      <p className="text-xs text-muted-foreground">
+                        O ciclo 1·3·7·14·30 volta ao plano — desligue para fila só de conteúdo novo e prova
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={cfg.includeReviews !== false}
+                    onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
+                    aria-label="Incluir revisão de assuntos antigos no cronograma"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Zona de risco */}
-      <Card className="rounded-xl border-rose-500/30">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-rose-500">
-            <Settings2 className="size-4" aria-hidden />
-            Zona de risco
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Isso apaga TODO o progresso local (sessões, tópicos, notas, cronograma). Exporte um
-            backup antes!
-          </p>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="justify-start">
-                <Trash2 className="size-4" />
-                Apagar todos os dados
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Apagar todos os dados?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Sessões de Pomodoro, tópicos concluídos, notas, preferências e cronograma serão
-                  permanentemente removidos deste navegador. Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={() => {
-                    sp.replaceProgress({ ...defaultProgress });
-                    toast.success('Dados apagados. Começando do zero!');
-                  }}
+        </TabsContent>
+
+        <TabsContent value="dados" className="space-y-5">
+          {/* Backup */}
+          <Card className="rounded-xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <DatabaseBackup className="size-4 text-teal-500" aria-hidden />
+                Backup do progresso
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {pomodoroStats.sessions}{' '}
+                {pomodoroStats.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro (
+                {pomodoroStats.minutes} min de foco acumulados) salvos no navegador. Exporte um JSON
+                para não perder nada ao limpar o cache — um hábito semanal cobre o semestre inteiro.
+              </p>
+              {/* O MEDIDOR DO SEGURO (172): o export já existia; o que faltava era o
+                  hábito ter um medidor. Cor = significado (a gramática da casa):
+                  esmeralda em dia, âmbar semanal vencido, rosa mensal vencido, zinc
+                  nunca exportou. O selo mora numa chave própria — importar um backup
+                  antigo não finge que o backup é novo. */}
+              <div
+                className={cn(
+                  'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium',
+                  backup.tone === 'ok' && 'border-emerald-500/40 bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-300',
+                  backup.tone === 'warn' && 'border-amber-500/40 bg-amber-500/[0.07] text-amber-700 dark:text-amber-300',
+                  backup.tone === 'danger' && 'border-rose-500/40 bg-rose-500/[0.07] text-rose-700 dark:text-rose-300',
+                  backup.tone === 'never' && 'border-border bg-muted/40 text-muted-foreground',
+                )}
+                data-testid="backup-status"
+              >
+                {backup.tone === 'ok' ? (
+                  <CircleCheck className="size-4 shrink-0" aria-hidden />
+                ) : backup.tone === 'danger' ? (
+                  <ShieldAlert className="size-4 shrink-0" aria-hidden />
+                ) : (
+                  <DatabaseBackup className="size-4 shrink-0" aria-hidden />
+                )}
+                <span className="min-w-0 flex-1">{backup.label}</span>
+                {worth.total > 0 && (
+                  <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
+                    {worth.total === 1 ? '1 registro' : `${worth.total} registros`} no seguro
+                  </span>
+                )}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button
+                  variant="outline"
+                  className="justify-start focus-visible:ring-emerald-500/60"
+                  onClick={handleExport}
                 >
-                  <RotateCcw className="size-4" />
-                  Sim, apagar tudo
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+                  <Download className="size-4 text-emerald-500" />
+                  Exportar progresso (JSON)
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start focus-visible:ring-amber-500/60"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="size-4 text-amber-500" />
+                  Importar progresso (JSON)
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  aria-label="Arquivo de backup JSON"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleImportFile(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+              {/* A CONFIRMAÇÃO DA IMPORTAÇÃO (172): substituir o progresso é o mesmo
+                  tipo de ato da Zona de risco — destrutivo e sem desfazer. Com algo
+                  a perder, o diálogo confessa EM NÚMEROS o que vai embora; com o
+                  estado vazio, a importação entra sem cerimônia (não há o que
+                  destruir — pedir confirmação seria cerimônia disfarçada). */}
+              <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Substituir o progresso atual pelo backup?</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <p>
+                          O progresso atual deste navegador será totalmente substituído pelo arquivo
+                          escolhido. Nesta hora existem:
+                        </p>
+                        <ul className="space-y-1 text-xs">
+                          <li className="tabular-nums">
+                            • {worth.sessions} {worth.sessions === 1 ? 'sessão' : 'sessões'} de Pomodoro
+                          </li>
+                          <li className="tabular-nums">
+                            • {worth.materials}{' '}
+                            {worth.materials === 1 ? 'material concluído' : 'materiais concluídos'}
+                          </li>
+                          <li className="tabular-nums">
+                            • {worth.flashcards} {worth.flashcards === 1 ? 'cartão' : 'cartões'} de
+                            flashcards
+                          </li>
+                          <li className="tabular-nums">
+                            • {worth.runs} {worth.runs === 1 ? 'corrida' : 'corridas'} de simulado
+                          </li>
+                        </ul>
+                        <p>Esta ação não pode ser desfeita — exporte o atual antes, se precisar.</p>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={confirmImport}
+                      className="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500/60"
+                    >
+                      Substituir tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+
+          {/* Zona de risco */}
+          <Card className="rounded-xl border-rose-500/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-rose-500">
+                <Settings2 className="size-4" aria-hidden />
+                Zona de risco
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Isso apaga TODO o progresso local (sessões, tópicos, notas, cronograma). Exporte um
+                backup antes!
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="justify-start">
+                    <Trash2 className="size-4" />
+                    Apagar todos os dados
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apagar todos os dados?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Sessões de Pomodoro, tópicos concluídos, notas, preferências e cronograma serão
+                      permanentemente removidos deste navegador. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-white hover:bg-destructive/90"
+                      onClick={() => {
+                        sp.replaceProgress({ ...defaultProgress });
+                        toast.success('Dados apagados. Começando do zero!');
+                      }}
+                    >
+                      <RotateCcw className="size-4" />
+                      Sim, apagar tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Separator />
 
@@ -599,6 +639,28 @@ export function SettingsView() {
         elo local (primeiro disponível)
       </p>
     </div>
+  );
+}
+
+/**
+ * Gaveta de explicação (Task 221-b): gatilho curto em cima, conteúdo completo
+ * dentro — recolhido por padrão. Nada se perde; a tela deixa de ser manual.
+ * Gatilho com toque mínimo de 44px (uso frequente no celular).
+ */
+function InfoCollapse({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Collapsible className="rounded-lg border">
+      <CollapsibleTrigger className="group flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+        {label}
+        <ChevronDown
+          className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180"
+          aria-hidden
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-2 border-t px-3 pb-3 pt-2.5">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -858,12 +920,42 @@ function AiInfoCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          O tutor, a leitura de prints e o gerador de flashcards rodam em modelos <b>gratuitos</b>{' '}
-          com fallback automático <b>ciente de combustível</b>: os limites reais da sua key são
-          vigiados — quando um modelo chega perto do teto diário, o próximo assume <b>antes</b> do
-          429. Sem erro para você, sem interrupção para a casa.
-        </p>
+        <InfoCollapse label="Como funciona a cadeia de modelos">
+          <p className="text-xs text-muted-foreground">
+            O tutor, a leitura de prints e o gerador de flashcards rodam em modelos{' '}
+            <b>gratuitos</b> com fallback automático <b>ciente de combustível</b>: os limites reais
+            da sua key são vigiados — quando um modelo chega perto do teto diário, o próximo assume{' '}
+            <b>antes</b> do 429. Sem erro para você, sem interrupção para a casa.
+          </p>
+          {chains ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="mb-1.5 text-xs font-semibold">Chat do tutor</p>
+                <ol className="space-y-1 text-xs text-muted-foreground">
+                  {chains.tutor.map((m, i) => (
+                    <li key={m.id} className="flex items-center gap-1.5">
+                      <span className="font-mono text-[10px] text-emerald-500">{i + 1}º</span>
+                      {m.label}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-semibold">Gerador de flashcards</p>
+                <ol className="space-y-1 text-xs text-muted-foreground">
+                  {chains.flashcards.map((m, i) => (
+                    <li key={m.id} className="flex items-center gap-1.5">
+                      <span className="font-mono text-[10px] text-violet-500">{i + 1}º</span>
+                      {m.label}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <div className="h-12 animate-pulse rounded-lg bg-muted/50" aria-hidden />
+          )}
+        </InfoCollapse>
 
         {providers && (
           <div className="flex flex-wrap items-center gap-2" aria-label="Provedores de IA configurados">
@@ -1121,73 +1213,91 @@ function AiInfoCard() {
               ))}
             </div>
 
-            <div className="mt-2.5 space-y-1.5">
-              {acervo.perDiscipline
-                .filter((r) => r.materials > 0)
-                .map((r) => {
-                  const pctSum = Math.round((r.summaries / r.materials) * 100);
-                  const pctTxt = Math.round((r.texts / r.materials) * 100);
-                  const dot =
-                    pctSum >= 100 && pctTxt >= 100
-                      ? 'bg-emerald-500'
-                      : pctSum > 0 || pctTxt > 0
-                        ? 'bg-amber-500'
-                        : 'bg-muted-foreground/40';
-                  return (
-                    <div key={r.code} className="flex items-center gap-2 text-[11px]">
-                      <span className={cn('size-1.5 shrink-0 rounded-full', dot)} aria-hidden />
-                      <span className="w-28 shrink-0 truncate font-medium">{r.shortName}</span>
-                      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-emerald-500/80"
-                          style={{ width: `${pctSum}%` }}
-                          title={`resumo IA: ${r.summaries}/${r.materials}`}
-                        />
-                      </div>
-                      <span className="w-24 shrink-0 text-right font-mono text-[10px] text-muted-foreground">
-                        {r.summaries}·{r.texts}/{r.materials}
-                      </span>
-                    </div>
-                  );
-                })}
-            </div>
-            <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
-              Resumo IA estruturado + texto do PDF pesquisável por trecho (com páginas). A pergunta
-              escolhe o material certo — o tutor não lê tudo de uma vez, ele <b>busca</b> o trecho
-              relevante a cada dúvida.
-            </p>
-
-            {knowledge && (knowledge.windowedActive.length > 0 || knowledge.durableCount > 0) && (
-              <div className="mt-2.5 border-t pt-2">
-                <p className="text-[11px] font-semibold">
-                  Estado do semestre que o tutor ouve HOJE
-                  <span className="ml-1 font-normal text-muted-foreground">
-                    ({knowledge.durableCount} fatos duráveis · {knowledge.windowedActive.length} janela(s)
-                    ativa(s)
-                    {knowledge.windowedExpired > 0 ? ` · ${knowledge.windowedExpired} expirada(s) somem sozinhas` : ''}
-                    {knowledge.windowedFuture > 0 ? ` · ${knowledge.windowedFuture} futura(s)` : ''})
-                  </span>
+            <div className="mt-2.5 space-y-2">
+              <InfoCollapse label="Cobertura por disciplina">
+                <div className="space-y-1.5">
+                  {acervo.perDiscipline
+                    .filter((r) => r.materials > 0)
+                    .map((r) => {
+                      const pctSum = Math.round((r.summaries / r.materials) * 100);
+                      const pctTxt = Math.round((r.texts / r.materials) * 100);
+                      const dot =
+                        pctSum >= 100 && pctTxt >= 100
+                          ? 'bg-emerald-500'
+                          : pctSum > 0 || pctTxt > 0
+                            ? 'bg-amber-500'
+                            : 'bg-muted-foreground/40';
+                      return (
+                        <div key={r.code} className="flex items-center gap-2 text-[11px]">
+                          <span className={cn('size-1.5 shrink-0 rounded-full', dot)} aria-hidden />
+                          <span className="w-28 shrink-0 truncate font-medium">{r.shortName}</span>
+                          <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-emerald-500/80"
+                              style={{ width: `${pctSum}%` }}
+                              title={`resumo IA: ${r.summaries}/${r.materials}`}
+                            />
+                          </div>
+                          <span className="w-24 shrink-0 text-right font-mono text-[10px] text-muted-foreground">
+                            {r.summaries}·{r.texts}/{r.materials}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+                <p className="text-[10px] leading-snug text-muted-foreground">
+                  Resumo IA estruturado + texto do PDF pesquisável por trecho (com páginas). A
+                  pergunta escolhe o material certo — o tutor não lê tudo de uma vez, ele{' '}
+                  <b>busca</b> o trecho relevante a cada dúvida.
                 </p>
-                <ul className="mt-1 max-h-36 space-y-1 overflow-y-auto pr-1">
-                  {knowledge.windowedActive.map((w) => (
-                    <li key={w.id} className="text-[11px] leading-snug text-muted-foreground">
-                      <span className="mr-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-600 dark:text-violet-400">
-                        janela
-                      </span>
-                      {w.text.replace(/^- /, '')}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              </InfoCollapse>
 
-            <div className="mt-2.5 border-t pt-2">
-              <p className="text-[11px] font-semibold">Como alimentar (o acervo cresce com você):</p>
-              <ol className="mt-1 list-inside list-decimal space-y-0.5 text-[11px] leading-snug text-muted-foreground">
-                <li>Mande aqui no chat o PDF, print, lista ou programa em C;</li>
-                <li>a casa acerva: arquivo + resumo IA + texto pesquisável (a IA já “estudou” quando o painel acima sobe);</li>
-                <li>de lá em diante o tutor acessa SOZINHO em qualquer pergunta — sem você precisar reenviar nada.</li>
-              </ol>
+              {knowledge && (knowledge.windowedActive.length > 0 || knowledge.durableCount > 0) && (
+                <InfoCollapse label="Ver o que o tutor ouve hoje (estado do semestre)">
+                  <div>
+                    <p className="text-[11px] font-semibold">
+                      Estado do semestre que o tutor ouve HOJE
+                      <span className="ml-1 font-normal text-muted-foreground">
+                        ({knowledge.durableCount} fatos duráveis ·{' '}
+                        {knowledge.windowedActive.length} janela(s) ativa(s)
+                        {knowledge.windowedExpired > 0
+                          ? ` · ${knowledge.windowedExpired} expirada(s) somem sozinhas`
+                          : ''}
+                        {knowledge.windowedFuture > 0
+                          ? ` · ${knowledge.windowedFuture} futura(s)`
+                          : ''})
+                      </span>
+                    </p>
+                    <ul className="mt-1 max-h-36 space-y-1 overflow-y-auto pr-1">
+                      {knowledge.windowedActive.map((w) => (
+                        <li key={w.id} className="text-[11px] leading-snug text-muted-foreground">
+                          <span className="mr-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-600 dark:text-violet-400">
+                            janela
+                          </span>
+                          {w.text.replace(/^- /, '')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </InfoCollapse>
+              )}
+
+              <InfoCollapse label="Como alimentar o acervo">
+                <p className="text-[11px] font-semibold">
+                  Como alimentar (o acervo cresce com você):
+                </p>
+                <ol className="list-inside list-decimal space-y-0.5 text-[11px] leading-snug text-muted-foreground">
+                  <li>Mande aqui no chat o PDF, print, lista ou programa em C;</li>
+                  <li>
+                    a casa acerva: arquivo + resumo IA + texto pesquisável (a IA já “estudou” quando
+                    o painel acima sobe);
+                  </li>
+                  <li>
+                    de lá em diante o tutor acessa SOZINHO em qualquer pergunta — sem você precisar
+                    reenviar nada.
+                  </li>
+                </ol>
+              </InfoCollapse>
             </div>
           </div>
         )}
@@ -1225,35 +1335,6 @@ function AiInfoCard() {
               Ambas vão nas Environment Variables da Vercel (Settings → Environment Variables).
             </p>
           </div>
-        )}
-
-        {chains ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <p className="mb-1.5 text-xs font-semibold">Chat do tutor</p>
-              <ol className="space-y-1 text-xs text-muted-foreground">
-                {chains.tutor.map((m, i) => (
-                  <li key={m.id} className="flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] text-emerald-500">{i + 1}º</span>
-                    {m.label}
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <div>
-              <p className="mb-1.5 text-xs font-semibold">Gerador de flashcards</p>
-              <ol className="space-y-1 text-xs text-muted-foreground">
-                {chains.flashcards.map((m, i) => (
-                  <li key={m.id} className="flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] text-violet-500">{i + 1}º</span>
-                    {m.label}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        ) : (
-          <div className="h-12 animate-pulse rounded-lg bg-muted/50" aria-hidden />
         )}
       </CardContent>
     </Card>
@@ -1445,12 +1526,6 @@ function HouseIntelligenceCard({ onStatusChange }: { onStatusChange: () => void 
         )}
       </div>
 
-      <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-        Cole a chave que você criou no AI Studio — ela vira <b>dado do dono</b> no servidor da casa
-        e o tutor passa a usá-la antes das variáveis de ambiente. Se ela falhar ou estourar cota, o
-        resto da cadeia (OpenRouter → Z.ai → elo local) assume sem drama.
-      </p>
-
       {/* STATUS HONESTO */}
       <div
         data-testid="ai-key-status"
@@ -1519,34 +1594,48 @@ function HouseIntelligenceCard({ onStatusChange }: { onStatusChange: () => void 
             if (e.key === 'Enter') void save();
           }}
         />
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Aceita os dois formatos vivos do AI Studio — clássica{' '}
-          <code className="rounded bg-muted px-1 font-mono text-[10px]">AIza…</code> e nova{' '}
-          <code className="rounded bg-muted px-1 font-mono text-[10px]">AQ.…</code>. Aliases
-          sugeridos (sobrevivem à troca de versão do Google; hoje apontam para a família 3.x,
-          raciocínio HIGH por padrão):{' '}
-          <code className="rounded bg-muted px-1 font-mono text-[10px]">gemini-flash-latest</code> ·{' '}
-          <code className="rounded bg-muted px-1 font-mono text-[10px]">
-            gemini-flash-lite-latest
-          </code>
-          {modelLine ? ` — ${modelLine}` : ''}
-        </p>
+        {/* AGORA EM USO — status curto do modelo, fora da gaveta. */}
+        {modelLine ? <p className="text-[11px] text-muted-foreground">{modelLine}</p> : null}
       </div>
 
-      {/* DOUTRINA VISÍVEL */}
-      <p className="mt-2 flex items-start gap-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
-        <ShieldCheck className="mt-0.5 size-3 shrink-0" aria-hidden />
-        a chave mora no servidor da casa como dado do usuário — nunca vai para o código nem para o
-        git.
-      </p>
-      {/* REALIDADE DO DEPLOY (13/10/2026) */}
-      <p className="mt-1 flex items-start gap-1.5 text-[11px] text-muted-foreground">
-        <Cloud className="mt-0.5 size-3 shrink-0" aria-hidden />
-        No deploy da Vercel, o banco do servidor é efêmero — lá a casa usa a variável de ambiente{' '}
-        <code className="rounded bg-muted px-1 font-mono text-[10px]">GEMINI_API_KEY</code>{' '}
-        (Settings → Environment Variables → redeploy). A cadeia lê a chave salva (aqui) → env
-        (Vercel) → próximos elos.
-      </p>
+      {/* A EXPLICAÇÃO INTEIRA a um toque — recolhida para a tela não virar manual. */}
+      <div className="mt-2">
+        <InfoCollapse label="Como funciona a chave">
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Cole a chave que você criou no AI Studio — ela vira <b>dado do dono</b> no servidor da
+            casa e o tutor passa a usá-la antes das variáveis de ambiente. Se ela falhar ou estourar
+            cota, o resto da cadeia (OpenRouter → Z.ai → elo local) assume sem drama.
+          </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Aceita os dois formatos vivos do AI Studio — clássica{' '}
+            <code className="rounded bg-muted px-1 font-mono text-[10px]">AIza…</code> e nova{' '}
+            <code className="rounded bg-muted px-1 font-mono text-[10px]">AQ.…</code>. Aliases
+            sugeridos (sobrevivem à troca de versão do Google; hoje apontam para a família 3.x,
+            raciocínio HIGH por padrão):{' '}
+            <code className="rounded bg-muted px-1 font-mono text-[10px]">
+              gemini-flash-latest
+            </code>{' '}
+            ·{' '}
+            <code className="rounded bg-muted px-1 font-mono text-[10px]">
+              gemini-flash-lite-latest
+            </code>
+            .
+          </p>
+          <p className="flex items-start gap-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+            <ShieldCheck className="mt-0.5 size-3 shrink-0" aria-hidden />
+            a chave mora no servidor da casa como dado do usuário — nunca vai para o código nem para
+            o git.
+          </p>
+          <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+            <Cloud className="mt-0.5 size-3 shrink-0" aria-hidden />
+            No deploy da Vercel, o banco do servidor é efêmero — lá a casa usa a variável de
+            ambiente{' '}
+            <code className="rounded bg-muted px-1 font-mono text-[10px]">GEMINI_API_KEY</code>{' '}
+            (Settings → Environment Variables → redeploy). A cadeia lê a chave salva (aqui) → env
+            (Vercel) → próximos elos.
+          </p>
+        </InfoCollapse>
+      </div>
     </div>
   );
 }

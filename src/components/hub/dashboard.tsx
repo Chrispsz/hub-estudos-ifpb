@@ -46,8 +46,14 @@ import { ExamRadarCard } from './exam-radar-card';
 import { TriageCard } from './triage-card';
 import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { Switch } from '@/components/ui/switch';
-import { buildTodaySnapshot, buildTrackingDetail, todayDateKey } from '@/lib/today-focus';
-import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
+import { buildTodaySnapshot, buildTrackingDetail, todayDateKey, type TodaySnapshot } from '@/lib/today-focus';
+import { buildDayPlan } from '@/lib/study-plan';
+import {
+  generateSmartSchedule,
+  formatTime,
+  type ScheduleDisciplineState,
+  type SmartBlock,
+} from '@/lib/smart-schedule';
 import { suggestBudgetFromHistory, syncPomodoroToBudget } from '@/lib/session-harmony';
 import { useStudyProgress } from '@/lib/study-progress';
 import { useErrorReviewTasks } from '@/lib/error-review-feed';
@@ -61,40 +67,14 @@ import { SessionHarmonyCard } from './session-harmony-card';
 /** A folha da prova — as questões do professor como MATERIAL (t180). */
 const FOLHA_DA_PROVA_ID = 'mat-av1-questoes-professor';
 
-/** FRENTE 13 — a cara de cada tipo de bloco do plano: cor fixa por natureza
- *  (tempo = âmbar, atraso = rosa, recall = violeta, novo = teal, retomar =
- *  a cor de ação da casa). Definido fora do componente — é tabela, não estado. */
-const PLAN_KIND_META: Record<PlanKind, { icon: LucideIcon; bg: string; text: string }> = {
-  continuar: {
-    icon: BookOpen,
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-700 dark:text-emerald-400',
-  },
-  revisao: {
-    icon: History,
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-700 dark:text-amber-400',
-  },
-  pratica: {
-    icon: ListChecks,
-    bg: 'bg-violet-500/10',
-    text: 'text-violet-700 dark:text-violet-400',
-  },
-  erro: {
-    icon: CircleAlert,
-    bg: 'bg-orange-500/10',
-    text: 'text-orange-700 dark:text-orange-400',
-  },
-  atrasado: {
-    icon: AlarmClock,
-    bg: 'bg-rose-500/10',
-    text: 'text-rose-700 dark:text-rose-400',
-  },
-  proximo: {
-    icon: Sparkles,
-    bg: 'bg-teal-500/10',
-    text: 'text-teal-700 dark:text-teal-400',
-  },
+/** TASK 221 — A CARA DE CADA BLOCO DO CRONOGRAMA DE HOJE: cor fixa por
+ *  natureza (estudo = teal, revisão = âmbar, projeto = violeta, exercícios =
+ *  esmeralda). Tabela fora do componente — é dado, não estado. */
+const ACTIVITY_META: Record<SmartBlock['activity'], { icon: LucideIcon; bg: string; text: string }> = {
+  estudo: { icon: BookOpen, bg: 'bg-teal-500/10', text: 'text-teal-700 dark:text-teal-400' },
+  revisao: { icon: History, bg: 'bg-amber-500/10', text: 'text-amber-700 dark:text-amber-400' },
+  projeto: { icon: Sparkles, bg: 'bg-violet-500/10', text: 'text-violet-700 dark:text-violet-400' },
+  exercicios: { icon: PenLine, bg: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400' },
 };
 
 /** A página de retomada REAL (memória do leitor, hub:pdf-pos — t161), injetada
@@ -158,13 +138,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     [sp.progress, agora],
   );
 
-  // FRENTE 13 — O PLANO DE HOJE: o cronograma que se monta sozinho do uso
-  // diário (retomada + ciclo 1·3·7·14·30 dos concluídos + cartões vencidos
-  // + CICLO DO ERRO + atrasados + próximos da fila). Recomputado pós-mount
-  // (mesmo `agora` do retrato — SSR e 1º render dividem o neutro), a cada
-  // write do progresso (a checklist tiqueada no leitor muda o porquê aqui na
-  // hora) e a cada write do Code Review (o erro registrado entra na fila;
-  // o dominado sai — a ponte é viva, useLiveQuery).
+  // FRENTE 13 — O PLANO DE HOJE (fila de materiais): hoje ela alimenta o
+  // CRONOGRAMA DE HOJE (abaixo) — cada bloco ganha o material sugerido da
+  // fila. Recomputado pós-mount (mesmo `agora` do retrato), a cada write do
+  // progresso e a cada write do Code Review.
   const errorReviews = useErrorReviewTasks();
   const plan = React.useMemo(
     () =>
@@ -174,14 +151,56 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     [sp.progress, agora, errorReviews],
   );
 
+  // TASK 221 — UM CRONOGRAMA SÓ: o "Plano de hoje" da home AGORA É o
+  // cronograma inteligente (a MESMA fonte da aba Cronograma — smart-schedule),
+  // filtrado para o dia de hoje e com o material da fila anexado a cada bloco.
+  // Fim da era dos dois planos que não se falavam.
+  const dayBlocks = React.useMemo<SmartBlock[]>(() => {
+    if (!agora) return [];
+    const discProg: Record<string, ScheduleDisciplineState> = {};
+    for (const [code, v] of Object.entries(sp.progress.disciplineProgress ?? {})) {
+      discProg[code] = { studiedMinutes: v.studiedMinutes, lastStudiedAt: v.lastStudiedAt };
+    }
+    return generateSmartSchedule({
+      preferences: sp.progress.studyPreferences,
+      topicProgress: sp.progress.topicProgress,
+      disciplineProgress: discProg,
+      customEvaluations: sp.progress.customEvaluations,
+      now: agora,
+    })
+      .filter((b) => b.day === agora.getDay())
+      .sort((a, b) => a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute));
+  }, [agora, sp.progress]);
+
+  // O material sugerido por disciplina (1º da fila que toca aquele código) —
+  // é o que faz o bloco do cronograma abrir o PDF certo em 1 clique.
+  const materialOfDiscipline = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const b of plan?.blocks ?? []) {
+      if (b.materialId && b.disciplineCode && !m.has(b.disciplineCode)) {
+        m.set(b.disciplineCode, b.materialId);
+      }
+    }
+    return m;
+  }, [plan]);
+
+  const dayBlocksMinutes = dayBlocks.reduce((acc, b) => acc + b.durationMin, 0);
+
   const nextExam = snap?.nextExam ?? null;
-  const provaPerto = !!nextExam && nextExam.daysLeft <= 7;
-  const provaLabel = nextExam
+  // TASK 221 — o herói é CONSCIENTE DO TIPO e cita a avaliação CERTA:
+  // focusEval = a avaliação que cumpriu a janela da casa (prova ≤14d,
+  // atividade ≤3d, trabalho ≤7d) — pode diferir da mais próxima (RHT D-5
+  // não toma a casa da prova de Algoritmos D-14). nextExam segue como
+  // INFORMAÇÃO (retrato, badge da disciplina).
+  const focusExam = snap?.focus.kind === 'exam';
+  const focusEval = snap?.focusEval ?? null;
+  const evalLabelLower = nextExam ? nextExam.kindLabel.toLowerCase() : 'avaliação';
+  const evalLabelShort = nextExam
     ? nextExam.daysLeft === 0
-      ? 'prova hoje'
+      ? `${evalLabelLower} hoje`
       : nextExam.daysLeft === 1
-        ? 'prova amanhã'
-        : `prova em ${nextExam.daysLeft} dias`
+        ? `${evalLabelLower} amanhã`
+        : `${evalLabelLower} em ${nextExam.daysLeft} dias`
     : undefined;
 
   // ----- Horas do dia (check-in) + doses do método + agenda oficial -----
@@ -270,7 +289,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       p.push(`${snap.openMistakes} ${snap.openMistakes === 1 ? 'erro' : 'erros'} em aberto`);
     if (snap.nextExam)
       p.push(
-        `prova de ${snap.nextExam.disciplineShort} ${
+        `${snap.nextExam.kindLabel.toLowerCase()} de ${snap.nextExam.disciplineShort} ${
           snap.nextExam.daysLeft === 0
             ? 'hoje'
             : snap.nextExam.daysLeft === 1
@@ -358,25 +377,17 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   );
 
   // Passo 1 estático (pré-mount / neutro): o caminho de sempre, sem surpresa.
-  const step1Static = provaPerto
+  const step1Static = ultimoMaterial
     ? {
         icon: BookOpen,
-        title: 'Leia com o tutor ao lado',
-        body: 'Abra o PDF da aula em tela dividida: o texto de um lado, o tutor do outro. Pergunte qualquer coisa — ele lê o material com você.',
-        action: 'Estudar',
-        onClick: () => onStartStudy(),
+        title: 'Continue de onde parou',
+        body: ultimoMaterial.title,
+        action: 'Continuar',
+        onClick: () => {
+          if (ultimoMaterial) openMaterialFocused(ultimoMaterial);
+        },
       }
-    : ultimoMaterial
-      ? {
-          icon: BookOpen,
-          title: 'Continue de onde parou',
-          body: ultimoMaterial.title,
-          action: 'Continuar',
-          onClick: () => {
-            if (ultimoMaterial) openMaterialFocused(ultimoMaterial);
-          },
-        }
-      : {
+    : {
           icon: BookOpen,
           title: 'Leia com o tutor ao lado',
           body: 'Abra o PDF da aula em tela dividida: o texto de um lado, o tutor do outro. Pergunte qualquer coisa — ele lê o material com você.',
@@ -396,7 +407,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               title: f.title,
               body: f.body,
               action: f.cta,
-              onClick: () => openSimulado({ disciplineCode: f.disciplineCode }),
+              // TASK 221: prova D-8..D-14 abre PRÁTICA dirigida (a lista);
+              // na reta final (D-7..) e para atividade/trabalho véspera, ensaio.
+              onClick: () =>
+                f.open === 'pratica'
+                  ? openPractice({ disciplineCode: f.disciplineCode })
+                  : openSimulado({ disciplineCode: f.disciplineCode }),
             };
           case 'review':
             return {
@@ -440,39 +456,54 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       })()
     : step1Static;
 
-  // Passo 2 e 3 mudam com a distância da prova VIVA — o método é sempre o mesmo.
-  // A folha dedicada só existe para a prova que a tem (a Av1 de Matemática);
-  // para as demais, o Praticar filtrado é o caminho honesto.
-  const examSoon = !!nextExam && nextExam.daysLeft <= 7;
-  const folhaServe = examSoon && nextExam.disciplineCode === MATH_EXAM.disciplineCode;
-  const step2 = examSoon
-    ? folhaServe
-      ? {
-          icon: PenLine,
-          title: 'Resolva as questões do professor',
-          body: `As questões da ${nextExam.name} em uma folha só, com método e gabarito. Resolva no papel, sem pressa.`,
-          action: 'Abrir a folha',
-          onClick: () => {
-            setLeitorPage(undefined);
-            if (folha) setLeitorMat(folha);
-          },
-        }
+  // Passo 2 e 3 mudam com a avaliação viva — SEM DUPLICAR o passo 1 (Mensagem
+  // 7 do dono: "ensaiar" aparecia 2× quando o foco já era o ensaio).
+  //  · foco = prova D-8..D-14 → passo 1 já é a lista dirigida; passo 2 vira
+  //    LEITURA da disciplina com o tutor (o método leia→resolva→ensaie continua).
+  //  · foco = ensaio (prova ≤7d / atividade ≤3d / trabalho ≤7d) → passo 2 é a
+  //    lista da disciplina, passo 3 é o recall (flashcards) — nunca outro ensaio.
+  //  · sem avaliação em foco, com prova ≤7d na reta → lista + ensaio (o trio
+  //    clássico); senão → lista genérica + revisão.
+  const retaFinal = !!focusEval && focusEval.kindLabel === 'Prova' && focusEval.daysLeft <= 7;
+  const folhaServe =
+    (!!focusEval && focusEval.disciplineCode === MATH_EXAM.disciplineCode) &&
+    (focusExam || retaFinal);
+  const step2 = focusExam && focusEval && focusEval.daysLeft > 7
+    ? {
+        icon: BookOpen,
+        title: `Leia o material da prova com o tutor`,
+        body: `${focusEval.disciplineShort} em tela dividida: o texto de um lado, o tutor do outro — e a lista cobrando o que a prova cobra.`,
+        action: 'Estudar',
+        onClick: () => onStartStudy(focusEval.disciplineCode),
+      }
+    : focusExam || retaFinal
+      ? folhaServe
+        ? {
+            icon: PenLine,
+            title: 'Resolva as questões do professor',
+            body: `As questões da ${focusEval!.name} em uma folha só, com método e gabarito. Resolva no papel, sem pressa.`,
+            action: 'Abrir a folha',
+            onClick: () => {
+              setLeitorPage(undefined);
+              if (folha) setLeitorMat(folha);
+            },
+          }
+        : {
+            icon: PenLine,
+            title: 'Resolva as questões da lista',
+            body: `Questões de ${focusEval!.disciplineShort} para treinar o que a ${focusEval!.name} cobra — no papel, uma por vez.`,
+            action: 'Ir para Praticar',
+            onClick: () => openPractice({ disciplineCode: focusEval!.disciplineCode }),
+          }
       : {
           icon: PenLine,
           title: 'Resolva as questões da lista',
-          body: `Questões de ${nextExam.disciplineShort} para treinar o que a ${nextExam.name} cobra — no papel, uma por vez.`,
+          body: 'Pegue as questões do material que você acabou de ler e faça no papel, uma por vez.',
           action: 'Ir para Praticar',
-          onClick: () => openPractice({ disciplineCode: nextExam.disciplineCode }),
-        }
-    : {
-        icon: PenLine,
-        title: 'Resolva as questões da lista',
-        body: 'Pegue as questões do material que você acabou de ler e faça no papel, uma por vez.',
-        action: 'Ir para Praticar',
-        onClick: () => openPractice({}),
-      };
+          onClick: () => openPractice({}),
+        };
 
-  const step3 = examSoon
+  const step3 = !focusExam && retaFinal
     ? {
         icon: Timer,
         title: 'Faça o ensaio',
@@ -480,7 +511,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         action: 'Começar o ensaio',
         onClick: () =>
           openSimulado({
-            disciplineCode: nextExam.disciplineCode,
+            disciplineCode: focusEval!.disciplineCode,
             ...(folhaServe ? { preset: 'math_exam_prof' as const } : {}),
           }),
       }
@@ -504,16 +535,16 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       {/* A linha do dia — uma frase humana, nada de painel */}
       <section aria-labelledby="dia-titulo">
         <h1 id="dia-titulo" className="text-2xl font-semibold tracking-tight">
-          {provaPerto && nextExam
-            ? `Foco: ${nextExam.name} de ${nextExam.disciplineShort}.`
+          {focusExam && focusEval
+            ? `Foco: ${focusEval.name} de ${focusEval.disciplineShort}.`
             : 'Bom estudo.'}
         </h1>
         <p className="mt-1 text-[15px] text-muted-foreground">
-          {provaPerto && nextExam ? (
+          {focusExam && focusEval ? (
             <>
-              {nextExam.daysLeft === 0
-                ? 'A prova é hoje'
-                : `Prova em ${nextExam.daysLeft} ${nextExam.daysLeft === 1 ? 'dia' : 'dias'}`}
+              {focusEval.daysLeft === 0
+                ? `A ${focusEval.kindLabel.toLowerCase()} é hoje`
+                : `${focusEval.kindLabel} em ${focusEval.daysLeft} ${focusEval.daysLeft === 1 ? 'dia' : 'dias'}`}
               . Um método, três passos: leia com o tutor, resolva no papel, ensaie.
             </>
           ) : (
@@ -715,53 +746,50 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           vez do Plano de hoje (a MESMA fila, agora casada com o tempo — blocos
           que cabem, fecho garantido, pomodoro encaixado, barra viva). Sem
           check-in, a casa segue com o plano de sempre. */}
+      {/* TASK 221 — UM CRONOGRAMA SÓ: a home mostra o DIA do cronograma
+          inteligente (mesma fonte da aba Cronograma — smart-schedule), com
+          hora, tipo de atividade e o material da fila anexado a cada bloco.
+          A fila de materiais completa (continuar/revisão/erro/...) mora na
+          aba Cronograma — um plano, duas profundidades, zero duplicação. */}
       {sessionActive ? (
         <SessionHarmonyCard onOpenBlock={openPlanBlock} />
-      ) : (
-        plan &&
-        plan.blocks.length > 0 && (
+      ) : dayBlocks.length > 0 ? (
         <Card className="rounded-2xl p-5 sm:p-6" data-t="plano-card">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-            <h2 className="text-base font-semibold leading-tight">Plano de hoje</h2>
-            <span className="flex items-center gap-2">
-              {/* REVISÃO SOB COMANDO (Task 27): o dono decide se o ciclo de
-                  antigos entra na fila — o plano reflowa no mesmo render. */}
-              <label
-                htmlFor="toggle-revisao"
-                className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
-              >
-                <Switch
-                  id="toggle-revisao"
-                  checked={sp.progress.preferences?.includeReviews !== false}
-                  onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
-                  aria-label="Incluir revisão de assuntos antigos no plano"
-                  data-t="toggle-revisao"
-                />
-                revisar antigos
-              </label>
-              <span className="text-xs tabular-nums text-muted-foreground" data-t="plano-total">
-                ~{fmtH(plan.totalMinutes / 60)} · {plan.blocks.length}{' '}
-                {plan.blocks.length === 1 ? 'bloco' : 'blocos'}
-              </span>
+            <h2 className="text-base font-semibold leading-tight">Hoje no cronograma</h2>
+            <span className="text-xs tabular-nums text-muted-foreground" data-t="plano-total">
+              ~{fmtH(dayBlocksMinutes / 60)} · {dayBlocks.length}{' '}
+              {dayBlocks.length === 1 ? 'bloco' : 'blocos'}
             </span>
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {sp.progress.preferences?.includeReviews === false
-              ? 'Só conteúdo novo, prática e prova — revisão espaçada desligada por você.'
-              : 'Recentes da aula primeiro, prova marcada pesa, seus erros registrados viram revisão — some da lista conforme você conclui.'}
+            O cronograma inteligente decide o dia — os pesos vêm da carga horária
+            oficial, do seu perfil (lógica, programação e matemática) e das datas
+            oficiais. Clique para abrir o material do bloco com o tutor.
           </p>
           <ul className="mt-2">
-            {plan.blocks.map((b) => {
-              const meta = PLAN_KIND_META[b.kind];
+            {dayBlocks.map((b) => {
+              const meta = ACTIVITY_META[b.activity];
               const Icon = meta.icon;
+              const d = disciplines.find((x) => x.code === b.disciplineCode);
+              const isReview = b.disciplineCode === 'revisao';
+              const matId = materialOfDiscipline.get(b.disciplineCode);
+              const matTitle = matId ? materials.find((m) => m.id === matId)?.title : null;
               return (
                 <li key={b.id}>
                   <button
                     type="button"
-                    onClick={() => openPlanBlock(b)}
+                    onClick={() => {
+                      if (isReview) {
+                        openPractice({ mode: 'flashcards' });
+                        return;
+                      }
+                      const mat = matId ? materials.find((m) => m.id === matId) ?? null : null;
+                      if (mat) openMaterialFocused(mat);
+                      else onStartStudy(b.disciplineCode);
+                    }}
                     data-t={`plano-${b.id}`}
-                    data-testid={`plano-bloco-${b.kind}`}
-                    aria-label={`${PLAN_KIND_LABEL[b.kind]}: ${b.title} — ${b.why} (≈${fmtH(b.minutes / 60)}). ${b.kind === 'erro' ? 'Clique para abrir o re-teste da questão no Praticar' : 'Clique para abrir com o tutor ao lado'}`}
+                    aria-label={`${b.title} às ${formatTime(b.startHour, b.startMinute)} — ${matTitle ? `abrir ${matTitle}` : 'abrir a disciplina com o tutor'}`}
                     className="group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span
@@ -776,32 +804,33 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex min-w-0 items-baseline gap-2">
-                        <span
-                          className={cn(
-                            'shrink-0 text-[10.5px] font-semibold uppercase tracking-wide',
-                            meta.text,
-                          )}
-                        >
-                          {PLAN_KIND_LABEL[b.kind]}
+                        <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+                          {formatTime(b.startHour, b.startMinute)}
                         </span>
-                        {b.exam && (
-                          <span
-                            className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold tabular-nums text-amber-600 dark:text-amber-400"
-                            aria-label={`Prova de ${b.exam.name} em ${b.exam.daysLeft} dias`}
-                          >
-                            D-{b.exam.daysLeft}
+                        {d && (
+                          <span className="shrink-0 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {d.shortName}
+                          </span>
+                        )}
+                        {b.intensive && (
+                          <span className="shrink-0 rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                            prioridade hoje
+                          </span>
+                        )}
+                        {b.stale && (
+                          <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                            retomada
                           </span>
                         )}
                         <span className="truncate text-[14px] font-medium leading-snug">
                           {b.title}
                         </span>
                       </span>
-                      <span className="mt-0.5 block truncate text-[13px] leading-snug text-muted-foreground">
-                        {b.why}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {fmtH(b.minutes / 60)}
+                      {matTitle && (
+                        <span className="mt-0.5 block truncate text-[13px] leading-snug text-muted-foreground">
+                          abrir: {matTitle}
+                        </span>
+                      )}
                     </span>
                     <ChevronRight
                       className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5"
@@ -813,7 +842,15 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             })}
           </ul>
         </Card>
-        )
+      ) : (
+        <Card className="rounded-2xl p-5 sm:p-6" data-t="plano-card">
+          <h2 className="text-base font-semibold leading-tight">Hoje no cronograma</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Nenhum bloco planejado para hoje — o dia está livre. Para programar
+            sessões, ajuste dias e duração na aba <strong>Cronograma</strong> →{' '}
+            Preferências.
+          </p>
+        </Card>
       )}
 
       {/* TASK 219 — FILA ESSENCIAL: a triagem do motor (foco/manter/em espera)
@@ -895,7 +932,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         <div className="mt-3 grid gap-2" data-t="disciplinas-lista">
           {disciplines.map((d) => {
             const count = materials.filter((m) => m.disciplineCode === d.code).length;
-            const prova = provaPerto && d.code === (nextExam?.disciplineCode ?? '');
+            const emFoco = !!nextExam && d.code === nextExam.disciplineCode;
             return (
               <button
                 key={d.code}
@@ -915,10 +952,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                     {count === 0 ? 'sem materiais ainda' : `${count} ${count === 1 ? 'material' : 'materiais'}`}
                   </span>
                 </span>
-                {prova && provaLabel && (
+                {emFoco && evalLabelShort && (
                   <Badge className="shrink-0 gap-1 bg-violet-600 text-white shadow-sm">
                     <CalendarCheck className="size-3" aria-hidden />
-                    {provaLabel}
+                    {evalLabelShort}
                   </Badge>
                 )}
                 <ChevronRight
