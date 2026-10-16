@@ -8,9 +8,30 @@
 //      sustentada (projeto evolui por blocos, não véspera); atividade = meio.
 //      O tipo vem do NOME/DESCRIÇÃO do registro oficial (keyword) — zero migração.
 //   2. DÍVIDA DE PRÁTICA: cada disciplina tem perfilPratica (dado do CURSO em
-//      course-data) → cadência-alvo (pratica 2d / mista 3d / teoria 7d). Ficar
-//      além da cadência gera dívida que PESA na fila — "prática constante"
-//      vira engenharia, não conselho.
+//      course-data) → cadência-alvo (pratica 2d / mista 3d / teoria 10d —
+//      matéria trabalhada em aula/atividade não cobra toque diário em casa).
+//      Ficar além da cadência gera dívida que PESA na fila — "prática
+//      constante" vira engenharia, não conselho.
+//   2b. PESO REAL DA PÁGINA DO CURSO (Mensagem 7 do dono, 16/10/2026):
+//      "lembra das matérias que mandei priorizar? as que têm mais materiais e
+//      que têm uma certa escadinha, lógica e etc" — o score cruza TRÊS dados:
+//      carga horária oficial (CH = peso da página do curso), prioridade do
+//      perfil do dono (lógica + programação + matemática = alta) e a
+//      estratégia de conteúdo (escada/acúmulo pesam mais porque o conteúdo de
+//      hoje sustenta o de amanhã; fluência é toque leve, não acumulação).
+//   2b+. PAPEL NA GRADE (Mensagem 8 do dono, 16/10/2026: "não só carga
+//      horária mas na grade e importância no curso em si"): o PPC do ADS
+//      também pesa — núcleo (a disciplina É o curso: Algoritmos, LM),
+//      estruturante (base que sustenta o núcleo: Matemática, Fundamentos),
+//      complementar (formação geral: RHT) e transversal (ferramenta de
+//      carreira: Inglês, Português). A CH pesa no VOLUME do semestre, o
+//      papel pesa no DESENHO do curso — os dois juntos contam a história.
+//      Spread moderado (1.15/1.05/0.95/0.85): a CH já separa 3× entre
+//      Algoritmos 100h e Inglês 33h — a grade REFORÇA a ordem, não a inverte.
+//   2c. ASSENTO GARANTIDO COM DOSE: prova ≤7d ainda entra na frente de tudo
+//      (prova é pico e data oficial); atividade/trabalho só ganham assento na
+//      véspera real (≤3d). Atividade de sala (ex.: RHT) não eclipsa a escada
+//      de Algoritmos 5 dias antes — ela ganha urgência nos pesos, não assento.
 //   3. TRIAGEM HONESTA (foco / manter / em espera): quando o essencial passa da
 //      capacidade, a casa ESTACIONA explicitamente o que está em dia e sem
 //      prazo — com motivo e com regra de volta (prova entra no radar D-21, nota
@@ -50,11 +71,13 @@ export function evalKindOf(name: string, description = ''): EvalKind {
 // Dívida de prática — cadência-alvo por perfil do CURSO
 // ---------------------------------------------------------------------------
 
-/** Dias entre sessões de prática para a disciplina "bater em dia". */
+/** Dias entre sessões de prática para a disciplina "bater em dia".
+ *  Teoria = 10d: RHT/Inglês/Português são trabalhados EM AULA (atividade,
+ *  discursiva — palavras do dono) — o toque em casa é leve, não diário. */
 export function practiceCadenceOf(d: Discipline): number {
   if (d.perfilPratica === 'pratica') return 2;
   if (d.perfilPratica === 'mista') return 3;
-  return 7;
+  return 10;
 }
 
 /**
@@ -151,13 +174,77 @@ export function urgencyFactor(eval_: DiscEval | undefined): number {
       if (d <= 21) return 1.5; // sustentado: projeto evolui TODA semana, não na véspera
       return 1.1;
     case 'atividade':
-      if (d <= 3) return 3;
-      if (d <= 7) return 2.2;
-      if (d <= 14) return 1.5;
-      if (d <= 21) return 1.2;
+      // Atividade é MEIO-TERMO e, no curso, costuma ser trabalhada em sala
+      // (dono 16/10/2026: RHT é "mais trabalhada em atividades e discursiva"):
+      // pressiona de verdade só na véspera — antes disso é reforço, não pico.
+      if (d <= 3) return 2.6;
+      if (d <= 7) return 1.5;
+      if (d <= 14) return 1.25;
+      if (d <= 21) return 1.1;
       return 1;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Pesos do perfil — a MESMA régua para a triagem e o cronograma (1 motor só)
+// ---------------------------------------------------------------------------
+
+/** Multiplicador de prioridade — o perfil do dono (lógica + programação +
+ *  matemática = alta) com spread que de fato separa a fila. */
+export function priorityMultiplierOf(d: Discipline): number {
+  if (d.prioridade === 'alta') return 1.35;
+  if (d.prioridade === 'media') return 0.95;
+  return 0.75;
+}
+
+/** Multiplicador da estratégia de conteúdo: escada/acúmulo são CONSTRUTIVOS
+ *  (atrasar hoje derruba amanhã — Algoritmos 6 semanas, LM alimenta o A2),
+ *  assunto-novo acompanha a aula e fluência é toque contínuo e leve. */
+export function strategyMultiplierOf(d: Discipline): number {
+  switch (d.estrategiaConteudo) {
+    case 'escada':
+      return 1.15;
+    case 'acumulo':
+      return 1.1;
+    case 'assunto-novo':
+      return 1.0;
+    case 'fluencia':
+      return 0.9;
+  }
+}
+
+/** Multiplicador do PAPEL NA GRADE (Mensagem 8 do dono): o desenho do PPC do
+ *  ADS pesa junto com a CH — núcleo é a razão do diploma, transversal
+ *  acompanha. O spread é propositalmente menor que o da CH: a grade REFORÇA
+ *  a hierarquia (Algoritmos > LM/Mat > RHT > Inglês/Port), nunca a inverte. */
+export function curriculumMultiplierOf(d: Discipline): number {
+  switch (d.papelNaGrade) {
+    case 'nucleo':
+      return 1.15;
+    case 'estruturante':
+      return 1.05;
+    case 'complementar':
+      return 0.95;
+    case 'transversal':
+      return 0.85;
+  }
+}
+
+/** Rótulo humano do papel na grade — a casa explica o peso em pt-BR. */
+export const CURRICULUM_ROLE_LABEL: Record<Discipline['papelNaGrade'], string> = {
+  nucleo: 'núcleo do curso',
+  estruturante: 'base estruturante',
+  complementar: 'formação complementar',
+  transversal: 'transversal',
+};
+
+/** Rótulo humano do tipo de avaliação — a casa fala "Atividade em 5 dias",
+ *  nunca "Prova em 5 dias" para o que não é prova (Mensagem 7 do dono). */
+export const EVAL_KIND_LABEL: Record<EvalKind, string> = {
+  prova: 'Prova',
+  trabalho: 'Entrega',
+  atividade: 'Atividade',
+};
 
 // ---------------------------------------------------------------------------
 // Triagem — foco / manter / em espera
@@ -259,15 +346,21 @@ export function computeTriage(input: TriageInput): Triage {
     if (!prog[d.code]?.lastStudiedAt && currentWeekOfSemester(now) >= 3) {
       reasons.push('nunca praticou neste semestre');
     }
+    if (d.papelNaGrade === 'nucleo') {
+      reasons.push('núcleo do curso — tudo no próximo período pisa aqui');
+    }
     if (reasons.length === 0) reasons.push('em dia — manutenção leve');
 
-    // Score: CH × prioridade × pendência × urgência × dívida (a mesma
-    // linguagem do cronograma — um número só, razões por cima).
-    const priorMult = d.prioridade === 'alta' ? 1.2 : d.prioridade === 'media' ? 1.0 : 0.85;
+    // Score: CH (página do curso) × papel na grade (PPC do ADS) × prioridade
+    // do perfil × estratégia de conteúdo × pendência × urgência por tipo ×
+    // dívida — a MESMA linguagem do cronograma: um número só, razões por cima.
+    const priorMult = priorityMultiplierOf(d);
+    const strategyMult = strategyMultiplierOf(d);
+    const curriculumMult = curriculumMultiplierOf(d);
     const debtMult = d.perfilPratica === 'teoria' ? 1 : 1 + Math.min(0.5, debt * 0.08);
     const score =
-      (d.chTotal / TOTAL_CH) * priorMult * (1 + Math.min(0.3, pend * 0.02)) *
-      urgencyFactor(pressing) * debtMult;
+      (d.chTotal / TOTAL_CH) * priorMult * strategyMult * curriculumMult *
+      (1 + Math.min(0.3, pend * 0.02)) * urgencyFactor(pressing) * debtMult;
 
     entries.push({
       code: d.code,
@@ -296,17 +389,48 @@ export function computeTriage(input: TriageInput): Triage {
           : e.eval.kind === 'trabalho')),
   );
 
-  // ASSENTO GARANTIDO D-7 (régua da casa): avaliação em ≤7 dias entra no foco
-  // ANTES de qualquer score — dívida de prática nunca vence a prova iminente.
+  // ASSENTO GARANTIDO COM DOSE (régua da casa, Mensagem 7 do dono): prova em
+  // ≤7 dias entra no foco ANTES de qualquer score — dívida de prática nunca
+  // vence a prova iminente. Atividade e trabalho só ganham assento na VÉSPERA
+  // real (≤3d): antes disso eles pressionam pelos PESOS (urgência 1.5/1.4),
+  // não pulando a fila — a atividade de sala não eclipsa a escada de
+  // Algoritmos nem a maratona de LM 5 dias antes do prazo.
   const imminent = needsAttention
-    .filter((e) => e.eval?.daysLeft !== undefined && e.eval.daysLeft <= 7)
+    .filter((e) => {
+      const dl = e.eval?.daysLeft;
+      if (dl === undefined) return false;
+      if (e.eval!.kind === 'prova') return dl <= 7;
+      return dl <= 3;
+    })
     .sort((a, b) => (a.eval?.daysLeft ?? 999) - (b.eval?.daysLeft ?? 999));
   const imminentCodes = new Set(imminent.map((e) => e.code));
-  const rest = needsAttention
-    .filter((e) => !imminentCodes.has(e.code))
+
+  // COMPOSIÇÃO DO FOCO (Mensagem 7 do dono): prazo garante ASSENTO, score
+  // manda na ORDEM. Avaliação datada ≤7d (do tipo sem assento automático)
+  // entra na frente de quem só tem dívida — RHT D-5 não perde vaga para
+  // Fundamentos sem data; mas DENTRO do foco a exibição volta a ser por
+  // score: Algoritmos (prova D-14, escada, CH 100h) manda AGORA, não a
+  // atividade de sala que só está a 5 dias.
+  const withDeadline = needsAttention
+    .filter(
+      (e) => !imminentCodes.has(e.code) && e.eval?.daysLeft !== undefined && e.eval.daysLeft <= 7,
+    )
+    .sort((a, b) => (a.eval?.daysLeft ?? 999) - (b.eval?.daysLeft ?? 999));
+  const withDeadlineCodes = new Set(withDeadline.map((e) => e.code));
+  const others = needsAttention
+    .filter((e) => !imminentCodes.has(e.code) && !withDeadlineCodes.has(e.code))
     .sort((a, b) => b.score - a.score);
 
-  const foco = [...imminent, ...rest].slice(0, FOCO_MAX);
+  const seatOrder = [...imminent, ...withDeadline, ...others];
+  const focoRaw = seatOrder.slice(0, FOCO_MAX);
+  const foco = [...focoRaw].sort((a, b) => {
+    // véspera real (assento automático) continua no topo — D-0/D-1 manda;
+    // dentro do mesmo grupo, score (perfil do dono) decide.
+    const ia = imminentCodes.has(a.code) ? 0 : 1;
+    const ib = imminentCodes.has(b.code) ? 0 : 1;
+    if (ia !== ib) return ia - ib;
+    return b.score - a.score;
+  });
   const focoCodes = new Set(foco.map((e) => e.code));
   for (const e of foco) e.bucket = 'foco';
 

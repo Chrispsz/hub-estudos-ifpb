@@ -10,9 +10,10 @@
 // mas mostra o porquê — direto ao ponto, sem painel de KPIs (lição da t180).
 
 import { disciplines, materials } from '@/data/course-data';
-import { getNextEvaluation, upcomingEvents } from '@/lib/semester';
+import { upcomingEvents } from '@/lib/semester';
 import { flashcardStatsFor, type StudyProgress } from '@/lib/study-progress';
 import { collectMistakes, pendingMistakes } from '@/lib/mistake-notebook';
+import { EVAL_KIND_LABEL, evalsFor, type EvalKind } from '@/lib/study-triage';
 
 /** O que o botão do foco abre (o dashboard mapeia para o evento/aba certo). */
 export type FocusIntent = 'exam' | 'review' | 'mistake' | 'resume' | 'start';
@@ -27,6 +28,8 @@ export interface TodayFocus {
   cta: string;
   disciplineCode?: string;
   materialId?: string;
+  /** Só no foco 'exam': prova >7d abre PRÁTICA dirigida; na reta final, ensaio. */
+  open?: 'simulado' | 'pratica';
 }
 
 export interface TodaySnapshot {
@@ -47,9 +50,26 @@ export interface TodaySnapshot {
    * null = ainda não respondeu hoje — a casa pergunta com 1 toque, sem modal.
    */
   plannedHours: number | null;
-  nextExam: { name: string; daysLeft: number; disciplineShort: string; disciplineCode: string } | null;
+  nextExam:
+    | {
+        name: string;
+        daysLeft: number;
+        disciplineShort: string;
+        disciplineCode: string;
+        kind: EvalKind;
+        kindLabel: string;
+      }
+    | null;
   /** Próximo prazo acadêmico (entrega etc.) do calendário oficial. */
   nextDeadline: { title: string; daysLeft: number } | null;
+  /**
+   * A avaliação que ESTÁ dirigindo o foco (a que cumpriu a janela por tipo —
+   * pode diferir da mais próxima: atividade D-5 não toma a casa de uma prova
+   * D-14). null quando o foco do dia não é avaliação.
+   */
+  focusEval:
+    | { name: string; kindLabel: string; daysLeft: number; disciplineShort: string; disciplineCode: string }
+    | null;
   /** Onde o estudo parou: último material aberto, ainda não concluído. */
   resume: { materialId: string; title: string; disciplineCode?: string; page?: number } | null;
   /** A recomendação única do dia. */
@@ -131,17 +151,32 @@ export function buildTodaySnapshot(
   const cardsDue = flashcardStatsFor(sp.flashcards ?? [], now.getTime()).due;
   const openMistakes = pendingMistakes(collectMistakes(sp), sp.notebookRevised ?? {}).length;
 
-  // ----- calendário vivo (só data oficial à frente) -----
-  const nextExamRaw = getNextEvaluation(now);
-  const nextExam =
-    nextExamRaw && nextExamRaw.daysLeft <= 30
-      ? {
-          name: nextExamRaw.name,
-          daysLeft: nextExamRaw.daysLeft,
-          disciplineShort: nextExamRaw.disciplineShort,
-          disciplineCode: nextExamRaw.disciplineCode,
-        }
-      : null;
+  // ----- calendário vivo (só data oficial à frente) — agora POR TIPO -----
+  // Todas as avaliações datadas à frente (oficiais + customizações do dono),
+  // com o TIPO derivado do nome — a casa fala "Atividade em 5 dias", nunca
+  // "Prova em 5 dias" para o que não é prova (Mensagem 7 do dono, 16/10/2026).
+  const allEvals: {
+    name: string;
+    kind: EvalKind;
+    daysLeft: number;
+    disciplineShort: string;
+    disciplineCode: string;
+  }[] = [];
+  for (const d of disciplines) {
+    for (const e of evalsFor(d.code, sp.customEvaluations, now)) {
+      if (e.daysLeft === undefined || e.daysLeft < 0 || e.daysLeft > 30) continue;
+      allEvals.push({
+        name: e.name,
+        kind: e.kind,
+        daysLeft: e.daysLeft,
+        disciplineShort: d.shortName,
+        disciplineCode: d.code,
+      });
+    }
+  }
+  allEvals.sort((a, b) => a.daysLeft - b.daysLeft);
+  const nearest = allEvals[0] ?? null;
+  const nextExam = nearest ? { ...nearest, kindLabel: EVAL_KIND_LABEL[nearest.kind] } : null;
 
   const deadlineRaw = upcomingEvents(now, 8).find(
     (e) => e.kind === 'prazo' && !e.ongoing && e.daysLeft >= 0 && e.daysLeft <= 14,
@@ -170,23 +205,50 @@ export function buildTodaySnapshot(
   }
 
   // ----- O FOCO DO DIA: uma recomendação só, na ordem da inteligência -----
-  // 1) prova oficial à frente (≤7d) — o ensaio mostra o que falta;
+  // 1) avaliação oficial à frente COM DOSE POR TIPO (Mensagem 7 do dono —
+  //    "lembra das matérias que mandei priorizar... RHT é atividade/discursiva"):
+  //    prova = o ciclo real do semestre → foca até D-14 (prática dirigida cedo,
+  //    ensaio na reta final D-7); atividade = véspera real (≤3d); trabalho
+  //    datado = última semana (≤7d). Atividade de sala D-5 NÃO toma a casa —
+  //    ela vive na fila (triagem), no radar e no cronograma;
   // 2) fila de revisão vencida (≥5 cartões) — recall ativo vale mais;
   // 3) caderno de erros pesando (≥3 em aberto) — re-teste, não punição;
   // 4) continuar de onde parou — o hábito mora no retomar;
   // 5) o método — ler com o tutor ao lado.
+  const heroEval = allEvals.find((e) =>
+    e.kind === 'prova'
+      ? e.daysLeft <= 14
+      : e.kind === 'atividade'
+        ? e.daysLeft <= 3
+        : e.daysLeft <= 7,
+  );
   let focus: TodayFocus;
-  if (nextExam && nextExam.daysLeft <= 7) {
-    focus = {
-      kind: 'exam',
-      title: `Ensaie a prova de ${nextExam.disciplineShort}`,
-      body:
-        nextExam.daysLeft === 0
-          ? `A ${nextExam.name} é hoje. O ensaio com cronômetro acerta o pacing antes da hora real.`
-          : `Prova em ${nextExam.daysLeft} ${nextExam.daysLeft === 1 ? 'dia' : 'dias'} (${nextExam.name}). O ensaio com cronômetro mostra exatamente o que falta.`,
-      cta: 'Começar o ensaio',
-      disciplineCode: nextExam.disciplineCode,
-    };
+  if (heroEval) {
+    const label = EVAL_KIND_LABEL[heroEval.kind].toLowerCase();
+    if (heroEval.kind === 'prova' && heroEval.daysLeft > 7) {
+      // Prova longe (D-8..D-14): PRÁTICA dirigida agora, ensaio depois —
+      // a mesma escada do cronograma (prática dirigida → revisão na reta).
+      focus = {
+        kind: 'exam',
+        title: `Comece a lista da prova de ${heroEval.disciplineShort}`,
+        body: `A ${heroEval.name} é em ${heroEval.daysLeft} dias. Prática dirigida agora mostra o que falta antes da reta final — o ensaio com cronômetro entra a D-7.`,
+        cta: 'Ir para Praticar',
+        disciplineCode: heroEval.disciplineCode,
+        open: 'pratica',
+      };
+    } else {
+      focus = {
+        kind: 'exam',
+        title: `Ensaie a ${label} de ${heroEval.disciplineShort}`,
+        body:
+          heroEval.daysLeft === 0
+            ? `A ${heroEval.name} é hoje. O ensaio com cronômetro acerta o pacing antes da hora real.`
+            : `${EVAL_KIND_LABEL[heroEval.kind]} em ${heroEval.daysLeft} ${heroEval.daysLeft === 1 ? 'dia' : 'dias'} (${heroEval.name}). O ensaio com cronômetro mostra exatamente o que falta.`,
+        cta: 'Começar o ensaio',
+        disciplineCode: heroEval.disciplineCode,
+        open: 'simulado',
+      };
+    }
   } else if (cardsDue >= 5) {
     focus = {
       kind: 'review',
@@ -231,6 +293,15 @@ export function buildTodaySnapshot(
     plannedHours: sp.dailyHours?.[todayKey] ?? null,
     nextExam,
     nextDeadline,
+    focusEval: heroEval
+      ? {
+          name: heroEval.name,
+          kindLabel: EVAL_KIND_LABEL[heroEval.kind],
+          daysLeft: heroEval.daysLeft,
+          disciplineShort: heroEval.disciplineShort,
+          disciplineCode: heroEval.disciplineCode,
+        }
+      : null,
     resume,
     focus,
   };

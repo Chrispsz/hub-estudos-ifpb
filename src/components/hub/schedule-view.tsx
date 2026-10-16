@@ -3,12 +3,15 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
+  AlarmClock,
+  BookOpen,
   BookOpenCheck,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
   Check,
   ChevronDown,
+  CircleAlert,
   CircleCheck,
   Clock4,
   Coffee,
@@ -26,6 +29,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -55,10 +59,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { disciplines, getDisciplineByCode } from '@/data/course-data';
+import { disciplines, getDisciplineByCode, materials } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { DisciplineIcon } from '@/lib/discipline-icons';
-import { openTutor } from '@/lib/hub-events';
+import { openTutor, openPractice } from '@/lib/hub-events';
+import { buildDayPlan, PLAN_KIND_LABEL, type PlanKind } from '@/lib/study-plan';
+import { recallPdfPage } from '@/lib/pdf-position';
 import {
   examWeekMilestoneFor,
   findMathSimuladoRunOficial,
@@ -168,6 +174,19 @@ function getBlockVisual(code: string): BlockVisual {
 /** Área de toque >=44px em mobile sem inflar o botão visualmente (pseudo-elemento). */
 const TOUCH_AREA = 'relative after:absolute after:-inset-2.5 after:content-[\'\']';
 
+/** TASK 221 — a cara de cada tipo de bloco da FILA DE MATERIAIS (a fila que
+ *  morava na home; mesma gramática de cor do antigo plano: continuar =
+ *  esmeralda, revisão = âmbar, prática = violeta, erro = laranja, atrasado =
+ *  rosa, próximo = teal). */
+const PLAN_KIND_META_FILA: Record<PlanKind, { icon: LucideIcon; bg: string; text: string }> = {
+  continuar: { icon: BookOpen, bg: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400' },
+  revisao: { icon: History, bg: 'bg-amber-500/10', text: 'text-amber-700 dark:text-amber-400' },
+  pratica: { icon: ListChecks, bg: 'bg-violet-500/10', text: 'text-violet-700 dark:text-violet-400' },
+  erro: { icon: CircleAlert, bg: 'bg-orange-500/10', text: 'text-orange-700 dark:text-orange-400' },
+  atrasado: { icon: AlarmClock, bg: 'bg-rose-500/10', text: 'text-rose-700 dark:text-rose-400' },
+  proximo: { icon: Sparkles, bg: 'bg-teal-500/10', text: 'text-teal-700 dark:text-teal-400' },
+};
+
 export function ScheduleView() {
   const sp = useStudyProgress();
   const prefs = sp.progress.studyPreferences;
@@ -249,6 +268,24 @@ export function ScheduleView() {
     );
     return { total: allBlocks.length, totalMin, rotation: rotation.size };
   }, [allBlocks, autoBlocks]);
+
+  // TASK 221 — FILA DE MATERIAIS DE HOJE: o que abrir dentro de cada bloco do
+  // cronograma (continuar → revisão 1·3·7·14·30 → ciclo do erro → atrasados →
+  // próximos). A fila que morava na home mudou-se para cá — um plano só:
+  // a SEMANA é o cronograma, o DIA é o cronograma de hoje, a FILA é o
+  // conteúdo de cada bloco. Lib pura — recomputada pós-mount como tudo aqui.
+  const dayPlan = React.useMemo(
+    () =>
+      now
+        ? buildDayPlan(sp.progress, now, {
+            pageOf: (id) => {
+              const m = materials.find((x) => x.id === id);
+              return m ? recallPdfPage(id, m.pages) : null;
+            },
+          })
+        : null,
+    [sp.progress, now],
+  );
 
   // Run do simulado oficial (29/09) — MESMA fonte única do card/hero/histórico.
   // O strip do dia do simulado lê o REGISTRO: feito hoje ✓ vence o relógio.
@@ -443,6 +480,118 @@ export function ScheduleView() {
             />
           ))}
         </div>
+      )}
+
+      {/* ---------- Fila de materiais de hoje (Task 221) ---------- */}
+      {dayPlan && dayPlan.blocks.length > 0 && (
+        <Card className="rounded-2xl p-5 sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <h2 className="text-base font-semibold leading-tight">Fila de materiais de hoje</h2>
+            <label
+              htmlFor="toggle-revisao-fila"
+              className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+            >
+              <Switch
+                id="toggle-revisao-fila"
+                checked={sp.progress.preferences?.includeReviews !== false}
+                onCheckedChange={(v) => sp.updatePreferences({ includeReviews: v })}
+                aria-label="Incluir revisão de assuntos antigos na fila"
+                data-t="toggle-revisao"
+              />
+              revisar antigos
+            </label>
+          </div>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            O que abrir dentro de cada bloco — recentes da aula primeiro, prova
+            marcada pesa, seus erros registrados viram revisão. Clique para abrir
+            o material com o tutor ao lado.
+          </p>
+          <ul className="mt-2">
+            {dayPlan.blocks.map((b) => {
+              const meta = PLAN_KIND_META_FILA[b.kind];
+              const Icon = meta.icon;
+              return (
+                <li key={b.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (b.kind === 'pratica') {
+                        openPractice({ mode: 'flashcards' });
+                        return;
+                      }
+                      if (b.kind === 'erro') {
+                        const exerciseId = b.errorUnitId?.startsWith('unit:')
+                          ? b.errorUnitId.slice('unit:'.length)
+                          : undefined;
+                        openPractice({
+                          disciplineCode: b.disciplineCode,
+                          ...(exerciseId ? { exerciseIds: [exerciseId] } : {}),
+                        });
+                        return;
+                      }
+                      if (b.materialId) {
+                        openTutor({
+                          disciplineCode: b.disciplineCode,
+                          materialId: b.materialId,
+                        });
+                      } else if (b.disciplineCode) {
+                        openTutor({ disciplineCode: b.disciplineCode });
+                      }
+                    }}
+                    data-t={`fila-${b.id}`}
+                    data-testid={`plano-bloco-${b.kind}`}
+                    aria-label={`${PLAN_KIND_LABEL[b.kind]}: ${b.title} — ${b.why}`}
+                    className="group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span
+                      className={cn(
+                        'grid size-9 shrink-0 place-items-center rounded-xl',
+                        meta.bg,
+                        meta.text,
+                      )}
+                      aria-hidden
+                    >
+                      <Icon className="size-4.5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex min-w-0 items-baseline gap-2">
+                        <span
+                          className={cn(
+                            'shrink-0 text-[10.5px] font-semibold uppercase tracking-wide',
+                            meta.text,
+                          )}
+                        >
+                          {PLAN_KIND_LABEL[b.kind]}
+                        </span>
+                        {b.exam && (
+                          <span
+                            className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold tabular-nums text-amber-600 dark:text-amber-400"
+                            aria-label={`Avaliação de ${b.exam.name} em ${b.exam.daysLeft} dias`}
+                          >
+                            D-{b.exam.daysLeft}
+                          </span>
+                        )}
+                        <span className="truncate text-[14px] font-medium leading-snug">
+                          {b.title}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-[13px] leading-snug text-muted-foreground">
+                        {b.why}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {b.minutes}min
+                    </span>
+                    <ChevronDown
+                      className="size-4 shrink-0 -rotate-90 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
       )}
 
       {/* ---------- Painel de personalização ---------- */}

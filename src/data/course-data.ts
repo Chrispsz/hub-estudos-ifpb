@@ -80,6 +80,20 @@ export interface Discipline {
    * material anterior (pergunta do dono 15/10/2026).
    */
   estrategiaConteudo: 'escada' | 'assunto-novo' | 'acumulo' | 'fluencia';
+  /**
+   * O papel na GRADE do curso (Mensagem 8 do dono, 16/10/2026 — "não só carga
+   * horária mas na grade e importância no curso em si"): dado do PPC do ADS,
+   * vale do 1º ao 6º período.
+   *  'nucleo'       = a disciplina É o curso — eixo tecnológico/pre-requisito de
+   *                   tudo que vem depois (Algoritmos, Linguagem de Marcação);
+   *  'estruturante' = base que sustenta o núcleo (Matemática, Fundamentos);
+   *  'complementar' = formação geral profissional (RHT);
+   *  'transversal'  = ferramenta de carreira, peso de acompanhamento
+   *                   (Inglês, Português).
+   * O motor cruza isto com a CH (a página do curso pesa DUAS vezes: volume
+   * no semestre + papel no desenho da grade) — sem nunca anular a CH.
+   */
+  papelNaGrade: 'nucleo' | 'estruturante' | 'complementar' | 'transversal';
   // Ordem recomendada de estudo (do PDF da ementa/professor)
   ordemEstudo?: string[];
   // Datas importantes mencionadas nos PDFs
@@ -268,6 +282,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'alta',
     perfilPratica: 'pratica', // só aprende codando — prova pode puxar da Lista (289 exercícios)
     estrategiaConteudo: 'escada', // variáveis → if → laços → vetores → funções: pular degrau derruba a escada
+    papelNaGrade: 'nucleo', // O coração do ADS: programar é o ofício do diploma — tudo no 2º+ período pisa aqui
     ordemEstudo: [
       '1. Leia o PDF "Introdução" da pasta de materiais',
       '2. Estude Unidade 1 (variáveis, entrada/saída, operadores)',
@@ -351,6 +366,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'alta',
     perfilPratica: 'pratica', // HTML/CSS só fixa escrevendo código
     estrategiaConteudo: 'acumulo', // HTML alimenta CSS alimenta o trabalho A2 — consolidar o anterior É avançar
+    papelNaGrade: 'nucleo', // Eixo tecnológico: web é onde o ADS mora no mercado
     ordemEstudo: [
       '1. Estude "00 - Introdução a linguagens de marcação"',
       '2. Aprenda estrutura básica (01 - HTML, elementos, atributos)',
@@ -437,6 +453,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'alta',
     perfilPratica: 'mista', // teoria só vira nota com lista de exercícios resolvida
     estrategiaConteudo: 'assunto-novo', // acompanha a aula: foco no assunto novo, anterior só como apoio
+    papelNaGrade: 'estruturante', // base quantitativa que sustenta o núcleo (análise, otimização)
     ordemEstudo: [
       '1. FAÇA a Lista de Matrizes (35 questões) com a teoria da Aula 00 ao lado só para consultar',
       '2. Blocos da lista: Q1–16 construir/igualdade/soma · Q17–30 produtos/simetria · Q31–35 inversa',
@@ -515,6 +532,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'media',
     perfilPratica: 'mista', // leitura + fixação por perguntas
     estrategiaConteudo: 'assunto-novo', // acompanha a aula, sem escada rígida
+    papelNaGrade: 'estruturante', // base conceitual da computação inteira
     ordemEstudo: [
       '1. Estude histórico e evolução dos computadores',
       '2. Aprenda conceitos de hardware e software',
@@ -596,6 +614,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'media',
     perfilPratica: 'teoria', // leitura + escrita argumentativa
     estrategiaConteudo: 'fluencia', // produção contínua — cadência semanal manda
+    papelNaGrade: 'complementar', // formação geral/profissional — valoriza, não define o diploma
     ordemEstudo: [
       '1. Leia os textos indicados ANTES da aula',
       '2. Faça resumos de cada unidade',
@@ -674,6 +693,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'media',
     perfilPratica: 'mista', // vocabulário fixa por repetição espaçada
     estrategiaConteudo: 'fluencia', // repetição espaçada — FSRS cuida do que já veio
+    papelNaGrade: 'transversal', // ferramenta de carreira — toque contínuo, não eixo
     ordemEstudo: [
       '1. Estude estratégias de leitura (skimming, scanning, prediction)',
       '2. Memorize lista de cognatos e falsos cognatos',
@@ -761,6 +781,7 @@ export const disciplines: Discipline[] = [
     prioridade: 'baixa',
     perfilPratica: 'teoria', // leitura + produção de texto
     estrategiaConteudo: 'fluencia', // produção contínua — cadência semanal manda
+    papelNaGrade: 'transversal', // comunicação importa, mas fora do eixo técnico
     ordemEstudo: [
       '1. Leia ativamente fazendo anotações',
       '2. Pratique resumos e resenhas',

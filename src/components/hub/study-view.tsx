@@ -153,7 +153,6 @@ import {
   loadComposerDraft,
   saveComposerDraft,
 } from '@/lib/composer-draft';
-import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { recallPdfPage } from '@/lib/pdf-position';
 import {
@@ -176,7 +175,6 @@ import { TutorMarkdown } from './tutor-markdown';
 // não porta). Módulo sobrevive à remontagem: o MESMO clique não reabre,
 // um NOVO clique (nonce maior) abre de novo.
 let lastReaderNonceConsumed = 0;
-import { CodeLab } from './code-lab';
 import { exercises } from '@/lib/exercise-extractor';
 
 // ---------- Tipos locais ----------
@@ -1937,19 +1935,6 @@ export function StudyView({
           )}
         </Card>
       </div>
-
-      {/* ===== Laboratório de código (só disciplinas de programação) =====
-          Algoritmos: console JS para treinar lógica; LM: preview HTML ao vivo.
-          "Perguntar ao tutor" envia código + erro direto pro chat da disciplina. */}
-      {(disciplineCode === 'TEC.1687' || disciplineCode === 'TEC.1632') && (
-        <div className="lg:col-span-12">
-          <CodeLab
-            disciplineShort={discipline.shortName}
-            defaultTab={disciplineCode === 'TEC.1632' ? 'html' : 'js'}
-            onAskTutor={(q) => openTutor({ disciplineCode, question: q })}
-          />
-        </div>
-      )}
 
       {/* ===== Chat IA lateral ===== */}
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>
