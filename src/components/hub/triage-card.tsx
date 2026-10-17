@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Crosshair, CircleCheck, PauseCircle, Flame, Footprints, FilePenLine, ListChecks } from 'lucide-react';
 import { useStudyProgress } from '@/lib/study-progress';
 import { computeTriage, triageHeadlinePhrase, type TriageEntry } from '@/lib/study-triage';
+import { facilityMapOf } from '@/lib/learning-signals';
 import { escadaPosicao, oldMaterialAdvice } from '@/lib/content-strategy';
 import { suggestPractice, superficieLabel, type PracticeSuggestion } from '@/lib/practice-methods';
 import { degrauProvaAviso } from '@/lib/mastery';
@@ -201,6 +202,9 @@ export function TriageCard() {
     setNow(new Date());
   }, []);
 
+  // FACILIDADE REAL (Task 226): os sinais das questões entram na régua da
+  // fila — puxada pesa mais, fluida respira (memo próprio, dep = progresso).
+  const facility = React.useMemo(() => facilityMapOf(sp.progress), [sp.progress]);
   const triage = React.useMemo(
     () =>
       now
@@ -208,10 +212,11 @@ export function TriageCard() {
             topicProgress: sp.progress.topicProgress,
             disciplineProgress: sp.progress.disciplineProgress,
             customEvaluations: sp.progress.customEvaluations,
+            facility,
             now,
           })
         : null,
-    [now, sp.progress.topicProgress, sp.progress.disciplineProgress, sp.progress.customEvaluations],
+    [now, sp.progress.topicProgress, sp.progress.disciplineProgress, sp.progress.customEvaluations, facility],
   );
 
   const headline = triage ? triageHeadlinePhrase(triage) : null;

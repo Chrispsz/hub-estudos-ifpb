@@ -81,6 +81,7 @@ import {
   type ScheduleDisciplineState,
   type SmartBlock,
 } from '@/lib/smart-schedule';
+import { facilityMapOf } from '@/lib/learning-signals';
 import {
   useStudyProgress,
   TURNOS,
@@ -212,6 +213,9 @@ export function ScheduleView() {
   }, [sp.progress.disciplineProgress]);
 
   // Cronograma rotativo (puro) — regenerado só quando preferências/progresso/data mudam.
+  // FACILIDADE REAL (Task 226): os sinais das questões treinam o motor —
+  // puxada pesa mais, fluida respira (a MESMA régua da home).
+  const facility = React.useMemo(() => facilityMapOf(sp.progress), [sp.progress]);
   const autoBlocks = React.useMemo(
     () =>
       now
@@ -220,10 +224,11 @@ export function ScheduleView() {
             topicProgress: sp.progress.topicProgress,
             disciplineProgress: discProg,
             customEvaluations: sp.progress.customEvaluations,
+            facility,
             now,
           })
         : [],
-    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, now],
+    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, facility, now],
   );
 
   // Blocos manuais do usuário → SmartBlock com prefixo "manual-" no id.

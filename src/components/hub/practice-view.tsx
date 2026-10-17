@@ -18,12 +18,14 @@ import {
   RotateCcw,
   Star,
   Target,
+  Timer,
   Trophy,
   X,
   Zap,
   CheckCircle2,
   HandHeart,
 } from 'lucide-react';
+
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,6 +50,7 @@ import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { MathText } from './math-text';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
+import { formatQuestionTime } from '@/lib/learning-signals';
 import { useLocalStorage } from '@/lib/use-local-storage';
 import { getAlignmentStats, getExerciseStage } from '@/lib/curriculum-state';
 import { simuladoMissedMap } from '@/lib/mistake-notebook';
@@ -1003,6 +1006,9 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
     try {
       const image = await captureElementToDataUrl(el);
       openTutor({ image, imageLabel: 'print da questão', disciplineCode: exercise.disciplineCode, materialId: exercise.linkedMaterials?.[0] });
+      // SINAL (Task 226): o tutor foi acionado PARA ESTA questão — vira dado
+      // de aprendizagem (dependência/onde travou) sem formulario nenhum.
+      sp.noteExerciseSignal(exercise.id, { askedTutor: true });
       toast.success('Print da questão anexado ao tutor — nada foi salvo no seu computador.');
     } catch {
       toast.error('Não consegui capturar esta questão. Tente de novo.');
@@ -1056,6 +1062,23 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
               <CheckCircle2 className="size-2.5" /> Resolvido
             </Badge>
           )}
+          {/* TEMPO DA QUESTÃO (Task 226 — semi-automático): o relógio abre no
+              "Tentei" e fecha no "Resolvi"; nada é lançado à mão. */}
+          {progress?.attemptStartedAt && !progress?.solved && (
+            <Badge variant="outline" className="border-violet-300 bg-violet-50 text-[10px] text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-400">
+              <Timer className="size-2.5" /> em prática…
+            </Badge>
+          )}
+          {(progress?.timeSpentSec ?? 0) > 0 && (
+            <Badge variant="outline" className="border-border text-[10px] text-muted-foreground" title="Tempo registrado nesta questão (nasce do fluxo Tentei → Resolvi)">
+              <Timer className="size-2.5" /> {formatQuestionTime(progress?.timeSpentSec ?? 0)}
+            </Badge>
+          )}
+          {progress?.askedTutor && (
+            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-[10px] text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400" title="Você acionou o tutor nesta questão — o algoritmo usa isso para medir onde o estudo trava">
+              tutor entrou aqui
+            </Badge>
+          )}
           {/* Marcar questão (⭐) — vira lista de revisão + revisita fácil com o tutor */}
           <button
             type="button"
@@ -1096,8 +1119,30 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             <Checkbox
               checked={!!progress?.tried}
               onCheckedChange={(v) => {
-                sp.updateExerciseProgress(exercise.id, { tried: !!v });
-                if (v) toast.success('Marcado como tentado!');
+                if (v === true) {
+                  // RELÓGIO DA QUESTÃO (Task 226): "Tentei" abre a contagem —
+                  // o tempo vira sinal de facilidade pro algoritmo, sem
+                  // cronômetro visível nem lançamento manual.
+                  sp.updateExerciseProgress(exercise.id, {
+                    tried: true,
+                    attemptStartedAt: new Date().toISOString(),
+                    attempts: (progress?.attempts ?? 0) + 1,
+                  });
+                  toast.success('Questão em prática — o tempo desta rodada fica registrado.');
+                } else {
+                  // Fechou a tentativa sem resolver: banco o tempo parcial (≥20s).
+                  const started = progress?.attemptStartedAt
+                    ? new Date(progress.attemptStartedAt).getTime()
+                    : null;
+                  const delta = started ? Math.floor((Date.now() - started) / 1000) : 0;
+                  sp.updateExerciseProgress(exercise.id, {
+                    tried: false,
+                    ...(delta >= 20
+                      ? { timeSpentSec: (progress?.timeSpentSec ?? 0) + delta }
+                      : {}),
+                    attemptStartedAt: undefined,
+                  });
+                }
               }}
             />
             <span className="text-muted-foreground">Tentei fazer</span>
@@ -1106,8 +1151,30 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             <Checkbox
               checked={!!progress?.solved}
               onCheckedChange={(v) => {
-                sp.updateExerciseProgress(exercise.id, { solved: !!v });
-                if (v) toast.success('Marcado como resolvido! 🎉');
+                if (v === true) {
+                  // FECHA O RELÓGIO (Task 226): tempo da rodada = agora −
+                  // "Tentei" (≥20s conta; menos que isso é check acidental).
+                  const started = progress?.attemptStartedAt
+                    ? new Date(progress.attemptStartedAt).getTime()
+                    : null;
+                  const delta = started ? Math.floor((Date.now() - started) / 1000) : 0;
+                  const bank = delta >= 20 ? delta : 0;
+                  sp.updateExerciseProgress(exercise.id, {
+                    solved: true,
+                    solvedAt: new Date().toISOString(),
+                    ...(bank > 0
+                      ? { timeSpentSec: (progress?.timeSpentSec ?? 0) + bank }
+                      : {}),
+                    attemptStartedAt: undefined,
+                  });
+                  toast.success(
+                    bank > 0
+                      ? `Resolvida em ${formatQuestionTime(bank)} — registrado! 🎉`
+                      : 'Marcado como resolvido! 🎉',
+                  );
+                } else {
+                  sp.updateExerciseProgress(exercise.id, { solved: false });
+                }
               }}
             />
             <span className="text-muted-foreground">Consegui resolver</span>
@@ -1143,13 +1210,16 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
             size="sm"
             variant="outline"
             className="h-7 gap-1 border-emerald-500/40 px-2 text-[11px] text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-            onClick={() =>
+            onClick={() => {
+              // SINAL (Task 226): tutor acionado para ESTA questão — vira
+              // evidência de onde o estudo pede ajuda (learning-signals.ts).
+              sp.noteExerciseSignal(exercise.id, { askedTutor: true });
               openTutor({
                 disciplineCode: exercise.disciplineCode,
                 materialId: exercise.linkedMaterials?.[0],
                 question: `Estou trabalhando esta questão de ${disc?.shortName ?? exercise.disciplineCode} (${exercise.topic}): "${exercise.statement}" — me guie pelo raciocínio passo a passo, sem entregar a resposta final de uma vez.${exercise.hint ? ` A dica do Hub é: "${exercise.hint}".` : ''}`,
               })
-            }
+            }}
           >
             <MessageCircleQuestion className="size-3" /> Perguntar ao tutor
           </Button>

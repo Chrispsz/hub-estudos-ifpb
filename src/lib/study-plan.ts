@@ -46,8 +46,16 @@ import {
   studyRank,
 } from './material-curation';
 import { examPressureFor, examPressureWhy } from './exam-radar';
+import { disciplineSignalsOf } from './learning-signals';
 
-export type PlanKind = 'continuar' | 'revisao' | 'pratica' | 'erro' | 'atrasado' | 'proximo';
+export type PlanKind =
+  | 'continuar'
+  | 'revisao'
+  | 'pratica'
+  | 'erro'
+  | 'reforco'
+  | 'atrasado'
+  | 'proximo';
 
 /**
  * CICLO DO ERRO (pauta nº 1, Task 213-b) — um erro do Code Review (núcleo v2)
@@ -349,6 +357,55 @@ export function buildDayPlan(
     if (!Number.isNaN(d) && nowMs - d <= 14 * DAY) discOrder.push(s.disciplineId);
   }
 
+  // 3c. REFORÇO DE BASE (Task 226 — O ALGORITMO QUE APRENDE): quando o
+  //    registro REAL das questões diz que uma matéria que você anda seguindo
+  //    está 'puxada' (tempo alto / dependente de ajuda), a fila NÃO avança
+  //    degrau — ela traz a PRÁTICA do degrau atual para agora (o efeito
+  //    escadinha respeita a dificuldade medida, não só a ordem da grade).
+  //    1 reforço/dia (a fila não vira punição); só matérias seguidas
+  //    recentemente (discOrder) entram — silêncio não vira julgamento.
+  {
+    const puxadas = disciplineSignalsOf(sp)
+      .filter((s) => s.level === 'puxada' && discOrder.includes(s.code));
+    for (const s of puxadas) {
+      if (blocks.length >= maxBlocks) break;
+      const rankedDisc = materials
+        .filter(
+          (m) =>
+            m.disciplineCode === s.code &&
+            inStudyQueue(m) &&
+            !completed.has(m.id) &&
+            !usedMaterials.has(m.id),
+        )
+        .sort((a, b) => {
+          // prática do degrau atual primeiro — reforço é FAZER, não reler
+          const pa = curateMaterial(a).role === 'pratica' ? 0 : 1;
+          const pb = curateMaterial(b).role === 'pratica' ? 0 : 1;
+          if (pa !== pb) return pa - pb;
+          return studyRank(a) - studyRank(b);
+        });
+      const mat = rankedDisc[0];
+      if (!mat) continue;
+      const press = pressureOf(s.code);
+      const examWhy = examPressureWhy(s.code, now);
+      const ok = push({
+        kind: 'reforco',
+        materialId: mat.id,
+        disciplineCode: s.code,
+        title: mat.title,
+        why: [
+          `dificuldade real nas questões (${s.solvedNoHelp} de ${s.tried} de cabeça${s.medianTimeSec ? `, ~${Math.round(s.medianTimeSec / 60)}min por questão` : ''}) — reforço antes de avançar a escada`,
+          examWhy,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        minutes: focusMin,
+        exam: press && press.daysLeft <= 7 ? press : undefined,
+      });
+      if (ok) break; // 1 reforço/dia — a fila não vira punição
+    }
+  }
+
   // 4) ATRASADOS — material da disciplina que você anda seguindo, ainda sem
   //    concluir, na régua da curadoria (a evidência da aula, não o array cru).
   //    A ordem das disciplinas agora RESPEITA A PROVA (Task 27): quem tem
@@ -488,6 +545,7 @@ export const PLAN_KIND_LABEL: Record<PlanKind, string> = {
   revisao: 'Revisão',
   pratica: 'Prática',
   erro: 'Reestudar',
+  reforco: 'Reforço',
   atrasado: 'Atrasado',
   proximo: 'Próximo',
 };

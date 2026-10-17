@@ -49,6 +49,7 @@ import {
 } from '@/data/course-data';
 import type { CustomEvaluation } from './study-progress';
 import { currentWeekOfSemester } from './semester';
+import { facilityMultiplierOf, facilityReasonOf } from './learning-signals';
 
 const DAY = 86_400_000;
 
@@ -275,6 +276,10 @@ export interface TriageInput {
   };
   customEvaluations?: CustomEvaluation[];
   now: Date;
+  /** FACILIDADE REAL por disciplina (0–1, learning-signals.ts) — o sinal que
+   *  treina o motor: puxada pesa mais (reforço sobe), fluida respira (não
+   *  superestuda o que já saiu de cabeça). Disciplina ausente = sem dado = neutro. */
+  facility?: Record<string, number>;
 }
 
 export interface Triage {
@@ -300,7 +305,7 @@ export const FOCO_MAX = 3;
  *   • Sem pressão suficiente para encher o foco → ninguém estaciona (calma).
  */
 export function computeTriage(input: TriageInput): Triage {
-  const { topicProgress, disciplineProgress, customEvaluations, now } = input;
+  const { topicProgress, disciplineProgress, customEvaluations, now, facility } = input;
   const prog = disciplineProgress ?? {};
   const entries: TriageEntry[] = [];
 
@@ -357,9 +362,14 @@ export function computeTriage(input: TriageInput): Triage {
     const strategyMult = strategyMultiplierOf(d);
     const curriculumMult = curriculumMultiplierOf(d);
     const debtMult = d.perfilPratica === 'teoria' ? 1 : 1 + Math.min(0.5, debt * 0.08);
+    // SINAL DE APRENDIZAGEM (Task 226): a facilidade REAL nas questões treina
+    // o motor — puxada ×1.12 (reforço sobe), fluida ×0.92 (a fila respira).
+    const facilityMult = facilityMultiplierOf(facility?.[d.code]);
+    const facilityReason = facilityReasonOf(facility?.[d.code]);
+    if (facilityReason) reasons.push(facilityReason);
     const score =
       (d.chTotal / TOTAL_CH) * priorMult * strategyMult * curriculumMult *
-      (1 + Math.min(0.3, pend * 0.02)) * urgencyFactor(pressing) * debtMult;
+      (1 + Math.min(0.3, pend * 0.02)) * urgencyFactor(pressing) * debtMult * facilityMult;
 
     entries.push({
       code: d.code,

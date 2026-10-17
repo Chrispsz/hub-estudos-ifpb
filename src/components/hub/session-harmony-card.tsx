@@ -23,6 +23,7 @@ import {
   CheckCheck,
   ChevronDown,
   CircleAlert,
+  Dumbbell,
   History,
   ListChecks,
   PenLine,
@@ -98,6 +99,13 @@ const KIND_META: Record<PlanKind | 'fecho', { icon: LucideIcon; bg: string; text
     icon: Sparkles,
     bg: 'bg-teal-500/10',
     text: 'text-teal-700 dark:text-teal-400',
+  },
+  reforco: {
+    // REFORÇO DE BASE (Task 226): dificuldade real medida nas questões —
+    // a família do "praticar com intenção" (violeta, como a prática).
+    icon: Dumbbell,
+    bg: 'bg-violet-500/10',
+    text: 'text-violet-700 dark:text-violet-400',
   },
   fecho: {
     icon: CheckCheck,

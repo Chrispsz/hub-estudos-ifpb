@@ -31,6 +31,7 @@ import {
   getDaySummary,
   formatTime,
 } from '@/lib/smart-schedule';
+import { facilityMapOf } from '@/lib/learning-signals';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 
@@ -164,7 +165,9 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
   // SSR e primeiro frame não fingem saber a hora do aluno.
   const now = useNow(1000);
 
-  // Gera blocos automáticos (cronograma rotativo v2.0)
+  // Gera blocos automáticos (cronograma rotativo v2.0) — com a FACILIDADE
+  // REAL (Task 226): os sinais das questões treinam o motor aqui também.
+  const facility = React.useMemo(() => facilityMapOf(sp.progress), [sp.progress]);
   const autoBlocks = React.useMemo(
     () =>
       generateSmartSchedule({
@@ -172,8 +175,9 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
         topicProgress: sp.progress.topicProgress,
         disciplineProgress: sp.progress.disciplineProgress,
         customEvaluations: sp.progress.customEvaluations,
+        facility,
       }),
-    [sp.progress.studyPreferences, sp.progress.topicProgress, sp.progress.disciplineProgress, sp.progress.customEvaluations],
+    [sp.progress.studyPreferences, sp.progress.topicProgress, sp.progress.disciplineProgress, sp.progress.customEvaluations, facility],
   );
 
   const todaySummary = React.useMemo(

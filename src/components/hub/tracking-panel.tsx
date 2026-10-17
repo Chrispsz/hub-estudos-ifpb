@@ -11,18 +11,39 @@
 // resolve.
 
 import * as React from 'react';
-import { Flame, ListChecks, PenLine } from 'lucide-react';
+import { Flame, ListChecks, PenLine, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { TodaySnapshot, TrackingDetail } from '@/lib/today-focus';
 import { openPractice, openProgress } from '@/lib/hub-events';
 import { getColorClasses } from '@/lib/discipline-colors';
+import {
+  algorithmReadoutOf,
+  type DisciplineSignal,
+  type FacilityLevel,
+} from '@/lib/learning-signals';
+import { cn } from '@/lib/utils';
 
 interface TrackingPanelProps {
   /** Aberto/fechado — o estado vive no dashboard (a linha do retrato é o gatilho). */
   open: boolean;
   detail: TrackingDetail;
   snap: TodaySnapshot;
+  /** SINAIS DE APRENDIZAGEM (Task 226) — facilidade real por disciplina, já
+   *  mesclada com o uso do tutor do servidor. Opcional: sem fetch, o painel
+   *  segue de pé. */
+  signals?: DisciplineSignal[];
 }
+
+/** Tons honestos por nível — a mesma gramática de cor da casa (mastery). */
+const LEVEL_CHIP: Record<FacilityLevel, string> = {
+  puxada:
+    'border-amber-300 bg-amber-500/10 text-amber-700 dark:border-amber-500/40 dark:text-amber-400',
+  fluida:
+    'border-emerald-300 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-400',
+  solida:
+    'border-violet-300 bg-violet-500/10 text-violet-700 dark:border-violet-500/40 dark:text-violet-400',
+  'sem-dado': 'border-border bg-muted/40 text-muted-foreground',
+};
 
 /** 75 → "1h15" · 40 → "40min" · 0 → "0min". */
 function fmtMin(m: number): string {
@@ -41,8 +62,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function TrackingPanel({ open, detail, snap }: TrackingPanelProps) {
+export function TrackingPanel({ open, detail, snap, signals }: TrackingPanelProps) {
   const maxWeek = Math.max(...detail.week.map((d) => d.minutes), 1);
+
+  // ----- SINAIS (Task 226): a leitura do algoritmo em linguagem de gente -----
+  const readout = React.useMemo(() => algorithmReadoutOf(signals ?? []), [signals]);
+  const realSignals = (signals ?? []).filter((s) => s.level !== 'sem-dado');
+  const tutorLines = (signals ?? []).filter((s) => (s.tutorLast7d ?? 0) > 0);
 
   // ----- Hoje: itens quietos, só o que o uso já registrou -----
   const hojeItems: string[] = [];
@@ -160,6 +186,62 @@ export function TrackingPanel({ open, detail, snap }: TrackingPanelProps) {
               ) : (
                 <p className="mt-1.5 text-sm text-muted-foreground">
                   nenhum foco cronometrado nos últimos 7 dias.
+                </p>
+              )}
+            </section>
+
+            {/* O ALGORITMO TE LÊ (Task 226) — o espelho da dificuldade REAL,
+                derivado das questões e do tutor, sem formulário nenhum. */}
+            <section aria-label="Como o algoritmo te lê" className="border-t border-border/60 pt-4">
+              <SectionTitle>Como o algoritmo te lê</SectionTitle>
+              {realSignals.length > 0 ? (
+                <div className="mt-2.5" data-t="sinais-aprendizado">
+                  <div className="flex flex-wrap gap-1.5">
+                    {realSignals.map((s) => (
+                      <span
+                        key={s.code}
+                        title={s.frase}
+                        data-t={`sinal-${s.level}`}
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium',
+                          LEVEL_CHIP[s.level],
+                        )}
+                      >
+                        {s.shortName}
+                        <span className="font-normal opacity-80">
+                          {s.level === 'puxada'
+                            ? 'puxada'
+                            : s.level === 'fluida'
+                              ? 'fluida'
+                              : 'no trilho'}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                  <ul className="mt-2.5 space-y-1">
+                    {readout.ajustes.map((a) => (
+                      <li key={a} className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground">
+                        <Sparkles className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden />
+                        {a}
+                      </li>
+                    ))}
+                    {tutorLines.map((s) => (
+                      <li
+                        key={`tutor-${s.code}`}
+                        className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground"
+                      >
+                        <Sparkles className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden />
+                        tutor entrou {s.tutorLast7d}× na semana em {s.shortName} —{" "}
+                        {(s.tutorLast7d ?? 0) >= 4
+                          ? 'assunto que pede reforço de base'
+                          : 'orientação saudável'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  sem questões suficientes para ler — resolva algumas listas (e marque os checks) que a leitura nasce sozinha.
                 </p>
               )}
             </section>

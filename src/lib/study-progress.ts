@@ -246,6 +246,19 @@ export interface ExerciseProgressEntry {
    * erro de primeira viagem; ≥1 = recorrente — prioridade máxima na véspera.
    */
   lapses?: number;
+  // ---- SINAIS DE APRENDIZAGEM (Task 226 — semi-automático, sem formulário) ----
+  /** Tempo cronometrado na questão (segundos). Nasce do fluxo: "Tentei" abre
+   *  o relógio, "Resolvi" fecha — e o delta entra aqui. O algoritmo lê isso
+   *  para medir facilidade real (learning-signals.ts). */
+  timeSpentSec?: number;
+  /** Quando marcou "Consegui resolver" (ISO) — a ordem temporal da prática. */
+  solvedAt?: string;
+  /** Relógio aberto (ISO): "Tentei fazer" marcado e ainda não resolvido. */
+  attemptStartedAt?: string;
+  /** Quantas vezes voltou à questão (cada check de "Tentei" conta 1). */
+  attempts?: number;
+  /** O tutor foi acionado PARA ESTA questão (print/botão contextual). */
+  askedTutor?: boolean;
 }
 
 export interface ExerciseProgress {
@@ -1667,6 +1680,31 @@ export function useStudyProgress() {
     [setProgress],
   );
 
+  /** SINAL SEM PRÁTICA (Task 226 — o algoritmo que aprende): grava evidência
+   *  de uso do tutor numa questão SEM tocar lastPracticedAt — perguntar não é
+   *  praticar, e a dívida de prática não pode zerar por pergunta. Mesmo merge
+   *  do updateExerciseProgress, sem os efeitos colaterais (caderno/lastStudiedAt). */
+  const noteExerciseSignal = React.useCallback(
+    (exerciseId: string, partial: Partial<ExerciseProgressEntry>) => {
+      setProgress((prev) => {
+        const cur = prev.exerciseProgress[exerciseId] ?? {
+          tried: false,
+          solved: false,
+          neededHelp: false,
+          lastPracticedAt: '',
+        };
+        return {
+          ...prev,
+          exerciseProgress: {
+            ...prev.exerciseProgress,
+            [exerciseId]: { ...cur, ...partial },
+          },
+        };
+      });
+    },
+    [setProgress],
+  );
+
   const saveRealGrade = React.useCallback(
     (evaluationKey: string, grade: number, notes?: string) => {
       setProgress((prev) => ({
@@ -1971,6 +2009,7 @@ export function useStudyProgress() {
       toggleTopic,
       updateExerciseProgress,
       resetExerciseProgress,
+      noteExerciseSignal,
       addSimuladoRun,
       saveRealGrade,
       removeRealGrade,
@@ -2034,6 +2073,7 @@ export function useStudyProgress() {
       toggleTopic,
       updateExerciseProgress,
       resetExerciseProgress,
+      noteExerciseSignal,
       addSimuladoRun,
       saveRealGrade,
       removeRealGrade,

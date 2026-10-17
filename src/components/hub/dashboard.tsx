@@ -39,11 +39,19 @@ import { DisciplineIcon } from '@/lib/discipline-icons';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { openPractice, openProgress, openSimulado } from '@/lib/hub-events';
+import {
+  disciplineSignalsOf,
+  withTutorUsage,
+  algorithmReadoutOf,
+  facilityMapOf,
+  type TutorUsageEntry,
+} from '@/lib/learning-signals';
 import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { upcomingEvents } from '@/lib/semester';
 import { PnaatReminderCard } from './pnaat-reminder-card';
 import { ExamRadarCard } from './exam-radar-card';
 import { TriageCard } from './triage-card';
+import { WeeklyReport } from './weekly-report';
 import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -132,6 +140,9 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   // Meu acompanhamento: o espelho completo fica 1 toque abaixo do retrato —
   // a casa continua limpa por padrão (frente C, diretriz do dono 10/10/2026).
   const [trackingOpen, setTrackingOpen] = React.useState(false);
+  // MOMENTO DE REVISÃO (Task 226): o relatório da semana abre AQUI na home —
+  // sexta acende o chip, sábado/domingo é o momento; segunda some sozinho.
+  const [semanaOpen, setSemanaOpen] = React.useState(false);
 
   const folha = materials.find((m) => m.id === FOLHA_DA_PROVA_ID) ?? null;
 
@@ -163,6 +174,38 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     () => (agora ? buildTrackingDetail(sp.progress, agora) : null),
     [sp.progress, agora],
   );
+
+  // ----- O ALGORITMO QUE APRENDE (Task 226 — pedido do dono: "acompanhamento
+  // para treinar o próprio algoritmo… com base na facilidade e aprendizado
+  // real… de forma quase que automática"): os sinais nascem do uso (questões
+  // marcadas, tempo por questão, tutor acionado) e voltam como peso na fila.
+  // O uso do tutor mora no servidor (memória por disciplina) — chega por fetch
+  // e é mesclado; sem rede, a casa segue com os sinais locais.
+  const [tutorSignals, setTutorSignals] = React.useState<TutorUsageEntry[] | null>(null);
+  React.useEffect(() => {
+    let alive = true;
+    fetch('/api/tutor/signals')
+      .then((r) => r.json())
+      .then((j: { signals?: TutorUsageEntry[] }) => {
+        if (alive && Array.isArray(j?.signals)) setTutorSignals(j.signals);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const learningSignals = React.useMemo(
+    () => (agora ? withTutorUsage(disciplineSignalsOf(sp.progress), tutorSignals) : []),
+    [agora, sp.progress, tutorSignals],
+  );
+  const algoritmoLeitura = React.useMemo(
+    () => algorithmReadoutOf(learningSignals),
+    [learningSignals],
+  );
+  // MOMENTO DE REVISÃO (Task 226): o fim de semana carrega a leitura da
+  // semana — sexta acende, sábado/dominguem manda (o slot de "Revisão geral
+  // da semana" do cronograma já reserva o sábado; o chip leva aos sinais).
+  const momentoRevisao = !!agora && [0, 5, 6].includes(agora.getDay());
 
   // FRENTE 13 — O PLANO DE HOJE (fila de materiais): hoje ela alimenta o
   // CRONOGRAMA DE HOJE (abaixo) — cada bloco ganha o material sugerido da
@@ -209,6 +252,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       disciplineProgress: discProg,
       customEvaluations: sp.progress.customEvaluations,
       weekStudiedMinutes: weekStudied,
+      facility: facilityMapOf(sp.progress),
       now: agora,
     })
       .filter((b) => b.day === agora.getDay())
@@ -988,8 +1032,66 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                 aria-hidden
               />
             </button>
-            <TrackingPanel open={trackingOpen} detail={detail} snap={snap} />
+            <TrackingPanel open={trackingOpen} detail={detail} snap={snap} signals={learningSignals} />
           </div>
+        )}
+        {/* A LEITURA DO ALGORITMO NA SUPERFÍCIE (Task 226) — 1 linha suave:
+            a casa conta o que o uso real mudou na fila (só quando tem algo a
+            dizer — sem ruído na home limpa). */}
+        {agora && algoritmoLeitura.frase && (
+          <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground" data-t="algoritmo-leitura">
+            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+            <span>
+              {algoritmoLeitura.frase}
+              {algoritmoLeitura.ajustes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTrackingOpen(true)}
+                  className="ml-1 text-foreground underline underline-offset-4 transition-colors hover:text-primary"
+                >
+                  ver como
+                </button>
+              )}
+            </span>
+          </p>
+        )}
+        {/* MOMENTO DE REVISÃO (Task 226) — o fim de semana carrega o espelho
+            da semana NA PRÓPRIA HOME: relatório completo + sinais do algoritmo
+            (questões demoradas, tutor, facilidade, ajustes). Um chip só, some
+            na segunda (a casa volta a estudar). */}
+        {momentoRevisao && (
+          <>
+            <p className="mt-2">
+              <button
+                type="button"
+                onClick={() => setSemanaOpen((v) => !v)}
+                aria-expanded={semanaOpen}
+                aria-controls="painel-revisao-semana"
+                data-t="momento-revisao"
+                className="inline-flex items-center gap-1.5 rounded-full border border-violet-300 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-violet-500/40 dark:text-violet-400"
+              >
+                <Sparkles className="size-3.5" aria-hidden />
+                Momento de revisão — o que a semana ensinou
+                <ChevronDown
+                  className={`size-3.5 transition-transform ${semanaOpen ? 'rotate-180' : ''}`}
+                  aria-hidden
+                />
+              </button>
+            </p>
+            <div
+              id="painel-revisao-semana"
+              className="grid transition-[grid-template-rows] duration-300 ease-out"
+              style={{ gridTemplateRows: semanaOpen ? '1fr' : '0fr' }}
+              aria-hidden={!semanaOpen}
+              inert={semanaOpen ? undefined : true}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div className="mt-3" data-t="revisao-semana">
+                  <WeeklyReport />
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </section>
 

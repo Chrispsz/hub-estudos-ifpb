@@ -86,6 +86,10 @@ export interface SmartScheduleInput {
    * real, sem repetição — Mensagem 9/10 do dono).
    */
   weekStudiedMinutes?: { [code: string]: number };
+  /** FACILIDADE REAL por disciplina (learning-signals.ts) — o sinal que treina
+   *  o motor: puxada pesa mais (reforço sobe), fluida respira (fila absorve o
+   *  que já saiu de cabeça). Ausente = sem dado = neutro. */
+  facility?: Record<string, number>;
   now?: Date;
 }
 
@@ -241,6 +245,7 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     topicProgress,
     disciplineProgress,
     customEvaluations: input.customEvaluations,
+    facility: input.facility,
     now,
   });
   const weights = computeWeights(mode, topicProgress, disciplineProgress, input.customEvaluations, triage, now);

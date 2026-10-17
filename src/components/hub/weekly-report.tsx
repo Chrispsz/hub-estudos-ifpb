@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { localDateKey, useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
 import { openTutor } from '@/lib/hub-events';
+import { formatQuestionTime, weekSignalsReviewOf } from '@/lib/learning-signals';
 import {
   MATH_EXAM,
   MATH_META,
@@ -212,6 +213,27 @@ export function WeeklyReport() {
   const sp = useStudyProgress();
   const cardRef = React.useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = React.useState(false);
+
+  // SINAIS DA SEMANA (Task 226 — o momento de revisão): tempo por questão,
+  // uso do tutor e facilidade real — tudo derivado do uso, nada lançado à mão.
+  // O uso do tutor mora no servidor (memória por disciplina) — chega por fetch.
+  const [tutorUsage, setTutorUsage] = React.useState<Parameters<typeof weekSignalsReviewOf>[1]>(null);
+  React.useEffect(() => {
+    let alive = true;
+    fetch('/api/tutor/signals')
+      .then((r) => r.json())
+      .then((j: { signals?: Parameters<typeof weekSignalsReviewOf>[1] }) => {
+        if (alive && Array.isArray(j?.signals)) setTutorUsage(j.signals);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const weekSignals = React.useMemo(
+    () => weekSignalsReviewOf(sp.progress, tutorUsage),
+    [sp.progress, tutorUsage],
+  );
 
   /** Exporta o card do relatório como imagem PNG (compartilhar/ guardar). */
   const exportPng = React.useCallback(async () => {
@@ -449,6 +471,56 @@ export function WeeklyReport() {
           </div>
         </div>
       ) : null}
+
+      {/* SINAIS DA SEMANA (Task 226 — o momento de revisão): onde pegou mais
+          demora, onde o tutor entrou e o que o algoritmo ajustou para a
+          semana que vem. Silêncio quando nada foi registrado (sem ruído). */}
+      {weekSignals.frase && (
+        <div className="mt-4 rounded-lg border border-violet-500/25 bg-violet-500/[0.06] p-3" data-t="sinais-semana">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400">
+            <Sparkles className="size-3.5" aria-hidden="true" />
+            Sinais da semana · o algoritmo aprendeu
+          </p>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{weekSignals.frase}</p>
+
+          {weekSignals.slow.length > 0 && (
+            <ul className="mt-2.5 space-y-1.5">
+              {weekSignals.slow.slice(0, 3).map((q) => (
+                <li key={q.exerciseId} className="flex items-start gap-2 text-[11px] leading-snug">
+                  <Clock3 className="mt-0.5 size-3 shrink-0 text-violet-500" aria-hidden="true" />
+                  <span className="min-w-0">
+                    <b className="font-semibold">{formatQuestionTime(q.timeSec)}</b> · {q.disciplineShort} ·{' '}
+                    <span className="text-muted-foreground">{q.snippet}</span>{' '}
+                    {q.solved ? (
+                      <span className="text-emerald-600 dark:text-emerald-400">resolvida</span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400">em aberto</span>
+                    )}
+                    {q.neededHelp ? ' · com ajuda' : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {weekSignals.tutorHeavy.length > 0 && (
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              {weekSignals.tutorHeavy.map((t) => t.frase).join(' · ')}
+            </p>
+          )}
+
+          {weekSignals.ajustes.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {weekSignals.ajustes.map((a) => (
+                <li key={a} className="flex items-start gap-1.5 text-[11px] leading-snug text-violet-600 dark:text-violet-400">
+                  <TrendingUp className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+                  {a}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Rodapé do relatório — só existe quando tem o que dizer; no dia-macro
           sem registro a faixa já é a mensagem inteira (linha some, sem stray). */}
