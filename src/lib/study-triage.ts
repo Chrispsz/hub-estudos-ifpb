@@ -237,7 +237,6 @@ export const CURRICULUM_ROLE_LABEL: Record<Discipline['papelNaGrade'], string> =
   complementar: 'formação complementar',
   transversal: 'transversal',
 };
-
 /** Rótulo humano do tipo de avaliação — a casa fala "Atividade em 5 dias",
  *  nunca "Prova em 5 dias" para o que não é prova (Mensagem 7 do dono). */
 export const EVAL_KIND_LABEL: Record<EvalKind, string> = {
