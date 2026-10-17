@@ -39,6 +39,7 @@ import type { Material, Discipline } from '@/data/course-data';
 import { getDisciplineByCode } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { useStudyProgress } from '@/lib/study-progress';
+import { useMaterialReadingTime } from '@/lib/use-reading-time';
 import { openPractice, openTutor } from '@/lib/hub-events';
 import { exercises } from '@/lib/exercise-extractor';
 import {
@@ -191,6 +192,19 @@ export function MaterialSummaryDialog({ material, open, onOpenChange, focusSecti
   const color = getColorClasses(discipline?.color ?? 'slate');
 
   const markAccessed = sp.markAccessed;
+
+  // TELEMETRIA DA LEITURA (Task 227): o resumo IA aberto também banca tempo
+  // real (+30s por batida, aba visível) — ler resumo É estudar o material.
+  useMaterialReadingTime(
+    open && !!material,
+    material?.id,
+    React.useCallback(
+      (minutes: number) => {
+        if (material) sp.addMaterialReadingTime(material.id, minutes);
+      },
+      [material, sp],
+    ),
+  );
 
   const loadSummary = React.useCallback(
     async (mat: Material, showToasts = false) => {

@@ -1366,13 +1366,52 @@ export async function GET(req: Request) {
 const HISTORY_KEEP = TUTOR_HISTORY_KEEP;
 const MSG_CAP = 4000;
 
+// ----- O TIPO DO PEDIDO (Task 227 — "o uso do tutor seja para orientação ou
+// resposta"): heurística LOCAL no texto da pergunta — zero IA extra, zero
+// custo, nada sai da casa. 'resposta' = pede entrega pronta (o algoritmo lê
+// dependência); 'orientacao' = dúvida/caminho (uso saudável); 'outro' =
+// neutro. Falso negativo não machuca: o default é o sinal mais generoso.
+
+export type TutorAskKind = 'orientacao' | 'resposta' | 'outro';
+
+/**
+ * Fronteira de palavra UNIVERSAL: o \b do JS ignora acentos ("dá" termina em
+ * caractere não-\w, então \b NUNCA casa após "á") — o lookahead abaixo fecha
+ * a palavra em pt-BR de verdade: não seguido de qualquer letra acentuada.
+ */
+const XW = '(?![a-zA-Zàáâãäéêëíìóôõöúûüç])';
+
+/** Pede a entrega pronta: resolver, dar o resultado, o gabarito. */
+const RE_PEDIDO_RESPOSTA = new RegExp(
+  '\\b(resolva?|responde?|me\\s+d(á|a|e|ê|ar)' + XW + '|d(e|ê)\\s+(a\\s+)?resposta|qual\\s+(é|e|s[aã]o)\\s+(a|o|as|os)\\s+(resposta|resultado|valor|gabarito)|quanto\\s+d(á|a|aria|aria)' + XW + '|faz\\s+(pra|para)\\s+mim|somente\\s+a\\s+resposta|so\\s+a\\s+resposta|resposta\\s+direta|gabarito|me\\s+passa|me\\s+entrega)' + XW,
+  'i',
+);
+
+/** Pede caminho/entendimento: dúvida, erro, conceito, "por onde começo". */
+const RE_PEDIDO_ORIENTACAO = new RegExp(
+  '\\b(como|onde|por\\s*qu[eê]' + XW + '|\\bpq\\b|n[aã]o\\s+(entendi|entendo|compreendi|consegui)|expliqu|d[uú]vid|me\\s+ensin|dica|pista|come(ç|c)o|come(ç|c)ar|err(ei|ando|ado)|revis|entender|conceito|por\\s*onde|qual\\s+(a|o)\\s+l[oó]gica|me\\s+explica|estou\\s+perdido|travei)' + XW,
+  'i',
+);
+
+export function classifyTutorAsk(text: string): TutorAskKind {
+  if (RE_PEDIDO_RESPOSTA.test(text)) return 'resposta';
+  if (RE_PEDIDO_ORIENTACAO.test(text)) return 'orientacao';
+  return 'outro';
+}
+
 /** Salva a dupla pergunta+resposta e poda o histórico (mantém as 80 mais novas). */
-async function saveTurn(discipline: string, question: string, answer: string, model: string): Promise<void> {
+async function saveTurn(
+  discipline: string,
+  question: string,
+  answer: string,
+  model: string,
+  kind: TutorAskKind = 'outro',
+): Promise<void> {
   const key = discipline.slice(0, 40);
   if (!key || key === 'geral') return;
   await db.tutorMessage.createMany({
     data: [
-      { discipline: key, role: 'user', content: question.slice(0, MSG_CAP) },
+      { discipline: key, role: 'user', content: question.slice(0, MSG_CAP), kind },
       { discipline: key, role: 'assistant', content: answer.slice(0, MSG_CAP), model: model || null },
     ],
   });
@@ -1701,7 +1740,7 @@ export async function POST(req: Request) {
             // resposta). persist:false (app v2) = NADA é gravado no servidor.
             if (shouldPersist) {
               try {
-                await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
+                await saveTurn(disciplineKey, savedQuestion, answer, usedModel, classifyTutorAsk(savedQuestion));
               } catch (err) {
                 console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
               }
@@ -1825,7 +1864,7 @@ export async function POST(req: Request) {
     // persistem). persist:false (app v2) = NADA é gravado no servidor.
     if (shouldPersist && !isFlashcardsMode && !isFeynmanMode) {
       try {
-        await saveTurn(disciplineKey, savedQuestion, answer, usedModel);
+        await saveTurn(disciplineKey, savedQuestion, answer, usedModel, classifyTutorAsk(savedQuestion));
       } catch (err) {
         console.warn('[api/tutor] histórico não salvo:', err instanceof Error ? err.message : err);
       }

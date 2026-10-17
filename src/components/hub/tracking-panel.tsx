@@ -225,18 +225,27 @@ export function TrackingPanel({ open, detail, snap, signals }: TrackingPanelProp
                         {a}
                       </li>
                     ))}
-                    {tutorLines.map((s) => (
-                      <li
-                        key={`tutor-${s.code}`}
-                        className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground"
-                      >
-                        <Sparkles className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden />
-                        tutor entrou {s.tutorLast7d}× na semana em {s.shortName} —{" "}
-                        {(s.tutorLast7d ?? 0) >= 4
-                          ? 'assunto que pede reforço de base'
-                          : 'orientação saudável'}
-                      </li>
-                    ))}
+                    {tutorLines.map((s) => {
+                      // O MIX (Task 227): predominância de "resposta pronta"
+                      // vira aviso de dependência; orientação segue saudável.
+                      const resp = s.resposta7d ?? 0;
+                      const orient = s.orientacao7d ?? 0;
+                      const mix =
+                        (s.tutorLast7d ?? 0) >= 2 && resp >= 2 && resp > orient
+                          ? `${resp} ${resp === 1 ? 'pediu' : 'pediram'} resposta pronta — a casa reforça a base`
+                          : (s.tutorLast7d ?? 0) >= 4
+                            ? 'assunto que pede reforço de base'
+                            : 'orientação saudável';
+                      return (
+                        <li
+                          key={`tutor-${s.code}`}
+                          className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground"
+                        >
+                          <Sparkles className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden />
+                          tutor entrou {s.tutorLast7d}× na semana em {s.shortName} — {mix}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ) : (

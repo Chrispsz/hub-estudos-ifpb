@@ -55,6 +55,7 @@ import { downloadPdf } from '@/lib/download-utils';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { useStudyProgress } from '@/lib/study-progress';
+import { useMaterialReadingTime } from '@/lib/use-reading-time';
 import { pdfJumpSrc, clampPdfPage } from '@/lib/pdf-search';
 import { rememberPdfPage, recallPdfPage } from '@/lib/pdf-position';
 import {
@@ -577,6 +578,20 @@ export function PdfViewerDialog({
       markAccessed(material.id);
     }
   }, [open, material, markAccessed, keepLegacyRecent]);
+
+  // TELEMETRIA DA LEITURA (Task 227): enquanto este leitor está aberto e a
+  // aba visível, o heartbeat banca +30s por batida em readingSec/readingLog —
+  // o canal material da telemetria, semi-automático (o aluno NÃO marca nada).
+  useMaterialReadingTime(
+    open && !!material,
+    material?.id,
+    React.useCallback(
+      (minutes: number) => {
+        if (material) sp.addMaterialReadingTime(material.id, minutes);
+      },
+      [material, sp],
+    ),
+  );
 
   // ===== O LEITOR LEMBRA (t161) + O CONVITE ACEITO LÁ FORA (t162): ao abrir
   // um PDF buscável, o Hub lê a posição do último salto e oferece o CONVITE

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
+  BookOpen,
   BookOpenCheck,
   CalendarCheck,
   CalendarClock,
@@ -11,7 +12,9 @@ import {
   Clock3,
   Hourglass,
   ImageDown,
+  ListChecks,
   Loader2,
+  MessagesSquare,
   TrendingDown,
   TrendingUp,
   Minus,
@@ -24,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { localDateKey, useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
 import { openTutor } from '@/lib/hub-events';
-import { formatQuestionTime, weekSignalsReviewOf } from '@/lib/learning-signals';
+import { formatQuestionTime, weekChannelsOf, weekSignalsReviewOf } from '@/lib/learning-signals';
 import {
   MATH_EXAM,
   MATH_META,
@@ -166,6 +169,29 @@ function computeWeek(sessions: PomodoroSession[], fromDaysAgo: number, toDaysAgo
 
 type Trend = 'up' | 'down' | 'flat';
 
+/** Um canal da strip "A semana pelos 4 canais" — número + linha humanas. */
+function ChannelTile({
+  icon: Icon,
+  tone,
+  value,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone: string;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
+      <span className={cn('grid size-6 place-items-center rounded-md', tone)}>
+        <Icon className="size-3.5" aria-hidden="true" />
+      </span>
+      <p className="mt-1.5 text-base font-bold tabular-nums leading-none">{value}</p>
+      <p className="mt-1 text-[10px] leading-snug text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
 function trendBadge(current: number, previous: number, suffix?: string): { trend: Trend; text: string } {
   if (previous === 0 && current > 0) {
     return { trend: 'up', text: 'novo' };
@@ -235,6 +261,19 @@ export function WeeklyReport() {
     [sp.progress, tutorUsage],
   );
 
+  // A SEMANA PELOS 4 CANAIS (Task 227 — o "como um todo" do dono): Pomodoro,
+  // leitura real, questões e tutor com o mix orientação/resposta — cada um
+  // individual, todos juntos numa strip só.
+  const channels = React.useMemo(
+    () => weekChannelsOf(sp.progress, tutorUsage),
+    [sp.progress, tutorUsage],
+  );
+  const channelsActive =
+    channels.focoMin > 0 ||
+    channels.leituraMin >= 1 ||
+    channels.questoes.tried > 0 ||
+    (channels.tutor?.total ?? 0) > 0;
+
   /** Exporta o card do relatório como imagem PNG (compartilhar/ guardar). */
   const exportPng = React.useCallback(async () => {
     if (!cardRef.current || exporting) return;
@@ -301,7 +340,7 @@ export function WeeklyReport() {
     });
   }, [thisWeek, lastWeek, rangeLabels, sp.progress.pomodoroSessions, sp.progress.simuladoRuns, topDisciplineCode]);
 
-  const hasData = thisWeek.sessions > 0 || lastWeek.sessions > 0;
+  const hasData = thisWeek.sessions > 0 || lastWeek.sessions > 0 || channelsActive;
 
   // MARCO DO DIA — render-time (lição 79): o relógio é lido NO render, o run
   // entra pelo storage event (mesmo re-render). Nos 3 dias da reta final o
@@ -471,6 +510,56 @@ export function WeeklyReport() {
           </div>
         </div>
       ) : null}
+
+      {/* A SEMANA PELOS 4 CANAIS (Task 227): Pomodoro (foco), material
+          (leitura real), questões (prática) e tutor (ajuda, com o mix) — o
+          "de forma individual e como um todo" pedido pelo dono. Silêncio
+          quando a semana não tem nenhum registro (sem ruído). */}
+      {channelsActive && (
+        <div className="mt-4" data-t="canais-semana">
+          <p className="text-[11px] font-semibold text-muted-foreground">
+            A semana pelos 4 canais
+          </p>
+          <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <ChannelTile
+              icon={Clock3}
+              tone="bg-emerald-500/15 text-emerald-500"
+              value={`${channels.focoMin}min`}
+              label="de foco Pomodoro"
+            />
+            <ChannelTile
+              icon={BookOpen}
+              tone="bg-amber-500/15 text-amber-500"
+              value={`${Math.round(channels.leituraMin)}min`}
+              label={
+                channels.leituraTop
+                  ? `de leitura · mais em ${channels.leituraTop.shortName}`
+                  : 'de leitura no leitor'
+              }
+            />
+            <ChannelTile
+              icon={ListChecks}
+              tone="bg-violet-500/15 text-violet-500"
+              value={`${channels.questoes.solved}/${channels.questoes.tried}`}
+              label={
+                channels.questoes.withHelp > 0
+                  ? `questões · ${channels.questoes.withHelp} com ajuda`
+                  : 'questões resolvidas de tentadas'
+              }
+            />
+            <ChannelTile
+              icon={MessagesSquare}
+              tone="bg-teal-500/15 text-teal-500"
+              value={channels.tutor ? String(channels.tutor.total) : '0'}
+              label={
+                channels.tutor
+                  ? `perguntas · ${channels.tutor.orientacao} orientação${channels.tutor.resposta > 0 ? ` · ${channels.tutor.resposta} resposta pronta` : ''}`
+                  : 'perguntas ao tutor'
+              }
+            />
+          </div>
+        </div>
+      )}
 
       {/* SINAIS DA SEMANA (Task 226 — o momento de revisão): onde pegou mais
           demora, onde o tutor entrou e o que o algoritmo ajustou para a

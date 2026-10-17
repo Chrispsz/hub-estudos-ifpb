@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStudyProgress } from '@/lib/study-progress';
+import { useMaterialReadingTime } from '@/lib/use-reading-time';
 import { cn } from '@/lib/utils';
 import type { Material } from '@/data/course-data';
 
@@ -121,6 +122,20 @@ export function VideoPlayerDialog({ material, open, onOpenChange }: VideoPlayerD
   React.useEffect(() => {
     if (open && material?.id) markAccessed(material.id);
   }, [open, material?.id, markAccessed]);
+
+  // TELEMETRIA DA LEITURA (Task 227): videoaula aberta e aba visível banca
+  // +30s por batida — o tempo REAL com o material, semi-automático.
+  const materialId = material?.id;
+  useMaterialReadingTime(
+    open && !!materialId,
+    materialId,
+    React.useCallback(
+      (minutes: number) => {
+        if (materialId) sp.addMaterialReadingTime(materialId, minutes);
+      },
+      [materialId, sp],
+    ),
+  );
 
   if (!material) return null;
   const isCompleted = sp.progress.completedMaterials.includes(material.id);

@@ -28,6 +28,13 @@ export interface MaterialProgress {
   studiedMinutes?: number;
   completed?: boolean;
   lastAccessedAt?: string; // ISO
+  /**
+   * TEMPO DE LEITURA REAL no leitor (segundos) — Task 227, heartbeat
+   * semi-automático: a cada 30s com a aba visível, o próprio leitor banca
+   * +30s. Zero formulário — o tempo é cronometrado pelo fluxo de abrir
+   * material que o aluno JÁ faz.
+   */
+  readingSec?: number;
 }
 
 export interface DisciplineProgress {
@@ -689,6 +696,14 @@ export interface StudyProgress {
    */
   dailyFocusDiscipline?: { [dateKey: string]: string };
   /**
+   * O LOG DE LEITURA (Task 227 — o canal material da telemetria): cada lance
+   * do heartbeat do leitor, AGREGADO por (dia, material). É ele que responde
+   * na revisão semanal "quanto tempo você passou lendo cada matéria" — o 4º
+   * canal que faltava junto de Pomodoro (foco), questões (prática) e tutor
+   * (ajuda). Poda natural: a casa mantém os últimos 120 dias.
+   */
+  readingLog?: ReadingLogEntry[];
+  /**
    * O 1º passo de amanhã, gravado NO FECHO da sessão (banco de ideias #6).
    * `setOn` é o dateKey do dia em que foi gravado — a casa o mostra no dia
    * SEGUINTE ("você escolheu começar por...") e o consome no clique: o passo
@@ -719,6 +734,16 @@ export interface DailyCheckin {
   at: number;
   /** Horas adicionadas neste lance (1.5 = 1h30). */
   hours: number;
+}
+
+/** Um lance do heartbeat de leitura — tempo REAL no leitor, agregado por dia. */
+export interface ReadingLogEntry {
+  /** dateKey LOCAL do dia (mesmo padrão de PomodoroSession.date — Task 225). */
+  date: string;
+  materialId: string;
+  disciplineCode: string;
+  /** Minutos acumulados neste dia neste material (0.5 = 30s). */
+  minutes: number;
 }
 
 /**
@@ -782,6 +807,7 @@ export const defaultProgress: StudyProgress = {
   dailyHours: {},
   dailyCheckins: {},
   dailyFocusDiscipline: {},
+  readingLog: [],
   materialChecklists: {},
   materialReviews: {},
   pnaatReminder: { days: [...PNAAT_DEFAULT_DAYS] },
@@ -817,6 +843,7 @@ export function mergeWithDefaults(partial: Partial<StudyProgress> | null | unkno
     dailyHours: p.dailyHours ?? {},
     dailyCheckins: p.dailyCheckins ?? {},
     dailyFocusDiscipline: p.dailyFocusDiscipline ?? {},
+    readingLog: Array.isArray(p.readingLog) ? p.readingLog : [],
     materialChecklists: p.materialChecklists ?? {},
     materialReviews: p.materialReviews ?? {},
     pnaatReminder: {
@@ -938,6 +965,64 @@ export function useStudyProgress() {
                 disciplineProgress: {
                   ...prev.disciplineProgress,
                   [discCode]: { ...disc, lastStudiedAt: nowIso },
+                },
+              }
+            : {}),
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  /**
+   * O TEMPO DE LEITURA ENTRA (Task 227): heartbeat dos leitores — +30s a
+   * cada batida com a aba visível, semi-automático (o aluno NÃO marca nada).
+   * Três escritas honestas: (1) materialProgress.readingSec — o tempo total
+   * do material; (2) readingLog — agregado por (dia, material) para a
+   * revisão semanal do canal material; (3) disciplineProgress.lastStudiedAt —
+   * ler material É estudar a disciplina (doutrina 85/86). O studiedMinutes
+   * da disciplina NÃO toca: a fonte oficial de foco continua sendo o
+   * Pomodoro (uma régua só — sem dupla contagem nos motores).
+   */
+  const addMaterialReadingTime = React.useCallback(
+    (materialId: string, minutes: number) => {
+      if (!(minutes > 0)) return;
+      setProgress((prev) => {
+        const dateKey = localDateKey(new Date());
+        const discCode = materials.find((m) => m.id === materialId)?.disciplineCode;
+        const mat = prev.materialProgress[materialId] ?? {};
+        const clipped = minutes > 2 ? 2 : minutes; // saneia batidas perdidas (teto 2min/lance)
+        const log = [...(prev.readingLog ?? [])];
+        const idx = log.findIndex((e) => e.date === dateKey && e.materialId === materialId);
+        if (idx >= 0) {
+          log[idx] = { ...log[idx], minutes: Math.round((log[idx].minutes + clipped) * 100) / 100 };
+        } else {
+          log.push({ date: dateKey, materialId, disciplineCode: discCode ?? '', minutes: clipped });
+        }
+        // PODA: 120 dias de história bastam para a revisão semanal.
+        const cutoff = localDateKey(new Date(Date.now() - 120 * 86_400_000));
+        const pruned = log.filter((e) => e.date >= cutoff).slice(-800);
+        return {
+          ...prev,
+          readingLog: pruned,
+          materialProgress: {
+            ...prev.materialProgress,
+            [materialId]: {
+              ...mat,
+              readingSec: Math.round((mat.readingSec ?? 0) + clipped * 60),
+            },
+          },
+          ...(discCode
+            ? {
+                disciplineProgress: {
+                  ...prev.disciplineProgress,
+                  [discCode]: {
+                    ...(prev.disciplineProgress[discCode] ?? {
+                      studiedMinutes: 0,
+                      materialsCompleted: 0,
+                    }),
+                    lastStudiedAt: new Date().toISOString(),
+                  },
                 },
               }
             : {}),
@@ -1986,6 +2071,7 @@ export function useStudyProgress() {
       replaceProgress: (p: StudyProgress) => setProgress(() => p),
       // mutators
       markAccessed,
+      addMaterialReadingTime,
       markCompleted,
       unmarkCompleted,
       setChecklist,
@@ -2050,6 +2136,7 @@ export function useStudyProgress() {
       progress,
       setProgress,
       markAccessed,
+      addMaterialReadingTime,
       markCompleted,
       unmarkCompleted,
       setChecklist,

@@ -27,7 +27,7 @@
 
 import { disciplines, type Discipline } from '@/data/course-data';
 import { exercises } from './exercise-extractor';
-import type { ExerciseProgressEntry, StudyProgress } from './study-progress';
+import { localDateKey, type PomodoroSession, type StudyProgress } from './study-progress';
 
 // ---------- Configuração honesta dos pisos ----------
 
@@ -67,6 +67,9 @@ export interface DisciplineSignal {
   /** Uso do tutor (mesclado pelo chamador a partir de /api/tutor/signals). */
   tutorLast7d?: number;
   tutorTotal?: number;
+  /** Mix do tutor na semana (Task 227) — via withTutorUsage. */
+  orientacao7d?: number;
+  resposta7d?: number;
 }
 
 // ---------- Leitura do progresso ----------
@@ -234,6 +237,10 @@ export interface TutorUsageEntry {
   last7d: number;
   total: number;
   lastUsedAt: string | null;
+  /** Pedidos de caminho/entendimento na semana (uso saudável — Task 227). */
+  orientacao7d?: number;
+  /** Pedidos de entrega pronta na semana (sinal de dependência — Task 227). */
+  resposta7d?: number;
 }
 
 /** Junta o uso do tutor (servidor) nos sinais locais — mutação local do array novo. */
@@ -246,7 +253,13 @@ export function withTutorUsage(
   return signals.map((s) => {
     const u = byCode.get(s.code);
     if (!u) return s;
-    return { ...s, tutorLast7d: u.last7d, tutorTotal: u.total };
+    return {
+      ...s,
+      tutorLast7d: u.last7d,
+      tutorTotal: u.total,
+      orientacao7d: u.orientacao7d,
+      resposta7d: u.resposta7d,
+    };
   });
 }
 
@@ -362,10 +375,21 @@ export function weekSignalsReviewOf(
     .map((u) => {
       const d = disciplines.find((x) => x.code === u.code);
       const short = d?.shortName ?? u.code;
+      // O MIX é o sinal (M11: "o uso do tutor seja para orientação ou
+      // resposta"): predominância de pedido de resposta pronta = dependência
+      // a exorcizar com base; predominância de orientação = uso saudável.
+      const resp = u.resposta7d ?? 0;
+      const orient = u.orientacao7d ?? 0;
+      const mix =
+        u.last7d >= 2 && resp >= 2 && resp > orient
+          ? `${resp} ${resp === 1 ? 'pediu' : 'pediram'} resposta pronta — a casa reforça a base em vez de entregar o gabarito`
+          : u.last7d >= 4
+            ? 'assunto que pede reforço de base'
+            : 'orientação saudável, sem dependência';
       return {
         shortName: short,
         last7d: u.last7d,
-        frase: `o tutor entrou ${u.last7d} ${u.last7d === 1 ? 'vez' : 'vezes'} em ${short} na semana — ${u.last7d >= 4 ? 'assunto que pede reforço de base' : 'orientação saudável, sem dependência'}`,
+        frase: `o tutor entrou ${u.last7d} ${u.last7d === 1 ? 'vez' : 'vezes'} em ${short} na semana — ${mix}`,
       };
     });
 
@@ -390,4 +414,85 @@ export function weekSignalsReviewOf(
     ajustes: readout.ajustes,
     frase,
   };
+}
+
+// ---------- A SEMANA PELOS 4 CANAIS (o "como um todo" do dono, M11) ----------
+
+export interface WeekChannels {
+  /** Minutos de foco Pomodoro nos últimos 7 dias (fonte oficial da casa). */
+  focoMin: number;
+  /** Minutos de leitura REAL (heartbeat do leitor) nos últimos 7 dias. */
+  leituraMin: number;
+  /** Disciplina com mais leitura na semana — null se ninguém leu nada. */
+  leituraTop: { shortName: string; minutes: number } | null;
+  /** Questões praticadas/resolvidas/com-ajuda nos últimos 7 dias. */
+  questoes: { tried: number; solved: number; withHelp: number };
+  /** Uso do tutor na semana com o mix orientação/resposta (null = sem dado). */
+  tutor: { total: number; orientacao: number; resposta: number } | null;
+}
+
+/**
+ * A FOTOGRAFIA DA SEMANA — os 4 canais da telemetria somados ("de forma
+ * individual e como um todo"): Pomodoro (foco), material (leitura real),
+ * questões (prática) e tutor (ajuda, com o mix orientação/resposta).
+ * Janelas idênticas às do relatório semanal (0–6 dias atrás, fuso LOCAL).
+ */
+export function weekChannelsOf(
+  progress: StudyProgress,
+  tutorUsage: TutorUsageEntry[] | null | undefined,
+  pomodoroSessions?: PomodoroSession[],
+): WeekChannels {
+  const dayKeys = new Set<string>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dayKeys.add(localDateKey(d));
+  }
+  const sinceIso = new Date(Date.now() - 7 * 86_400_000).toISOString();
+
+  // FOCO — Pomodoro concluído (mesma janela de datas do computeWeek).
+  const sessions = pomodoroSessions ?? progress.pomodoroSessions ?? [];
+  const focoMin = sessions
+    .filter((s) => dayKeys.has(s.date))
+    .reduce((a, s) => a + s.focusMinutes, 0);
+
+  // LEITURA — o heartbeat do leitor agregado por disciplina.
+  const byDisc = new Map<string, number>();
+  let leituraMin = 0;
+  for (const e of progress.readingLog ?? []) {
+    if (!dayKeys.has(e.date)) continue;
+    leituraMin += e.minutes;
+    byDisc.set(e.disciplineCode, (byDisc.get(e.disciplineCode) ?? 0) + e.minutes);
+  }
+  let leituraTop: WeekChannels['leituraTop'] = null;
+  for (const [code, minutes] of byDisc) {
+    if (minutes < 0.5) continue; // 30s de leitura já é evidência (mesmo piso do valor arredondado)
+    if (!leituraTop || minutes > leituraTop.minutes) {
+      const d = disciplines.find((x) => x.code === code);
+      leituraTop = { shortName: d?.shortName ?? code, minutes: Math.round(minutes) };
+    }
+  }
+
+  // QUESTÕES — praticadas na semana (lastPracticedAt é o registro real).
+  let tried = 0;
+  let solved = 0;
+  let withHelp = 0;
+  for (const ep of Object.values(progress.exerciseProgress ?? {})) {
+    if (!ep || !ep.lastPracticedAt || ep.lastPracticedAt < sinceIso) continue;
+    if (!ep.tried && !ep.solved) continue;
+    tried += 1;
+    if (ep.solved) {
+      solved += 1;
+      if (ep.neededHelp) withHelp += 1;
+    }
+  }
+
+  // TUTOR — soma dos sinais do servidor com o mix por tipo de pedido.
+  const usage = tutorUsage ?? [];
+  const total = usage.reduce((a, u) => a + u.last7d, 0);
+  const orientacao = usage.reduce((a, u) => a + (u.orientacao7d ?? 0), 0);
+  const resposta = usage.reduce((a, u) => a + (u.resposta7d ?? 0), 0);
+  const tutor = total > 0 ? { total, orientacao, resposta } : null;
+
+  return { focoMin, leituraMin, leituraTop, questoes: { tried, solved, withHelp }, tutor };
 }

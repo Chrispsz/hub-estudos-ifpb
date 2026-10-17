@@ -32,6 +32,11 @@ model TutorMessage {
   role        String // 'user' | 'assistant'
   content     String
   model       String? // modelo que gerou a resposta (ex.: Nemotron 3 Super)
+  // TIPO DO PEDIDO (Task 227 — "rastrear se o tutor foi usado… orientação ou
+  // resposta"): heurística LOCAL na pergunta do aluno — zero IA extra, zero
+  // custo. 'resposta' = pede entrega pronta (o algoritmo lê dependência);
+  // 'orientacao' = dúvida/caminho (uso saudável); 'outro' = neutro/legado.
+  kind        String   @default("outro")
   createdAt   DateTime @default(now())
 
   @@index([discipline, createdAt])
