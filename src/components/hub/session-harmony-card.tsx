@@ -317,7 +317,14 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
   }, []);
 
   const harmony = React.useMemo(
-    () => (now ? buildSessionHarmony(sp.progress, now, { pageOf, errorReviews }) : null),
+    () =>
+      now
+        ? buildSessionHarmony(sp.progress, now, {
+            pageOf,
+            errorReviews,
+            focusDiscipline: now ? sp.progress.dailyFocusDiscipline?.[todayDateKey(now)] ?? undefined : undefined,
+          })
+        : null,
     [sp.progress, now, pageOf, errorReviews],
   );
 

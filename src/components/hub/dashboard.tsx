@@ -46,6 +46,7 @@ import { ExamRadarCard } from './exam-radar-card';
 import { TriageCard } from './triage-card';
 import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey, type TodaySnapshot } from '@/lib/today-focus';
 import { buildDayPlan } from '@/lib/study-plan';
 import {
@@ -145,12 +146,20 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   // fila. Recomputado pós-mount (mesmo `agora` do retrato), a cada write do
   // progresso e a cada write do Code Review.
   const errorReviews = useErrorReviewTasks();
+  // TASK 224 — O FOCO DO DIA: a matéria que o dono escolheu concentrar hoje
+  // (por dateKey — amanhã a casa volta à fila normal). Os dois motores da
+  // fila (plano cru e harmonia) recebem o MESMO comando — um foco, uma fila.
+  const dayFocusCode =
+    agora ? sp.progress.dailyFocusDiscipline?.[todayDateKey(agora)] ?? null : null;
+  const dayFocusShort = dayFocusCode
+    ? disciplines.find((d) => d.code === dayFocusCode)?.shortName ?? null
+    : null;
   const plan = React.useMemo(
     () =>
       agora
-        ? buildDayPlan(sp.progress, agora, { pageOf: resumePageOf, errorReviews })
+        ? buildDayPlan(sp.progress, agora, { pageOf: resumePageOf, errorReviews, focusDiscipline: dayFocusCode ?? undefined })
         : null,
-    [sp.progress, agora, errorReviews],
+    [sp.progress, agora, errorReviews, dayFocusCode],
   );
 
   // TASK 221 — UM CRONOGRAMA SÓ: o "Plano de hoje" da home AGORA É o
@@ -222,11 +231,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       const harmony = buildSessionHarmony(sp.progress, agora, {
         pageOf: resumePageOf,
         errorReviews,
+        focusDiscipline: dayFocusCode ?? undefined,
       });
       return launchStepsFromSession(harmony.blocks);
     }
     return launchStepsFromSchedule(dayBlocks, sp.progress.scheduleBlocksDone ?? [], materialOfDiscipline);
-  }, [agora, sessionActive, sp.progress, errorReviews, dayBlocks, materialOfDiscipline]);
+  }, [agora, sessionActive, sp.progress, errorReviews, dayBlocks, materialOfDiscipline, dayFocusCode]);
 
   const launchPlan = React.useMemo(
     () =>
@@ -286,6 +296,25 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     },
     [dateKey, sp, snap],
   );
+
+  // TASK 224 — SESSÕES PARTIDAS (dono: "2h de manhã… a noite coloco 3 horas"):
+  // o gesto ADICIONA ao orçamento do dia em vez de substituir — a manhã não
+  // é perdida quando a noite chega com mais tempo. O lance fica no log com
+  // horário e o Pomodoro re-encaixa no que RESTA do dia novo.
+  const addHours = React.useCallback(
+    (h: number) => {
+      if (dateKey) {
+        sp.addAvailableHours(dateKey, h);
+        const newTotal = Math.round(((plannedHours ?? 0) + h) * 60);
+        syncPomodoroToBudget(sp, Math.max(0, newTotal - (snap?.minutesToday ?? 0)), dateKey);
+      }
+      setEditingHours(false);
+    },
+    [dateKey, sp, snap, plannedHours],
+  );
+
+  /** Os lances de hoje (check-ins com horário) — a história das sessões partidas. */
+  const checkinsToday = dateKey ? sp.progress.dailyCheckins?.[dateKey] ?? [] : [];
 
   /** 1.5 → "1h30" · 2 → "2h" · 0.75 → "45min". */
   const fmtH = (h: number): string => {
@@ -679,7 +708,9 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           </div>
         )}
         {/* Check-in de horas — 1 toque ao logar, editável sempre (dono 10/10/2026).
-            A casa aprende (banco #3): com ritmo recente, a mediana vira o 1º chip. */}
+            A casa aprende (banco #3): com ritmo recente, a mediana vira o 1º chip.
+            TASK 224 — SESSÕES PARTIDAS: com orçamento já lançado, ADICIONAR vem
+            primeiro (2h de manhã + 3h à noite = 5h honestas, nada se perde). */}
         {agora && (plannedHours === null || editingHours) && (
           <div className="mt-2" data-t="checkin-horas">
             <p className="text-sm text-muted-foreground">
@@ -692,6 +723,46 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                 </>
               )}
             </p>
+            {plannedHours !== null && plannedHours > 0 && (
+              <div
+                className="mt-2 rounded-xl border border-primary/25 bg-primary/[0.04] p-2.5"
+                data-t="checkin-adicionar"
+              >
+                <p className="text-xs font-medium text-foreground/80">
+                  Mais tempo agora? Adiciona à sessão — hoje já tem {fmtH(plannedHours)} lançadas e o foco de
+                  {' '}{snap?.minutesToday ?? 0}min registrado não se perde.
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {[0.5, 1, 1.5, 2, 3].map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => addHours(h)}
+                      title={`Adicionar ${fmtH(h)} ao dia (vira ${fmtH(plannedHours + h)} no total)`}
+                      aria-label={`Adicionar ${fmtH(h)} ao orçamento de hoje`}
+                      data-t={`checkin-add-${String(h).replace('.', '_')}`}
+                      className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      +{fmtH(h)}
+                    </button>
+                  ))}
+                </div>
+                {checkinsToday.length >= 2 && (
+                  <p className="mt-1.5 text-xs text-muted-foreground" data-t="checkin-log">
+                    Lances de hoje:{' '}
+                    {checkinsToday
+                      .map(
+                        (c) =>
+                          `+${fmtH(c.hours)} às ${new Date(c.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+                      )
+                      .join(' · ')}
+                  </p>
+                )}
+              </div>
+            )}
+            {plannedHours !== null && plannedHours > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">Ou substituir o dia todo:</p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {budgetSuggestion && (
                 <button
@@ -710,6 +781,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                   key={h}
                   type="button"
                   onClick={() => applyHours(h)}
+                  title={`Substituir o dia por ${fmtH(h)}`}
                   className="rounded-full border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {fmtH(h)}
@@ -741,6 +813,38 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               </button>
             )}
           </p>
+        )}
+        {/* TASK 224 — O FOCO DO DIA: escolher a matéria que concentra a fila.
+            Por dia — amanhã a casa volta à fila normal por conta própria. */}
+        {agora && (
+          <div className="mt-2 flex flex-wrap items-center gap-2" data-t="foco-dia">
+            <span className="text-xs font-medium text-muted-foreground">Foco de hoje:</span>
+            <Select
+              value={dayFocusCode ?? 'none'}
+              onValueChange={(v) => sp.setDayFocus(todayDateKey(agora), v === 'none' ? null : v)}
+            >
+              <SelectTrigger
+                className="h-8 w-[230px] rounded-lg text-xs"
+                aria-label="Escolher a matéria foco de hoje"
+                data-t="foco-dia-select"
+              >
+                <SelectValue placeholder="Sem foco específico" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem foco — a fila manda</SelectItem>
+                {disciplines.map((d) => (
+                  <SelectItem key={d.code} value={d.code}>
+                    {d.shortName} — no comando do dia
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {dayFocusShort && (
+              <span className="text-xs text-muted-foreground">
+                a fila concentra em {dayFocusShort} — véspera de prova continua na frente
+              </span>
+            )}
+          </div>
         )}
         {/* Onde parou — um clique devolve ao ponto exato (só se o foco do dia não for ele) */}
         {resumeChip && (
@@ -790,6 +894,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         plan={launchPlan}
         sessionActive={sessionActive}
         minutesToday={snap?.minutesToday ?? 0}
+        focusLabel={dayFocusShort}
         onStartStep={launchStep}
         onCompleteStep={completeLaunchStep}
       />

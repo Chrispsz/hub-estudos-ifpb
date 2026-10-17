@@ -567,6 +567,22 @@ export interface StudyProgress {
   /** Horas disponíveis lançadas por dia (check-in diário, editável). */
   dailyHours?: DailyHours;
   /**
+   * O LOG dos check-ins do dia (sessões partidas — dono 17/10/2026: "eu vou
+   * iniciar e coloquei 2h e está de manhã, eu estudo as duas horas e finalizo
+   * e fica tudo que fiz salvo; depois no mesmo dia a noite coloco 3 horas").
+   * Cada lance fica registrado com hora — o dia conta a história real:
+   * "2h de manhã · 3h à noite" — e a casa nunca perde a manhã quando a noite
+   * chega com mais tempo.
+   */
+  dailyCheckins?: { [dateKey: string]: DailyCheckin[] };
+  /**
+   * O FOCO DO DIA (dono 17/10/2026: "possibilidade de escolher focar em
+   * alguma matéria no dia"): disciplina escolhida por dateKey — a fila do
+   * dia concentra nela (a véspera de prova ≤3d continua na frente) e o
+   * porquê confessa o foco. Sem registro para o dia = fila normal.
+   */
+  dailyFocusDiscipline?: { [dateKey: string]: string };
+  /**
    * O 1º passo de amanhã, gravado NO FECHO da sessão (banco de ideias #6).
    * `setOn` é o dateKey do dia em que foi gravado — a casa o mostra no dia
    * SEGUINTE ("você escolheu começar por...") e o consome no clique: o passo
@@ -589,6 +605,14 @@ export interface TomorrowStep {
   materialId?: string;
   /** O passo em texto — título do material ou frase livre do dono. */
   text: string;
+}
+
+/** Um lance de horas no check-in — sessões partidas contam a história do dia. */
+export interface DailyCheckin {
+  /** Epoch ms do lance — o registro do horário real. */
+  at: number;
+  /** Horas adicionadas neste lance (1.5 = 1h30). */
+  hours: number;
 }
 
 const defaultDayAvailability: StudyPreferences['days'] = {
@@ -644,6 +668,8 @@ export const defaultProgress: StudyProgress = {
   kaizenEntries: [],
   notebookRevised: {},
   dailyHours: {},
+  dailyCheckins: {},
+  dailyFocusDiscipline: {},
   materialChecklists: {},
   materialReviews: {},
   pnaatReminder: { days: [...PNAAT_DEFAULT_DAYS] },
@@ -677,6 +703,8 @@ export function mergeWithDefaults(partial: Partial<StudyProgress> | null | unkno
     focusSessions: Array.isArray(p.focusSessions) ? p.focusSessions : [],
     kaizenEntries: Array.isArray(p.kaizenEntries) ? p.kaizenEntries : [],
     dailyHours: p.dailyHours ?? {},
+    dailyCheckins: p.dailyCheckins ?? {},
+    dailyFocusDiscipline: p.dailyFocusDiscipline ?? {},
     materialChecklists: p.materialChecklists ?? {},
     materialReviews: p.materialReviews ?? {},
     pnaatReminder: {
@@ -1148,6 +1176,49 @@ export function useStudyProgress() {
           ...prev,
           dailyHours: { ...(prev.dailyHours ?? {}), [dateKey]: hours },
         };
+      });
+    },
+    [setProgress],
+  );
+
+  /**
+   * SESSÕES PARTIDAS (dono, 17/10/2026 — "depois no mesmo dia a noite coloco
+   * 3 horas e estudo, com registro de tudo"): ADICIONA horas ao orçamento do
+   * dia em vez de substituir — a manhã não é perdida quando a noite chega
+   * com mais tempo. Cada lance fica no dailyCheckins com o horário real,
+   * e o total do dia é a soma honesta dos lances.
+   */
+  const addAvailableHours = React.useCallback(
+    (dateKey: string, hours: number) => {
+      setProgress((prev) => {
+        if (hours <= 0) return prev;
+        const current = prev.dailyHours?.[dateKey] ?? 0;
+        const nextTotal = Math.min(10, Math.round((current + hours) * 60) / 60); // teto 10h/dia
+        const log = [...(prev.dailyCheckins?.[dateKey] ?? []), { at: Date.now(), hours }];
+        return {
+          ...prev,
+          dailyHours: { ...(prev.dailyHours ?? {}), [dateKey]: nextTotal },
+          dailyCheckins: { ...(prev.dailyCheckins ?? {}), [dateKey]: log },
+        };
+      });
+    },
+    [setProgress],
+  );
+
+  /**
+   * O FOCO DO DIA (dono, 17/10/2026 — "escolher focar em alguma matéria no
+   * dia"): grava (ou limpa, code = null) a disciplina que concentra a fila.
+   * Por DIA — amanhã a casa volta à fila normal, o foco não vira hábito
+   * involuntário.
+   */
+  const setDayFocus = React.useCallback(
+    (dateKey: string, code: string | null) => {
+      setProgress((prev) => {
+        const next = { ...(prev.dailyFocusDiscipline ?? {}) };
+        if (code) next[dateKey] = code;
+        else if (!(dateKey in next)) return prev;
+        else delete next[dateKey];
+        return { ...prev, dailyFocusDiscipline: next };
       });
     },
     [setProgress],
@@ -1785,6 +1856,8 @@ export function useStudyProgress() {
       markNotebookRevised,
       unmarkNotebookRevised,
       setAvailableHours,
+      addAvailableHours,
+      setDayFocus,
       setTomorrowStep,
       // selectors
       sessionsToday,
@@ -1845,6 +1918,8 @@ export function useStudyProgress() {
       markNotebookRevised,
       unmarkNotebookRevised,
       setAvailableHours,
+      addAvailableHours,
+      setDayFocus,
       setTomorrowStep,
       sessionsToday,
       minutesToday,

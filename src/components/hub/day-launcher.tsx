@@ -56,6 +56,8 @@ interface DayLauncherProps {
   sessionActive: boolean;
   /** Foco real registrado hoje (minutos) — a barra do piloto vive disso. */
   minutesToday: number;
+  /** FOCO DO DIA (Task 224) — o nome curto da matéria escolhida, se houver. */
+  focusLabel?: string | null;
   onStartStep: (step: LaunchStep) => void;
   onCompleteStep: (step: LaunchStep) => void;
 }
@@ -69,6 +71,7 @@ export function DayLauncherCard({
   plan,
   sessionActive,
   minutesToday,
+  focusLabel,
   onStartStep,
   onCompleteStep,
 }: DayLauncherProps) {
@@ -144,6 +147,15 @@ export function DayLauncherCard({
               <p className="text-[15px] font-medium leading-snug">
                 <Rocket className="mr-1.5 inline size-4.5 text-primary" aria-hidden />
                 {isActive ? 'Seu dia está em andamento.' : 'Seu dia está pronto.'}
+                {focusLabel && (
+                  <Badge
+                    variant="outline"
+                    className="ml-2 border-primary/40 bg-primary/10 align-middle text-[10px] font-semibold text-primary"
+                    data-t="day-launch-focus"
+                  >
+                    foco: {focusLabel}
+                  </Badge>
+                )}
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {plan.readiness}
@@ -201,6 +213,7 @@ export function DayLauncherCard({
                 </DialogTitle>
                 <DialogDescription>
                   {plan.readiness} — do cronograma inteligente, com o método de cada bloco.
+                  {focusLabel ? ` Foco de hoje: ${focusLabel} — a fila concentra nela.` : ''}
                   {fit && !fit.single
                     ? ` Encaixe de hoje: pausas ~${Math.max(0, Math.round(fit.breakTotal / Math.max(1, fit.cycles)))}min · fecho ${fit.wrapMin}min — o Pomodoro se ajusta ao 1º bloco (o de sempre volta no Restaurar).`
                     : fit?.single

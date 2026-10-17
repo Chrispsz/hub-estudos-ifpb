@@ -404,6 +404,9 @@ export function buildSessionHarmony(
     pageOf?: (materialId: string) => number | null;
     /** CICLO DO ERRO — os erros abertos do Code Review (a mesma ponte do plano). */
     errorReviews?: ErrorReviewTask[];
+    /** FOCO DO DIA (Task 224) — a matéria que o dono escolheu concentrar;
+     *  passa pela mesma régua do plano (fila dela sobe, véspera manda). */
+    focusDiscipline?: string;
   },
 ): SessionHarmony {
   const dateKey = todayDateKey(now);
@@ -449,6 +452,7 @@ export function buildSessionHarmony(
     pageOf: opts?.pageOf,
     maxBlocks: 8,
     errorReviews: opts?.errorReviews,
+    focusDiscipline: opts?.focusDiscipline,
   });
 
   const toHarmony = (b: PlanBlock, patch?: Partial<HarmonyBlock>): HarmonyBlock => {

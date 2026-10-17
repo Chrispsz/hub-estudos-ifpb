@@ -98,6 +98,12 @@ export interface DayPlan {
 
 const DAY = 86_400_000;
 
+/** Caps de atrasados/próximos por disciplina — o FOCO DO DIA (Task 224) tem
+ *  fila mais longa: até 4 blocos da matéria focada contra 2 das demais. */
+function queueCapFor(code: string, focusDiscipline?: string): number {
+  return focusDiscipline && code === focusDiscipline ? 4 : 2;
+}
+
 function daysAgo(iso: string, nowMs: number): number {
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return -1;
@@ -112,6 +118,10 @@ export function buildDayPlan(
     maxBlocks?: number;
     /** CICLO DO ERRO — os erros abertos do Code Review, prontos pelo hook da casa. */
     errorReviews?: ErrorReviewTask[];
+    /** FOCO DO DIA (Task 224): a matéria que o dono escolheu concentrar hoje —
+     *  os blocos dela sobem (a véspera de prova ≤3d e a manutenção curta
+     *  continuam na frente) e o porquê confessa o foco. */
+    focusDiscipline?: string;
   },
 ): DayPlan {
   const maxBlocks = opts?.maxBlocks ?? 6;
@@ -347,14 +357,14 @@ export function buildDayPlan(
     const orderedDiscs = [...discOrder].sort((a, b) => boostOf(b) - boostOf(a));
     let added = 0;
     for (const code of orderedDiscs) {
-      if (added >= 2 || blocks.length >= maxBlocks) break;
+      if (added >= queueCapFor(code, opts?.focusDiscipline) || blocks.length >= maxBlocks) break;
       const rankedRaw = materials
         .filter((m) => m.disciplineCode === code && inStudyQueue(m) && !completed.has(m.id))
         .sort((a, b) => studyRank(a) - studyRank(b));
       // A escadinha também aqui: atrasado não pula degrau pendente.
       const { queue: ranked } = applyLadder(rankedRaw, new Set(rankedRaw.map((m) => m.id)));
       for (const m of ranked) {
-        if (added >= 2 || blocks.length >= maxBlocks) break;
+        if (added >= queueCapFor(code, opts?.focusDiscipline) || blocks.length >= maxBlocks) break;
         const ck = checklistWhy(m.id);
         const examWhy = examPressureWhy(m.disciplineCode, now);
         const press = pressureOf(m.disciplineCode);
@@ -415,7 +425,7 @@ export function buildDayPlan(
 
     let added = 0;
     for (const m of candidates) {
-      if (added >= 2 || blocks.length >= maxBlocks) break;
+      if (added >= queueCapFor(m.disciplineCode, opts?.focusDiscipline) || blocks.length >= maxBlocks) break;
       const short =
         disciplines.find((d) => d.code === m.disciplineCode)?.shortName ?? m.disciplineCode;
       const cur = curateMaterial(m);
@@ -442,9 +452,34 @@ export function buildDayPlan(
   }
 
   return {
-    blocks,
+    blocks: applyDayFocus(blocks, opts?.focusDiscipline),
     totalMinutes: blocks.reduce((acc, b) => acc + b.minutes, 0),
   };
+}
+
+/**
+ * FOCO DO DIA (Task 224) — a reordenação honesta da fila pronta: os blocos da
+ * matéria focada sobem para logo depois da MANUTENÇÃO INEGOCIÁVEL (véspera de
+ * prova ≤3d, cartões vencidos, erro com prova pesando — 10–15min que mantêm o
+ * sistema vivo); o grosso do tempo vai para onde o dono apontou. O porquê
+ * ganha "foco do dia" — a casa explica a decisão em vez de fingir que não
+ * aconteceu. Pura: devolve NOVA lista, não muta a original.
+ */
+function applyDayFocus(blocks: PlanBlock[], focusDiscipline?: string): PlanBlock[] {
+  if (!focusDiscipline || blocks.length === 0) return blocks;
+  const isUrgent = (b: PlanBlock): boolean =>
+    (b.exam?.daysLeft ?? 99) <= 3 || b.kind === 'pratica' || b.kind === 'erro';
+  const focused: PlanBlock[] = [];
+  const urgent: PlanBlock[] = [];
+  const rest: PlanBlock[] = [];
+  for (const b of blocks) {
+    if (isUrgent(b)) urgent.push(b);
+    else if (b.disciplineCode === focusDiscipline) {
+      focused.push({ ...b, why: b.why.includes('foco do dia') ? b.why : `${b.why} · foco do dia` });
+    } else rest.push(b);
+  }
+  if (focused.length === 0) return blocks; // sem bloco da focada — a fila segue como está
+  return [...urgent, ...focused, ...rest];
 }
 
 /** Rótulo curto do tipo de bloco (o dashboard desenha a mini-etiqueta). */
