@@ -52,12 +52,14 @@ import { buildDayPlan } from '@/lib/study-plan';
 import {
   generateSmartSchedule,
   formatTime,
+  weekStudiedMinutesByDiscipline,
   type ScheduleDisciplineState,
   type SmartBlock,
 } from '@/lib/smart-schedule';
 import { suggestBudgetFromHistory, syncPomodoroToBudget, buildSessionHarmony } from '@/lib/session-harmony';
 import { buildDayLaunchPlan, launchStepsFromSchedule, launchStepsFromSession, type LaunchStep } from '@/lib/day-launch';
 import { useStudyProgress } from '@/lib/study-progress';
+import { windowsOf, TURNO_LABEL, type DayWindow } from '@/lib/study-progress';
 import { useErrorReviewTasks } from '@/lib/error-review-feed';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
@@ -85,6 +87,27 @@ const ACTIVITY_META: Record<SmartBlock['activity'], { icon: LucideIcon; bg: stri
 function resumePageOf(materialId: string): number | null {
   const m = materials.find((x) => x.id === materialId);
   return m ? recallPdfPage(materialId, m.pages) : null;
+}
+
+/**
+ * Status das janelas do dia: o foco REAL registrado preenche as janelas em
+ * sequência (manhã → tarde → noite) — função pura de módulo (o React Compiler
+ * veda reatribuição de captura no corpo do componente; aqui é só matemática).
+ */
+function rhythmWindowStatus(
+  windows: DayWindow[],
+  focusMinutes: number,
+): { window: DayWindow; status: 'done' | 'curso' | 'pendente'; minutes: number }[] {
+  let left = focusMinutes;
+  return windows.map((w) => {
+    const take = Math.min(Math.max(0, left), w.durationMin);
+    left -= take;
+    return {
+      window: w,
+      status: take >= w.durationMin ? ('done' as const) : take > 0 ? ('curso' as const) : ('pendente' as const),
+      minutes: take,
+    };
+  });
 }
 
 interface DashboardProps {
@@ -166,6 +189,14 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   // cronograma inteligente (a MESMA fonte da aba Cronograma — smart-schedule),
   // filtrado para o dia de hoje e com o material da fila anexado a cada bloco.
   // Fim da era dos dois planos que não se falavam.
+  // TASK 225 — O RITMO SEMANAL alimenta o motor: as janelas do dia (tarde+
+  // noite / manhã+tarde+noite) viram os slots reais dos blocos, e o foco REAL
+  // da semana (Pomodoro) desconta das metas — a semana absorve o que foi
+  // estudado de verdade, sem repetir o que já foi.
+  const weekStudied = React.useMemo(
+    () => (agora ? weekStudiedMinutesByDiscipline(sp.progress.pomodoroSessions ?? [], agora) : {}),
+    [agora, sp.progress.pomodoroSessions],
+  );
   const dayBlocks = React.useMemo<SmartBlock[]>(() => {
     if (!agora) return [];
     const discProg: Record<string, ScheduleDisciplineState> = {};
@@ -177,11 +208,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       topicProgress: sp.progress.topicProgress,
       disciplineProgress: discProg,
       customEvaluations: sp.progress.customEvaluations,
+      weekStudiedMinutes: weekStudied,
       now: agora,
     })
       .filter((b) => b.day === agora.getDay())
       .sort((a, b) => a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute));
-  }, [agora, sp.progress]);
+  }, [agora, sp.progress, weekStudied]);
 
   // O material sugerido por disciplina (1º da fila que toca aquele código) —
   // é o que faz o bloco do cronograma abrir o PDF certo em 1 clique.
@@ -219,6 +251,27 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   /** A sessão sintonizada existe quando há orçamento no dia (Task 30). */
   const sessionActive = (plannedHours ?? 0) > 0;
   const dateKey = agora ? todayDateKey(agora) : '';
+
+  // TASK 225 — O RITMO DE HOJE (Mensagem 10 do dono): as janelas do dia
+  // (tarde+noite na semana; manhã+tarde+noite no fim de semana), com o status
+  // de cada uma pelo foco REAL registrado — a casa mostra "manhã cumprida,
+  // tarde em curso" sem ninguém marcar nada à mão.
+  const dayRhythm = React.useMemo<DayWindow[]>(
+    () => (agora ? windowsOf(sp.progress.studyPreferences.days[agora.getDay()]) : []),
+    [agora, sp.progress.studyPreferences.days],
+  );
+  const rhythmTotalHours = dayRhythm.reduce((acc, w) => acc + w.durationMin, 0) / 60;
+  const rhythmLine =
+    dayRhythm.length > 0
+      ? dayRhythm
+          .map((w) => `${Math.round(w.durationMin / 60 * 10) / 10}h ${TURNO_LABEL[w.turno].toLowerCase()}`)
+          .join(' + ')
+      : '';
+  /** Status das janelas: o foco de hoje é alocado em sequência (manhã → tarde → noite). */
+  const rhythmStatus = React.useMemo(
+    () => rhythmWindowStatus(dayRhythm, snap?.minutesToday ?? 0),
+    [dayRhythm, snap?.minutesToday],
+  );
 
   // TASK 222 — O DIA PRONTO (Mensagem 8 do dono: "eu clico para iniciar e ele
   // inicia no cronograma... com tudo organizado e pronto"): a fila do
@@ -764,6 +817,35 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               <p className="mt-2 text-xs text-muted-foreground">Ou substituir o dia todo:</p>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {/* TASK 225 — SEGUIR O RITMO (Mensagem 10): a casa conhece o dia
+                  (fds 3×2h · semana 2×2h) e lança o orçamento completo em 1
+                  toque — cada sessão do dia registra o lance com o horário
+                  real e o Pomodoro se ajusta ao que RESTA. */}
+              {dayRhythm.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => applyHours(rhythmTotalHours)}
+                  title={`Lançar ${fmtH(rhythmTotalHours)} — ${rhythmLine}`}
+                  aria-label={`Seguir o ritmo de hoje: ${fmtH(rhythmTotalHours)} (${rhythmLine})`}
+                  data-t="checkin-ritmo"
+                  className="rounded-full bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Seguir o ritmo de hoje: {fmtH(rhythmTotalHours)}
+                </button>
+              )}
+              {agora &&
+                !Array.isArray(sp.progress.studyPreferences.days[agora.getDay()]?.windows) && (
+                  <button
+                    type="button"
+                    onClick={() => sp.applyStudyRhythm()}
+                    title="Semana: 2h de tarde + 2h de noite · Fim de semana: + 2h de manhã (2h por turno)"
+                    aria-label="Mudar para o ritmo Semana/FDS (turnos de 2h)"
+                    data-t="ritmo-adotar"
+                    className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Mudar para o ritmo Semana/FDS
+                  </button>
+                )}
               {budgetSuggestion && (
                 <button
                   type="button"
@@ -812,6 +894,30 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                 editar
               </button>
             )}
+          </p>
+        )}
+        {/* TASK 225 — O RITMO DE HOJE, vivo: o foco REAL registrado preenche
+            as janelas em sequência (manhã → tarde → noite) — ninguém marca
+            nada à mão, a casa mostra o turno cumprido, o em curso e o que vem. */}
+        {agora && dayRhythm.length > 0 && (
+          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs" data-t="ritmo-hoje">
+            <span className="font-medium text-muted-foreground">Ritmo de hoje:</span>
+            {rhythmStatus.map(({ window: w, status, minutes }) => (
+              <span
+                key={w.turno}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 tabular-nums',
+                  status === 'done'
+                    ? 'border-emerald-500/40 bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-400'
+                    : status === 'curso'
+                      ? 'border-primary/40 bg-primary/10 font-medium text-primary'
+                      : 'border-border text-muted-foreground',
+                )}
+              >
+                {TURNO_LABEL[w.turno]} {formatTime(w.startHour, 0)}
+                {status === 'done' ? ' · feita' : status === 'curso' ? ` · ${minutes}min` : ''}
+              </span>
+            ))}
           </p>
         )}
         {/* TASK 224 — O FOCO DO DIA: escolher a matéria que concentra a fila.
@@ -969,15 +1075,39 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             Clique para abrir o material do bloco com o tutor.
           </p>
           <ul className="mt-2">
-            {dayBlocks.map((b) => {
-              const meta = ACTIVITY_META[b.activity];
-              const Icon = meta.icon;
-              const d = disciplines.find((x) => x.code === b.disciplineCode);
-              const isReview = b.disciplineCode === 'revisao';
-              const matId = materialOfDiscipline.get(b.disciplineCode);
-              const matTitle = matId ? materials.find((m) => m.id === matId)?.title : null;
-              return (
-                <li key={b.id}>
+            {/* TASK 225 — DIVISORES DE TURNO: com janelas no dia, a lista abre
+                cada turno ("Tarde · 14:00–16:00") — o cronograma do motor fala
+                a língua do ritmo (manhã/tarde/noite), não uma fila contínua. */}
+            {(() => {
+              let lastWinIdx = -1;
+              return dayBlocks.map((b) => {
+                const startMins = b.startHour * 60 + b.startMinute;
+                const winIdx = dayRhythm.findIndex(
+                  (w) => startMins >= w.startHour * 60 && startMins < w.startHour * 60 + w.durationMin,
+                );
+                const newWindow = winIdx >= 0 && winIdx !== lastWinIdx;
+                if (winIdx >= 0) lastWinIdx = winIdx;
+                const win = winIdx >= 0 ? dayRhythm[winIdx] : null;
+                const winEndMin = win ? win.startHour * 60 + win.durationMin : 0;
+                const meta = ACTIVITY_META[b.activity];
+                const Icon = meta.icon;
+                const d = disciplines.find((x) => x.code === b.disciplineCode);
+                const isReview = b.disciplineCode === 'revisao';
+                const matId = materialOfDiscipline.get(b.disciplineCode);
+                const matTitle = matId ? materials.find((m) => m.id === matId)?.title : null;
+                return (
+                  <React.Fragment key={b.id}>
+                    {newWindow && win && (
+                      <li
+                        aria-hidden
+                        className="mt-2 flex items-center gap-2 px-2 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/80 first:mt-0"
+                      >
+                        {TURNO_LABEL[win.turno]} · {formatTime(win.startHour, 0)}–
+                        {formatTime(Math.floor(winEndMin / 60), winEndMin % 60)}
+                        <span className="h-px flex-1 bg-border/70" />
+                      </li>
+                    )}
+                    <li>
                   <button
                     type="button"
                     onClick={() => {
@@ -1039,8 +1169,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                     />
                   </button>
                 </li>
-              );
-            })}
+                  </React.Fragment>
+                );
+              });
+            })()}
           </ul>
         </Card>
       ) : (

@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
+import { localDateKey, useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
 import { openTutor } from '@/lib/hub-events';
 import {
   MATH_EXAM,
@@ -103,9 +103,11 @@ function WeeklyExamStrip({ brief, daysLeft }: { brief: WeeklyReportExamBrief; da
   );
 }
 
-/** Chave yyyy-mm-dd (UTC) — mesmo padrão de PomodoroSession.date. */
-function utcKey(offsetDaysAgo: number): string {
-  return new Date(Date.now() - offsetDaysAgo * DAY_MS).toISOString().slice(0, 10);
+/** Chave yyyy-mm-dd LOCAL — mesmo padrão de PomodoroSession.date (Task 225). */
+function dayKey(offsetDaysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - offsetDaysAgo); // dia LOCAL, sem desvio de fuso
+  return localDateKey(d);
 }
 
 /** Intervalo legível "11 set – 17 set". */
@@ -114,7 +116,7 @@ function formatRange(fromDaysAgo: number, toDaysAgo: number): string {
     const [, m, d] = key.split('-');
     return `${Number(d)} ${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1]}`;
   };
-  return `${fmt(utcKey(fromDaysAgo))} – ${fmt(utcKey(toDaysAgo))}`;
+  return `${fmt(dayKey(fromDaysAgo))} – ${fmt(dayKey(toDaysAgo))}`;
 }
 
 interface WeekMetrics {
@@ -128,7 +130,7 @@ interface WeekMetrics {
 
 function computeWeek(sessions: PomodoroSession[], fromDaysAgo: number, toDaysAgo: number): WeekMetrics {
   const keys = new Set<string>();
-  for (let i = fromDaysAgo; i <= toDaysAgo; i++) keys.add(utcKey(i));
+  for (let i = fromDaysAgo; i <= toDaysAgo; i++) keys.add(dayKey(i));
 
   let minutes = 0;
   let sessionsCount = 0;

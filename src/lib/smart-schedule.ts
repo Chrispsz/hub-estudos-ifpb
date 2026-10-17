@@ -30,6 +30,7 @@ import {
   type Discipline,
 } from '@/data/course-data';
 import type { CustomEvaluation, StudyPreferences, TopicProgress } from './study-progress';
+import { windowsOf } from './study-progress';
 // Fonte única do calendário — funções reexportadas p/ compatibilidade com os views.
 import { currentWeekOfSemester, daysUntilDate } from './semester';
 export { daysUntilDate };
@@ -78,6 +79,13 @@ export interface SmartScheduleInput {
   disciplineProgress?: { [code: string]: ScheduleDisciplineState };
   /** Avaliações customizadas do dono (radar/calculadora) — entram na régua. */
   customEvaluations?: CustomEvaluation[];
+  /**
+   * O estudo REAL da semana corrente por disciplina (foco do Pomodoro,
+   * weekStudiedMinutesByDiscipline) — descontado das metas: quem já estudou
+   * via sessões livres recebe menos blocos planejados (a semana absorve o
+   * real, sem repetição — Mensagem 9/10 do dono).
+   */
+  weekStudiedMinutes?: { [code: string]: number };
   now?: Date;
 }
 
@@ -237,18 +245,38 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   });
   const weights = computeWeights(mode, topicProgress, disciplineProgress, input.customEvaluations, triage, now);
 
-  // Capacidade planejada da semana (para calcular metas proporcionais)
-  const dayCapacity = new Map<number, { blocks: number; minutes: number; startHour: number }>();
+  // Capacidade planejada da semana (para calcular metas proporcionais).
+  // RITMO SEMANAL (Mensagem 10 do dono): o dia vira JANELAS por turno
+  // (manhã 08:00 · tarde 14:00 · noite 19:00) — cada janela cabe
+  // ⌊duração/60⌋ blocos de 50+10. As janelas são vontade explícita do dono
+  // (ritmo aplicado em 1 toque), então maxBlocksPerDay/maxMinutesPerDay não
+  // as engarrafam; no modo legado (sem `windows`) os tetos continuam valendo.
+  const weekStudiedMinutes = input.weekStudiedMinutes;
+  const dayCapacity = new Map<
+    number,
+    {
+      blocks: number;
+      minutes: number;
+      windows: { startMin: number; durationMin: number; budget: number; placed: number }[];
+    }
+  >();
   let plannedTotal = 0;
   for (let day = 0; day <= 6; day++) {
     const pref = preferences.days[day];
-    if (!pref?.enabled || pref.durationMin <= 0) continue;
-    const blocks = Math.min(
-      preferences.maxBlocksPerDay ?? 4,
-      Math.max(1, Math.floor(pref.durationMin / (BLOCK_MINUTES + BREAK_MINUTES))),
-    );
-    const minutes = Math.min(preferences.maxMinutesPerDay ?? 180, pref.durationMin);
-    dayCapacity.set(day, { blocks, minutes, startHour: pref.startHour });
+    const wins = windowsOf(pref);
+    if (wins.length === 0) continue;
+    // A GRADE OFICIAL MANDA (Task 217): dia com aula (P1 = seg–sex 07:00–11:25)
+    // empurra o início de cada janela para depois do fim da última aula.
+    const classWindow = classWindowForDay(day);
+    const windows = wins.map((w) => {
+      let startMin = w.startHour * 60;
+      if (classWindow) startMin = Math.max(startMin, classWindow.endMin + 15);
+      const budget = Math.max(1, Math.floor(w.durationMin / (BLOCK_MINUTES + BREAK_MINUTES)));
+      return { startMin, durationMin: w.durationMin, budget, placed: 0 };
+    });
+    const blocks = windows.reduce((acc, w) => acc + w.budget, 0);
+    const minutes = windows.reduce((acc, w) => acc + w.durationMin, 0);
+    dayCapacity.set(day, { blocks, minutes, windows });
     plannedTotal += Math.min(minutes, blocks * (BLOCK_MINUTES + BREAK_MINUTES));
   }
   if (plannedTotal === 0) return [];
@@ -312,17 +340,27 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     // Blocos por disciplina HOJE (exclui a revisão geral) — mantido incrementalmente
     // pelo push; substitui o re-filtro de `blocks` a cada vaga do deficit scheduling.
     const todayCount = new Map<string, number>();
-    let cursorHour = cap.startHour;
+    // RITMO SEMANAL: os slots vêm das JANELAS do dia — quando uma enche, o
+    // cursor salta para a próxima (tarde 14:00, noite 19:00…). O bloqueio da
+    // grade oficial já foi aplicado no início de cada janela (capacidade).
+    const dayWindows = cap.windows;
+    let winIdx = 0;
+    let cursorHour = 0;
     let cursorMinute = 0;
-    // A GRADE OFICIAL MANDA (Task 217): dia com aula (P1 = seg-sex 07:00–11:25)
-    // → o estudo começa DEPOIS do fim da última aula (+15min de respiro).
-    // A preferência do dono vence quando for mais tarde que a aula.
-    const classWindow = classWindowForDay(day);
-    if (classWindow) {
-      const effStartMin = Math.max(cap.startHour * 60, classWindow.endMin + 15);
-      cursorHour = Math.floor(effStartMin / 60);
-      cursorMinute = effStartMin % 60;
-    }
+    const syncCursor = (): boolean => {
+      while (winIdx < dayWindows.length) {
+        const w = dayWindows[winIdx];
+        if (w.placed < w.budget) {
+          const startMin = w.startMin + w.placed * (BLOCK_MINUTES + BREAK_MINUTES);
+          cursorHour = Math.floor(startMin / 60);
+          cursorMinute = startMin % 60;
+          return true;
+        }
+        winIdx += 1;
+      }
+      return false;
+    };
+    if (!syncCursor()) continue; // dia sem slot livre (não deveria ocorrer)
     let usedMinutes = 0;
     let usedBlocks = 0;
     const maxRepeat = Math.max(1, Math.ceil(cap.blocks / 2)); // nunca domina o dia
@@ -335,6 +373,8 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     ): boolean {
       if (usedBlocks >= cap.blocks) return false;
       if (usedMinutes + BLOCK_MINUTES > cap.minutes) return false;
+      if (!syncCursor()) return false;
+      const win = dayWindows[winIdx];
       blocks.push({
         id: `auto-${day}-${code}-${usedBlocks}-${title.slice(0, 12)}`,
         day,
@@ -352,11 +392,7 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
         todayCount.set(code, (todayCount.get(code) ?? 0) + 1);
       }
       usedMinutes += BLOCK_MINUTES + BREAK_MINUTES;
-      cursorMinute += BLOCK_MINUTES + BREAK_MINUTES;
-      while (cursorMinute >= 60) {
-        cursorHour += 1;
-        cursorMinute -= 60;
-      }
+      win.placed += 1;
       usedBlocks += 1;
       allocatedMin.set(code, (allocatedMin.get(code) ?? 0) + BLOCK_MINUTES);
       return true;
@@ -442,7 +478,8 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
         if (countToday >= maxRepeat) continue; // anti-domínio: não vira "a mesma todos os dias"
         const behind =
           (targetMin.get(code) ?? 0) -
-          (allocatedMin.get(code) ?? 0) +
+          (allocatedMin.get(code) ?? 0) -
+          (weekStudiedMinutes?.[code] ?? 0) + // O REAL DESCONTA: foco já estudado na semana libera vaga
           (jitter.get(code) ?? 0) * plannedTotal;
         if (behind > bestDeficit) {
           bestDeficit = behind;
@@ -470,6 +507,29 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   }
 
   return blocks;
+}
+
+// ---------- O ESTUDO REAL DA SEMANA (Mensagem 9/10 do dono) ----------
+
+/**
+ * Foco REAL registrado (Pomodoro) na semana corrente (dom–sáb LOCAL) por
+ * disciplina. O deficit scheduler o desconta das metas semanais: quem já
+ * estudou 2h de Algoritmos fora dos blocos recebe menos blocos planejados —
+ * a semana absorve o que foi estudado de verdade, sem repetição.
+ */
+export function weekStudiedMinutesByDiscipline(
+  sessions: { completedAt: string; disciplineId: string; focusMinutes: number }[],
+  now: Date,
+): { [code: string]: number } {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).getTime();
+  const end = start + 7 * 86_400_000;
+  const out: { [code: string]: number } = {};
+  for (const s of sessions) {
+    const t = new Date(s.completedAt).getTime();
+    if (Number.isNaN(t) || t < start || t >= end) continue;
+    out[s.disciplineId] = (out[s.disciplineId] ?? 0) + (s.focusMinutes || 0);
+  }
+  return out;
 }
 
 // ---------- Utilitários (compat) ----------

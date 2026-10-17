@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import type { PomodoroSession } from '@/lib/study-progress';
+import { localDateKey, type PomodoroSession } from '@/lib/study-progress';
 import {
   MATH_EXAM,
   examWeekMilestoneFor,
@@ -36,9 +36,9 @@ const LEVEL_PEAK_GOAL = 1.75;
 const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTH_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-/** Chave yyyy-mm-dd (UTC) — mesmo padrão de PomodoroSession.date. */
-function utcKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
+/** Chave yyyy-mm-dd LOCAL — mesmo padrão de PomodoroSession.date (Task 225). */
+function dayKey(d: Date): string {
+  return localDateKey(d);
 }
 
 interface HeatCell {
@@ -190,7 +190,7 @@ export function StudyHeatmap({
       const col: HeatCell[] = [];
       for (let d = 0; d < 7; d++) {
         const date = new Date(gridStart.getTime() + (w * 7 + d) * DAY_MS);
-        const key = utcKey(date);
+        const key = dayKey(date);
         const mins = minutesByDate.get(key) ?? 0;
         const future = date.getTime() > todayUtc.getTime();
         // Nível: meta diária define a escala (50% da meta = nível 2)
@@ -278,7 +278,7 @@ export function StudyHeatmap({
       ? `${Math.floor(periodStats.totalMin / 60)}h${periodStats.totalMin % 60 > 0 ? ` ${periodStats.totalMin % 60}min` : ''}`
       : `${periodStats.totalMin} min`;
 
-  const todayKey = utcKey(todayUtc);
+  const todayKey = dayKey(todayUtc);
 
   // A PORTA DO CHIP (129, linhagem 'anunciar é metade, levar é a outra' da
   // 127): o chip do topo anunciava os eventos-âncora e não FAZIA nada — as

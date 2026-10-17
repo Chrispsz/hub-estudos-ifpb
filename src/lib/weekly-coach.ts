@@ -13,7 +13,7 @@
 
 import { getDisciplineByCode } from '@/data/course-data';
 import { MATH_EXAM } from './math-exam-prep';
-import type { PomodoroSession, SimuladoRun } from './study-progress';
+import { localDateKey, type PomodoroSession, type SimuladoRun } from './study-progress';
 import { capQuestion } from './tutor-stream';
 
 export interface WeekSummary {
@@ -43,14 +43,16 @@ export interface WeeklyCoachInput {
 
 const DAY_MS = 86_400_000;
 
-/** Minutos por disciplina na semana corrente (0–6 dias atrás, UTC). */
+/** Minutos por disciplina na semana corrente (0–6 dias atrás, dia LOCAL). */
 export function weekDisciplineShares(
   sessions: PomodoroSession[],
   now = new Date(),
 ): DisciplineShare[] {
   const keys = new Set<string>();
   for (let i = 0; i <= 6; i++) {
-    keys.add(new Date(now.getTime() - i * DAY_MS).toISOString().slice(0, 10));
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    keys.add(localDateKey(d));
   }
   const byDisc = new Map<string, number>();
   for (const s of sessions) {

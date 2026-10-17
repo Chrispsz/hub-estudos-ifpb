@@ -28,7 +28,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
+import { localDateKey, useStudyProgress, type PomodoroSession } from '@/lib/study-progress';
 import { materials, getDisciplineByCode } from '@/data/course-data';
 import { cn } from '@/lib/utils';
 import { GradeCalculator } from './grade-calculator';
@@ -86,9 +86,10 @@ function buildLast7Days(sessions: PomodoroSession[]): DailyFocusPoint[] {
   const out: DailyFocusPoint[] = [];
   const now = Date.now();
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(now - i * 86_400_000);
-    const key = d.toISOString().slice(0, 10);
-    const label = WEEKDAY_LABELS[d.getUTCDay()];
+    const d = new Date(now);
+    d.setDate(d.getDate() - i); // dia LOCAL (Task 225) — noite conta no dia certo
+    const key = localDateKey(d);
+    const label = WEEKDAY_LABELS[d.getDay()];
     out.push({
       key,
       label,

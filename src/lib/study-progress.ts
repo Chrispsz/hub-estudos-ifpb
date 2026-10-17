@@ -134,10 +134,86 @@ export interface Preferences {
 }
 
 // ---------- Preferências do cronograma (v2.0) ----------
-export interface DayAvailability {
-  enabled: boolean;
+
+/**
+ * O RITMO SEMANAL (Mensagem 10 do dono, 17/10/2026: "2h de manhã, 2h a tarde
+ * e 2h a noite no final de semana, e 2h a tarde e 2h a noite na semana — acho
+ * que assim fica até mais fácil de estudar").
+ *
+ * Um dia de estudo deixa de ser UMA janela contínua e vira TURNOS: blocos de
+ * 50+10 encaixados em janelas com hora real (manhã 08:00, tarde 14:00, noite
+ * 19:00). O cronograma do motor passa a nascer dentro dessas janelas — o
+ * aluno vê "Tarde 14:00–16:00" e não "a partir das 19:00".
+ */
+export type Turno = 'manha' | 'tarde' | 'noite';
+
+export const TURNOS: { id: Turno; label: string; defaultStart: number }[] = [
+  { id: 'manha', label: 'Manhã', defaultStart: 8 },
+  { id: 'tarde', label: 'Tarde', defaultStart: 14 },
+  { id: 'noite', label: 'Noite', defaultStart: 19 },
+];
+
+export const TURNO_LABEL: Record<Turno, string> = {
+  manha: 'Manhã',
+  tarde: 'Tarde',
+  noite: 'Noite',
+};
+
+/** Uma janela de estudo do dia — um turno com hora de início e duração. */
+export interface DayWindow {
+  turno: Turno;
   startHour: number;
   durationMin: number;
+}
+
+export interface DayAvailability {
+  enabled: boolean;
+  /** LEGADO: início da janela única — usado quando `windows` não existe. */
+  startHour: number;
+  /** LEGADO: duração total do dia — mantida SEMPRE = soma das janelas. */
+  durationMin: number;
+  /**
+   * NOVO: janelas por turno (o ritmo do dia). Presente (mesmo vazio) = modo
+   * turnos manda; ausente = modo legado de janela única.
+   */
+  windows?: DayWindow[];
+}
+
+/** A que turno pertence uma hora (manhã <12, tarde 12–17, noite ≥18). */
+export function turnoOfHour(h: number): Turno {
+  if (h < 12) return 'manha';
+  if (h < 18) return 'tarde';
+  return 'noite';
+}
+
+/** O RITMO DO DONO: semana = tarde+noite (2h cada); fim de semana = manhã+tarde+noite. */
+export function rhythmWindowsForDay(day: number): DayWindow[] {
+  const weekend = day === 0 || day === 6;
+  const turns: Turno[] = weekend ? ['manha', 'tarde', 'noite'] : ['tarde', 'noite'];
+  return turns.map((turno) => {
+    const t = TURNOS.find((x) => x.id === turno) ?? TURNOS[0];
+    return { turno, startHour: t.defaultStart, durationMin: 120 };
+  });
+}
+
+/** Total de minutos do ritmo de um dia (semana 4h · fds 6h). */
+export function rhythmDayMinutes(day: number): number {
+  return rhythmWindowsForDay(day).reduce((acc, w) => acc + w.durationMin, 0);
+}
+
+/**
+ * Janelas EFETIVAS do dia: as janelas explícitas quando existirem (modo
+ * turnos — array vazio = dia sem estudo, intenção honesta), senão a janela
+ * única legada mapeada para o turno da hora de início. Consumidores que só
+ * querem a duração total continuam funcionando via `durationMin` legado.
+ */
+export function windowsOf(day: DayAvailability | undefined): DayWindow[] {
+  if (!day || !day.enabled) return [];
+  if (Array.isArray(day.windows)) {
+    return [...day.windows].sort((a, b) => a.startHour - b.startHour);
+  }
+  if (day.durationMin <= 0) return [];
+  return [{ turno: turnoOfHour(day.startHour), startHour: day.startHour, durationMin: day.durationMin }];
 }
 
 export interface StudyPreferences {
@@ -521,6 +597,23 @@ export function scheduleReviewDue(
   return { dueAt: new Date(due).toISOString(), pulledForExam: true, intervalDays };
 }
 
+// ---------- A convenção de DIA da casa (Task 225 — um fuso só) ----------
+
+/**
+ * yyyy-mm-dd LOCAL — a gramática de dia de toda a casa (todayDateKey,
+ * dailyCheckins, dailyHours, ritmo semanal). Antes o Pomodoro gravava `date`
+ * em UTC (toISOString().slice) e a harmonia lia LOCAL: sessões concluídas
+ * entre 21h–23h59 BRT caíam no dia UTC seguinte e o dia LOCAL não as via —
+ * exatamente a sessão da noite do ritmo do dono sumindo do acompanhamento.
+ * Agora escreve e lê no MESMO fuso (o do aluno).
+ */
+export function localDateKey(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ---------- Lembrete PNAAT (plataforma externa — pedido do dono:
 // "quero só ser lembrado de estudar mesmo já que vai ser em outra plataforma") ----------
 
@@ -615,14 +708,20 @@ export interface DailyCheckin {
   hours: number;
 }
 
+/**
+ * O RITMO DO DONO é o default da casa (Mensagem 10, 17/10/2026):
+ * semana = tarde 2h + noite 2h · fim de semana = manhã 2h + tarde 2h + noite 2h.
+ * `startHour`/`durationMin` legados espelham a soma (primeiro turno / total)
+ * para consumidores antigos que ainda leem o campo único.
+ */
 const defaultDayAvailability: StudyPreferences['days'] = {
-  0: { enabled: false, startHour: 9, durationMin: 0 },   // Dom: descanso
-  1: { enabled: true, startHour: 19, durationMin: 180 }, // Seg
-  2: { enabled: true, startHour: 19, durationMin: 180 }, // Ter
-  3: { enabled: true, startHour: 19, durationMin: 180 }, // Qua
-  4: { enabled: true, startHour: 19, durationMin: 180 }, // Qui
-  5: { enabled: true, startHour: 19, durationMin: 180 }, // Sex
-  6: { enabled: true, startHour: 9, durationMin: 240 },  // Sáb
+  0: { enabled: true, startHour: 8, durationMin: 360, windows: rhythmWindowsForDay(0) },   // Dom
+  1: { enabled: true, startHour: 14, durationMin: 240, windows: rhythmWindowsForDay(1) },  // Seg
+  2: { enabled: true, startHour: 14, durationMin: 240, windows: rhythmWindowsForDay(2) },  // Ter
+  3: { enabled: true, startHour: 14, durationMin: 240, windows: rhythmWindowsForDay(3) },  // Qua
+  4: { enabled: true, startHour: 14, durationMin: 240, windows: rhythmWindowsForDay(4) },  // Qui
+  5: { enabled: true, startHour: 14, durationMin: 240, windows: rhythmWindowsForDay(5) },  // Sex
+  6: { enabled: true, startHour: 8, durationMin: 360, windows: rhythmWindowsForDay(6) },   // Sáb
 };
 
 export const defaultProgress: StudyProgress = {
@@ -1109,7 +1208,7 @@ export function useStudyProgress() {
           ...(Array.isArray(prev.kaizenEntries) ? prev.kaizenEntries : []),
           {
             id: `kz-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            date: now.toISOString().slice(0, 10),
+            date: localDateKey(now), // dia LOCAL (convenção única da casa)
             createdAt: now.toISOString(),
             text: clean.slice(0, 500),
             disciplineCode,
@@ -1224,6 +1323,31 @@ export function useStudyProgress() {
     [setProgress],
   );
 
+  /**
+   * O RITMO SEMANAL em 1 toque (Mensagem 10 do dono): escreve as janelas do
+   * ritmo em TODOS os dias — semana (tarde+noite) e fim de semana (manhã+
+   * tarde+noite), 2h por turno. O campo legado acompanha (início do 1º turno /
+   * soma das janelas) para nenhum consumidor antigo ver número errado.
+   */
+  const applyStudyRhythm = React.useCallback(() => {
+    setProgress((prev) => ({
+      ...prev,
+      studyPreferences: {
+        ...prev.studyPreferences,
+        days: Object.fromEntries(
+          [0, 1, 2, 3, 4, 5, 6].map((day) => {
+            const windows = rhythmWindowsForDay(day);
+            const total = windows.reduce((acc, w) => acc + w.durationMin, 0);
+            return [
+              day,
+              { enabled: true, startHour: windows[0]?.startHour ?? 19, durationMin: total, windows },
+            ];
+          }),
+        ),
+      },
+    }));
+  }, [setProgress]);
+
   /** Grava (ou consome) o 1º passo de amanhã — o fecho que a casa cobra. */
   const setTomorrowStep = React.useCallback(
     (step: TomorrowStep | null) => {
@@ -1243,7 +1367,10 @@ export function useStudyProgress() {
     (session: Omit<PomodoroSession, 'date' | 'completedAt'>) => {
       setProgress((prev) => {
         const completedAt = new Date().toISOString();
-        const date = completedAt.slice(0, 10);
+        // Task 225 — dia LOCAL: a sessão da noite (21h–23h59 BRT) conta no dia
+        // em que aconteceu, não no dia UTC seguinte. A harmonia, o retrato, o
+        // check-in e o ritmo leem todos LOCAL — agora a escrita também.
+        const date = localDateKey();
         const fullSession: PomodoroSession = {
           ...session,
           date,
@@ -1659,8 +1786,10 @@ export function useStudyProgress() {
   // ----- Selectors -----
 
   const sessionsToday = React.useMemo(() => {
-    // FUSO: compara com a data UTC gravada em cada sessão (convenção do módulo).
-    const today = new Date().toISOString().slice(0, 10);
+    // FUSO (Task 225): dia LOCAL — a MESMA convenção do check-in, da harmonia
+    // e do ritmo. Sessões de noite (21h–23h59 BRT) agora contam no dia em que
+    // aconteceram, não no dia UTC seguinte.
+    const today = localDateKey();
     return progress.pomodoroSessions.filter((s) => s.date === today);
   }, [progress.pomodoroSessions]);
 
@@ -1728,7 +1857,7 @@ export function useStudyProgress() {
   const studyStreak = React.useMemo(() => {
     const days = new Set(progress.pomodoroSessions.map((s) => s.date));
     if (days.size === 0) return 0;
-    const iso = (d: Date) => d.toISOString().slice(0, 10); // UTC — igual ao gravado
+    const iso = localDateKey; // dia LOCAL — a MESMA convenção da gravação (Task 225)
     const cursor = new Date();
     if (!days.has(iso(cursor))) {
       cursor.setDate(cursor.getDate() - 1); // ontem mantém o streak vivo
@@ -1790,7 +1919,7 @@ export function useStudyProgress() {
 
   const methodStats = React.useMemo(() => {
     const now = Date.now();
-    const today = now && new Date(now).toISOString().slice(0, 10);
+    const today = now && localDateKey(new Date(now));
     const weekAgo = now - 7 * 86_400_000;
     const scored = allFocusSessions.filter((s) => typeof s.feynmanScore === 'number');
     return {
@@ -1857,6 +1986,7 @@ export function useStudyProgress() {
       unmarkNotebookRevised,
       setAvailableHours,
       addAvailableHours,
+      applyStudyRhythm,
       setDayFocus,
       setTomorrowStep,
       // selectors
@@ -1919,6 +2049,7 @@ export function useStudyProgress() {
       unmarkNotebookRevised,
       setAvailableHours,
       addAvailableHours,
+      applyStudyRhythm,
       setDayFocus,
       setTomorrowStep,
       sessionsToday,
