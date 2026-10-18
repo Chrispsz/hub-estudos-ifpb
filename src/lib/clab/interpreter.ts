@@ -121,6 +121,8 @@ export interface ClabSnapshot {
   status: 'running' | 'done' | 'error';
   errorMsg?: string;
   errorLine?: number;
+  /** Estado completo da VM no passo — a fonte do "E se...?" (forkFrom). */
+  state: VMState;
 }
 
 const SIZES: Record<BType, number> = { int: 4, float: 4, double: 8, char: 1, bool: 1, void: 0 };
@@ -143,7 +145,7 @@ function fmtScalar(v: Value, base: BType): string {
 
 function fmtCell(v: Value | undefined, base: BType): string {
   if (v === undefined) return '?';
-  if (base === 'char') return v === '\0' ? '\\0' : v;
+  if (base === 'char') return v === '\0' ? '\\0' : String(v);
   return fmtScalar(v, base);
 }
 
@@ -460,22 +462,25 @@ export class ClabEngine {
             this.state.ctrl.pop();
             const ret = top.gotRet;
             if (top.target) {
-              if (top.target.kind === 'assign') {
-                const fr = this.state.frames[top.target.f];
-                const rec = fr?.vars.find((v) => v.name === top.target!.name);
-                if (!rec) throw new ClabError(`Variável '${top.target.name}' sumiu (erro interno)`, top.fn.line);
+              //captura local — a closure do find() abaixo invalida o narrowing
+              //de propriedades através de `top` (top.target pode mutar em teoria).
+              const tgt = top.target;
+              if (tgt.kind === 'assign') {
+                const fr = this.state.frames[tgt.f];
+                const rec = fr?.vars.find((v) => v.name === tgt.name);
+                if (!rec) throw new ClabError(`Variável '${tgt.name}' sumiu (erro interno)`, top.fn.line);
                 if (ret === undefined) throw new ClabError(`${top.fn.name}() é void — não retorna valor para guardar`, top.fn.line);
-                this.storeLvalue(rec, top.target.path, this.convert(rec.base, ret, top.fn.line), top.fn.line);
-                this.snap(silent, top.fn.line, `${top.target.name} = ${this.fmtVal(ret)} (retorno de ${top.fn.name}())`);
+                this.storeLvalue(rec, tgt.path, this.convert(rec.base, ret, top.fn.line), top.fn.line);
+                this.snap(silent, top.fn.line, `${tgt.name} = ${this.fmtVal(ret)} (retorno de ${top.fn.name}())`);
                 return true;
               }
-              if (top.target.kind === 'init') {
-                const fr = this.state.frames[top.target.f];
-                const rec = fr?.vars.find((v) => v.name === top.target!.name);
-                if (!rec) throw new ClabError(`Variável '${top.target.name}' sumiu (erro interno)`, top.fn.line);
-                if (ret === undefined) throw new ClabError(`${top.fn.name}() é void — não retorna valor para iniciar '${top.target.name}'`, top.fn.line);
+              if (tgt.kind === 'init') {
+                const fr = this.state.frames[tgt.f];
+                const rec = fr?.vars.find((v) => v.name === tgt.name);
+                if (!rec) throw new ClabError(`Variável '${tgt.name}' sumiu (erro interno)`, top.fn.line);
+                if (ret === undefined) throw new ClabError(`${top.fn.name}() é void — não retorna valor para iniciar '${tgt.name}'`, top.fn.line);
                 rec.value = this.convert(rec.base, ret, top.fn.line);
-                this.snap(silent, top.fn.line, `${top.target.name} = ${this.fmtVal(ret)} (retorno de ${top.fn.name}())`);
+                this.snap(silent, top.fn.line, `${tgt.name} = ${this.fmtVal(ret)} (retorno de ${top.fn.name}())`);
                 return true;
               }
               if (top.target.kind === 'ret') {
@@ -719,7 +724,7 @@ export class ClabEngine {
           } else {
             zero(rec.cells, 0);
             for (let r = 0; r < d.initList.length && r < lens[0]; r++) {
-              fill(rec.cells[r], d.initList[r] as (Expr | Expr[])[], 1, d.line);
+              fill(rec.cells[r] as unknown[], d.initList[r] as (Expr | Expr[])[], 1, d.line);
             }
           }
         }
@@ -867,7 +872,9 @@ export class ClabEngine {
       }
       case 'call': return this.evalCall(e, fr);
       case 'addr': throw new ClabError('& só é usado dentro do scanf (e lá o Lab já cuida disso)', e.line);
-      default: throw new ClabError('Expressão não suportada', e.line);
+      default:
+        // switch exaustivo — aqui não sobra variante
+        throw new ClabError('Expressão não suportada', 0);
     }
   }
 
@@ -975,12 +982,16 @@ export class ClabEngine {
     const line = e.line;
     switch (e.name) {
       case 'printf': {
-        const fmt = e.args[0].v;
-        return this.doPrintf(fmt, e.args.slice(1), fr, line);
+        const fmtArg = e.args[0];
+        if (!fmtArg || fmtArg.k !== 'str')
+          throw new ClabError('O printf precisa de um texto entre aspas como primeiro argumento', line);
+        return this.doPrintf(fmtArg.v, e.args.slice(1), fr, line);
       }
       case 'scanf': {
-        const fmt = e.args[0].v;
-        return this.doScanf(fmt, e.args.slice(1), fr, line);
+        const fmtArg = e.args[0];
+        if (!fmtArg || fmtArg.k !== 'str')
+          throw new ClabError('O scanf precisa de um texto entre aspas como primeiro argumento', line);
+        return this.doScanf(fmtArg.v, e.args.slice(1), fr, line);
       }
       case 'puts': {
         this.appendOutput(this.stringOf(e.args[0], fr) + '\n', line);
@@ -1277,7 +1288,7 @@ export class ClabEngine {
     if (cells === undefined) {
       throw new ClabError(`Lendo '${lv.rec.name}[...]' antes de guardar algo nessa posição — posições de vetor começam sem valor`, line);
     }
-    return cells as Value;
+    return cells as unknown as Value;
   }
 
   private storeLvalue(rec: VRec, path: number[] | null, v: Value, line: number) {

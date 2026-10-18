@@ -4,7 +4,6 @@ import * as React from 'react';
 import { CalendarDays, Clock, GraduationCap, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
-  weeklySchedule,
   weeklySchedules,
   nextClassFrom,
   slotTimeOf,
@@ -86,7 +85,9 @@ export function WeeklyScheduleCard() {
 
   if (!now) return null;
 
-  const grade = weeklySchedules.find((g) => g.id === gradeId) ?? weeklySchedule;
+  // Fallback = P1 (a turma do dono, ativa) — o objeto legado `weeklySchedule`
+  // não tem `ativa`/`id` e era a fonte de um union quebrado no tipo.
+  const grade = weeklySchedules.find((g) => g.id === gradeId) ?? weeklySchedules[0];
   const todayDow = now.getDay();
   const next = grade.ativa ? nextClassFrom(now) : null;
 

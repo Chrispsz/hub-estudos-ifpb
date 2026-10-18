@@ -27,7 +27,7 @@
 
 import { disciplines, type Discipline } from '@/data/course-data';
 import { exercises } from './exercise-extractor';
-import { localDateKey, type PomodoroSession, type StudyProgress } from './study-progress';
+import { localDateKey, type ExerciseProgressEntry, type PomodoroSession, type StudyProgress } from './study-progress';
 
 // ---------- Configuração honesta dos pisos ----------
 
@@ -75,7 +75,8 @@ export interface DisciplineSignal {
 // ---------- Leitura do progresso ----------
 
 interface QRecord {
-  code: string;
+  /** O id da questão (na prática é ex.id — o campo antigo virou opcional). */
+  code?: string;
   difficulty: 'facil' | 'medio' | 'dificil';
   statement: string;
   topic: string;

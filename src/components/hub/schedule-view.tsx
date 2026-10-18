@@ -16,6 +16,7 @@ import {
   Clock4,
   Coffee,
   Cpu,
+  Dumbbell,
   Flag,
   Flame,
   History,
@@ -193,11 +194,13 @@ const TOUCH_AREA = 'relative after:absolute after:-inset-2.5 after:content-[\'\'
 /** TASK 221 — a cara de cada tipo de bloco da FILA DE MATERIAIS (a fila que
  *  morava na home; mesma gramática de cor do antigo plano: continuar =
  *  esmeralda, revisão = âmbar, prática = violeta, erro = laranja, atrasado =
- *  rosa, próximo = teal). */
+ *  rosa, próximo = teal, reforço = fúcsia — firmar o que a dificuldade real
+ *  apontou, família da prática com tom próprio). */
 const PLAN_KIND_META_FILA: Record<PlanKind, { icon: LucideIcon; bg: string; text: string }> = {
   continuar: { icon: BookOpen, bg: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400' },
   revisao: { icon: History, bg: 'bg-amber-500/10', text: 'text-amber-700 dark:text-amber-400' },
   pratica: { icon: ListChecks, bg: 'bg-violet-500/10', text: 'text-violet-700 dark:text-violet-400' },
+  reforco: { icon: Dumbbell, bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-700 dark:text-fuchsia-400' },
   erro: { icon: CircleAlert, bg: 'bg-orange-500/10', text: 'text-orange-700 dark:text-orange-400' },
   atrasado: { icon: AlarmClock, bg: 'bg-rose-500/10', text: 'text-rose-700 dark:text-rose-400' },
   proximo: { icon: Sparkles, bg: 'bg-teal-500/10', text: 'text-teal-700 dark:text-teal-400' },
@@ -511,7 +514,7 @@ export function ScheduleView() {
               index={idx}
               now={now}
               today={today}
-              starts={sp.progress.sessionStarts}
+              starts={sp.progress.sessionStarts ?? []}
               blocks={blocksByDay.get(d.num) ?? []}
               enabled={prefs.days[d.num]?.enabled ?? false}
               fixedCode={prefs.fixedDisciplines?.[d.num]}

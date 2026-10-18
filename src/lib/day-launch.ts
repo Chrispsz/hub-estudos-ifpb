@@ -24,8 +24,9 @@
 
 import type { SmartBlock } from './smart-schedule';
 import { formatTime } from './smart-schedule';
-import type { HarmonyBlock, PomodoroConfig, PomodoroFit } from './session-harmony';
+import type { HarmonyBlock, PomodoroFit } from './session-harmony';
 import { fitPomodoro } from './session-harmony';
+import type { PomodoroConfig } from './study-progress';
 
 // ---------------------------------------------------------------------------
 // O método de cada passo — o que fazer dentro do bloco (2–3 gestos, pt-BR)
@@ -115,7 +116,8 @@ function methodForActivity(activity: SmartBlock['activity']): LaunchMethod {
   }
 }
 
-/** Método do bloco da sessão (mesma gramática, chave pelo kind do plano). */
+/** Método do bloco da sessão (mesma gramática, chave pelo kind do plano).
+ *  PlanKind não tem 'projeto' — o caso vivia morto aqui e saiu (Task 233). */
 function methodForKind(kind: HarmonyBlock['kind']): LaunchMethod {
   switch (kind) {
     case 'revisao':
@@ -123,8 +125,6 @@ function methodForKind(kind: HarmonyBlock['kind']): LaunchMethod {
       return METODO_REVISAO;
     case 'erro':
       return METODO_PRATICA;
-    case 'projeto':
-      return METODO_PROJETO;
     default:
       return METODO_LEITURA;
   }

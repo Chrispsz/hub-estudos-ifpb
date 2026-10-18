@@ -772,7 +772,7 @@ function VarRow({
                     display={cell}
                     idx={[r, c]}
                     editable={editable && !v.alias}
-                    active={isEditing && editing?.path && editing.path[0] === r && editing.path[1] === c}
+                    active={isEditing && editing?.path?.[0] === r && editing?.path?.[1] === c}
                     onStart={() => startEdit([r, c], cell === '?' ? '' : cell)}
                     raw={raw}
                     setRaw={setRaw}

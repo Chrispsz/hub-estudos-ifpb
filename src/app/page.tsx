@@ -21,14 +21,10 @@ import { OPEN_TUTOR_EVENT, type OpenTutorDetail } from '@/lib/hub-events';
 import { materials } from '@/data/course-data';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-// DECISÃO DO DONO (10/10/2026): a LEGACY volta a ser a casa em `/`. A evolução do
-// produto passa a ser feita DENTRO dela (IA/tutor integrado a tudo, mais simples,
-// com acompanhamento central) — "a legacy só que melhor e mais limpa".
-// O experimento v2 permanece no repositório como referência, SEM porta de entrada;
-// o console técnico da Fase 1 segue em /?v2.
-const Phase1Panel = dynamic(() => import('@/components/v2/phase1-panel'), {
-  ssr: false,
-});
+// DECISÃO DO DONO (10/10/2026): a LEGACY é a casa em `/`. Task 233 (19/10,
+// "extermine deadcode e otimize o projeto"): o experimento v2 FOI REMOVIDO do
+// repositório — era referência sem uso real, com a porta /?v2 morta na prática.
+// O histórico completo vive no git (commit anterior ao 233) se um dia fizer falta.
 // A CALCULADORA DE NOTAS religada (GIT-1: cortada na mega-limpeza c902ad7;
 // fontes íntegras no git — a fiação de gravação setRealGrade nunca morreu).
 const GradeCalculator = dynamic(
@@ -183,16 +179,8 @@ export default function Page() {
     }
   }, []);
 
-  // Painel técnico da Fase 1 (/?v2) — o legado É o app padrão em `/`
-  const [showV2, setShowV2] = React.useState(false);
-  React.useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      setShowV2(params.has('v2'));
-    } catch {
-      /* sem query string */
-    }
-  }, []);
+  // Task 233: a porta /?v2 (console técnico da Fase 1) saiu junto com o
+  // experimento v2 — a legacy É o app, sem segunda casa oculta.
 
   // Badge de conteúdos ainda não vistos
   const notViewedCount = React.useMemo(
@@ -279,9 +267,6 @@ export default function Page() {
         return null;
     }
   })();
-
-  // ?v2 = console técnico · padrão = a casa (legacy) — decisão do dono, 10/10/2026
-  if (showV2) return <Phase1Panel />;
 
   return (
     <StudyFocusProvider sp={sp}>
