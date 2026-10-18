@@ -223,6 +223,63 @@ export function windowsOf(day: DayAvailability | undefined): DayWindow[] {
   return [{ turno: turnoOfHour(day.startHour), startHour: day.startHour, durationMin: day.durationMin }];
 }
 
+// ---------- HORÁRIOS QUE A CASA APRENDE (Task 231) ----------
+
+/**
+ * O RELÓGIO É O USO (dono, 18/10/2026: "informações assim que definem horários
+ * sozinho, pois eu não defini esses horários nem quero — o próprio site pode
+ * registrar isso a partir do início e momento do dia").
+ *
+ * Cada check-in grava o momento REAL em que o estudo começou. De lances
+ * acumulados nasce a mediana por turno — e é ELA que ancora os blocos de
+ * amanhã, não um relógio 08h/14h/19h que ninguém escolheu.
+ */
+export interface SessionStart {
+  /** data local "AAAA-MM-DD" do lance. */
+  d: string;
+  /** dia da semana 0–6 (domingo = 0). */
+  wd: number;
+  /** hora LOCAL com minutos (ex.: 18.5 = 18h30). */
+  h: number;
+}
+
+/** Janela de memória: ~8 semanas de lances (2–3 por dia de estudo). */
+export const SESSION_STARTS_CAP = 60;
+
+/** Registra um início real de estudo (chamado no check-in, sem gesto extra). */
+export function pushSessionStart(starts: SessionStart[] | undefined, now = new Date()): SessionStart[] {
+  const next: SessionStart[] = [
+    ...(starts ?? []),
+    { d: localDateKey(now), wd: now.getDay(), h: now.getHours() + now.getMinutes() / 60 },
+  ];
+  return next.slice(-SESSION_STARTS_CAP);
+}
+
+/**
+ * A hora aprendida de um turno: mediana dos lances recentes daquele turno.
+ * Só aprende com ≥3 amostras — antes disso a casa confessa que ainda não sabe.
+ */
+export function learnedStartForTurno(starts: SessionStart[] | undefined, turno: Turno): number | undefined {
+  const recent = (starts ?? [])
+    .slice(-30)
+    .filter((s) => turnoOfHour(Math.floor(s.h)) === turno)
+    .map((s) => s.h);
+  if (recent.length < 3) return undefined;
+  const sorted = [...recent].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  // Meia hora de resolução — o cronograma trabalha em hora inteira/meia.
+  return Math.max(0, Math.min(23.5, Math.round(median * 2) / 2));
+}
+
+/** Janelas do dia com as horas APRENDIDAS — o ritmo é do dono, o relógio é o uso. */
+export function windowsWithLearnedStarts(wins: DayWindow[], starts?: SessionStart[]): DayWindow[] {
+  return wins.map((w) => {
+    const learned = learnedStartForTurno(starts, w.turno);
+    return learned === undefined ? w : { ...w, startHour: learned };
+  });
+}
+
 export interface StudyPreferences {
   days: { [day: number]: DayAvailability };
   maxBlocksPerDay: number;
@@ -716,6 +773,12 @@ export interface StudyProgress {
   materialReviews: { [materialId: string]: MaterialReviewState };
   /** Lembrete de estudo do PNAAT (plataforma FIT — externo ao acervo). */
   pnaatReminder: PnaatReminderState;
+  /**
+   * OS HORÁRIOS QUE A CASA APRENDE (Task 231): lances reais de início de
+   * estudo gravados no check-in. Deles nasce a mediana por turno que ancora
+   * os blocos — o dono NUNCA configura relógio; o site registra do uso.
+   */
+  sessionStarts?: SessionStart[];
 }
 
 /** O 1º passo de amanhã — a promessa que o fecho grava e a casa cobra. */
@@ -1446,6 +1509,16 @@ export function useStudyProgress() {
     }));
   }, [setProgress]);
 
+  /**
+   * HORÁRIO REAL (Task 231): cada lance de check-in registra quando o estudo
+   * começou — é assim que a casa aprende os horários do dono SEM ele
+   * configurar nada (o pedido explícito: "o próprio site pode registrar isso
+   * a partir do início e momento do dia").
+   */
+  const markSessionStart = React.useCallback(() => {
+    setProgress((prev) => ({ ...prev, sessionStarts: pushSessionStart(prev.sessionStarts) }));
+  }, [setProgress]);
+
   /** Grava (ou consome) o 1º passo de amanhã — o fecho que a casa cobra. */
   const setTomorrowStep = React.useCallback(
     (step: TomorrowStep | null) => {
@@ -2112,6 +2185,7 @@ export function useStudyProgress() {
       setAvailableHours,
       addAvailableHours,
       applyStudyRhythm,
+      markSessionStart,
       setDayFocus,
       setTomorrowStep,
       // selectors
@@ -2177,6 +2251,7 @@ export function useStudyProgress() {
       setAvailableHours,
       addAvailableHours,
       applyStudyRhythm,
+      markSessionStart,
       setDayFocus,
       setTomorrowStep,
       sessionsToday,

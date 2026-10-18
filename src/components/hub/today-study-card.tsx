@@ -176,8 +176,9 @@ export function TodayStudyCard({ onStartStudy, onOpenSettings }: Props) {
         disciplineProgress: sp.progress.disciplineProgress,
         customEvaluations: sp.progress.customEvaluations,
         facility,
+        sessionStarts: sp.progress.sessionStarts,
       }),
-    [sp.progress.studyPreferences, sp.progress.topicProgress, sp.progress.disciplineProgress, sp.progress.customEvaluations, facility],
+    [sp.progress.studyPreferences, sp.progress.topicProgress, sp.progress.disciplineProgress, sp.progress.customEvaluations, sp.progress.sessionStarts, facility],
   );
 
   const todaySummary = React.useMemo(

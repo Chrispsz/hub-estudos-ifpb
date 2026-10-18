@@ -73,7 +73,6 @@ import {
 } from '@/lib/math-exam-prep';
 import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
 import { daysUntilDate, upcomingEvents } from '@/lib/semester';
-import { TriageCard } from './triage-card';
 import { ExamRadarCard } from './exam-radar-card';
 import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { PnaatReminderCard } from './pnaat-reminder-card';
@@ -89,6 +88,7 @@ import { facilityMapOf } from '@/lib/learning-signals';
 import {
   useStudyProgress,
   TURNOS,
+  learnedStartForTurno,
   type SimuladoRun,
   type StudyPreferences,
   type StudyProgressHook,
@@ -100,11 +100,15 @@ import { cn } from '@/lib/utils';
 
 const FULL_DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-const START_HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6..22
+/** 18.5 → "18h30" — a hora aprendida formatada pra gente. */
+function fmtLearnedHour(h: number): string {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return mm ? `${hh}h${String(mm).padStart(2, '0')}` : `${hh}h`;
+}
+
 const HOURS_24 = Array.from({ length: 24 }, (_, i) => i); // 0..23 (bloco manual)
-const DAY_DURATIONS = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360];
 const MANUAL_DURATIONS = [15, 30, 45, 60, 90, 120, 150, 180];
-const MAX_MINUTES_OPTIONS = [60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360];
 
 // AMOLED-friendly: fundos translúcidos e textos claros por cor nominal da disciplina.
 // (bgSoft/bgSolid de discipline-colors.ts são pensados para tema claro.)
@@ -236,10 +240,11 @@ export function ScheduleView() {
             disciplineProgress: discProg,
             customEvaluations: sp.progress.customEvaluations,
             facility,
+            sessionStarts: sp.progress.sessionStarts,
             now,
           })
         : [],
-    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, facility, now],
+    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, sp.progress.sessionStarts, facility, now],
   );
 
   // Blocos manuais do usuário → SmartBlock com prefixo "manual-" no id.
@@ -618,12 +623,11 @@ export function ScheduleView() {
       {/* ---------- Bloco manual ---------- */}
       <AddBlockDialog sp={sp} open={addOpen} onOpenChange={setAddOpen} />
 
-      {/* ---------- A CONTEXTO DA SEMANA (áudio 18/10 — a casa da semana): a
-          triagem do motor, o radar de provas, a grade de aulas, o PNAAT e a
-          agenda oficial saíram da HOME para cá — "algumas dessas coisas
-          poderiam ser levadas a outras abas". Tudo o que é planejamento
-          longo vive aqui, junto do cronograma que os usa. ---------- */}
-      <TriageCard />
+      {/* ---------- A CONTEXTO DA SEMANA (áudio 18/10 — a casa da semana): o
+          radar de provas, a grade de aulas, o PNAAT e a agenda oficial saíram
+          da HOME para cá. Task 231: a Fila essencial saiu DE VEZ — o dono:
+          "remove isso e sujeiras assim"; o cronograma é a única fonte do
+          "quando", e a fila do dia vive na home (1 card, sem parede). ---------- */}
       <ExamRadarCard />
       <WeeklyScheduleCard />
       <PnaatReminderCard />
@@ -1115,8 +1119,12 @@ function PreferencesPanel({
   onOpenChange: (v: boolean) => void;
 }) {
   const prefs = sp.progress.studyPreferences;
-  // TASK 225 — algum dia já está no modo turnos? (os chips mandam no dia)
-  const anyDayWithWindows = DAYS_OF_WEEK.some((d) => Array.isArray(prefs.days[d.num]?.windows));
+  // HORÁRIOS QUE A CASA APRENDE (Task 231): mediana dos inícios REAIS por
+  // turno — o dono nunca configura relógio; o site registra do check-in.
+  const learnedTurnos = TURNOS.flatMap((t) => {
+    const h = learnedStartForTurno(sp.progress.sessionStarts, t.id);
+    return h === undefined ? [] : [{ label: t.label, h }];
+  });
 
   return (
     <Card className="rounded-xl p-0">
@@ -1154,9 +1162,15 @@ function PreferencesPanel({
                     Ritmo semanal
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Seg–Sex: 2h de tarde + 2h de noite · Sáb/Dom: mais 2h de manhã. O
-                    cronograma nasce dentro dos turnos (2h cada) e o dia fica mais fácil de
-                    cumprir.
+                    Seg–Sex: 2h de tarde + 2h de noite · Sáb/Dom: mais 2h de manhã. O dia nasce
+                    dentro dos turnos (2h cada) e o RELÓGIO a casa aprende sozinha do seu uso.
+                  </p>
+                  <p className="mt-1 text-xs text-foreground/80">
+                    {learnedTurnos.length > 0
+                      ? `Registrado do seu ritmo real: ${learnedTurnos
+                          .map((x) => `${x.label.toLowerCase()} ~${fmtLearnedHour(x.h)}`)
+                          .join(' · ')}. Continua se ajustando a cada check-in.`
+                      : 'Conforme você estuda, o site registra seus horários reais e encaixa os blocos no seu momento — nada de relógio para configurar.'}
                   </p>
                 </div>
                 <Button
@@ -1172,11 +1186,14 @@ function PreferencesPanel({
                 </Button>
               </div>
             </div>
-            {/* Por dia */}
+            {/* Por dia — Task 231: chips de turno SEM relógio. O dono escolhe
+                QUAIS turnos tem aula de estudo; QUANDO começa cada um, a casa
+                aprende sozinha dos inícios reais (mediana por turno). */}
             <div className={cn('max-h-96 space-y-2 overflow-y-auto pr-1', SCROLLBAR)}>
               {DAYS_OF_WEEK.map((d) => {
                 const day =
                   prefs.days[d.num] ?? { enabled: false, startHour: 19, durationMin: 0 };
+                const windows = Array.isArray(day.windows) ? day.windows : [];
                 const fixedCode = prefs.fixedDisciplines?.[d.num] ?? '';
                 return (
                   <div
@@ -1201,101 +1218,47 @@ function PreferencesPanel({
                       <span className="text-sm font-medium">{FULL_DAYS[d.num]}</span>
                     </div>
 
-                    {Array.isArray(day.windows) ? (
-                      // MODO TURNOS (Task 225) — chips liga/desliga por turno:
-                      // o ritmo do dono vira gesto direto, sem escolher hora.
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                        <Label className="text-[11px] text-muted-foreground">Turnos</Label>
-                        {TURNOS.map((t) => {
-                          const w = day.windows?.find((x) => x.turno === t.id);
-                          const toggle = () => {
-                            const cur = day.windows ?? [];
-                            const next: DayWindow[] = w
-                              ? cur.filter((x) => x.turno !== t.id)
-                              : [...cur, { turno: t.id, startHour: t.defaultStart, durationMin: 120 }];
-                            next.sort((a, b) => a.startHour - b.startHour);
-                            const total = next.reduce((acc, x) => acc + x.durationMin, 0);
-                            sp.updateDayAvailability(d.num, {
-                              windows: next,
-                              durationMin: total,
-                              ...(next.length > 0 ? { enabled: true } : {}),
-                            });
-                          };
-                          return (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={toggle}
-                              aria-pressed={!!w}
-                              aria-label={`${w ? 'Remover' : 'Adicionar'} turno da ${t.label.toLowerCase()} ${FULL_DAYS[d.num].toLowerCase()}`}
-                              data-t={`turno-${t.id}-${d.num}`}
-                              className={cn(
-                                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                                w
-                                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                                  : 'border-border text-muted-foreground hover:bg-muted/60',
-                              )}
-                            >
-                              {t.label}
-                              {w ? ` ${String(w.startHour).padStart(2, '0')}h` : ''}
-                            </button>
-                          );
-                        })}
-                        <span className="text-[11px] tabular-nums text-muted-foreground">
-                          {fmtDuration((day.windows ?? []).reduce((acc, x) => acc + x.durationMin, 0))} no dia
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-1.5">
-                          <Label className="text-[11px] text-muted-foreground">Início</Label>
-                          <Select
-                            value={String(day.startHour)}
-                            onValueChange={(v) =>
-                              sp.updateDayAvailability(d.num, { startHour: Number(v) })
-                            }
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                      <Label className="text-[11px] text-muted-foreground">Turnos</Label>
+                      {TURNOS.map((t) => {
+                        const w = windows.find((x) => x.turno === t.id);
+                        const toggle = () => {
+                          const next: DayWindow[] = w
+                            ? windows.filter((x) => x.turno !== t.id)
+                            : [...windows, { turno: t.id, startHour: t.defaultStart, durationMin: 120 }];
+                          next.sort((a, b) => a.startHour - b.startHour);
+                          const total = next.reduce((acc, x) => acc + x.durationMin, 0);
+                          sp.updateDayAvailability(d.num, {
+                            windows: next,
+                            durationMin: total,
+                            ...(next.length > 0 ? { enabled: true } : {}),
+                          });
+                        };
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={toggle}
+                            aria-pressed={!!w}
+                            aria-label={`${w ? 'Remover' : 'Adicionar'} turno da ${t.label.toLowerCase()} ${FULL_DAYS[d.num].toLowerCase()}`}
+                            data-t={`turno-${t.id}-${d.num}`}
+                            className={cn(
+                              'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              w
+                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                : 'border-border text-muted-foreground hover:bg-muted/60',
+                            )}
                           >
-                            <SelectTrigger
-                              className="h-11 w-[74px] sm:h-8"
-                              aria-label={`Hora de início de ${FULL_DAYS[d.num]}`}
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {START_HOURS.map((h) => (
-                                <SelectItem key={h} value={String(h)}>
-                                  {String(h).padStart(2, '0')}h
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <Label className="text-[11px] text-muted-foreground">Duração</Label>
-                          <Select
-                            value={String(day.durationMin)}
-                            onValueChange={(v) =>
-                              sp.updateDayAvailability(d.num, { durationMin: Number(v) })
-                            }
-                          >
-                            <SelectTrigger
-                              className="h-11 w-24 sm:h-8"
-                              aria-label={`Duração de ${FULL_DAYS[d.num]}`}
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {DAY_DURATIONS.map((min) => (
-                                <SelectItem key={min} value={String(min)}>
-                                  {fmtDuration(min)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </>
-                    )}
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {windows.length > 0
+                          ? `${fmtDuration(windows.reduce((acc, x) => acc + x.durationMin, 0))} no dia`
+                          : 'sem estudo'}
+                      </span>
+                    </div>
 
                     <div className="flex min-w-44 flex-1 items-center gap-1.5">
                       <Label className="text-[11px] text-muted-foreground">Fixar</Label>
@@ -1312,7 +1275,7 @@ function PreferencesPanel({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Nenhum (rotação livre)</SelectItem>
+                          <SelectItem value="none">Nenhum</SelectItem>
                           {disciplines.map((disc) => (
                             <SelectItem key={disc.code} value={disc.code}>
                               {disc.shortName}
@@ -1326,60 +1289,12 @@ function PreferencesPanel({
               })}
             </div>
 
-            {/* Limites globais + dica */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-3">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Máx. blocos/dia</Label>
-                <Select
-                  value={String(prefs.maxBlocksPerDay)}
-                  onValueChange={(v) => sp.updateStudyPreferences({ maxBlocksPerDay: Number(v) })}
-                >
-                  <SelectTrigger className="h-11 w-16 sm:h-8" aria-label="Máximo de blocos por dia">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Máx. minutos/dia</Label>
-                <Select
-                  value={String(prefs.maxMinutesPerDay)}
-                  onValueChange={(v) => sp.updateStudyPreferences({ maxMinutesPerDay: Number(v) })}
-                >
-                  <SelectTrigger className="h-11 w-24 sm:h-8" aria-label="Máximo de minutos por dia">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MAX_MINUTES_OPTIONS.map((m) => (
-                      <SelectItem key={m} value={String(m)}>
-                        {fmtDuration(m)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <p className="w-full text-xs text-muted-foreground">
-                Fixe uma disciplina num dia (ex.: Seg = Matemática) e o resto da semana continua
-                rotacionando. Avaliações em ≤7 dias ganham prioridade automática.
-                {anyDayWithWindows && (
-                  <>
-                    {' '}
-                    <span className="font-medium text-foreground/80">
-                      Com turnos ativos, são eles que mandam no dia — estes tetos só valem para dias
-                      sem turnos.
-                    </span>
-                  </>
-                )}
-              </p>
-            </div>
+            {/* Dica — Task 231: os tetos globais saíram da superfície (os turnos
+                mandam no dia e o motor guarda os padrões internos). */}
+            <p className="border-t pt-3 text-xs text-muted-foreground">
+              Fixe uma disciplina num dia (ex.: Seg = Matemática) e o resto da semana continua
+              rotacionando. Avaliações em ≤7 dias ganham prioridade automática.
+            </p>
           </div>
         </CollapsibleContent>
       </Collapsible>

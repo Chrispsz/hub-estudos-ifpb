@@ -58,7 +58,7 @@ import {
 import { suggestBudgetFromHistory, syncPomodoroToBudget, buildSessionHarmony } from '@/lib/session-harmony';
 import { buildDayLaunchPlan, launchStepsFromSchedule, launchStepsFromSession, type LaunchStep } from '@/lib/day-launch';
 import { useStudyProgress } from '@/lib/study-progress';
-import { windowsOf, TURNO_LABEL, type DayWindow } from '@/lib/study-progress';
+import { windowsOf, windowsWithLearnedStarts, TURNO_LABEL, type DayWindow } from '@/lib/study-progress';
 import { useErrorReviewTasks } from '@/lib/error-review-feed';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
@@ -235,6 +235,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         customEvaluations: sp.progress.customEvaluations,
         weekStudiedMinutes: weekStudied,
         facility: facilityMapOf(sp.progress),
+        sessionStarts: sp.progress.sessionStarts,
         now: agora,
       })
         .filter((b) => b.day === agora.getDay())
@@ -307,8 +308,14 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   // de cada uma pelo foco REAL registrado — a casa mostra "manhã cumprida,
   // tarde em curso" sem ninguém marcar nada à mão.
   const dayRhythm = React.useMemo<DayWindow[]>(
-    () => (agora ? windowsOf(sp.progress.studyPreferences.days[agora.getDay()]) : []),
-    [agora, sp.progress.studyPreferences.days],
+    () =>
+      agora
+        ? windowsWithLearnedStarts(
+            windowsOf(sp.progress.studyPreferences.days[agora.getDay()]),
+            sp.progress.sessionStarts,
+          )
+        : [],
+    [agora, sp.progress.studyPreferences.days, sp.progress.sessionStarts],
   );
   const rhythmTotalHours = dayRhythm.reduce((acc, w) => acc + w.durationMin, 0) / 60;
   const rhythmLine =
@@ -389,6 +396,9 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     (h: number) => {
       if (dateKey) {
         sp.setAvailableHours(dateKey, h);
+        // HORÁRIO REAL (Task 231): o check-in É o início do estudo — a casa
+        // grava o momento e aprende os horários do dono sem ele configurar nada.
+        sp.markSessionStart();
         // A harmonia nasce no check-in: o pomodoro encaixa no que RESTA da
         // sessão (o foco já rodado hoje desconta) na mesma respiração — o
         // original fica guardado, o Restaurar sempre à mão.
@@ -408,6 +418,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     (h: number) => {
       if (dateKey) {
         sp.addAvailableHours(dateKey, h);
+        sp.markSessionStart(); // 2ª sessão do dia também é um início real (Task 231)
         const newTotal = Math.round(((plannedHours ?? 0) + h) * 60);
         syncPomodoroToBudget(sp, Math.max(0, newTotal - (snap?.minutesToday ?? 0)), dateKey);
       }

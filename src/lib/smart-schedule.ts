@@ -29,8 +29,8 @@ import {
   classWindowForDay,
   type Discipline,
 } from '@/data/course-data';
-import type { CustomEvaluation, StudyPreferences, TopicProgress } from './study-progress';
-import { windowsOf } from './study-progress';
+import type { CustomEvaluation, SessionStart, StudyPreferences, TopicProgress } from './study-progress';
+import { windowsOf, windowsWithLearnedStarts } from './study-progress';
 // Fonte única do calendário — funções reexportadas p/ compatibilidade com os views.
 import { currentWeekOfSemester, daysUntilDate } from './semester';
 export { daysUntilDate };
@@ -90,6 +90,10 @@ export interface SmartScheduleInput {
    *  o motor: puxada pesa mais (reforço sobe), fluida respira (fila absorve o
    *  que já saiu de cabeça). Ausente = sem dado = neutro. */
   facility?: Record<string, number>;
+  /** HORÁRIOS REAIS de início de estudo (Task 231) — a mediana aprendida por
+   *  turno ancora as janelas dos dias futuros; HOJE continua re-ancorado no
+   *  momento do acesso (adaptTodayBlocksToNow). O dono nunca configura relógio. */
+  sessionStarts?: SessionStart[];
   now?: Date;
 }
 
@@ -268,7 +272,10 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   let plannedTotal = 0;
   for (let day = 0; day <= 6; day++) {
     const pref = preferences.days[day];
-    const wins = windowsOf(pref);
+    // HORÁRIOS APRENDIDOS (Task 231): a mediana dos inícios reais do dono
+    // substitui o relógio-padrão — "tarde" nasce na hora que ELE costuma
+    // começar a tarde, não às 14h que ninguém escolheu.
+    const wins = windowsWithLearnedStarts(windowsOf(pref), input.sessionStarts);
     if (wins.length === 0) continue;
     // A GRADE OFICIAL MANDA (Task 217): dia com aula (P1 = seg–sex 07:00–11:25)
     // empurra o início de cada janela para depois do fim da última aula.
