@@ -280,6 +280,17 @@ export function windowsWithLearnedStarts(wins: DayWindow[], starts?: SessionStar
   });
 }
 
+/**
+ * REGRA DE EXIBIÇÃO (M13): a hora só aparece NA TELA quando o USO a ensinou
+ * (≥3 lances reais daquele turno). Turno ainda não observado = nome do turno,
+ * nunca o relógio 08h/14h/19h que ninguém escolheu — dono: "eu não defini
+ * esses horários nem quero". Internamente o motor pode planejar com a janela
+ * padrão; a SUPERFÍCIE não mostra o que o dono não vivenciou.
+ */
+export function turnoIsLearned(starts: SessionStart[] | undefined, turno: Turno): boolean {
+  return learnedStartForTurno(starts, turno) !== undefined;
+}
+
 export interface StudyPreferences {
   days: { [day: number]: DayAvailability };
   maxBlocksPerDay: number;

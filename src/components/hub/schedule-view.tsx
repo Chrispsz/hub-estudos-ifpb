@@ -81,6 +81,7 @@ import {
   currentWeekOfSemester,
   formatTime,
   generateSmartSchedule,
+  adaptTodayBlocksToNow,
   type ScheduleDisciplineState,
   type SmartBlock,
 } from '@/lib/smart-schedule';
@@ -88,7 +89,11 @@ import { facilityMapOf } from '@/lib/learning-signals';
 import {
   useStudyProgress,
   TURNOS,
+  TURNO_LABEL,
+  turnoIsLearned,
+  turnoOfHour,
   learnedStartForTurno,
+  type SessionStart,
   type SimuladoRun,
   type StudyPreferences,
   type StudyProgressHook,
@@ -266,12 +271,25 @@ export function ScheduleView() {
 
   const allBlocks = React.useMemo(
     () =>
-      [...autoBlocks, ...manualBlocks].sort(
-        (a, b) =>
-          a.day - b.day ||
-          a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute),
-      ),
-    [autoBlocks, manualBlocks],
+      // M13 — HOJE fala o AGORA: os blocos de hoje re-ancoram no momento do
+      // acesso (a MESMA âncora da home — 1 fonte do "quando"); os blocos
+      // manuais (a mão do dono) ficam na hora escolhida. A semana futura
+      // mostra o ritmo APRENDIDO — e a tela só revela relógio que o uso ensinou.
+      now
+        ? [
+            ...adaptTodayBlocksToNow(
+              autoBlocks.filter((b) => b.day === now.getDay()),
+              now,
+            ),
+            ...autoBlocks.filter((b) => b.day !== now.getDay()),
+            ...manualBlocks,
+          ].sort(
+            (a, b) =>
+              a.day - b.day ||
+              a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute),
+          )
+        : [],
+    [autoBlocks, manualBlocks, now],
   );
 
   const blocksByDay = React.useMemo(() => {
@@ -493,6 +511,7 @@ export function ScheduleView() {
               index={idx}
               now={now}
               today={today}
+              starts={sp.progress.sessionStarts}
               blocks={blocksByDay.get(d.num) ?? []}
               enabled={prefs.days[d.num]?.enabled ?? false}
               fixedCode={prefs.fixedDisciplines?.[d.num]}
@@ -691,6 +710,7 @@ function DayCard({
   index,
   now,
   today,
+  starts,
   blocks,
   enabled,
   fixedCode,
@@ -703,6 +723,8 @@ function DayCard({
   index: number;
   now: Date;
   today: number;
+  /** Inícios reais de sessão — a fonte da regra de exibição do relógio (M13). */
+  starts: SessionStart[];
   blocks: SmartBlock[];
   enabled: boolean;
   fixedCode?: string;
@@ -805,9 +827,18 @@ function DayCard({
             </p>
           </div>
         ) : blocks.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center py-4 text-center text-[11px] text-muted-foreground">
-            Sem blocos gerados — ajuste a duração do dia ou os limites.
-          </div>
+          isToday ? (
+            // M13 — HOJE re-ancora no agora: coluna vazia no dia = as janelas
+            // já passaram (o agora despede o que não serve mais). A frase
+            // não manda o dono "ajustar limites" — a semana absorve o resto.
+            <div className="flex flex-1 items-center justify-center py-4 text-center text-[11px] text-muted-foreground">
+              As janelas de hoje já passaram — o resto a semana absorve.
+            </div>
+          ) : (
+            <div className="flex flex-1 items-center justify-center py-4 text-center text-[11px] text-muted-foreground">
+              Sem blocos gerados — ajuste a duração do dia ou os limites.
+            </div>
+          )
         ) : (
           <ul className={cn('max-h-80 flex-1 space-y-1.5 overflow-y-auto pr-0.5', SCROLLBAR)}>
             {blocks.map((b) => (
@@ -815,6 +846,8 @@ function DayCard({
                 key={b.id}
                 block={b}
                 done={doneSet.has(b.id)}
+                isToday={isToday}
+                starts={starts}
                 onToggleDone={() => onToggleDone(b.id)}
                 onRemove={
                   b.id.startsWith('manual-') ? () => onRemoveManual(b.id) : undefined
@@ -979,11 +1012,16 @@ interface BadgeDef {
 function ScheduleBlockItem({
   block,
   done,
+  isToday,
+  starts,
   onToggleDone,
   onRemove,
 }: {
   block: SmartBlock;
   done: boolean;
+  /** Bloco de hoje — re-ancorado no agora, o relógio é honesto por definição. */
+  isToday: boolean;
+  starts: SessionStart[];
   onToggleDone: () => void;
   onRemove?: () => void;
 }) {
@@ -992,6 +1030,12 @@ function ScheduleBlockItem({
   const tint = DARK_TINT[visual.colorName] ?? 'bg-slate-500/10';
   const textCls = DARK_TEXT[visual.colorName] ?? 'text-slate-300';
   const isManual = block.id.startsWith('manual-');
+  // M13 — O RELÓGIO SÓ APARECE QUANDO O USO O ENSINOU: hoje é ancorado no
+  // agora (honesto por definição); manual é a mão do dono; dia futuro mostra
+  // a hora só quando o turno do bloco já tem ≥3 inícios reais — senão, o
+  // NOME do turno ("Tarde • 2h"), nunca o 08h/14h/19h que ninguém escolheu.
+  const turno = turnoOfHour(Math.floor(block.startHour));
+  const clockOk = isToday || isManual || turnoIsLearned(starts, turno);
 
   const badges: BadgeDef[] = [];
   if (block.fixed) {
@@ -1042,7 +1086,9 @@ function ScheduleBlockItem({
       <div className="flex items-center justify-between gap-1">
         <span className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
           <Clock4 className="size-3" />
-          {formatTime(block.startHour, block.startMinute)} • {fmtDuration(block.durationMin)}
+          {clockOk
+            ? `${formatTime(block.startHour, block.startMinute)} • ${fmtDuration(block.durationMin)}`
+            : `${TURNO_LABEL[turno].toLowerCase()} • ${fmtDuration(block.durationMin)}`}
         </span>
         <div className="flex items-center gap-0.5">
           {onRemove && (

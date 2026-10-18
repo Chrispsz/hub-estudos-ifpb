@@ -58,7 +58,7 @@ import {
 import { suggestBudgetFromHistory, syncPomodoroToBudget, buildSessionHarmony } from '@/lib/session-harmony';
 import { buildDayLaunchPlan, launchStepsFromSchedule, launchStepsFromSession, type LaunchStep } from '@/lib/day-launch';
 import { useStudyProgress } from '@/lib/study-progress';
-import { windowsOf, windowsWithLearnedStarts, TURNO_LABEL, type DayWindow } from '@/lib/study-progress';
+import { windowsOf, windowsWithLearnedStarts, TURNO_LABEL, turnoIsLearned, type DayWindow } from '@/lib/study-progress';
 import { useErrorReviewTasks } from '@/lib/error-review-feed';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
@@ -945,26 +945,42 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         )}
         {/* TASK 225 — O RITMO DE HOJE, vivo: o foco REAL registrado preenche
             as janelas em sequência (manhã → tarde → noite) — ninguém marca
-            nada à mão, a casa mostra o turno cumprido, o em curso e o que vem. */}
+            nada à mão, a casa mostra o turno cumprido, o em curso e o que vem.
+            M13 — a hora SÓ aparece quando o uso a ensinou (turnoIsLearned):
+            turno ainda sem lances reais = nome do turno, nunca o relógio
+            08h/14h/19h que ninguém escolheu (dono: "eu não defini esses
+            horários nem quero"). */}
         {agora && dayRhythm.length > 0 && (
           <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs" data-t="ritmo-hoje">
             <span className="font-medium text-muted-foreground">Ritmo de hoje:</span>
-            {rhythmStatus.map(({ window: w, status, minutes }) => (
-              <span
-                key={w.turno}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 tabular-nums',
-                  status === 'done'
-                    ? 'border-emerald-500/40 bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-400'
-                    : status === 'curso'
-                      ? 'border-primary/40 bg-primary/10 font-medium text-primary'
-                      : 'border-border text-muted-foreground',
-                )}
-              >
-                {TURNO_LABEL[w.turno]} {formatTime(w.startHour, 0)}
-                {status === 'done' ? ' · feita' : status === 'curso' ? ` · ${minutes}min` : ''}
-              </span>
-            ))}
+            {rhythmStatus.map(({ window: w, status, minutes }) => {
+              const learned = turnoIsLearned(sp.progress.sessionStarts, w.turno);
+              return (
+                <span
+                  key={w.turno}
+                  title={
+                    learned
+                      ? `horário registrado do seu uso real (mediana dos seus inícios de ${TURNO_LABEL[w.turno].toLowerCase()})`
+                      : 'a casa está registrando quando você começa — a hora deste turno aparece com o uso'
+                  }
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 tabular-nums',
+                    status === 'done'
+                      ? 'border-emerald-500/40 bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-400'
+                      : status === 'curso'
+                        ? 'border-primary/40 bg-primary/10 font-medium text-primary'
+                        : 'border-border text-muted-foreground',
+                  )}
+                >
+                  {TURNO_LABEL[w.turno]}
+                  {learned ? ` ${formatTime(w.startHour, 0)}` : ''}
+                  {status === 'done' ? ' · feita' : status === 'curso' ? ` · ${minutes}min` : ''}
+                </span>
+              );
+            })}
+            {dayRhythm.some((w) => !turnoIsLearned(sp.progress.sessionStarts, w.turno)) && (
+              <span className="text-[11px] text-muted-foreground/60">— as horas nascem dos seus check-ins</span>
+            )}
           </p>
         )}
         {/* TASK 224 — O FOCO DO DIA: escolher a matéria que concentra a fila.
