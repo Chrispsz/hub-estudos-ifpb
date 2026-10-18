@@ -21,6 +21,7 @@ import * as React from 'react';
 import {
   ArrowRight,
   Check,
+  ChevronDown,
   CircleCheck,
   ListTodo,
   Pause,
@@ -52,6 +53,9 @@ import { useLocalStorage } from '@/lib/use-local-storage';
 
 interface DayLauncherProps {
   plan: DayLaunchPlan | null;
+  /** Os blocos do dia (mesma fila do plan) — a lista aberta no card, sem
+   *  precisar do diálogo (o card É o cronograma de hoje — áudio 18/10). */
+  steps?: LaunchStep[];
   /** Sessão sintonizada (check-in de horas) — muda a fonte da fila e o fecho. */
   sessionActive: boolean;
   /** Foco real registrado hoje (minutos) — a barra do piloto vive disso. */
@@ -69,6 +73,7 @@ interface LaunchActive {
 
 export function DayLauncherCard({
   plan,
+  steps,
   sessionActive,
   minutesToday,
   focusLabel,
@@ -76,6 +81,10 @@ export function DayLauncherCard({
   onCompleteStep,
 }: DayLauncherProps) {
   const [open, setOpen] = React.useState(false);
+  // A LISTA DO DIA NO CARD (áudio 18/10): aberta por padrão — o dono pediu
+  // "um cronograma na home, uma coisa conectada à outra"; fechada, o card
+  // continua 1 linha. O diálogo do piloto mantém os métodos por bloco.
+  const [listOpen, setListOpen] = React.useState(true);
   const [active, setActive] = useLocalStorage<LaunchActive | null>('day-launch-v1', null);
   const focusApi = useStudyFocus();
 
@@ -173,6 +182,85 @@ export function DayLauncherCard({
               <Play className="size-4" aria-hidden />
               {isActive ? 'Continuar meu dia' : 'Iniciar meu dia'}
             </Button>
+          </div>
+        )}
+
+        {/* ----- OS BLOCOS DO DIA, NO PRÓPRIO CARD (áudio 18/10: o dono não
+            queria dois cards dizendo a mesma coisa; agora o lançador É o
+            cronograma de hoje — horas, matérias e material de cada bloco) ----- */}
+        {steps && steps.length > 0 && (
+          <div className="mt-3 border-t border-primary/15 pt-2" data-t="day-launch-blocks">
+            <button
+              type="button"
+              onClick={() => setListOpen((v) => !v)}
+              aria-expanded={listOpen}
+              aria-controls="day-launch-blocks-lista"
+              className="inline-flex items-center gap-1 rounded text-[13px] font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:focus-visible:outline-none hover:focus-visible:ring-2 hover:focus-visible:ring-ring"
+            >
+              {listOpen ? 'Ocultar os blocos' : 'Ver os blocos de hoje'}
+              <ChevronDown
+                className={`size-3.5 transition-transform ${listOpen ? 'rotate-180' : ''}`}
+                aria-hidden
+              />
+            </button>
+            <div
+              id="day-launch-blocks-lista"
+              className="grid transition-[grid-template-rows] duration-300 ease-out"
+              style={{ gridTemplateRows: listOpen ? '1fr' : '0fr' }}
+              aria-hidden={!listOpen}
+              inert={listOpen ? undefined : true}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <ul className="mt-1.5">
+                  {steps.map((s) => {
+                    const isCurrent = !s.done && s.id === (current?.id ?? '');
+                    return (
+                      <li key={s.id}>
+                        <button
+                          type="button"
+                          onClick={() => start(s)}
+                          disabled={s.done}
+                          data-t={`day-block-${s.id}`}
+                          aria-label={`${s.done ? 'Concluído' : 'Iniciar'}: ${s.title}${s.time ? ` às ${s.time}` : ''}`}
+                          className={cn(
+                            'group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2 text-left text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                            s.done
+                              ? 'text-muted-foreground/55'
+                              : 'hover:bg-muted/60',
+                            isCurrent && 'bg-primary/[0.07] ring-1 ring-primary/25',
+                          )}
+                        >
+                          {s.time ? (
+                            <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+                              {s.time}
+                            </span>
+                          ) : (
+                            <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground" aria-hidden>
+                              ·····
+                            </span>
+                          )}
+                          <span className={cn('min-w-0 flex-1 truncate', s.done && 'line-through')}>
+                            {s.title}
+                          </span>
+                          {s.intensive && !s.done && (
+                            <span className="hidden shrink-0 rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400 sm:inline">
+                              prioridade hoje
+                            </span>
+                          )}
+                          {s.done ? (
+                            <Check className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                          ) : (
+                            <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground">
+                              {s.minutes}min
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </div>

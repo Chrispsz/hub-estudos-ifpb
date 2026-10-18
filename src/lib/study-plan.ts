@@ -394,7 +394,7 @@ export function buildDayPlan(
         disciplineCode: s.code,
         title: mat.title,
         why: [
-          `dificuldade real nas questões (${s.solvedNoHelp} de ${s.tried} de cabeça${s.medianTimeSec ? `, ~${Math.round(s.medianTimeSec / 60)}min por questão` : ''}) — reforço antes de avançar a escada`,
+          `dificuldade real nas questões (${s.solvedNoHelp} de ${s.tried} de cabeça${s.medianTimeSec ? `, ~${Math.round(s.medianTimeSec / 60)}min por questão` : ''}) — firmar este conteúdo antes de seguir`,
           examWhy,
         ]
           .filter(Boolean)
@@ -433,7 +433,7 @@ export function buildDayPlan(
           materialId: m.id,
           disciplineCode: m.disciplineCode,
           title: m.title,
-          why: [ck ?? 'ainda sem concluir — o conteúdo que ficou para trás', examWhy]
+          why: [ck ?? 'em aberto — o próximo passo natural da matéria', examWhy]
             .filter(Boolean)
             .join(' · '),
           minutes: focusMin,
@@ -539,13 +539,16 @@ function applyDayFocus(blocks: PlanBlock[], focusDiscipline?: string): PlanBlock
   return [...urgent, ...focused, ...rest];
 }
 
-/** Rótulo curto do tipo de bloco (o dashboard desenha a mini-etiqueta). */
+/** Rótulo curto do tipo de bloco (o dashboard desenha a mini-etiqueta).
+ *  ÁUDIO DO DONO (18/10/2026): "todos os contextos aqui estão atrasados" com
+ *  zero progresso soava a acusação — "Para concluir" diz o mesmo estado sem
+ *  julgamento (quem nunca estudou não está atrasado, está começando). */
 export const PLAN_KIND_LABEL: Record<PlanKind, string> = {
   continuar: 'Continuar',
   revisao: 'Revisão',
   pratica: 'Prática',
   erro: 'Reestudar',
   reforco: 'Reforço',
-  atrasado: 'Atrasado',
+  atrasado: 'Para concluir',
   proximo: 'Próximo',
 };

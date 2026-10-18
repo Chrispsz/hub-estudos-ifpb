@@ -17,8 +17,6 @@ import * as React from 'react';
 import {
   AlarmClock,
   BookOpen,
-  CalendarCheck,
-  CalendarDays,
   ChevronDown,
   ChevronRight,
   CircleAlert,
@@ -33,10 +31,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { disciplines, materials, type Material } from '@/data/course-data';
-import { DisciplineIcon } from '@/lib/discipline-icons';
-import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
 import { openPractice, openProgress, openSimulado } from '@/lib/hub-events';
 import {
@@ -47,17 +42,13 @@ import {
   type TutorUsageEntry,
 } from '@/lib/learning-signals';
 import { MATH_EXAM } from '@/lib/math-exam-prep';
-import { upcomingEvents } from '@/lib/semester';
-import { PnaatReminderCard } from './pnaat-reminder-card';
-import { ExamRadarCard } from './exam-radar-card';
-import { TriageCard } from './triage-card';
 import { WeeklyReport } from './weekly-report';
-import { WeeklyScheduleCard } from './weekly-schedule-card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey, type TodaySnapshot } from '@/lib/today-focus';
 import { buildDayPlan } from '@/lib/study-plan';
 import {
+  adaptTodayBlocksToNow,
   generateSmartSchedule,
   formatTime,
   weekStudiedMinutesByDiscipline,
@@ -79,16 +70,6 @@ import { DayLauncherCard } from './day-launcher';
 
 /** A folha da prova — as questões do professor como MATERIAL (t180). */
 const FOLHA_DA_PROVA_ID = 'mat-av1-questoes-professor';
-
-/** TASK 221 — A CARA DE CADA BLOCO DO CRONOGRAMA DE HOJE: cor fixa por
- *  natureza (estudo = teal, revisão = âmbar, projeto = violeta, exercícios =
- *  esmeralda). Tabela fora do componente — é dado, não estado. */
-const ACTIVITY_META: Record<SmartBlock['activity'], { icon: LucideIcon; bg: string; text: string }> = {
-  estudo: { icon: BookOpen, bg: 'bg-teal-500/10', text: 'text-teal-700 dark:text-teal-400' },
-  revisao: { icon: History, bg: 'bg-amber-500/10', text: 'text-amber-700 dark:text-amber-400' },
-  projeto: { icon: Sparkles, bg: 'bg-violet-500/10', text: 'text-violet-700 dark:text-violet-400' },
-  exercicios: { icon: PenLine, bg: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400' },
-};
 
 /** A página de retomada REAL (memória do leitor, hub:pdf-pos — t161), injetada
  *  no retrato: o chip "(pág. N)" da home fala a verdade da leitura. */
@@ -246,17 +227,20 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     for (const [code, v] of Object.entries(sp.progress.disciplineProgress ?? {})) {
       discProg[code] = { studiedMinutes: v.studiedMinutes, lastStudiedAt: v.lastStudiedAt };
     }
-    return generateSmartSchedule({
-      preferences: sp.progress.studyPreferences,
-      topicProgress: sp.progress.topicProgress,
-      disciplineProgress: discProg,
-      customEvaluations: sp.progress.customEvaluations,
-      weekStudiedMinutes: weekStudied,
-      facility: facilityMapOf(sp.progress),
-      now: agora,
-    })
-      .filter((b) => b.day === agora.getDay())
-      .sort((a, b) => a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute));
+    return adaptTodayBlocksToNow(
+      generateSmartSchedule({
+        preferences: sp.progress.studyPreferences,
+        topicProgress: sp.progress.topicProgress,
+        disciplineProgress: discProg,
+        customEvaluations: sp.progress.customEvaluations,
+        weekStudiedMinutes: weekStudied,
+        facility: facilityMapOf(sp.progress),
+        now: agora,
+      })
+        .filter((b) => b.day === agora.getDay())
+        .sort((a, b) => a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute)),
+      agora,
+    );
   }, [agora, sp.progress, weekStudied]);
 
   // O material sugerido por disciplina (1º da fila que toca aquele código) —
@@ -273,22 +257,44 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
 
   const dayBlocksMinutes = dayBlocks.reduce((acc, b) => acc + b.durationMin, 0);
 
+  /** 1.5 → "1h30" · 2 → "2h" · 0.75 → "45min". */
+  const fmtH = (h: number): string => {
+    const total = Math.round(h * 60);
+    const hh = Math.floor(total / 60);
+    const mm = total % 60;
+    if (hh === 0) return `${mm}min`;
+    return mm === 0 ? `${hh}h` : `${hh}h${mm}`;
+  };
+
+  // A LINHA DO DIA (áudio do dono: "a home… não pode ser confusa, não pode
+  // ser cheia… eu já tenho agenda, é meu cronograma") — o herói descreve o
+  // dia do CRONOGRAMA, não grita a próxima avaliação. "Foco: X" só quando a
+  // avaliação é HOJE ou AMANHÃ (heroEvalNow, definido após focusEval) — a
+  // véspera merece o lugar, o d-5 não (era o que deixava a casa "focando
+  // muito em resgate").
+  const dayLine = React.useMemo(() => {
+    if (dayBlocks.length === 0) return null;
+    const first = dayBlocks[0];
+    const firstShort = first.disciplineCode
+      ? disciplines.find((d) => d.code === first.disciplineCode)?.shortName ?? ''
+      : 'revisão';
+    const codes = [...new Set(dayBlocks.map((b) => b.disciplineCode))]
+      .map((c) => disciplines.find((d) => d.code === c)?.shortName ?? c)
+      .filter((c) => c !== 'revisao');
+    if (codes.length <= 1 && dayBlocks.length === 1) {
+      // Um bloco só — sem redundância ("Algoritmos… começa por Algoritmos").
+      return `1 bloco · ~${fmtH(dayBlocksMinutes / 60)} de ${codes[0] ?? 'revisão'}. Começa às ${formatTime(first.startHour, first.startMinute)}.`;
+    }
+    const subjects = codes.slice(0, 3).join(', ') + (codes.length > 3 ? ` e mais ${codes.length - 3}` : '');
+    return `${dayBlocks.length} ${dayBlocks.length === 1 ? 'bloco' : 'blocos'} · ~${fmtH(dayBlocksMinutes / 60)} — ${subjects}. Começa por ${firstShort} às ${formatTime(first.startHour, first.startMinute)}.`;
+  }, [dayBlocks, dayBlocksMinutes]);
+
   const nextExam = snap?.nextExam ?? null;
   // TASK 221 — o herói é CONSCIENTE DO TIPO e cita a avaliação CERTA:
-  // focusEval = a avaliação que cumpriu a janela da casa (prova ≤14d,
-  // atividade ≤3d, trabalho ≤7d) — pode diferir da mais próxima (RHT D-5
-  // não toma a casa da prova de Algoritmos D-14). nextExam segue como
-  // INFORMAÇÃO (retrato, badge da disciplina).
   const focusExam = snap?.focus.kind === 'exam';
   const focusEval = snap?.focusEval ?? null;
-  const evalLabelLower = nextExam ? nextExam.kindLabel.toLowerCase() : 'avaliação';
-  const evalLabelShort = nextExam
-    ? nextExam.daysLeft === 0
-      ? `${evalLabelLower} hoje`
-      : nextExam.daysLeft === 1
-        ? `${evalLabelLower} amanhã`
-        : `${evalLabelLower} em ${nextExam.daysLeft} dias`
-    : undefined;
+  // "Foco: X" no herói só na véspera/hoje (d-1/d-0) — ver LINHA DO DIA acima.
+  const heroEvalNow = !!focusEval && focusEval.daysLeft <= 1;
 
   // ----- Horas do dia (check-in) + doses do método + agenda oficial -----
   const plannedHours = snap?.plannedHours ?? null;
@@ -413,15 +419,6 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   /** Os lances de hoje (check-ins com horário) — a história das sessões partidas. */
   const checkinsToday = dateKey ? sp.progress.dailyCheckins?.[dateKey] ?? [] : [];
 
-  /** 1.5 → "1h30" · 2 → "2h" · 0.75 → "45min". */
-  const fmtH = (h: number): string => {
-    const total = Math.round(h * 60);
-    const hh = Math.floor(total / 60);
-    const mm = total % 60;
-    if (hh === 0) return `${mm}min`;
-    return mm === 0 ? `${hh}h` : `${hh}h${mm}`;
-  };
-
   // As horas lançadas viram doses por passo (40/35/25, arredondadas a 5min).
   const doseLine = React.useMemo(() => {
     if (!plannedHours) return null;
@@ -432,8 +429,6 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     const d3 = Math.max(5, total - d1 - d2);
     return `Plano para ${fmtH(plannedHours)}: leia ~${fmtH(d1 / 60)} · pratique ~${fmtH(d2 / 60)} · ensaie ~${fmtH(d3 / 60)}`;
   }, [plannedHours]);
-
-  const agenda = React.useMemo(() => (agora ? upcomingEvents(agora, 5) : []), [agora]);
 
   // A linha do retrato — números que contam a história, sem placar.
   const retrato = React.useMemo(() => {
@@ -745,23 +740,20 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       {/* A linha do dia — uma frase humana, nada de painel */}
       <section aria-labelledby="dia-titulo">
         <h1 id="dia-titulo" className="text-2xl font-semibold tracking-tight">
-          {focusExam && focusEval
+          {heroEvalNow && focusEval
             ? `Foco: ${focusEval.name} de ${focusEval.disciplineShort}.`
             : 'Bom estudo.'}
         </h1>
         <p className="mt-1 text-[15px] text-muted-foreground">
-          {focusExam && focusEval ? (
+          {heroEvalNow && focusEval ? (
             <>
               {focusEval.daysLeft === 0
                 ? `A ${focusEval.kindLabel.toLowerCase()} é hoje`
-                : `${focusEval.kindLabel} em ${focusEval.daysLeft} ${focusEval.daysLeft === 1 ? 'dia' : 'dias'}`}
-              . Um método, três passos: leia com o tutor, resolva no papel, ensaie.
+                : `${focusEval.kindLabel} amanhã`}
+              . {dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'}
             </>
           ) : (
-            <>
-              Um método, três passos: leia com o tutor, resolva no papel, ensaie. É tudo o que o
-              site pede de você.
-            </>
+            dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'
           )}
         </p>
         {/* O 1º passo de ontem — a promessa do fecho cobrada na hora certa (banco #6) */}
@@ -1095,17 +1087,23 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         )}
       </section>
 
-      {/* TASK 222 — O DIA PRONTO: o gesto de abrir o dia. Um clique monta a
-          fila (cronograma inteligente OU sessão sintonizada), adapta o
-          Pomodoro ao tamanho do bloco e abre o conteúdo certo com o tutor. */}
-      <DayLauncherCard
-        plan={launchPlan}
-        sessionActive={sessionActive}
-        minutesToday={snap?.minutesToday ?? 0}
-        focusLabel={dayFocusShort}
-        onStartStep={launchStep}
-        onCompleteStep={completeLaunchStep}
-      />
+      {/* TASK 222 + ÁUDIO 18/10 — UM CARD SÓ PARA O DIA: o lançador É o
+          cronograma de hoje (os blocos moram dentro dele, abertos com um
+          toque). Fim dos dois cards dizendo a mesma coisa em horas
+          diferentes — "eu não sei o que eu vou fazer ou o que eu vou dar no
+          dia dessa maneira". Com sessão sintonizada, o card da sessão
+          assume (a mesma fila, com barra viva e fecho). */}
+      {!sessionActive && (
+        <DayLauncherCard
+          plan={launchPlan}
+          steps={launchSteps}
+          sessionActive={sessionActive}
+          minutesToday={snap?.minutesToday ?? 0}
+          focusLabel={dayFocusShort}
+          onStartStep={launchStep}
+          onCompleteStep={completeLaunchStep}
+        />
+      )}
 
       {/* O método — um caminho só, três passos, cada um abre o conteúdo certo */}
       <Card className="rounded-2xl p-5 sm:p-6" data-t="metodo-card">
@@ -1150,258 +1148,19 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         </ol>
       </Card>
 
-      {/* TASK 30 — A SESSÃO SINTONIZADA: com orçamento no dia, ela assume a
-          vez do Plano de hoje (a MESMA fila, agora casada com o tempo — blocos
-          que cabem, fecho garantido, pomodoro encaixado, barra viva). Sem
-          check-in, a casa segue com o plano de sempre. */}
-      {/* TASK 221 — UM CRONOGRAMA SÓ: a home mostra o DIA do cronograma
-          inteligente (mesma fonte da aba Cronograma — smart-schedule), com
-          hora, tipo de atividade e o material da fila anexado a cada bloco.
-          A fila de materiais completa (continuar/revisão/erro/...) mora na
-          aba Cronograma — um plano, duas profundidades, zero duplicação. */}
-      {sessionActive ? (
-        <SessionHarmonyCard onOpenBlock={openPlanBlock} />
-      ) : dayBlocks.length > 0 ? (
-        <Card className="rounded-2xl p-5 sm:p-6" data-t="plano-card">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-            <h2 className="text-base font-semibold leading-tight">Hoje no cronograma</h2>
-            <span className="text-xs tabular-nums text-muted-foreground" data-t="plano-total">
-              ~{fmtH(dayBlocksMinutes / 60)} · {dayBlocks.length}{' '}
-              {dayBlocks.length === 1 ? 'bloco' : 'blocos'}
-            </span>
-          </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            O cronograma inteligente decide o dia — os pesos vêm da carga horária
-            oficial, do papel na grade do curso (núcleo, base, transversal), do
-            seu perfil (lógica, programação e matemática) e das datas oficiais.
-            Clique para abrir o material do bloco com o tutor.
-          </p>
-          <ul className="mt-2">
-            {/* TASK 225 — DIVISORES DE TURNO: com janelas no dia, a lista abre
-                cada turno ("Tarde · 14:00–16:00") — o cronograma do motor fala
-                a língua do ritmo (manhã/tarde/noite), não uma fila contínua. */}
-            {(() => {
-              let lastWinIdx = -1;
-              return dayBlocks.map((b) => {
-                const startMins = b.startHour * 60 + b.startMinute;
-                const winIdx = dayRhythm.findIndex(
-                  (w) => startMins >= w.startHour * 60 && startMins < w.startHour * 60 + w.durationMin,
-                );
-                const newWindow = winIdx >= 0 && winIdx !== lastWinIdx;
-                if (winIdx >= 0) lastWinIdx = winIdx;
-                const win = winIdx >= 0 ? dayRhythm[winIdx] : null;
-                const winEndMin = win ? win.startHour * 60 + win.durationMin : 0;
-                const meta = ACTIVITY_META[b.activity];
-                const Icon = meta.icon;
-                const d = disciplines.find((x) => x.code === b.disciplineCode);
-                const isReview = b.disciplineCode === 'revisao';
-                const matId = materialOfDiscipline.get(b.disciplineCode);
-                const matTitle = matId ? materials.find((m) => m.id === matId)?.title : null;
-                return (
-                  <React.Fragment key={b.id}>
-                    {newWindow && win && (
-                      <li
-                        aria-hidden
-                        className="mt-2 flex items-center gap-2 px-2 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/80 first:mt-0"
-                      >
-                        {TURNO_LABEL[win.turno]} · {formatTime(win.startHour, 0)}–
-                        {formatTime(Math.floor(winEndMin / 60), winEndMin % 60)}
-                        <span className="h-px flex-1 bg-border/70" />
-                      </li>
-                    )}
-                    <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isReview) {
-                        openPractice({ mode: 'flashcards' });
-                        return;
-                      }
-                      const mat = matId ? materials.find((m) => m.id === matId) ?? null : null;
-                      if (mat) openMaterialFocused(mat);
-                      else onStartStudy(b.disciplineCode);
-                    }}
-                    data-t={`plano-${b.id}`}
-                    aria-label={`${b.title} às ${formatTime(b.startHour, b.startMinute)} — ${matTitle ? `abrir ${matTitle}` : 'abrir a disciplina com o tutor'}`}
-                    className="group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <span
-                      className={cn(
-                        'grid size-9 shrink-0 place-items-center rounded-xl',
-                        meta.bg,
-                        meta.text,
-                      )}
-                      aria-hidden
-                    >
-                      <Icon className="size-4.5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex min-w-0 items-baseline gap-2">
-                        <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
-                          {formatTime(b.startHour, b.startMinute)}
-                        </span>
-                        {d && (
-                          <span className="shrink-0 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            {d.shortName}
-                          </span>
-                        )}
-                        {b.intensive && (
-                          <span className="shrink-0 rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
-                            prioridade hoje
-                          </span>
-                        )}
-                        {b.stale && (
-                          <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                            retomada
-                          </span>
-                        )}
-                        <span className="truncate text-[14px] font-medium leading-snug">
-                          {b.title}
-                        </span>
-                      </span>
-                      {matTitle && (
-                        <span className="mt-0.5 block truncate text-[13px] leading-snug text-muted-foreground">
-                          abrir: {matTitle}
-                        </span>
-                      )}
-                    </span>
-                    <ChevronRight
-                      className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5"
-                      aria-hidden
-                    />
-                  </button>
-                </li>
-                  </React.Fragment>
-                );
-              });
-            })()}
-          </ul>
-        </Card>
-      ) : (
-        <Card className="rounded-2xl p-5 sm:p-6" data-t="plano-card">
-          <h2 className="text-base font-semibold leading-tight">Hoje no cronograma</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Nenhum bloco planejado para hoje — o dia está livre. Para programar
-            sessões, ajuste dias e duração na aba <strong>Cronograma</strong> →{' '}
-            Preferências.
-          </p>
-        </Card>
-      )}
+      {/* TASK 221 + ÁUDIO 18/10 — UM CRONOGRAMA SÓ: com sessão sintonizada a
+          home mostra a sessão (barra viva + fecho); sem sessão, o lançador
+          acima É o dia (blocos dentro dele). O card separado "Hoje no
+          cronograma" saiu daqui — era a segunda contabilidade que o dono
+          apontou no áudio ("cinco blocos…" em cima e "~5h · 6 blocos"
+          embaixo, com horas que não conversavam). */}
+      {sessionActive && <SessionHarmonyCard onOpenBlock={openPlanBlock} />}
 
-      {/* TASK 219 — FILA ESSENCIAL: a triagem do motor (foco/manter/em espera)
-          — onde os blocos do dia vão, o que fica em manutenção e o que está
-          estacionado com motivo. Derivada de datas oficiais + tipo de avaliação
-          + dívida de prática — nada fixado à mão, recalculado todo dia. */}
-      <TriageCard />
-
-      {/* TASK 27 — O RADAR DE PROVAS: o ciclo real do semestre — o que foi,
-          o que tem data e o que está a definir. É o espelho do que a fila já
-          faz: prova marcada pesa, prova feita sai. */}
-      <ExamRadarCard />
-
-      {/* TASK 216 — A GRADE OFICIAL DE AULAS: "você não puxou os horários?"
-          respondido de vez — a casa sabe quando cada aula acontece (fonte
-          horarios.ifpb.edu.br/cajazeiras, 2026.2) e daqui sai o dia certo de
-          avaliações anunciadas "para a próxima aula" (RHT: quarta, M3–M5). */}
-      <WeeklyScheduleCard />
-
-      {/* Lembrete PNAAT — compromisso externo (plataforma FIT): lembrar, não replicar */}
-      <PnaatReminderCard />
-
-      {/* Agenda oficial — o calendário do campus, fonte viva: nada de prazo surpresa */}
-      {agenda.length > 0 && (
-        <Card className="rounded-2xl p-5 sm:p-6" data-t="agenda-card">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
-            <h2 className="text-base font-semibold leading-tight">Agenda</h2>
-          </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Próximos compromissos oficiais do calendário do campus.
-          </p>
-          <ul className="mt-3">
-            {agenda.map((ev, i) => (
-              <li
-                key={`${ev.date}-${ev.title}`}
-                className={`flex items-center gap-3 py-2 text-sm ${i > 0 ? 'border-t border-border/60' : ''}`}
-              >
-                <span
-                  className={`size-1.5 shrink-0 rounded-full ${
-                    ev.kind === 'provas'
-                      ? 'bg-violet-500'
-                      : ev.kind === 'prazo'
-                        ? 'bg-amber-500'
-                        : ev.kind === 'feriado'
-                          ? 'bg-emerald-500'
-                          : ev.kind === 'letivo'
-                            ? 'bg-teal-500'
-                            : 'bg-zinc-400'
-                  }`}
-                  aria-hidden
-                />
-                <span className="w-14 shrink-0 text-muted-foreground">
-                  {ev.ongoing
-                    ? 'em curso'
-                    : ev.daysLeft === 0
-                      ? 'hoje'
-                      : ev.daysLeft === 1
-                        ? 'amanhã'
-                        : `${ev.date.slice(8, 10)}/${ev.date.slice(5, 7)}`}
-                </span>
-                <span className="min-w-0 flex-1 leading-snug">{ev.title}</span>
-                {ev.daysLeft >= 0 && ev.daysLeft <= 7 && !ev.ongoing && (
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {ev.daysLeft === 0 ? 'hoje' : ev.daysLeft === 1 ? 'amanhã' : `em ${ev.daysLeft} dias`}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {/* Disciplinas — uma lista simples, cada linha abre os materiais */}
-      <section aria-labelledby="disciplinas-titulo">
-        <h2 id="disciplinas-titulo" className="text-base font-semibold leading-tight">
-          Disciplinas
-        </h2>
-        <div className="mt-3 grid gap-2" data-t="disciplinas-lista">
-          {disciplines.map((d) => {
-            const count = materials.filter((m) => m.disciplineCode === d.code).length;
-            const emFoco = !!nextExam && d.code === nextExam.disciplineCode;
-            return (
-              <button
-                key={d.code}
-                type="button"
-                onClick={() => onStartStudy(d.code)}
-                className="group flex w-full min-w-0 items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:border-foreground/25 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={`Abrir materiais de ${d.name}`}
-              >
-                <span
-                  className={`grid size-10 shrink-0 place-items-center rounded-xl ${getColorClasses(d.color).bgSoft} ${getColorClasses(d.color).text}`}
-                >
-                  <DisciplineIcon name={d.icon} className="size-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium">{d.name}</span>
-                  <span className="block truncate text-sm text-muted-foreground">
-                    {count === 0 ? 'sem materiais ainda' : `${count} ${count === 1 ? 'material' : 'materiais'}`}
-                  </span>
-                </span>
-                {emFoco && evalLabelShort && (
-                  <Badge className="shrink-0 gap-1 bg-violet-600 text-white shadow-sm">
-                    <CalendarCheck className="size-3" aria-hidden />
-                    {evalLabelShort}
-                  </Badge>
-                )}
-                <ChevronRight
-                  className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden
-                />
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      {/* ÁUDIO 18/10 — A HOME LIMPA: a fila essencial (triagem), o radar de
+          provas, a grade de aulas, o PNAAT e a agenda oficial moram na aba
+          Cronograma — "algumas dessas coisas poderiam ser levadas a outras
+          abas, claro, sem deixar o site complexo sujo". A home fica com o
+          dia, o método e as disciplinas. */}
 
       {/* Links úteis — uma linha discreta, nada de blocos (backup saiu: sujeira
           consciente segundo o dono, 10/10/2026 — a função segue em Configurações) */}

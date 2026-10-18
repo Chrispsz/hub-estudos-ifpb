@@ -88,18 +88,20 @@ export function escadaPosicao(d: Discipline, topicProgress: { [topic: string]: b
 
   const rotulo = unidadeCurta(target.unidade);
   let frase: string;
+  // ÁUDIO DO DONO (18/10/2026): "escada", "degrau", "empilhando" eram
+  // metáforas internas que ninguém lê de fora — a fila fala a ação.
   switch (d.estrategiaConteudo) {
     case 'escada':
-      frase = `Escada: ${rotulo} (${idx} de ${units.length}) — próximo degrau: ${proximos[0] ?? '—'}`;
+      frase = `${rotulo} (${idx} de ${units.length}) — siga na ordem: comece por ${proximos[0] ?? '—'}`;
       break;
     case 'acumulo':
-      frase = `Empilhando: ${rotulo} (${idx} de ${units.length}) — consolide ${proximos[0] ?? '—'} e o que veio antes sustenta o próximo`;
+      frase = `${rotulo} (${idx} de ${units.length}) — firme ${proximos[0] ?? '—'} antes de seguir`;
       break;
     case 'assunto-novo':
       frase = `Assunto novo: ${rotulo} — foco em ${proximos[0] ?? '—'} (o que a aula trouxe agora)`;
       break;
     default:
-      frase = `Rodando: ${rotulo} — toque em ${proximos[0] ?? '—'} para manter a produção`;
+      frase = `${rotulo} — toque em ${proximos[0] ?? '—'} para manter o ritmo`;
   }
 
   return {

@@ -60,15 +60,8 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -77,7 +70,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import {
   Sheet,
@@ -128,6 +120,7 @@ import { resolveRetryTarget } from '@/lib/tutor-retry';
 import { TUTOR_CONTINUE_QUESTION, canContinueFromInterrupt } from '@/lib/tutor-continue';
 import { MATH_EXAM, MATH_EXAM_DATE_SHORT } from '@/lib/math-exam-prep';
 import { daysUntilDate } from '@/lib/semester';
+import { todayDateKey } from '@/lib/today-focus';
 import { downscaleCanvas, downscaleImageFile, imageFromClipboard } from '@/lib/tutor-image';
 import {
   instantPrintPage,
@@ -204,6 +197,14 @@ interface ChatMessage {
 /** Hora local curta (HH:MM) para carimbar mensagens do chat. */
 const hhmm = () =>
   new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+/** Horas do check-in em humano (228-c): 2 → "2h", 1.5 → "1h30". */
+function fmtHours(h: number): string {
+  const totalMin = Math.round(h * 60);
+  const hh = Math.floor(totalMin / 60);
+  const mm = totalMin % 60;
+  return mm === 0 ? `${hh}h` : `${hh}h${String(mm).padStart(2, '0')}`;
+}
 
 /** Cabeça de dia no fio (t151): "Hoje" · "Ontem" · dd/mm entre fios de cabelo. */
 function ChatDayChip({ label }: { label: string }) {
@@ -487,8 +488,21 @@ export function StudyView({
 
   const cfg = sp.progress.preferences.pomodoroConfig;
 
+  // ORÇAMENTO DO DIA (228-c — o Pomodoro adaptado ao cronograma): o check-in
+  // de horas lança Xh; a harmonia (session-harmony / syncPomodoroToBudget)
+  // encaixa o foco NELE e escreve o config do motor. A linha do timer lê os
+  // DOIS lados: o orçamento lançado hoje + o config ATUAL do motor (N min).
+  const todayBudgetHours = React.useMemo(() => {
+    const dh = sp.progress.dailyHours;
+    if (!dh) return 0;
+    return dh[todayDateKey(new Date())] ?? 0;
+  }, [sp.progress.dailyHours]);
+
   // ----- Chat IA -----
-  const [chatOpen, setChatOpen] = React.useState(false);
+  // 228-c — O CHAT É A PÁGINA: sem Sheet e sem chatOpen — a conversa vive
+  // montada no corpo da aba (o pedido do áudio: "não tenho por que estar
+  // vendo parâmetros"). O que antes "abria o chat" agora é só o gesto de
+  // levar o cursor ao composer (pedido externo não-silencioso).
   const [zenOpen, setZenOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>(() => [
     {
@@ -947,22 +961,22 @@ export function StudyView({
       setChatImage(tutorReq.detail.image);
       setChatImageLabel(tutorReq.detail.imageLabel ?? 'print do material');
     }
-    // O SILÊNCIO (t178): pedido silent com o chat fechado anexa e NÃO abre —
-    // o dono continua lendo o PDF; o chip na barra do leitor confessa o
-    // destino e a abertura vira clique DELE (o próximo openTutor normal, ou
-    // o próprio botão do chat, mostra o chip no composer). Chat já aberto:
-    // nada muda — a entrega é a mesma e a janela já está na frente.
-    if (!(tutorReq.detail.silent && !chatOpen)) {
-      setChatOpen(true);
+    // O SILÊNCIO (t178), na era do chat-página (228-c): pedido silent anexa
+    // e NÃO rouba o cursor — o dono continua lendo o PDF; o chip na barra do
+    // leitor confessa o destino e o gesto final é DELE. Pedido normal: o
+    // cursor pousa no composer (o chat está sempre à vista — nada abre por
+    // cima de nada).
+    if (!tutorReq.detail.silent) {
+      chatTaRef.current?.focus();
     }
   }, [tutorReq?.nonce]);
 
-  // Memória: restaura a conversa salva da disciplina ao abrir o chat.
+  // Memória: restaura a conversa salva da disciplina (o chat vive montado —
+  // a restauração acontece na montagem da aba e a cada troca de disciplina).
   React.useEffect(() => {
-    if (!chatOpen) return;
-    // t165: cada abertura é um recomeço de leitura — o follow volta ligado
-    // (o Sheet desmonta o fio; sem o reset, um "subiu" da sessão anterior
-    // deixaria o aluno no topo com a resposta nova crescendo em silêncio).
+    // t165: cada entrada é um recomeço de leitura — o follow volta ligado
+    // (sem o reset, um "subiu" da sessão anterior deixaria o aluno no topo
+    // com a resposta nova crescendo em silêncio).
     setChatFollowing(true);
     followLockRef.current = false;
     let alive = true;
@@ -1009,7 +1023,7 @@ export function StudyView({
     return () => {
       alive = false;
     };
-  }, [chatOpen, disciplineCode]);
+  }, [disciplineCode]);
 
   // Auto-scroll do chat — t165: CONDICIONAL à intenção do leitor. Se ele
   // subiu (chatFollowing=false), o fio cresce em silêncio; a pill oferece a
@@ -1020,7 +1034,7 @@ export function StudyView({
   React.useEffect(() => {
     const el = messagesRef.current;
     if (el && chatFollowing) el.scrollTop = el.scrollHeight;
-  }, [messages, chatLoading, chatOpen, streamText, chatFollowing]);
+  }, [messages, chatLoading, streamText, chatFollowing]);
 
   // t165 — o relogio da intenção: cada scroll REAL do leitor reavalia o
   // follow. O voo programático (pill) é ignorado até pousar no fim
@@ -1118,15 +1132,14 @@ export function StudyView({
    * a pasta de prints do aluno fica limpa. */
 
   // Auto-grow do textarea da mensagem (até ~7 linhas; Shift+Enter quebra a linha).
-  // t176: chatOpen nos deps — o rascunho restaurado com o Sheet fechado monta
-  // o textarea DEPOIS; sem re-medir na abertura, um texto de 5 linhas nascia
-  // espremido em 1 linha (o effect antigo só media quando o texto mudava).
+  // 228-c: o composer vive montado (chat-página) — a re-medida acompanha o
+  // texto direto; o rascunho restaurado é medido na própria montagem.
   React.useEffect(() => {
     const el = chatTaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
-  }, [chatInput, chatOpen]);
+  }, [chatInput]);
 
   const sendQuestion = async (
     question: string,
@@ -1321,9 +1334,21 @@ export function StudyView({
   // ----- Render -----
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      {/* ===== Coluna esquerda: Pomodoro + resumos ===== */}
-      <div className="space-y-4 lg:col-span-7">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+      {/* ===== O CHAT É A PÁGINA (228-c): a aba Tutor IA abre a conversa
+          direto — sem parede de parâmetros, sem dialog. A sessão de estudo
+          (disciplina + material + Pomodoro) virou a barra de contexto acima;
+          os tópicos viraram gaveta; o timer acompanha o orçamento do dia. ===== */}
+      <header className="space-y-1">
+        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+          <Sparkles className="size-5 text-amber-400" aria-hidden />
+          Tutor IA
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Pergunte qualquer coisa — ele lê com você, tira dúvida e explica sem entregar a resposta.
+        </p>
+      </header>
+
         <AnimatePresence>
           {banner && (
             <motion.div
@@ -1414,73 +1439,58 @@ export function StudyView({
           )}
         </AnimatePresence>
 
-        <Card>
-          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="size-4 text-emerald-400" />
-                Sessão de estudo
-              </CardTitle>
-              <CardDescription>
-                O material na frente, o tutor do lado — o foco acompanha sozinho.
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setZenOpen(true)}
-              aria-label="Abrir modo foco (tela cheia)"
-              title="Modo foco — tela cheia (Esc para sair)"
+        {/* ===== BARRA DE CONTEXTO (228-c): a sessão inteira numa tira
+            compacta — disciplina + material + timer, configurável em 1 toque,
+            sem dominar a tela. O chat (abaixo) é quem manda na página. ===== */}
+        <section
+          aria-label="Sessão de estudo — disciplina, material e foco"
+          data-testid="study-context-bar"
+          className="rounded-xl border bg-card/50 px-3 py-3 sm:px-4"
+        >
+          {/* Disciplina + material + a porta do leitor + os tópicos — uma linha */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={disciplineCode} onValueChange={handleDisciplineChange}>
+              <SelectTrigger
+                id="study-discipline"
+                aria-label="Disciplina da sessão"
+                className="h-9 w-[168px] shrink-0 text-xs sm:w-[230px] sm:text-sm"
+              >
+                <SelectValue placeholder="Escolha a disciplina" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {disciplines.map((d) => (
+                  <SelectItem key={d.code} value={d.code}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={materialId || 'none'}
+              onValueChange={(v) => setMaterialId(v === 'none' ? '' : v)}
             >
-              <Maximize2 className="size-4" />
-            </Button>
-          </CardHeader>
-
-          <CardContent className="space-y-5">
-            {/* Seleção de disciplina + material */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="study-discipline">Disciplina</Label>
-                <Select value={disciplineCode} onValueChange={handleDisciplineChange}>
-                  <SelectTrigger id="study-discipline" className="w-full">
-                    <SelectValue placeholder="Escolha a disciplina" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {disciplines.map((d) => (
-                      <SelectItem key={d.code} value={d.code}>
-                        {d.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="study-material">Material</Label>
-                <Select
-                  value={materialId || 'none'}
-                  onValueChange={(v) => setMaterialId(v === 'none' ? '' : v)}
-                >
-                  <SelectTrigger id="study-material" className="w-full">
-                    <SelectValue placeholder="Sem material específico" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    <SelectItem value="none">Sem material específico</SelectItem>
-                    {materials.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {MATERIAL_TYPE_LABEL[m.type]} · {m.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
+              <SelectTrigger
+                id="study-material"
+                aria-label="Material da sessão"
+                className="h-9 min-w-[150px] flex-1 text-xs sm:text-sm"
+              >
+                <SelectValue placeholder="Sem material específico" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="none">Sem material específico</SelectItem>
+                {materials.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {MATERIAL_TYPE_LABEL[m.type]} · {m.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {/* O FLUXO EM UM GESTO (o pedido do dono, 10/10/2026): abrir o
-                material É começar o foco — um clique abre o leitor com o tutor
-                ao lado e põe o timer a rodar. Sem selects→fechar→iniciar→reabrir. */}
+                material É começar o foco — o mesmo gesto da era do card,
+                agora compacto na barra. */}
             {selectedMaterial?.pdfPath && (
               <Button
-                size="lg"
+                size="sm"
                 data-testid="study-reader-door"
                 onClick={() => {
                   if (!live.running && live.phase === 'focus') startTimer();
@@ -1488,7 +1498,7 @@ export function StudyView({
                   setReaderInitialMode('split');
                   setReaderOpen(true);
                 }}
-                className="h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
+                className="h-9 shrink-0 bg-emerald-600 px-2.5 text-white hover:bg-emerald-700"
                 aria-label={`Abrir ${selectedMaterial.title} no leitor com o tutor ao lado — ${readerDoorLabel(readerResumePage)}`}
                 title={readerDoorTitle(
                   selectedMaterial.title,
@@ -1497,25 +1507,38 @@ export function StudyView({
                 )}
               >
                 <BookOpen className="size-4" />
-                {live.running ? 'Abrir material' : 'Abrir material e focar'}
+                <span className="max-w-[150px] truncate sm:max-w-none">
+                  {live.running ? 'Abrir material' : 'Abrir material e focar'}
+                </span>
                 <ArrowUpRight className="size-4 opacity-80" />
               </Button>
             )}
+            {/* OS TÓPICOS VIRARAM GAVETA (228-c — o áudio: "esses tópicos podia
+                ser separados daquele material"): um botão com a conta, o painel
+                abre ao lado quando ele quiser marcar algo. */}
+            <button
+              type="button"
+              data-testid="topics-toggle"
+              onClick={() => setTopicsOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={topicsOpen}
+              title="Abrir os tópicos da ementa da disciplina"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-emerald-500/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ListChecks className="size-3.5" aria-hidden />
+              Tópicos ({topicsSummary
+                ? `${topicsSummary.doneTopics}/${topicsSummary.totalTopics}`
+                : '—'})
+            </button>
+          </div>
 
             {/* t185 — AS PORTAS DO MATERIAL + AS PONTES DA SESSÃO: o resumo IA,
-                o vídeo, a página externa, as questões ligadas e o tutor — cada
-                chip é UM gesto a partir do que está em foco. A decisão de quem
-                tem porta é das libs puras (study-material-doors). */}
+                o vídeo, a página externa e as questões ligadas — cada chip é
+                UM gesto a partir do que está em foco. A decisão de quem tem
+                porta é das libs puras (study-material-doors). O chip do tutor
+                saiu: a dúvida agora é a PRÓPRIA página (o composer está logo
+                abaixo — 228-c). */}
             <div className="flex flex-wrap items-center gap-2" data-testid="study-material-doors">
-              <button
-                type="button"
-                onClick={() => setChatOpen(true)}
-                className="group inline-flex max-w-[300px] items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-300"
-                aria-label="Tirar dúvida com IA sobre o que você está estudando"
-              >
-                <Sparkles className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate">Tirar dúvida com IA</span>
-              </button>
               {materialDoors.map((door) =>
                 door.href ? (
                   // t185 — A PORTA DE PÁGINA EXTERNA é âncora REAL: o gesto
@@ -1589,92 +1612,106 @@ export function StudyView({
               )}
             </div>
 
-            {/* O FOCO COMO COMPANHEIRO — compacto, nunca protagonista (o dono
-                rejeitou o relógio-cabeçote: "sem pomodoro solto"). Ele conta,
-                registra e respeita; o material comanda a cena. */}
-            <div
+          {/* O FOCO COMPACTO (228-c): fase + tempo + iniciar/pausar na barra —
+              o Pomodoro adaptado ao cronograma fica VISÍVEL (o áudio: "o
+              Pomodoro deve ser adaptado ao meu cronograma de estudos"), sem
+              virar headliner. */}
+          <div
+            className={cn(
+              'mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-2.5 py-2 transition-all duration-500',
+              live.running
+                ? 'border-emerald-500/40 bg-emerald-500/[0.05] shadow-[0_0_30px_-18px_rgba(16,185,129,0.4)]'
+                : 'border-white/10 bg-white/[0.02]',
+            )}
+            data-testid="study-focus-timer"
+          >
+            <Badge variant="outline" className={PHASE_META[live.phase].badge}>
+              {PHASE_META[live.phase].label}
+            </Badge>
+            <span
               className={cn(
-                'flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border px-4 py-3.5 transition-all duration-500',
-                live.running
-                  ? 'border-emerald-500/40 bg-emerald-500/[0.04] shadow-[0_0_40px_-16px_rgba(16,185,129,0.35)]'
-                  : 'border-white/10 bg-white/[0.02]',
+                'text-2xl font-bold leading-none tabular-nums',
+                PHASE_META[live.phase].text,
               )}
-              data-testid="study-focus-timer"
             >
-              <div className="flex min-w-0 items-center gap-3">
-                <Badge variant="outline" className={PHASE_META[live.phase].badge}>
-                  {PHASE_META[live.phase].label}
-                </Badge>
+              {fmtSeconds(live.secondsLeft)}
+            </span>
+            <span
+              className="hidden items-center gap-1 sm:flex"
+              aria-label={`Ciclo ${cyclePosition} de ${cycleTotal}`}
+            >
+              {Array.from({ length: cycleTotal }).map((_, i) => (
                 <span
+                  key={i}
                   className={cn(
-                    'text-4xl font-bold leading-none tabular-nums',
-                    PHASE_META[live.phase].text,
+                    'size-1.5 rounded-full transition-colors',
+                    i < doneInCycle ? PHASE_META.focus.dot : 'bg-white/15',
                   )}
-                >
-                  {fmtSeconds(live.secondsLeft)}
-                </span>
-                <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-                  <span>
-                    Ciclo {cyclePosition} de {cycleTotal}
-                  </span>
-                  <span className="flex items-center gap-1" aria-hidden>
-                    {Array.from({ length: cycleTotal }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={cn(
-                          'size-1.5 rounded-full transition-colors',
-                          i < doneInCycle ? PHASE_META.focus.dot : 'bg-white/15',
-                        )}
-                      />
-                    ))}
-                  </span>
-                </span>
-              </div>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 sm:justify-end">
-                {/* Frente 10 — a duração do foco governável no fluxo: o gap
-                    morava no SettingsView órfão; agora é 1 toque do companheiro. */}
-                <FocusDurationMenu sp={sp} />
-                <Button
-                  size="sm"
-                  onClick={live.running ? pauseTimer : startTimer}
-                  className={cn('min-w-28 text-white', PHASE_META[live.phase].solid)}
-                >
-                  {live.running ? (
-                    <>
-                      <Pause className="size-4" />
-                      Pausar
-                    </>
-                  ) : (
-                    <>
-                      <Play className="size-4" />
-                      Iniciar
-                    </>
-                  )}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={resetTimer}>
-                  <RotateCcw className="size-4" />
-                  Resetar
-                </Button>
-                <Button size="sm" variant="outline" onClick={skipPhase}>
-                  <SkipForward className="size-4" />
-                  Pular fase
-                </Button>
-              </div>
-              <p className="w-full text-xs text-muted-foreground">
-                {live.phase === 'focus'
+                />
+              ))}
+            </span>
+            <Button
+              size="sm"
+              onClick={live.running ? pauseTimer : startTimer}
+              className={cn('h-8 min-w-24 px-2.5 text-white', PHASE_META[live.phase].solid)}
+            >
+              {live.running ? (
+                <>
+                  <Pause className="size-3.5" />
+                  Pausar
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" />
+                  Iniciar
+                </>
+              )}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              onClick={resetTimer}
+              aria-label="Resetar o timer"
+              title="Resetar a fase atual"
+            >
+              <RotateCcw className="size-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              onClick={skipPhase}
+              aria-label="Pular a fase atual"
+              title="Pular fase"
+            >
+              <SkipForward className="size-3.5" />
+            </Button>
+            {/* Frente 10 — a duração do foco governável no fluxo (o sync da
+                harmonia escreve neste mesmo config — a linha abaixo confessa). */}
+            <FocusDurationMenu sp={sp} />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              onClick={() => setZenOpen(true)}
+              aria-label="Abrir modo foco (tela cheia)"
+              title="Modo foco — tela cheia (Esc para sair)"
+            >
+              <Maximize2 className="size-3.5" />
+            </Button>
+            {/* A LINHA DO ENCAIXE (228-c): orçamento lançado no dia → o timer
+                confessa a que veio (a harmonia sincronizou o foco para Nmin). */}
+            <p className="w-full text-xs text-muted-foreground">
+              {todayBudgetHours > 0
+                ? `encaixado na sessão de hoje (${fmtHours(todayBudgetHours)}) — foco de ${cfg.focus}min`
+                : live.phase === 'focus'
                   ? selectedMaterial
                     ? `Material: ${selectedMaterial.title}`
                     : 'Sem material específico — foque sem ele ou escolha acima.'
                   : `Recupere o fôlego — em seguida, mais foco em ${discipline.shortName}.`}
-              </p>
-            </div>
-
-            {/* A PAUSA COM PROVA DO 9 (pauta #13): só na pausa real do motor —
-                correndo OU em espera ("pular fase" deixa a pausa pausada; o
-                aluno está em pausa nos dois casos) — 1 cartão de recall,
-                opt-out, sem write. Compacto: a doutrina do companheiro vale
-                aqui — a pausa comanda, o cartão acompanha. */}
-            {live.phase !== 'focus' && <BreakRecallCard sp={sp} />}
+            </p>
+          </div>
 
             {/* Continuidade + os números que o uso já gerou (a meta por sessões
                 saiu: número morto que o dono apontou — o retrato da home conta
@@ -1700,52 +1737,34 @@ export function StudyView({
                 </span>
               </span>
             </div>
-          </CardContent>
-        </Card>
+        </section>
 
-      </div>
+        {/* A PAUSA COM PROVA DO 9 (pauta #13): só na pausa real do motor —
+            correndo OU em espera ("pular fase" deixa a pausa pausada) — 1
+            cartão de recall, opt-out, sem write. Entre a barra e o chat: a
+            pausa comanda, o cartão acompanha. */}
+        {live.phase !== 'focus' && <BreakRecallCard sp={sp} />}
 
 
-      <div className="lg:col-span-5">
-        <Card className="h-full">
-          <CardHeader className="space-y-0">
-            <button
-              type="button"
-              onClick={() => setTopicsOpen((v) => !v)}
-              aria-expanded={topicsOpen}
-              className="flex w-full items-center justify-between gap-2 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              data-testid="topics-toggle"
-              title={topicsOpen ? 'Esconder os tópicos' : 'Mostrar os tópicos da ementa'}
-            >
-              <CardTitle className="flex items-center gap-2">
-                <DisciplineIcon name={discipline.icon} className="size-4 text-emerald-400" />
-                Tópicos de {discipline.shortName}
-              </CardTitle>
-              <span className="flex shrink-0 items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'tabular-nums',
-                    topicsSummary?.isComplete && 'border-emerald-500/40 text-emerald-400',
-                  )}
-                >
-                  {topicsSummary ? `${topicsSummary.doneTopics}/${topicsSummary.totalTopics}` : '—'}
-                </Badge>
-                <ChevronDown
-                  className={cn('size-4 text-muted-foreground transition-transform', topicsOpen && 'rotate-180')}
-                  aria-hidden
-                />
-              </span>
-            </button>
-            {topicsOpen && (
-              <CardDescription className="flex items-center gap-2 pt-2">
-                <span className={cn('inline-block size-2 rounded-full', colors.dot)} />
-                {discipline.name} · {discipline.chTotal}h · Prof. {discipline.professor}
-              </CardDescription>
-            )}
-          </CardHeader>
-          {topicsOpen && (
-          <CardContent className="space-y-4">
+      {/* ===== TÓPICOS — GAVETA (228-c): a ementa inteira num painel lateral;
+          o botão "Tópicos (3/18)" mora na barra de contexto — presente, sem
+          roubar a cena do chat. ===== */}
+      <Sheet open={topicsOpen} onOpenChange={setTopicsOpen}>
+        <SheetContent
+          side="right"
+          className="w-full gap-0 p-0 sm:max-w-md"
+        >
+          <SheetHeader className="border-b border-white/10 pr-12">
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <DisciplineIcon name={discipline.icon} className="size-4 text-emerald-400" />
+              Tópicos de {discipline.shortName}
+            </SheetTitle>
+            <SheetDescription className="flex items-center gap-2">
+              <span className={cn('inline-block size-2 rounded-full', colors.dot)} />
+              {discipline.name} · {discipline.chTotal}h · Prof. {discipline.professor}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 [scrollbar-width:thin]">
             {topicsSummary ? (
               <>
                 <div className="space-y-2">
@@ -1931,43 +1950,28 @@ export function StudyView({
                 Conteúdo programático não encontrado para esta disciplina.
               </p>
             )}
-          </CardContent>
-          )}
-        </Card>
-      </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
-      {/* ===== Chat IA lateral ===== */}
-      <Sheet open={chatOpen} onOpenChange={setChatOpen}>
-        <SheetContent
-          side="right"
-          className="w-full gap-0 p-0 sm:max-w-lg lg:max-w-xl"
-          onOpenAutoFocus={(e) => {
-            // t170 — PERGUNTAR JÁ RECORTADO: o chat aberto COM print pendente
-            // (ou pergunta pré-preenchida) pousa o cursor no composer — o
-            // anexo já é a intenção de perguntar, o próximo gesto é digitar.
-            // O foco default do Radix (1º focável = X do header) não serve
-            // para quem acabou de anexar; preventDefault evita o pouso duplo.
-            e.preventDefault();
-            chatTaRef.current?.focus();
-          }}
-          onEscapeKeyDown={(e) => {
-            // t153: com a busca aberta, o Esc é DA BUSCA (fecha e limpa o
-            // campo — handler do input) e NÃO da conversa: o preventDefault
-            // aqui é o contrato do Radix (DismissableLayer só demite sem
-            // defaultPrevented). Sem busca, o Esc continua fechando o chat.
-            if (chatSearchOpen) e.preventDefault();
-          }}
-        >
-          <SheetHeader className="border-b border-white/10 pr-12">
-            <div className="flex items-center justify-between gap-2">
+      {/* ===== O CHAT É A PÁGINA (228-c — o pedido do áudio: "não tenho por que
+          estar vendo parâmetros"): a conversa vive montada no corpo da aba —
+          a barra de contexto cuida da sessão em cima, o chat manda na cena.
+          O mesmo fio, os mesmos gestos, zero parede. ===== */}
+      <section
+        aria-label="Conversa com o tutor"
+        data-testid="tutor-chat-panel"
+        className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card"
+      >
+            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/60 px-4 py-3">
               <div className="min-w-0">
-                <SheetTitle className="flex items-center gap-2 text-base">
+                <h2 className="flex items-center gap-2 text-base font-semibold">
                   <Sparkles className="size-4 text-amber-400" />
-                  Tirar dúvida com IA
-                </SheetTitle>
-                <SheetDescription className="truncate">
-                  Tutor de {discipline.shortName} · tópico: {chatTopic}
-                </SheetDescription>
+                  Tutor de {discipline.shortName}
+                </h2>
+                <p className="truncate text-xs text-muted-foreground">
+                  tópico: {chatTopic}
+                </p>
                 {examWeek && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span
@@ -2077,7 +2081,6 @@ export function StudyView({
                 <Trash2 className="size-4" />
               </Button>
             </div>
-          </SheetHeader>
 
           {/* t151: a barra da busca — abre sob o cabeçalho, some com Esc/X. */}
           {chatSearchOpen && (
@@ -2105,11 +2108,8 @@ export function StudyView({
                       return;
                     }
                     if (e.key === 'Escape') {
-                      // t153: fecha SÓ a busca — o fechamento do chat em si
-                      // é travado no onEscapeKeyDown do SheetContent (o
-                      // Radix escuta Escape em CAPTURE no document, antes
-                      // de qualquer handler daqui: stopPropagation nunca
-                      // chegaria lá).
+                      // t153: fecha SÓ a busca (o chat agora vive na página —
+                      // 228-c — não há dialog para fechar junto).
                       setChatSearchOpen(false);
                       setChatSearch('');
                     }
@@ -2139,7 +2139,8 @@ export function StudyView({
           <div
             ref={messagesRef}
             onScroll={onThreadScroll}
-            className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 [scrollbar-width:thin]"
+            aria-label="Fio da conversa com o tutor"
+            className="h-[46vh] min-h-[320px] space-y-4 overflow-y-auto p-4 [scrollbar-width:thin] sm:h-[54vh]"
           >
             {/* t151: o status da busca — contagem honesta OU vazio explicado. */}
             {chatSearchActive && (
@@ -2872,8 +2873,7 @@ export function StudyView({
               )}
             </form>
           </div>
-        </SheetContent>
-      </Sheet>
+      </section>
 
       {/* t160: o print que se lê de novo — o MESMO data URL, só visão. */}
       <PrintLightboxDialog

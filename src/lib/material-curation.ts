@@ -284,11 +284,11 @@ export interface LadderRung {
 export const LADDER: Record<string, LadderRung> = {
   'alg-questoes-semana6': {
     prev: 'alg-questoes-semana5',
-    note: 'aninhamento é a S5 + um laço dentro do outro — sem o degrau da base (contador, acumulador), a figura do asterisco despenca',
+    note: 'o laço dentro do outro só fica firme com contador e acumulador bem treinados',
   },
   'mat-determinantes-lista': {
     prev: 'mat-determinantes-teoria',
-    note: 'a lista usa as 14 propriedades — a teoria da aula mapeia 1:1 com as questões (Q8–Q10 são P3/P5/P6/P9; Q17–Q19 são P14)',
+    note: 'a lista usa as propriedades da aula — a teoria mapeia 1:1 com as questões',
   },
 };
 
@@ -349,7 +349,7 @@ export function applyLadder(
       if (above) {
         whyOverride.set(
           rung.id,
-          `escadinha: é a base de "${above.title}" — ${ladderNote(above.id) ?? 'a base vem antes'}`,
+          `vem antes de "${above.title}" — ${ladderNote(above.id) ?? 'a base vem primeiro'}`,
         );
       }
     }

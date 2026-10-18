@@ -853,14 +853,14 @@ export const materials: Material[] = [
   // ser bom iniciar da base pois é uma escadinha") — a S5 É o degrau da base
   // (laço simples) e a S6 o degrau de cima (aninhamento). A ordem de estudo
   // entre elas vive em material-curation.ts (LADDER), não aqui.
-  { id: 'alg-questoes-semana5', disciplineCode: 'TEC.1687', title: 'Questões da Semana 5 (Classroom) — repetição na base',
+  { id: 'alg-questoes-semana5', disciplineCode: 'TEC.1687', title: 'Questões da Semana 5 (Classroom)',
     type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana5.pdf',
     summaryFile: 'alg-questoes-semana5.summary.json', pages: 2, source: 'user_upload',
     // Material-first: 11 questões 100% de repetição simples (for/while,
     // contador, acumulador, string caractere a caractere) — a Unidade 3 dada.
     topicosCobertos: ['Unidade 3: Comandos de repetição'],
   },
-  { id: 'alg-questoes-semana6', disciplineCode: 'TEC.1687', title: 'Questões da Semana 6 (Classroom) — aninhamento (o degrau de cima)',
+  { id: 'alg-questoes-semana6', disciplineCode: 'TEC.1687', title: 'Questões da Semana 6 (Classroom)',
     type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana6.pdf',
     summaryFile: 'alg-questoes-semana6.summary.json', pages: 2, source: 'user_upload',
     // Material-first: 10 questões de laços ANINHADOS (pares, perfeito,

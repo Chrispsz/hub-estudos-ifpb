@@ -72,7 +72,11 @@ import {
   type ExamWeekMilestone,
 } from '@/lib/math-exam-prep';
 import { buildRunDebriefQuestion } from '@/lib/simulado-debrief';
-import { daysUntilDate } from '@/lib/semester';
+import { daysUntilDate, upcomingEvents } from '@/lib/semester';
+import { TriageCard } from './triage-card';
+import { ExamRadarCard } from './exam-radar-card';
+import { WeeklyScheduleCard } from './weekly-schedule-card';
+import { PnaatReminderCard } from './pnaat-reminder-card';
 import {
   DAYS_OF_WEEK,
   currentWeekOfSemester,
@@ -211,6 +215,13 @@ export function ScheduleView() {
     }
     return out;
   }, [sp.progress.disciplineProgress]);
+
+  // A AGENDA OFICIAL vive aqui (áudio 18/10 — saiu da home): o calendário do
+  // campus junto do planejamento que ele condiciona.
+  const upcomingAgenda = React.useMemo(
+    () => (now ? upcomingEvents(now, 5) : []),
+    [now],
+  );
 
   // Cronograma rotativo (puro) — regenerado só quando preferências/progresso/data mudam.
   // FACILIDADE REAL (Task 226): os sinais das questões treinam o motor —
@@ -606,6 +617,65 @@ export function ScheduleView() {
 
       {/* ---------- Bloco manual ---------- */}
       <AddBlockDialog sp={sp} open={addOpen} onOpenChange={setAddOpen} />
+
+      {/* ---------- A CONTEXTO DA SEMANA (áudio 18/10 — a casa da semana): a
+          triagem do motor, o radar de provas, a grade de aulas, o PNAAT e a
+          agenda oficial saíram da HOME para cá — "algumas dessas coisas
+          poderiam ser levadas a outras abas". Tudo o que é planejamento
+          longo vive aqui, junto do cronograma que os usa. ---------- */}
+      <TriageCard />
+      <ExamRadarCard />
+      <WeeklyScheduleCard />
+      <PnaatReminderCard />
+      {now && upcomingAgenda.length > 0 && (
+        <Card className="rounded-2xl p-5 sm:p-6" data-t="agenda-card">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
+            <h2 className="text-base font-semibold leading-tight">Agenda oficial</h2>
+          </div>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Próximos compromissos oficiais do calendário do campus.
+          </p>
+          <ul className="mt-3">
+            {upcomingAgenda.map((ev, i) => (
+              <li
+                key={`${ev.date}-${ev.title}`}
+                className={`flex items-center gap-3 py-2 text-sm ${i > 0 ? 'border-t border-border/60' : ''}`}
+              >
+                <span
+                  className={`size-1.5 shrink-0 rounded-full ${
+                    ev.kind === 'provas'
+                      ? 'bg-violet-500'
+                      : ev.kind === 'prazo'
+                        ? 'bg-amber-500'
+                        : ev.kind === 'feriado'
+                          ? 'bg-emerald-500'
+                          : ev.kind === 'letivo'
+                            ? 'bg-teal-500'
+                            : 'bg-zinc-400'
+                  }`}
+                  aria-hidden
+                />
+                <span className="w-14 shrink-0 text-muted-foreground">
+                  {ev.ongoing
+                    ? 'em curso'
+                    : ev.daysLeft === 0
+                      ? 'hoje'
+                      : ev.daysLeft === 1
+                        ? 'amanhã'
+                        : `${ev.date.slice(8, 10)}/${ev.date.slice(5, 7)}`}
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">{ev.title}</span>
+                {ev.daysLeft >= 0 && ev.daysLeft <= 7 && !ev.ongoing && (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {ev.daysLeft === 0 ? 'hoje' : ev.daysLeft === 1 ? 'amanhã' : `em ${ev.daysLeft} dias`}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }

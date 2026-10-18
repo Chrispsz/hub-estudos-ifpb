@@ -341,6 +341,10 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   const staleQueue = [...staleCodes];
 
   for (const [day, cap] of dayCapacity) {
+    // ÁUDIO DO DONO (18/10/2026): "têm várias coisas falando de resgate e tá
+    // focando muito em resgate" — o chip "prioridade hoje" perde a força
+    // quando aparece em todo bloco. Teto honesto: 2 por dia (as urgências
+    // reais levam a marcação; a dívida mantém o bloco, sem o chip).
     const todayCodes = new Set<string>();
     // Blocos por disciplina HOJE (exclui a revisão geral) — mantido incrementalmente
     // pelo push; substitui o re-filtro de `blocks` a cada vaga do deficit scheduling.
@@ -349,6 +353,7 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     // cursor salta para a próxima (tarde 14:00, noite 19:00…). O bloqueio da
     // grade oficial já foi aplicado no início de cada janela (capacidade).
     const dayWindows = cap.windows;
+    let intensiveCount = 0;
     let winIdx = 0;
     let cursorHour = 0;
     let cursorMinute = 0;
@@ -421,7 +426,14 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     }
 
     // 3. Urgentes com dose (prova ≤7d diário; atividade/trabalho só ≤3d)
-    //    — 1 bloco intensivo garantido por dia para quem se qualifica
+    //    — 1 bloco intensivo garantido por dia para quem se qualifica.
+    //    TÍTULO HUMANO (áudio do dono): "avaliação em 3d" virava jargão —
+    //    a casa fala o tipo real: "atividade em 3d", "prova em 5d".
+    const KIND_LABEL: Record<string, string> = {
+      prova: 'prova',
+      atividade: 'atividade',
+      trabalho: 'entrega',
+    };
     for (const dw of urgentEvalCodes) {
       if (usedBlocks >= cap.blocks) break;
       const daysLeft = dw.evalBoostDays;
@@ -436,11 +448,14 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
           kind === 'trabalho' ? 'projeto' : finalStraight ? 'revisao' : 'exercicios';
         const what =
           kind === 'trabalho'
-            ? `Trabalho em ${daysLeft}d — avançar projeto`
+            ? `Entrega em ${daysLeft}d — avançar o projeto`
             : finalStraight
-              ? `Revisão intensiva (avaliação em ${daysLeft}d)`
-              : `Prática dirigida (avaliação em ${daysLeft}d)`;
-        push(code, `${d.shortName} — ${what}`, activity, { intensive: true });
+              ? `Revisão (${KIND_LABEL[kind] ?? 'avaliação'} em ${daysLeft}d)`
+              : `Prática dirigida (${KIND_LABEL[kind] ?? 'avaliação'} em ${daysLeft}d)`;
+        push(code, `${d.shortName} — ${what}`, activity, {
+          intensive: intensiveCount < 2,
+        });
+        if (intensiveCount < 2) intensiveCount += 1;
       }
     }
 
@@ -452,22 +467,35 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
       if (todayCodes.has(dc.code)) continue;
       if (!getDisciplineByCode(dc.code)) continue;
       if ((debtCount.get(dc.code) ?? 0) >= dc.weeklyCap) continue;
+      // SEM o chip intensivo (áudio: "focando muito em resgate") e sem o
+      // jargão "dívida Nd" na superfície — o bloco fala a ação, não a conta.
       push(
         dc.code,
-        `${dc.short} — Prática constante (dívida ${dc.debt}d)`,
+        `${dc.short} — Prática para entrar no ritmo`,
         'exercicios',
-        { intensive: true },
       );
       debtCount.set(dc.code, (debtCount.get(dc.code) ?? 0) + 1);
     }
 
-    // 4. Esquecidas (≥5 dias) — 1 por dia até esgotar a fila
+    // 4. Esquecidas (≥5 dias) — 1 por dia até esgotar a fila.
+    //    ZERO-ESTADO HONESTO (áudio do dono: "meu usuário não tem progresso
+    //    algum… todos os contextos estão atrasados"): quem NUNCA estudou não
+    //    está "atrasado" — é o primeiro momento com a matéria, sem chip de
+    //    retomada e sem culpa.
     while (staleQueue.length > 0 && usedBlocks < cap.blocks) {
       const code = staleQueue.shift()!;
       if (todayCodes.has(code)) continue;
       const d = getDisciplineByCode(code);
       if (!d) continue;
-      push(code, `${d.shortName} — Retomada (estudo atrasado)`, 'estudo', { stale: true });
+      const never = !disciplineProgress[code]?.lastStudiedAt;
+      push(
+        code,
+        never
+          ? `${d.shortName} — Primeiro estudo da matéria`
+          : `${d.shortName} — Retomada (sem estudo recente)`,
+        'estudo',
+        never ? {} : { stale: true },
+      );
       break; // no máximo 1 retomada por dia
     }
 
@@ -533,6 +561,62 @@ export function weekStudiedMinutesByDiscipline(
     const t = new Date(s.completedAt).getTime();
     if (Number.isNaN(t) || t < start || t >= end) continue;
     out[s.disciplineId] = (out[s.disciplineId] ?? 0) + (s.focusMinutes || 0);
+  }
+  return out;
+}
+
+// ---------- O AGORA MANDA (áudio do dono, 18/10/2026) ----------
+//
+// "Meu domínio tá configurado pra começar às 8 horas, duração de 4 horas…
+// o algoritmo, se tiver que ser inteligente, ele devia pegar a hora que eu
+// tô iniciando, na verdade, né? Porque já não são 8 horas e eu não quero
+// ter que alterar isso."
+//
+// Os blocos do dia nascem ancorados nas janelas do ritmo (08:00 · 14:00 ·
+// 19:00). Quando a pessoa abre o site DEPOIS, os blocos passados não servem
+// de nada — o plano de hoje deve começar NO MOMENTO DO ACESSO. A função é
+// pura: recebe os blocos de HOJE e `now`, e devolve o mesmo dia re-ancorado.
+
+/**
+ * Re-ancora os blocos de HOJE no agora (áudio do dono):
+ *   1. blocos que JÁ TERMINARAM saem (não há como estudá-los);
+ *   2. o primeiro bloco restante começa em `now` (arredondado p/ cima, 5min);
+ *   3. os seguintes seguem em sequência 50+10, sem colisão;
+ *   4. blocos que passariam da meia-noite saem (o resto da semana os absorve
+ *      — o deficit scheduler já reequilibra).
+ *
+ * Blocos `fixed` (marcados à mão pelo dono) são preservados na hora original
+ * quando ainda estão no futuro — a mão do dono não se move; só o AUTO se
+ * re-ancora. O bloco "em curso" (começou antes, termina depois) mantém o
+ * FIM: o que restou dele é o que resta mesmo.
+ */
+export function adaptTodayBlocksToNow(blocks: SmartBlock[], now: Date): SmartBlock[] {
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  // arredonda para cima em degraus de 5min (19:52 → 19:55)
+  const anchor = Math.min(23 * 60 + 55, Math.ceil(nowMin / 5) * 5);
+
+  const endOf = (b: SmartBlock): number => b.startHour * 60 + b.startMinute + b.durationMin;
+
+  // 1. remove o que já acabou; preserva a ordem original
+  const alive = blocks.filter((b) => endOf(b) > nowMin);
+  if (alive.length === 0) return [];
+
+  const out: SmartBlock[] = [];
+  let cursor = anchor;
+  for (const b of alive) {
+    const startMin = b.fixed ? Math.max(b.startHour * 60 + b.startMinute, cursor) : cursor;
+    if (startMin + b.durationMin > 24 * 60) break; // não cabe mais no dia
+    const h = Math.floor(startMin / 60);
+    const m = startMin % 60;
+    out.push({
+      ...b,
+      startHour: h,
+      startMinute: m,
+      // o id carrega a hora antiga — reancorar sem trocar a identidade
+      // quebra os "done" do dia; manter o id ORIGINAL é o que faz o
+      // bloco já concluído continuar concluído após o re-ancoramento.
+    });
+    cursor = startMin + b.durationMin + 10; // 50min + 10 de pausa (o ritmo da casa)
   }
   return out;
 }

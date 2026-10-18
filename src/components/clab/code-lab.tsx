@@ -13,6 +13,12 @@
  * 221-c — UM LAB SÓ: o antigo "Laboratório de código" (Console JS / Preview
  * HTML) que vivia dentro do Tutor IA entrou aqui como abas secundárias;
  * a aba padrão segue sendo o lab de C.
+ *
+ * 228-b — C É A CASA (áudio do dono, 18/10/2026): JS/HTML saem do TabsList de
+ * mesmo nível e viram um seletor de Ambiente discreto, claramente secundário.
+ * Toda falha ganha um CARD DE DIAGNÓSTICO (linha destacada + dica de causa +
+ * próximo gesto) e cada rodada alimenta a telemetria local "onde você erra
+ * mais" — nada de "só executar e ter uma falha na cara".
  */
 
 import * as React from 'react';
@@ -30,10 +36,16 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CodeEditor } from '@/components/clab/code-editor';
+import { DiagnosticCard } from '@/components/clab/diagnostic-card';
+import { ErrorStatsPanel } from '@/components/clab/error-stats-panel';
 import { CodeLab as HubCodeLab } from '@/components/hub/code-lab';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
 import { ClabEngine, CLAB_EXAMPLES, type ClabSnapshot, type ViewVar } from '@/lib/clab';
+import {
+  readClabErrorStats, recordClabError, recordClabSuccess, resetClabErrorStats,
+  totalClabErrors, type ClabErrorStats,
+} from '@/lib/clab/error-stats';
 
 const STORAGE_KEY = 'clab-state-v1';
 
@@ -72,6 +84,13 @@ export function CodeLab() {
   const [editing, setEditing] = React.useState<EditTarget | null>(null);
   const roteiroRef = React.useRef<HTMLDivElement>(null);
 
+  // 228-b — telemetria local "onde você erra mais": lida do localStorage
+  // (clab-error-stats-v1) e atualizada a cada rodada que falha ou termina limpa.
+  const [stats, setStats] = React.useState<ClabErrorStats | null>(null);
+  // 228-b — nenhum erro some sem explicação: catch genérico ganha card próprio.
+  const [unexpected, setUnexpected] = React.useState<{ message: string } | null>(null);
+  React.useEffect(() => setStats(readClabErrorStats()), []);
+
   // restaura o último estado do editor
   React.useEffect(() => {
     try {
@@ -105,6 +124,7 @@ export function CodeLab() {
   }, [setKBoth]);
 
   const run = React.useCallback(() => {
+    setUnexpected(null);
     const r = ClabEngine.prepare(code, stdin);
     if (!r.ok) {
       setParseErr({ message: r.message, line: r.line });
@@ -113,18 +133,32 @@ export function CodeLab() {
       setKBoth(0);
       engineRef.current = null;
       setPlaying(false);
+      setStats(recordClabError(r.message)); // telemetria: falha de compilação conta (228-b)
       return;
     }
     setParseErr(null);
-    r.engine.runToEnd();
+    try {
+      r.engine.runToEnd();
+    } catch (err) {
+      // erro NUNCA some sem explicação: catch genérico ganha card "Algo inesperado"
+      setUnexpected({ message: err instanceof Error ? err.message : String(err) });
+      setPlaying(false);
+      return;
+    }
     engineRef.current = r.engine;
     syncFromEngine(r.engine);
     setPlaying(false);
     setTab('vars');
+    // telemetria semi-automática (228-b): cada Rodar é uma rodada —
+    // limpo soma reforço positivo; falha é categorizada pela régua do diagnóstico.
+    const last = r.engine.snapshots[r.engine.snapshots.length - 1];
+    if (last?.status === 'error' && last.errorMsg) setStats(recordClabError(last.errorMsg));
+    else if (last?.status === 'done') setStats(recordClabSuccess());
   }, [code, stdin, syncFromEngine, setKBoth]);
 
   /** Um passo; se a pessoa voltou na timeline, reescreve o futuro a partir dali. */
   const stepOnce = React.useCallback(() => {
+    setUnexpected(null);
     let eng = engineRef.current;
     if (!eng || eng.status !== 'running') {
       const r = ClabEngine.prepare(code, stdin);
@@ -132,6 +166,7 @@ export function CodeLab() {
         setParseErr({ message: r.message, line: r.line });
         setStatus('parse');
         setPlaying(false);
+        setStats(recordClabError(r.message)); // telemetria (228-b)
         return;
       }
       setParseErr(null);
@@ -141,9 +176,21 @@ export function CodeLab() {
       setKBoth(0);
       setStatus('running');
     }
+    const wasRunning = eng.status === 'running';
     if (kRef.current < eng.snapshots.length - 1) eng.forkFrom(kRef.current);
-    eng.step();
+    try {
+      eng.step();
+    } catch (err) {
+      setUnexpected({ message: err instanceof Error ? err.message : String(err) });
+      setPlaying(false);
+      return;
+    }
     syncFromEngine(eng);
+    // transição running→erro NESTA rodada de passos: registra uma vez só (228-b)
+    if (wasRunning && eng.status === 'error') {
+      const last = eng.snapshots[eng.snapshots.length - 1];
+      if (last?.errorMsg) setStats(recordClabError(last.errorMsg));
+    }
   }, [code, stdin, syncFromEngine, setKBoth]);
 
   const stepRef = React.useRef(stepOnce);
@@ -164,6 +211,7 @@ export function CodeLab() {
     setKBoth(0);
     setStatus('idle');
     setParseErr(null);
+    setUnexpected(null);
     setPlaying(false);
   }, [setKBoth]);
 
@@ -192,6 +240,10 @@ export function CodeLab() {
     }
     eng.runToEnd();
     syncFromEngine(eng);
+    // o "E se...?" também é uma execução: alimenta a mesma telemetria (228-b)
+    const last = eng.snapshots[eng.snapshots.length - 1];
+    if (last?.status === 'error' && last.errorMsg) setStats(recordClabError(last.errorMsg));
+    else if (last?.status === 'done') setStats(recordClabSuccess());
     setEditing(null);
     toast.success(`Futuro recalculado a partir do passo ${forkAt + 1}`, {
       description: `"E se...?" — ${t.name} mudou e a execução seguiu outro caminho.`,
@@ -230,61 +282,81 @@ export function CodeLab() {
 
   return (
     <div className="mx-auto w-full max-w-[1760px]">
-      {/* UM LAB SÓ (221-c): o lab de C é a estrela e ocupa a aba padrão.
-          O antigo "Laboratório de código" (Console JS / Preview HTML), que
-          vivia dentro do Tutor IA, entra aqui como abas secundárias — o
-          cabeçalho com os chips PRIMM é exclusivo da aba de C. */}
-      <Tabs value={modo} onValueChange={(v) => setModo(v as LabModo)}>
-        <TabsList className="h-9 w-full justify-start sm:w-auto">
-          <TabsTrigger value="c" className="gap-1.5 text-xs sm:text-sm">
-            <TerminalSquare className="size-3.5" aria-hidden /> C passo a passo
-          </TabsTrigger>
-          <TabsTrigger value="js" className="gap-1.5 text-xs sm:text-sm">
-            <SquareTerminal className="size-3.5" aria-hidden /> Console JS
-          </TabsTrigger>
-          <TabsTrigger value="html" className="gap-1.5 text-xs sm:text-sm">
-            <FileCode2 className="size-3.5" aria-hidden /> Preview HTML
-          </TabsTrigger>
-        </TabsList>
+      {/* C É A CASA (228-b): o lab de C é o título e o conteúdo padrão. O antigo
+          "Laboratório de código" (Console JS / Preview HTML) SAI do TabsList de
+          mesmo nível e vira um seletor de Ambiente discreto, ao lado do título —
+          claramente secundário, sem competir com o C. Os chips PRIMM continuam
+          exclusivos do modo C. */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-start gap-2 text-lg font-bold tracking-tight sm:text-xl">
+            <TerminalSquare className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <span className="min-w-0">Lab de C — rode passo a passo, veja variáveis e memória</span>
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Do material direto para a prática: escreva, rode, avance linha a linha — e quando algo falhar, o Lab aponta a linha, dá a dica e registra onde você mais erra.
+          </p>
+          {modo === 'c' && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Extras para experimentos: Console JS e Preview HTML — troque no seletor <strong className="font-medium">Ambiente</strong> ao lado; eles ficam longe do C de propósito.
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:inline">Ambiente</span>
+          <Select value={modo} onValueChange={(v) => setModo(v as LabModo)}>
+            <SelectTrigger size="sm" className="h-8 text-xs" aria-label="Ambiente do Lab — C é o padrão">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="c">
+                <span className="flex items-center gap-1.5"><TerminalSquare className="size-3.5" aria-hidden /> C passo a passo (padrão)</span>
+              </SelectItem>
+              <SelectItem value="js">
+                <span className="flex items-center gap-1.5"><SquareTerminal className="size-3.5" aria-hidden /> Console JS (extra)</span>
+              </SelectItem>
+              <SelectItem value="html">
+                <span className="flex items-center gap-1.5"><FileCode2 className="size-3.5" aria-hidden /> Preview HTML (extra)</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        {/* ===== Aba padrão: lab de C (conteúdo original, intacto) ===== */}
+      <Tabs value={modo} onValueChange={(v) => setModo(v as LabModo)}>
+
+        {/* ===== Modo padrão: lab de C (a casa) ===== */}
         <TabsContent value="c" className="mt-4 space-y-4">
-          {/* cabeçalho */}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight sm:text-xl">
-                <TerminalSquare className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                Lab de Código
-              </h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Rode C passo a passo e veja as variáveis, a memória e a saída acontecendo — do material direto para a prática.
-              </p>
+          {/* chips PRIMM + ajuda — o método do Lab, só no modo C */}
+          <TooltipProvider delayDuration={200}>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {PRIMM.map((s, i) => (
+                <Tooltip key={s.p}>
+                  <TooltipTrigger asChild>
+                    <span className={cn(
+                      'cursor-help rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                      i === 0 && 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-900 dark:bg-fuchsia-950 dark:text-fuchsia-300',
+                      i === 1 && 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
+                      i === 2 && 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
+                      i === 3 && 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300',
+                      i === 4 && 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300',
+                    )}>
+                      {i + 1}. {s.p}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-56 text-xs">{s.d}</TooltipContent>
+                </Tooltip>
+              ))}
+              <Button variant="ghost" size="icon" className="ml-auto size-7" onClick={() => setShowHelp((v) => !v)} aria-label="Como usar o Lab">
+                <CircleHelp className="size-4" />
+              </Button>
             </div>
-            <TooltipProvider delayDuration={200}>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {PRIMM.map((s, i) => (
-                  <Tooltip key={s.p}>
-                    <TooltipTrigger asChild>
-                      <span className={cn(
-                        'cursor-help rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                        i === 0 && 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-900 dark:bg-fuchsia-950 dark:text-fuchsia-300',
-                        i === 1 && 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
-                        i === 2 && 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
-                        i === 3 && 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300',
-                        i === 4 && 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300',
-                      )}>
-                        {i + 1}. {s.p}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-56 text-xs">{s.d}</TooltipContent>
-                  </Tooltip>
-                ))}
-                <Button variant="ghost" size="icon" className="size-7" onClick={() => setShowHelp((v) => !v)} aria-label="Como usar o Lab">
-                  <CircleHelp className="size-4" />
-                </Button>
-              </div>
-            </TooltipProvider>
-          </div>
+          </TooltipProvider>
+
+          {/* 228-b — painel "onde você erra mais": só existe quando há ≥ 1 erro registrado */}
+          {stats && totalClabErrors(stats) > 0 && (
+            <ErrorStatsPanel stats={stats} onReset={() => setStats(resetClabErrorStats())} />
+          )}
 
           <Collapsible open={showHelp} onOpenChange={setShowHelp}>
             <CollapsibleContent>
@@ -402,11 +474,9 @@ export function CodeLab() {
                 />
 
                 {status === 'parse' && parseErr && (
-                  <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
-                    <p className="font-semibold">Erro de sintaxe (linha {parseErr.line})</p>
-                    <p className="mt-0.5">{parseErr.message}</p>
-                  </div>
+                  <DiagnosticCard kind="parse" message={parseErr.message} line={parseErr.line} />
                 )}
+                {unexpected && <DiagnosticCard kind="unexpected" message={unexpected.message} />}
 
                 {/* entrada do scanf */}
                 <Collapsible open={showInput} onOpenChange={setShowInput}>
@@ -503,10 +573,7 @@ export function CodeLab() {
                 </div>
 
                 {cur?.status === 'error' && cur.errorMsg && (
-                  <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 p-2.5 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
-                    <p className="font-semibold">O programa parou aqui</p>
-                    <p>{cur.errorMsg}</p>
-                  </div>
+                  <DiagnosticCard kind="runtime" message={cur.errorMsg} line={cur.errorLine} />
                 )}
 
                 {/* painéis */}

@@ -221,20 +221,29 @@ function packWithFocus(
   return { used, cycles };
 }
 
-/** O foco ideal: o preset que aproveita mais minutos (empate = mais perto do config). */
+/** O foco ideal: máxima cobertura do tempo útil → menos interrupções → mais perto do config.
+ *
+ *  ÁUDIO DO DONO (18/10/2026): com 50min restantes e config de 10min, a casa
+ *  dizia "focos de 10min" — matematicamente honesto, humanamente absurdo
+ *  ("cinco blocos… foco dez minutos"). A régua nova: primeiro aproveitar
+ *  TODOS os minutos úteis; empatando, preferir MENOS ciclos (uma focada de
+ *  45min vence duas de 20); empatando de novo, o preset mais próximo do
+ *  config do dono. */
 function bestFocusFor(usable: number, cfg: PomodoroConfig): { focusMin: number; used: number; cycles: number } {
   const current = packWithFocus(cfg.focus, usable, cfg);
   let best = { focusMin: cfg.focus, used: current.used, cycles: current.cycles };
-  let bestGain = 0;
   for (const preset of FIT_PRESETS) {
-    if (preset === cfg.focus) continue;
+    if (preset === best.focusMin) continue;
     const p = packWithFocus(preset, usable, cfg);
-    const gain = p.used - best.used;
-    if (gain >= 10 || (best.used === 0 && p.used > 0 && gain > 0)) {
-      if (gain > bestGain || best.used === 0) {
-        best = { focusMin: preset, used: p.used, cycles: p.cycles };
-        bestGain = gain;
-      }
+    if (p.used <= 0) continue;
+    if (
+      p.used > best.used ||
+      (p.used === best.used && p.cycles < best.cycles) ||
+      (p.used === best.used &&
+        p.cycles === best.cycles &&
+        Math.abs(preset - cfg.focus) < Math.abs(best.focusMin - cfg.focus))
+    ) {
+      best = { focusMin: preset, used: p.used, cycles: p.cycles };
     }
   }
   return best;
