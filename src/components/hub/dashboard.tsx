@@ -778,9 +778,14 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
-      {/* A linha do dia — uma frase humana, nada de painel */}
+      {/* A linha do dia — uma frase humana, nada de painel. Task 236: o título
+          ganha presença (3xl no desktop) e o fecho esmeralda→teal do gradiente
+          amarra a marca — a primeira linha da casa agora É a identidade. */}
       <section aria-labelledby="dia-titulo">
-        <h1 id="dia-titulo" className="text-2xl font-semibold tracking-tight">
+        <h1
+          id="dia-titulo"
+          className="bg-gradient-to-r from-foreground via-foreground to-emerald-600 bg-clip-text text-2xl font-semibold tracking-tight text-transparent sm:text-3xl dark:to-emerald-400"
+        >
           {heroEvalNow && focusEval
             ? `Foco: ${focusEval.name} de ${focusEval.disciplineShort}.`
             : 'Bom estudo.'}

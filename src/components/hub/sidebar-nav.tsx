@@ -87,9 +87,12 @@ export function SidebarNav({
         // t171: indicador da casa no item ativo — a barra esmeralda que o
         // rodapé já usa no progresso, agora dizendo ONDE a pessoa está.
         active === it.value &&
-          'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-emerald-500',
+          'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-emerald-400 before:shadow-[0_0_8px_2px] before:shadow-emerald-500/50',
+        // Task 236 (oil-ui: o ativo é O evento da barra): o item ativo não
+        // compete com nada — pílula em gradiente esmeralda→teal com brilho
+        // interno, visível de longe no AMOLED e ainda sóbria no claro.
         active === it.value
-          ? 'bg-muted text-foreground shadow-sm'
+          ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/8 to-teal-500/10 text-foreground ring-1 ring-inset ring-emerald-500/30 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.06)]'
           : 'text-muted-foreground',
       )}
       aria-current={active === it.value ? 'page' : undefined}
@@ -98,7 +101,7 @@ export function SidebarNav({
         className={cn(
           'grid size-8 shrink-0 place-items-center rounded-md transition-colors',
           active === it.value
-            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+            ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25'
             : 'text-muted-foreground group-hover:text-foreground',
         )}
       >
@@ -140,7 +143,7 @@ export function SidebarNav({
               className={cn(
                 'grid size-8 shrink-0 place-items-center rounded-md transition-colors',
                 activeHidden
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25'
                   : 'text-muted-foreground group-hover:text-foreground',
               )}
             >

@@ -127,6 +127,28 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
   }
+  /* AMBIENTE DA CASA (Task 236 — releitura com as skills): o AMOLED puro
+     ganhava profundidade com brilhos radiais fixos — verde-esmeralda nascendo
+     no topo-esquerda, teal morando embaixo à direita. body::before com
+     z-index:-1 pinta ACIMA do fundo e ABAIXO do conteúdo (ordem de pintura do
+     CSS), sem tocar em nenhum componente. Estático: nada de animação. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(56rem 30rem at 16% -12%, oklch(0.627 0.17 149 / 0.07), transparent 62%),
+      radial-gradient(46rem 26rem at 112% 114%, oklch(0.696 0.17 162 / 0.06), transparent 58%);
+  }
+  /* Trama de pontos só no escuro — textura sutil que tira o "vazio" do preto. */
+  .dark body::before {
+    background:
+      radial-gradient(56rem 30rem at 16% -12%, oklch(0.627 0.17 149 / 0.11), transparent 62%),
+      radial-gradient(46rem 26rem at 112% 114%, oklch(0.696 0.17 162 / 0.09), transparent 58%),
+      radial-gradient(oklch(1 0 0 / 0.035) 1px, transparent 1.2px) 0 0 / 26px 26px;
+  }
   /* Rolagem suave; troca de aba usa scrollTo({ behavior: 'auto' }) explícito, então não é afetada */
   html {
     scroll-behavior: smooth;
