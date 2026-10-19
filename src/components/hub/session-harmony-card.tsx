@@ -27,6 +27,7 @@ import {
   History,
   ListChecks,
   PenLine,
+  Play,
   Sparkles,
   Timer,
   Undo2,
@@ -35,6 +36,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { materials } from '@/data/course-data';
 import { recallPdfPage } from '@/lib/pdf-position';
@@ -54,6 +56,7 @@ import { Switch } from '@/components/ui/switch';
 import { openPractice } from '@/lib/hub-events';
 import { todayDateKey } from '@/lib/today-focus';
 import { useNow } from './clock-widget';
+import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { cn } from '@/lib/utils';
 
 /** O clique de um bloco: o dashboard injeta o MESMO gesto do plano (frente 13). */
@@ -316,6 +319,12 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
   // CICLO DO ERRO (pauta nº 1): a MESMA ponte do plano — os erros do Code
   // Review entram na fila da sessão, o dominado sai sozinho.
   const errorReviews = useErrorReviewTasks();
+  // TASK 234 — O FOCO AO VIVO (o mesmo motor global da casa): com o Pomodoro
+  // rodando, o botão vira "Voltar ao material" e a dica conta onde o relógio
+  // está — o card nunca mente que o foco ainda "vai começar".
+  const focusApi = useStudyFocus();
+  const focusLive = focusApi?.live ?? null;
+  const focusRunning = !!focusLive?.running;
 
   // A página de retomada REAL (memória do leitor, hub:pdf-pos) — a mesma
   // injeção do dashboard: a lib continua pura, a casa entrega o valor pronto.
@@ -367,6 +376,13 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
   const stateMeta = STATE_META[state];
   const isMicro = state === 'micro';
   const done = state === 'cumprida';
+
+  // TASK 234 — O GESTO DE COMEÇO: um botão que sabe o próximo bloco, para o
+  // dono nunca mais perguntar "como inicio?". O primeiro pendente (fora o
+  // fecho) É o agora — abrir aqui dispara o foco (material + tutor + Pomodoro
+  // contando) e estudar conclui o bloco sozinho (foco real ≥1min = feito).
+  const nextPending = blocks.find((b) => b.kind !== 'fecho' && !b.done) ?? null;
+  const pronta = state === 'pronta' || state === 'micro';
 
   const fechoExpanded = fechoToggle ?? (done && !harmony.fecho.stepRecorded);
 
@@ -462,6 +478,32 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
           </p>
         </div>
 
+        {/* ----- O GESTO DE COMEÇO (Task 234): UM botão que sabe o próximo —
+            e a linha que ensina o relógio: o foco só corre quando o bloco
+            abre; estudou, conclui sozinho. Nada para marcar à mão. ----- */}
+        {!done && nextPending && (
+          <div className="mt-3" data-t="sessao-cta">
+            <Button
+              type="button"
+              onClick={() => onOpenBlock(nextPending)}
+              className="h-11 w-full gap-2 sm:h-10"
+              aria-label={focusRunning ? `Voltar ao material: ${nextPending.title}` : pronta ? `Começar agora por: ${nextPending.title}` : `Continuar: ${nextPending.title}`}
+              data-t="sessao-comecar"
+            >
+              <Play className="size-4 shrink-0" aria-hidden />
+              <span className="shrink-0 font-semibold">{focusRunning ? 'Voltar ao material' : pronta ? 'Começar agora' : 'Continuar'}</span>
+              <span className="min-w-0 truncate opacity-90">· {nextPending.title}</span>
+            </Button>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground" data-t="sessao-cta-dica">
+              {focusRunning
+                ? 'O foco já está correndo no chip do topo da página — volte aqui quando quiser, a fila anota tudo e conclui sozinha.'
+                : pronta
+                  ? 'Um toque abre o material com o tutor e o foco já começa a contar. Estudou? O bloco conclui sozinho — nada para marcar à mão.'
+                  : 'O foco corre no chip do topo da página — volte quando quiser, a fila anota tudo.'}
+            </p>
+          </div>
+        )}
+
         {/* ----- MODO MICRO — confessado, sem culpa ----- */}
         {isMicro && (
           <div
@@ -544,6 +586,17 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
               const Icon = meta.icon;
               const isFecho = b.kind === 'fecho';
               const clickable = !isFecho ? !b.done : true;
+              // TASK 234 — A HIERARQUIA QUE FALTAVA: o 1º pendente é "Agora"
+              // (com destaque); os demais "Próximo" da fila viram "Na fila" —
+              // nunca mais dois "Próximo" disputando o clique.
+              const isCurrent = !b.done && b.id === nextPending?.id;
+              const kindLabel = isFecho
+                ? 'Fecho'
+                : isCurrent
+                  ? 'Agora'
+                  : b.kind === 'proximo'
+                    ? 'Na fila'
+                    : PLAN_KIND_LABEL[b.kind as PlanKind];
               return (
                 <li key={b.id}>
                   <button
@@ -559,12 +612,13 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                     }}
                     data-t={`sessao-${b.id}`}
                     data-testid={`plano-bloco-${b.kind}`}
-                    aria-label={`${PLAN_KIND_LABEL[b.kind as PlanKind] ?? 'Fecho'}: ${b.title} — ${b.done ? (b.doneWhy ?? 'concluído') : b.why} (≈${fmtH(b.minutes)})${!isFecho && !b.done ? (b.kind === 'erro' ? '. Clique para abrir o re-teste da questão no Praticar' : '. Clique para abrir com o tutor ao lado') : isFecho ? '. Clique para abrir o painel do fecho' : ''}`}
+                    aria-label={`${kindLabel}: ${b.title} — ${b.done ? (b.doneWhy ?? 'concluído') : b.why} (≈${fmtH(b.minutes)})${!isFecho && !b.done ? (b.kind === 'erro' ? '. Clique para abrir o re-teste da questão no Praticar' : '. Clique para abrir com o tutor ao lado') : isFecho ? '. Clique para abrir o painel do fecho' : ''}`}
                     aria-expanded={isFecho ? fechoExpanded : undefined}
                     className={cn(
                       'group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       clickable && 'hover:bg-muted/60',
                       b.done && 'opacity-55',
+                      isCurrent && 'bg-primary/[0.05] ring-1 ring-primary/20',
                     )}
                   >
                     <span
@@ -582,10 +636,10 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                         <span
                           className={cn(
                             'shrink-0 text-[10.5px] font-semibold uppercase tracking-wide',
-                            meta.text,
+                            isCurrent ? 'text-primary' : meta.text,
                           )}
                         >
-                          {isFecho ? 'Fecho' : PLAN_KIND_LABEL[b.kind as PlanKind]}
+                          {kindLabel}
                         </span>
                         {!isFecho && b.exam && (
                           <span
@@ -620,6 +674,10 @@ export function SessionHarmonyCard({ onOpenBlock }: Props) {
                         )}
                         aria-hidden
                       />
+                    ) : isCurrent ? (
+                      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/15 text-primary" aria-hidden data-t="sessao-agora-play">
+                        <Play className="size-3" />
+                      </span>
                     ) : (
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {b.trimmed ? `~${fmtH(b.minutes)}` : fmtH(b.minutes)}

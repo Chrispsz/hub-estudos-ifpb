@@ -30,6 +30,7 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { disciplines, materials, type Material } from '@/data/course-data';
 import { cn } from '@/lib/utils';
@@ -356,6 +357,19 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     [launchSteps, sp.progress.preferences.pomodoroConfig],
   );
 
+  // TASK 234 — UMA FONTE PARA O "QUANDO": com sessão sintonizada, a linha do
+  // herói descreve A FILA DA SESSÃO (a mesma do card abaixo), não o cronograma
+  // cru — e sem relógio: a sessão é o AGORA, o foco só corre quando o dono
+  // abre o bloco (dono: "em que momento o site sabe que eu iniciei?").
+  const sessionLine = React.useMemo(() => {
+    if (!sessionActive || launchSteps.length === 0) return null;
+    const pend = launchSteps.filter((s) => !s.done);
+    const first = pend[0];
+    if (!first) return null;
+    const totalMin = pend.reduce((acc, s) => acc + s.minutes, 0);
+    return `${pend.length === 1 ? '1 bloco' : `${pend.length} blocos`} · ~${fmtH(totalMin / 60)} — começa por ${first.short}.`;
+  }, [sessionActive, launchSteps]);
+
   // Concluir aqui É concluir no cronograma (mesmo scheduleBlocksDone da aba)
   // e o gesto de INICIAR mora junto do openMaterialFocused (logo abaixo).
   const completeLaunchStep = React.useCallback(
@@ -404,6 +418,18 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         // original fica guardado, o Restaurar sempre à mão.
         if (h > 0)
           syncPomodoroToBudget(sp, Math.max(0, Math.round(h * 60) - (snap?.minutesToday ?? 0)), dateKey);
+        // TASK 234 — O MOMENTO DO RELÓGIO, DITO EM VOZ ALTA: o dono perguntou
+        // "em que momento o site sabe que eu iniciei?" — a resposta agora
+        // aparece na hora: o início fica registrado AQUI, o foco corre só
+        // quando o bloco abre.
+        if (h > 0) {
+          toast.success(`Sessão de ${fmtH(h)} montada`, {
+            description:
+              'Toque em “Começar agora” — o foco só começa a contar quando você abre o bloco. Este início já ensina o ritmo da casa.',
+          });
+        } else {
+          toast('Sessão limpa — a home volta ao cronograma do dia.');
+        }
       }
       setEditingHours(false);
     },
@@ -421,6 +447,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         sp.markSessionStart(); // 2ª sessão do dia também é um início real (Task 231)
         const newTotal = Math.round(((plannedHours ?? 0) + h) * 60);
         syncPomodoroToBudget(sp, Math.max(0, newTotal - (snap?.minutesToday ?? 0)), dateKey);
+        // TASK 234 — o gesto adiciona, a casa confirma o total em voz alta.
+        toast(`+${fmtH(h)} — o plano inteiro re-encaixa na hora.`, {
+          description: `Agora são ${fmtH(newTotal / 60)} hoje; os ${snap?.minutesToday ?? 0}min de foco já registrados não se perdem.`,
+        });
       }
       setEditingHours(false);
     },
@@ -761,10 +791,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               {focusEval.daysLeft === 0
                 ? `A ${focusEval.kindLabel.toLowerCase()} é hoje`
                 : `${focusEval.kindLabel} amanhã`}
-              . {dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'}
+              . {sessionLine ?? dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'}
             </>
           ) : (
-            dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'
+            sessionLine ?? dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'
           )}
         </p>
         {/* O 1º passo de ontem — a promessa do fecho cobrada na hora certa (banco #6) */}
@@ -1132,7 +1162,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         />
       )}
 
-      {/* O método — um caminho só, três passos, cada um abre o conteúdo certo */}
+      {/* O método — três passos só quando NÃO há fila (TASK 234, o dono:
+          "ter isso duplicado atrapalha"): com sessão ativa ou blocos do dia,
+          a fila É o método — cada bloco abre com o gesto certo e o herói já
+          conta os três passos. Este card vira o guia de quando a casa não tem
+          fila nenhuma para oferecer. */}
+      {!sessionActive && launchSteps.length === 0 && (
       <Card className="rounded-2xl p-5 sm:p-6" data-t="metodo-card">
         <h2 className="text-base font-semibold leading-tight">Como estudar hoje</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
@@ -1174,6 +1209,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           ))}
         </ol>
       </Card>
+      )}
 
       {/* TASK 221 + ÁUDIO 18/10 — UM CRONOGRAMA SÓ: com sessão sintonizada a
           home mostra a sessão (barra viva + fecho); sem sessão, o lançador
