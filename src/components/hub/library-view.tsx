@@ -3,8 +3,10 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
+  BookMarked,
   BookOpen,
   Clock,
+  ExternalLink,
   FileText,
   GraduationCap,
   Sparkles,
@@ -94,6 +96,21 @@ const STAT_BADGES = {
   resumos: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300',
 } as const;
 
+/**
+ * Páginas de estudo do padrão OKF (skill philosopher) geradas sob public/study/.
+ * Cada página é um artigo científico interativo: traços reais, grafo de conceitos
+ * e referências com URL verificada na sessão de geração (política anti-invenção).
+ * Nova página = adicionar entrada aqui + arquivo em public/study/.
+ */
+const STUDY_PAGES = [
+  {
+    href: '/study/complexidade-algoritmos-big-o.html',
+    title: 'Complexidade de algoritmos: Big-O',
+    desc: 'O que a notação Big-O mede de verdade — com traços reais (busca binária em 1.048.576 itens, fib(40) = 331 milhões de chamadas), tabela de classes, grafo de conceitos e 5 referências verificadas.',
+    meta: 'Algoritmos e Lógica de Programação · leitura ~15 min',
+  },
+] as const;
+
 export function LibraryView({ onStartStudy }: LibraryViewProps) {
   const [tab, setTab] = React.useState<string>('disciplinas');
   const [filtro, setFiltro] = React.useState<CategoryFilter>('todos');
@@ -150,7 +167,7 @@ export function LibraryView({ onStartStudy }: LibraryViewProps) {
         onValueChange={setTab}
         className="space-y-4"
       >
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1.5 sm:inline-grid sm:w-auto">
+        <TabsList className="grid h-auto w-full max-w-sm grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1.5">
           <TabsTrigger value="disciplinas" className="gap-1.5 rounded-lg text-xs sm:px-4">
             <BookOpen className="size-3.5" aria-hidden="true" />
             Disciplinas
@@ -250,7 +267,48 @@ export function LibraryView({ onStartStudy }: LibraryViewProps) {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="space-y-4"
           >
+            {/* PÁGINAS DE ESTUDO (skill philosopher): leitura guiada no padrão
+                artigo científico — complemento do resumo IA (que responde) com
+                a página que ENSINA. Abre em nova aba: é impressão-friendly. */}
+            <section aria-label="Páginas de estudo" className="space-y-2">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground/90">
+                <BookMarked className="size-4 text-teal-500" aria-hidden />
+                Páginas de estudo
+                <Badge
+                  variant="outline"
+                  className="ml-1 border-teal-500/30 bg-teal-500/10 px-1.5 text-[10px] font-medium text-teal-600 dark:text-teal-300"
+                >
+                  OKF · referências verificadas
+                </Badge>
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {STUDY_PAGES.map((p) => (
+                  <a
+                    key={p.href}
+                    href={p.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-500/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+                      {p.title}
+                      <ExternalLink
+                        className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-teal-500"
+                        aria-hidden
+                      />
+                    </span>
+                    <span className="text-xs leading-relaxed text-muted-foreground">
+                      {p.desc}
+                    </span>
+                    <span className="mt-auto pt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                      {p.meta}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
             <MaterialsList />
           </motion.div>
         </TabsContent>

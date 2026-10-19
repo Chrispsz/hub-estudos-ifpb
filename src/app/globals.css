@@ -157,6 +157,15 @@
   ::selection {
     background-color: oklch(0.627 0.17 149 / 0.32);
   }
+  /* good-css (skills/): text-wrap balance mantém títulos curtos e
+     multi-linha sem palavra órfã ("Fundamentos" sozinho numa linha); pretty
+     melhora o rag de parágrafos longos sem custo de reflow perceptível. */
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+  p, li {
+    text-wrap: pretty;
+  }
   /* Foco visível consistente: outline com o token --ring.
      Componentes shadcn com ring próprio usam outline-none na camada de
      utilities, que vence esta regra da base — sem indicador duplicado. */
@@ -252,3 +261,4 @@
 .animate-dot {
   animation: dot-bounce 1.1s ease-in-out infinite;
 }
+

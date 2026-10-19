@@ -1267,7 +1267,7 @@ function StatCard({
       >
         {icon}
       </span>
-      <p className="mt-3 text-xl font-bold leading-none">{value}</p>
+      <p className="mt-3 text-xl font-bold leading-none tabular-nums">{value}</p>
       <p className="mt-1 text-xs font-medium text-foreground/80">{label}</p>
       {progress != null && (
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">

@@ -2002,6 +2002,10 @@ export function StudyView({
                   </div>
                 )}
               </div>
+              {/* Skill ui-ux-pro-max (ux/Active State + shadcn card-header):
+                  ações agrupadas à direita com respiro uniforme — antes ficavam
+                  espalhadas pelo justify-between, sem leitura de grupo. */}
+              <div className="flex shrink-0 items-center gap-0.5">
               <Button
                 variant="ghost"
                 size="icon"
@@ -2080,6 +2084,7 @@ export function StudyView({
               >
                 <Trash2 className="size-4" />
               </Button>
+              </div>
             </div>
 
           {/* t151: a barra da busca — abre sob o cabeçalho, some com Esc/X. */}
