@@ -23,6 +23,7 @@ import {
   History,
   ListChecks,
   PenLine,
+  Play,
   Printer,
   Sparkles,
   Sunrise,
@@ -51,7 +52,7 @@ import { buildDayPlan } from '@/lib/study-plan';
 import {
   adaptTodayBlocksToNow,
   generateSmartSchedule,
-  formatTime,
+  todayStudiedMinutesByDiscipline,
   weekStudiedMinutesByDiscipline,
   type ScheduleDisciplineState,
   type SmartBlock,
@@ -59,7 +60,6 @@ import {
 import { suggestBudgetFromHistory, syncPomodoroToBudget, buildSessionHarmony } from '@/lib/session-harmony';
 import { buildDayLaunchPlan, launchStepsFromSchedule, launchStepsFromSession, type LaunchStep } from '@/lib/day-launch';
 import { useStudyProgress } from '@/lib/study-progress';
-import { windowsOf, windowsWithLearnedStarts, TURNO_LABEL, turnoIsLearned, type DayWindow } from '@/lib/study-progress';
 import { useErrorReviewTasks } from '@/lib/error-review-feed';
 import { useStudyFocus } from '@/lib/pomodoro-engine';
 import { readerDoorVisible } from '@/lib/study-reader-door';
@@ -84,21 +84,6 @@ function resumePageOf(materialId: string): number | null {
  * sequência (manhã → tarde → noite) — função pura de módulo (o React Compiler
  * veda reatribuição de captura no corpo do componente; aqui é só matemática).
  */
-function rhythmWindowStatus(
-  windows: DayWindow[],
-  focusMinutes: number,
-): { window: DayWindow; status: 'done' | 'curso' | 'pendente'; minutes: number }[] {
-  let left = focusMinutes;
-  return windows.map((w) => {
-    const take = Math.min(Math.max(0, left), w.durationMin);
-    left -= take;
-    return {
-      window: w,
-      status: take >= w.durationMin ? ('done' as const) : take > 0 ? ('curso' as const) : ('pendente' as const),
-      minutes: take,
-    };
-  });
-}
 
 interface DashboardProps {
   /** Abre a aba Estudar (opcionalmente com disciplina/material selecionados). */
@@ -222,6 +207,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     () => (agora ? weekStudiedMinutesByDiscipline(sp.progress.pomodoroSessions ?? [], agora) : {}),
     [agora, sp.progress.pomodoroSessions],
   );
+  // O REAL DE HOJE (pedido do dono: "sem repetir material no mesmo dia"): a
+  // sessão livre de hoje tira a matéria dos blocos restantes do MESMO dia.
+  const todayStudied = React.useMemo(
+    () => (agora ? todayStudiedMinutesByDiscipline(sp.progress.pomodoroSessions ?? [], agora) : {}),
+    [agora, sp.progress.pomodoroSessions],
+  );
   const dayBlocks = React.useMemo<SmartBlock[]>(() => {
     if (!agora) return [];
     const discProg: Record<string, ScheduleDisciplineState> = {};
@@ -235,6 +226,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         disciplineProgress: discProg,
         customEvaluations: sp.progress.customEvaluations,
         weekStudiedMinutes: weekStudied,
+        todayStudiedMinutes: todayStudied,
         facility: facilityMapOf(sp.progress),
         sessionStarts: sp.progress.sessionStarts,
         now: agora,
@@ -243,7 +235,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         .sort((a, b) => a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute)),
       agora,
     );
-  }, [agora, sp.progress, weekStudied]);
+  }, [agora, sp.progress, weekStudied, todayStudied]);
 
   // O material sugerido por disciplina (1º da fila que toca aquele código) —
   // é o que faz o bloco do cronograma abrir o PDF certo em 1 clique.
@@ -270,10 +262,11 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
 
   // A LINHA DO DIA (áudio do dono: "a home… não pode ser confusa, não pode
   // ser cheia… eu já tenho agenda, é meu cronograma") — o herói descreve o
-  // dia do CRONOGRAMA, não grita a próxima avaliação. "Foco: X" só quando a
-  // avaliação é HOJE ou AMANHÃ (heroEvalNow, definido após focusEval) — a
-  // véspera merece o lugar, o d-5 não (era o que deixava a casa "focando
-  // muito em resgate").
+  // dia do CRONOGRAMA, não grita a próxima avaliação. SEM RELÓGIO (pedido
+  // do dono: "menos específicas… colocar a hora e etc na home"): o dia
+  // nasce no momento do acesso e cresce com o uso — a hora vive na aba
+  // Cronograma, a home fala matéria e tamanho. "Foco: X" só quando a
+  // avaliação é HOJE ou AMANHÃ (heroEvalNow, definido após focusEval).
   const dayLine = React.useMemo(() => {
     if (dayBlocks.length === 0) return null;
     const first = dayBlocks[0];
@@ -285,10 +278,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       .filter((c) => c !== 'revisao');
     if (codes.length <= 1 && dayBlocks.length === 1) {
       // Um bloco só — sem redundância ("Algoritmos… começa por Algoritmos").
-      return `1 bloco · ~${fmtH(dayBlocksMinutes / 60)} de ${codes[0] ?? 'revisão'}. Começa às ${formatTime(first.startHour, first.startMinute)}.`;
+      return `1 bloco · ~${fmtH(dayBlocksMinutes / 60)} de ${codes[0] ?? 'revisão'}. Começa por ele quando você sentar.`;
     }
     const subjects = codes.slice(0, 3).join(', ') + (codes.length > 3 ? ` e mais ${codes.length - 3}` : '');
-    return `${dayBlocks.length} ${dayBlocks.length === 1 ? 'bloco' : 'blocos'} · ~${fmtH(dayBlocksMinutes / 60)} — ${subjects}. Começa por ${firstShort} às ${formatTime(first.startHour, first.startMinute)}.`;
+    return `${dayBlocks.length} ${dayBlocks.length === 1 ? 'bloco' : 'blocos'} · ~${fmtH(dayBlocksMinutes / 60)} — ${subjects}. Começa por ${firstShort} quando você sentar.`;
   }, [dayBlocks, dayBlocksMinutes]);
 
   const nextExam = snap?.nextExam ?? null;
@@ -303,33 +296,6 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   /** A sessão sintonizada existe quando há orçamento no dia (Task 30). */
   const sessionActive = (plannedHours ?? 0) > 0;
   const dateKey = agora ? todayDateKey(agora) : '';
-
-  // TASK 225 — O RITMO DE HOJE (Mensagem 10 do dono): as janelas do dia
-  // (tarde+noite na semana; manhã+tarde+noite no fim de semana), com o status
-  // de cada uma pelo foco REAL registrado — a casa mostra "manhã cumprida,
-  // tarde em curso" sem ninguém marcar nada à mão.
-  const dayRhythm = React.useMemo<DayWindow[]>(
-    () =>
-      agora
-        ? windowsWithLearnedStarts(
-            windowsOf(sp.progress.studyPreferences.days[agora.getDay()]),
-            sp.progress.sessionStarts,
-          )
-        : [],
-    [agora, sp.progress.studyPreferences.days, sp.progress.sessionStarts],
-  );
-  const rhythmTotalHours = dayRhythm.reduce((acc, w) => acc + w.durationMin, 0) / 60;
-  const rhythmLine =
-    dayRhythm.length > 0
-      ? dayRhythm
-          .map((w) => `${Math.round(w.durationMin / 60 * 10) / 10}h ${TURNO_LABEL[w.turno].toLowerCase()}`)
-          .join(' + ')
-      : '';
-  /** Status das janelas: o foco de hoje é alocado em sequência (manhã → tarde → noite). */
-  const rhythmStatus = React.useMemo(
-    () => rhythmWindowStatus(dayRhythm, snap?.minutesToday ?? 0),
-    [dayRhythm, snap?.minutesToday],
-  );
 
   // TASK 222 — O DIA PRONTO (Mensagem 8 do dono: "eu clico para iniciar e ele
   // inicia no cronograma... com tudo organizado e pronto"): a fila do
@@ -842,14 +808,17 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             </div>
           </div>
         )}
-        {/* Check-in de horas — 1 toque ao logar, editável sempre (dono 10/10/2026).
-            A casa aprende (banco #3): com ritmo recente, a mediana vira o 1º chip.
-            TASK 224 — SESSÕES PARTIDAS: com orçamento já lançado, ADICIONAR vem
-            primeiro (2h de manhã + 3h à noite = 5h honestas, nada se perde). */}
+        {/* A SESSÃO — o gesto orgânico do dia (pedido do dono: "estudar as duas
+            horas, finalizando poder colocar 2h de novo a qualquer momento do
+            dia e isso somar"). Nada de relógio na home: a sessão nasce quando
+            você senta, acumula a cada lance e a semana se refaz com o que foi
+            estudado de verdade — os horários aprendidos vivem na aba Cronograma. */}
         {agora && (plannedHours === null || editingHours) && (
-          <div className="mt-2" data-t="checkin-horas">
+          <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.05] p-3.5" data-t="checkin-horas">
             <p className="text-sm text-muted-foreground">
-              Quanto tempo você tem hoje? A sessão inteira se ajusta: plano, pomodoro e fecho.
+              {plannedHours !== null && plannedHours > 0
+                ? 'Mais tempo agora? Adiciona à sessão — o foco já registrado não se perde.'
+                : 'Uma sessão agora. Terminou e quer continuar? Some outra a qualquer momento — o dia acumula e a semana se refaz sozinha com o que você estudou de verdade.'}
               {budgetSuggestion && (
                 <>
                   {' '}
@@ -896,38 +865,24 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               </div>
             )}
             {plannedHours !== null && plannedHours > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">Ou substituir o dia todo:</p>
+              <p className="mt-2 text-xs text-muted-foreground">Ou recomeçar o dia com outro tamanho:</p>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {/* TASK 225 — SEGUIR O RITMO (Mensagem 10): a casa conhece o dia
-                  (fds 3×2h · semana 2×2h) e lança o orçamento completo em 1
-                  toque — cada sessão do dia registra o lance com o horário
-                  real e o Pomodoro se ajusta ao que RESTA. */}
-              {dayRhythm.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => applyHours(rhythmTotalHours)}
-                  title={`Lançar ${fmtH(rhythmTotalHours)} — ${rhythmLine}`}
-                  aria-label={`Seguir o ritmo de hoje: ${fmtH(rhythmTotalHours)} (${rhythmLine})`}
-                  data-t="checkin-ritmo"
-                  className="rounded-full bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Seguir o ritmo de hoje: {fmtH(rhythmTotalHours)}
-                </button>
-              )}
-              {agora &&
-                !Array.isArray(sp.progress.studyPreferences.days[agora.getDay()]?.windows) && (
-                  <button
-                    type="button"
-                    onClick={() => sp.applyStudyRhythm()}
-                    title="Semana: 2h de tarde + 2h de noite · Fim de semana: + 2h de manhã (2h por turno)"
-                    aria-label="Mudar para o ritmo Semana/FDS (turnos de 2h)"
-                    data-t="ritmo-adotar"
-                    className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    Mudar para o ritmo Semana/FDS
-                  </button>
-                )}
+              {/* A SESSÃO PADRÃO — 2h (o dono: "estudar as duas horas… colocar
+                  2h de novo a qualquer momento"): o gesto de entrar no estudo
+                  em 1 toque, em qualquer hora do dia. O relógio é o AGORA —
+                  os blocos nascem a partir do momento do acesso. */}
+              <button
+                type="button"
+                onClick={() => applyHours(2)}
+                title="Sessão de 2h — os blocos nascem a partir de agora e a fila segue o algoritmo"
+                aria-label="Estudar 2h agora — sessão padrão da casa"
+                data-t="checkin-sessao-2h"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Play className="size-4" aria-hidden />
+                {plannedHours !== null && plannedHours > 0 ? 'Sessão de 2h' : 'Estudar 2h agora'}
+              </button>
               {budgetSuggestion && (
                 <button
                   type="button"
@@ -940,7 +895,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                   {fmtH(budgetSuggestion.hours)} · seu ritmo
                 </button>
               )}
-              {[1, 1.5, 2, 2.5, 3, 4].map((h) => (
+              {[1, 1.5, 2.5, 3, 4].map((h) => (
                 <button
                   key={h}
                   type="button"
@@ -967,55 +922,42 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
         {retrato.length > 0 && (
           <p className="mt-1.5 text-sm text-muted-foreground/90" data-t="retrato-linha">
             {retrato.join(' · ')}
-            {plannedHours !== null && !editingHours && (
-              <button
-                type="button"
-                onClick={() => setEditingHours(true)}
-                className="ml-2 text-xs text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
-              >
-                editar
-              </button>
-            )}
           </p>
         )}
-        {/* TASK 225 — O RITMO DE HOJE, vivo: o foco REAL registrado preenche
-            as janelas em sequência (manhã → tarde → noite) — ninguém marca
-            nada à mão, a casa mostra o turno cumprido, o em curso e o que vem.
-            M13 — a hora SÓ aparece quando o uso a ensinou (turnoIsLearned):
-            turno ainda sem lances reais = nome do turno, nunca o relógio
-            08h/14h/19h que ninguém escolheu (dono: "eu não defini esses
-            horários nem quero"). */}
-        {agora && dayRhythm.length > 0 && (
-          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs" data-t="ritmo-hoje">
-            <span className="font-medium text-muted-foreground">Ritmo de hoje:</span>
-            {rhythmStatus.map(({ window: w, status, minutes }) => {
-              const learned = turnoIsLearned(sp.progress.sessionStarts, w.turno);
-              return (
-                <span
-                  key={w.turno}
-                  title={
-                    learned
-                      ? `horário registrado do seu uso real (mediana dos seus inícios de ${TURNO_LABEL[w.turno].toLowerCase()})`
-                      : 'a casa está registrando quando você começa — a hora deste turno aparece com o uso'
-                  }
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 tabular-nums',
-                    status === 'done'
-                      ? 'border-emerald-500/40 bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-400'
-                      : status === 'curso'
-                        ? 'border-primary/40 bg-primary/10 font-medium text-primary'
-                        : 'border-border text-muted-foreground',
-                  )}
-                >
-                  {TURNO_LABEL[w.turno]}
-                  {learned ? ` ${formatTime(w.startHour, 0)}` : ''}
-                  {status === 'done' ? ' · feita' : status === 'curso' ? ` · ${minutes}min` : ''}
-                </span>
-              );
-            })}
-            {dayRhythm.some((w) => !turnoIsLearned(sp.progress.sessionStarts, w.turno)) && (
-              <span className="text-[11px] text-muted-foreground/60">— as horas nascem dos seus check-ins</span>
-            )}
+        {/* A SESSÃO VIVA — o gesto de SOMAR sempre à mão (o pedido do dono:
+            "finalizando poder colocar 2h de novo a qualquer momento do dia e
+            isso somar"). Sem abrir edição, sem relógio: o total do dia, o que
+            já foi feito e os dois lances mais comuns a um toque. */}
+        {agora && plannedHours !== null && plannedHours > 0 && !editingHours && (
+          <p
+            className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-muted-foreground"
+            data-t="sessao-extensao"
+          >
+            <span>
+              Sessão de hoje:{' '}
+              <span className="font-semibold tabular-nums text-foreground">{fmtH(plannedHours)}</span>
+              {(snap?.minutesToday ?? 0) > 0 && <> · {snap?.minutesToday}min feitos</>}
+            </span>
+            {[1, 2].map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => addHours(h)}
+                title={`Some ${fmtH(h)} à sessão — a fila re-encaixa na hora`}
+                aria-label={`Adicionar ${fmtH(h)} à sessão de hoje`}
+                data-t={`sessao-mais-${h}h`}
+                className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                +{fmtH(h)}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setEditingHours(true)}
+              className="text-xs text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              editar
+            </button>
           </p>
         )}
         {/* TASK 224 — O FOCO DO DIA: escolher a matéria que concentra a fila.
@@ -1164,6 +1106,9 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           focusLabel={dayFocusShort}
           onStartStep={launchStep}
           onCompleteStep={completeLaunchStep}
+          // O DIA NÃO MORRE NO "CUMPRIDO" (o dono: "finalizando poder colocar
+          // 2h de novo a qualquer momento"): +2h some à sessão e a fila refaz.
+          onExtend={() => addHours(2)}
         />
       )}
 

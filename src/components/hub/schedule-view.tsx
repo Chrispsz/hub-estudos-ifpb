@@ -83,6 +83,8 @@ import {
   formatTime,
   generateSmartSchedule,
   adaptTodayBlocksToNow,
+  todayStudiedMinutesByDiscipline,
+  weekStudiedMinutesByDiscipline,
   type ScheduleDisciplineState,
   type SmartBlock,
 } from '@/lib/smart-schedule';
@@ -238,7 +240,18 @@ export function ScheduleView() {
   // Cronograma rotativo (puro) — regenerado só quando preferências/progresso/data mudam.
   // FACILIDADE REAL (Task 226): os sinais das questões treinam o motor —
   // puxada pesa mais, fluida respira (a MESMA régua da home).
+  // O REAL MANDA (pedido do dono): o foco da semana desconta das metas e o
+  // foco DE HOJE tira a matéria dos blocos restantes do mesmo dia — a MESMA
+  // fonte que a home usa (1 motor, 1 verdade).
   const facility = React.useMemo(() => facilityMapOf(sp.progress), [sp.progress]);
+  const weekStudied = React.useMemo(
+    () => (now ? weekStudiedMinutesByDiscipline(sp.progress.pomodoroSessions ?? [], now) : {}),
+    [now, sp.progress.pomodoroSessions],
+  );
+  const todayStudied = React.useMemo(
+    () => (now ? todayStudiedMinutesByDiscipline(sp.progress.pomodoroSessions ?? [], now) : {}),
+    [now, sp.progress.pomodoroSessions],
+  );
   const autoBlocks = React.useMemo(
     () =>
       now
@@ -248,11 +261,13 @@ export function ScheduleView() {
             disciplineProgress: discProg,
             customEvaluations: sp.progress.customEvaluations,
             facility,
+            weekStudiedMinutes: weekStudied,
+            todayStudiedMinutes: todayStudied,
             sessionStarts: sp.progress.sessionStarts,
             now,
           })
         : [],
-    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, sp.progress.sessionStarts, facility, now],
+    [prefs, sp.progress.topicProgress, discProg, sp.progress.customEvaluations, sp.progress.sessionStarts, sp.progress.pomodoroSessions, facility, weekStudied, todayStudied, now],
   );
 
   // Blocos manuais do usuário → SmartBlock com prefixo "manual-" no id.
@@ -1199,10 +1214,11 @@ function PreferencesPanel({
 
         <CollapsibleContent>
           <div className="space-y-3 border-t p-4">
-            {/* TASK 225 — O RITMO SEMANAL (Mensagem 10 do dono): 1 toque aplica
-                o dia em turnos — semana (tarde+noite) e fim de semana (manhã+
-                tarde+noite), 2h por turno. O motor encaixa os blocos DENTRO
-                das janelas; os chips por dia ajustam turno a turno. */}
+            {/* O RITMO SEM ORGULHO DE RELÓGIO (pedido do dono: "menos
+                específicas… não algo setado e certo"): o painel não anuncia
+                horário nenhum — você marca QUAIS dias e turnos existem, a
+                casa aprende QUANDO você senta e refaz a semana com o estudo
+                real, sem repetir matéria no mesmo dia. */}
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -1211,14 +1227,15 @@ function PreferencesPanel({
                     Ritmo semanal
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Seg–Sex: 2h de tarde + 2h de noite · Sáb/Dom: mais 2h de manhã. O dia nasce
-                    dentro dos turnos (2h cada) e o RELÓGIO a casa aprende sozinha do seu uso.
+                    Marque só quais dias e turnos existem — nada de relógio. Quando você senta, a casa registra a
+                    hora real, soma as sessões e refaz a semana com o que você estudou de verdade, sem repetir
+                    matéria no mesmo dia.
                   </p>
                   <p className="mt-1 text-xs text-foreground/80">
                     {learnedTurnos.length > 0
                       ? `Registrado do seu ritmo real: ${learnedTurnos
                           .map((x) => `${x.label.toLowerCase()} ~${fmtLearnedHour(x.h)}`)
-                          .join(' · ')}. Continua se ajustando a cada check-in.`
+                          .join(' · ')}. Continua se ajustando a cada sessão.`
                       : 'Conforme você estuda, o site registra seus horários reais e encaixa os blocos no seu momento — nada de relógio para configurar.'}
                   </p>
                 </div>
@@ -1227,7 +1244,7 @@ function PreferencesPanel({
                   data-t="ritmo-aplicar"
                   onClick={() => {
                     sp.applyStudyRhythm();
-                    toast.success('Ritmo aplicado: semana 2h tarde + 2h noite · fds 3 turnos de 2h');
+                    toast.success('Ritmo aplicado — os dias nascem com as janelas padrão; os horários a casa aprende do seu uso.');
                   }}
                 >
                   <Check className="size-4" aria-hidden />

@@ -90,6 +90,11 @@ export interface SmartScheduleInput {
    *  o motor: puxada pesa mais (reforço sobe), fluida respira (fila absorve o
    *  que já saiu de cabeça). Ausente = sem dado = neutro. */
   facility?: Record<string, number>;
+  /** FOCO REAL DE HOJE por disciplina (pedido do dono: "sem repetir material
+   *  no mesmo dia… o cronograma acompanhar"): quem já teve foco registrado
+   *  HOJE (≥ 25min) não volta nos blocos restantes do mesmo dia — a sessão
+   *  livre CONTA como o bloco do dia e o slot vai para outra matéria. */
+  todayStudiedMinutes?: { [code: string]: number };
   /** HORÁRIOS REAIS de início de estudo (Task 231) — a mediana aprendida por
    *  turno ancora as janelas dos dias futuros; HOJE continua re-ancorado no
    *  momento do acesso (adaptTodayBlocksToNow). O dono nunca configura relógio. */
@@ -235,8 +240,11 @@ function computeWeights(
  *  4. Disciplina esquecida (≥5 dias sem estudo) → incluída no próximo dia
  *  5. Demais vagas → deficit scheduling rotativo proporcional à CH
  *
- * Limites: maxBlocksPerDay (default 4), maxMinutesPerDay (default 180).
- * NUNCA aloca a mesma disciplina para todos os blocos do dia (máx. metade dos blocos).
+ * Limites: a capacidade vem das janelas do ritmo (turnos de 2h).
+ * NUNCA repete a MESMA disciplina no mesmo dia (pedido do dono:
+ * "sem repetir material no mesmo dia") — cada bloco do dia é de uma
+ * matéria diferente. Isso É interleaving, a técnica de fixação com melhor
+ * evidência: melhor 2 matérias de 50min do que 100min seguidos da mesma.
  */
 export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   const { preferences, topicProgress } = input;
@@ -347,6 +355,19 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   const blocks: SmartBlock[] = [];
   const staleQueue = [...staleCodes];
 
+  // O REAL DE HOJE MANDA (pedido do dono: "estudar as duas horas… sem repetir
+  // material no mesmo dia"): a sessão livre de hoje já colocou a matéria no
+  // dia — os blocos planejados de HOJE dela saem e o slot vai para outra.
+  // ≥ 25min de foco real = "a matéria já entrou hoje" (um foco de verdade,
+  // não um esbarrão de 5min).
+  const todayDow = now.getDay();
+  const studiedToday = new Set<string>();
+  if (input.todayStudiedMinutes) {
+    for (const [code, min] of Object.entries(input.todayStudiedMinutes)) {
+      if (min >= 25) studiedToday.add(code);
+    }
+  }
+
   for (const [day, cap] of dayCapacity) {
     // ÁUDIO DO DONO (18/10/2026): "têm várias coisas falando de resgate e tá
     // focando muito em resgate" — o chip "prioridade hoje" perde a força
@@ -356,6 +377,13 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     // Blocos por disciplina HOJE (exclui a revisão geral) — mantido incrementalmente
     // pelo push; substitui o re-filtro de `blocks` a cada vaga do deficit scheduling.
     const todayCount = new Map<string, number>();
+    // A sessão livre de hoje já estudou estas matérias — o dia não repete.
+    if (day === todayDow) {
+      for (const code of studiedToday) {
+        todayCodes.add(code);
+        todayCount.set(code, 1);
+      }
+    }
     // RITMO SEMANAL: os slots vêm das JANELAS do dia — quando uma enche, o
     // cursor salta para a próxima (tarde 14:00, noite 19:00…). O bloqueio da
     // grade oficial já foi aplicado no início de cada janela (capacidade).
@@ -380,7 +408,10 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
     if (!syncCursor()) continue; // dia sem slot livre (não deveria ocorrer)
     let usedMinutes = 0;
     let usedBlocks = 0;
-    const maxRepeat = Math.max(1, Math.ceil(cap.blocks / 2)); // nunca domina o dia
+    // SEM REPETIÇÃO NO DIA (pedido do dono): uma disciplina = no máximo 1
+    // bloco por dia. Urgentes, dívida e retomadas já checam todayCodes —
+    // aqui o deficit scheduler completa com matérias NOVAS, nunca a mesma.
+    const maxRepeat = 1;
 
     function push(
       code: string,
@@ -515,7 +546,7 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
       for (const [code, dw] of weights) {
         if (dw.weight <= 0 || code === 'revisao') continue;
         const countToday = todayCount.get(code) ?? 0;
-        if (countToday >= maxRepeat) continue; // anti-domínio: não vira "a mesma todos os dias"
+        if (countToday >= maxRepeat) continue; // já estudou HOJE → o dia segue para outra matéria
         const behind =
           (targetMin.get(code) ?? 0) -
           (allocatedMin.get(code) ?? 0) -
@@ -563,6 +594,26 @@ export function weekStudiedMinutesByDiscipline(
 ): { [code: string]: number } {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).getTime();
   const end = start + 7 * 86_400_000;
+  const out: { [code: string]: number } = {};
+  for (const s of sessions) {
+    const t = new Date(s.completedAt).getTime();
+    if (Number.isNaN(t) || t < start || t >= end) continue;
+    out[s.disciplineId] = (out[s.disciplineId] ?? 0) + (s.focusMinutes || 0);
+  }
+  return out;
+}
+
+/**
+ * Foco REAL registrado HOJE (0h–24h local) por disciplina — alimenta o
+ * "sem repetir material no mesmo dia": quem estudou de verdade hoje não
+ * recebe o mesmo material de novo no dia seguinte ao relógio.
+ */
+export function todayStudiedMinutesByDiscipline(
+  sessions: { completedAt: string; disciplineId: string; focusMinutes: number }[],
+  now: Date,
+): { [code: string]: number } {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const end = start + 86_400_000;
   const out: { [code: string]: number } = {};
   for (const s of sessions) {
     const t = new Date(s.completedAt).getTime();

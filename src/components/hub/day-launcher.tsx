@@ -62,6 +62,10 @@ interface DayLauncherProps {
   minutesToday: number;
   /** FOCO DO DIA (Task 224) — o nome curto da matéria escolhida, se houver. */
   focusLabel?: string | null;
+  /** O DIA NÃO MORRE NO "CUMPRIDO" (pedido do dono: "finalizando poder colocar
+   *  2h de novo a qualquer momento do dia e isso somar") — o gesto de somar
+   *  +2h à sessão, refazendo a fila na hora. Ausente = sem botão. */
+  onExtend?: () => void;
   onStartStep: (step: LaunchStep) => void;
   onCompleteStep: (step: LaunchStep) => void;
 }
@@ -77,6 +81,7 @@ export function DayLauncherCard({
   sessionActive,
   minutesToday,
   focusLabel,
+  onExtend,
   onStartStep,
   onCompleteStep,
 }: DayLauncherProps) {
@@ -138,17 +143,32 @@ export function DayLauncherCard({
               Dia cumprido — {plan.doneCount} {plan.doneCount === 1 ? 'bloco concluído' : 'blocos concluídos'}
               {minutesToday > 0 ? ` · ${minutesToday}min de foco` : ''}.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(true)}
-              className="h-11 shrink-0 sm:h-9"
-              aria-label="Ver o resumo do dia cumprido"
-              data-t="day-launch-open"
-            >
-              Ver o dia
-              <ArrowRight className="size-4" aria-hidden />
-            </Button>
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              {onExtend && (
+                <button
+                  type="button"
+                  onClick={onExtend}
+                  title="Some +2h à sessão — a fila refaz na hora com o que ainda não foi tocado hoje"
+                  aria-label="Somar mais 2h de sessão e continuar estudando"
+                  data-t="day-launch-extend"
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-9"
+                >
+                  <Play className="size-4" aria-hidden />
+                  +2h para continuar
+                </button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(true)}
+                className="h-11 shrink-0 sm:h-9"
+                aria-label="Ver o resumo do dia cumprido"
+                data-t="day-launch-open"
+              >
+                Ver o dia
+                <ArrowRight className="size-4" aria-hidden />
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -281,6 +301,7 @@ export function DayLauncherCard({
                   {sessionActive
                     ? 'Registre o fecho no card da sessão: os erros do dia viram cartões e o 1º passo de amanhã fica gravado.'
                     : 'O foco de hoje já está no seu acompanhamento — o cronograma de amanhã se ajusta sozinho ao que você fez agora.'}
+                  {onExtend && ' Ainda com fôlego? Some +2h fora do card e a fila refaz na hora.'}
                 </DialogDescription>
               </DialogHeader>
               <Button
