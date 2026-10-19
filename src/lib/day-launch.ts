@@ -23,7 +23,6 @@
 // (minutos de foco registrados) — a harmonia já resolve, nada duplicado.
 
 import type { SmartBlock } from './smart-schedule';
-import { formatTime } from './smart-schedule';
 import type { HarmonyBlock, PomodoroFit } from './session-harmony';
 import { fitPomodoro } from './session-harmony';
 import type { PomodoroConfig } from './study-progress';
@@ -49,8 +48,9 @@ export interface LaunchStep {
   /** Nome curto (a disciplina, ou "Revisão"). */
   short: string;
   minutes: number;
-  /** Hora de início no cronograma ("12:00") — só nos blocos do cronograma. */
-  time?: string;
+  /** A posição na fila do dia (1 = o próximo quando você sentar). A casa não
+   *  mostra relógio: o dia começa quando o dono senta (dono, 20/10/2026). */
+  order: number;
   method: LaunchMethod;
   why?: string;
   open: LaunchOpen;
@@ -148,7 +148,7 @@ export function launchStepsFromSchedule(
   const done = new Set(doneIds);
   return [...blocks]
     .sort((a, b) => a.startHour * 60 + a.startMinute - (b.startHour * 60 + b.startMinute))
-    .map((b) => {
+    .map((b, i) => {
       const isReview = b.disciplineCode === 'revisao';
       const materialId = isReview ? undefined : materialOf?.get(b.disciplineCode);
       const activity = b.activity;
@@ -159,7 +159,7 @@ export function launchStepsFromSchedule(
         title: b.title,
         short: isReview ? 'Revisão' : b.title.split(' — ')[0] ?? b.title,
         minutes: b.durationMin,
-        time: formatTime(b.startHour, b.startMinute),
+        order: i + 1,
         method: methodForActivity(activity),
         open: isReview
           ? 'flashcards'
@@ -183,13 +183,14 @@ export function launchStepsFromSchedule(
 export function launchStepsFromSession(blocks: HarmonyBlock[]): LaunchStep[] {
   return blocks
     .filter((b) => b.kind !== 'fecho')
-    .map((b) => ({
+    .map((b, i) => ({
       id: b.id,
       disciplineCode: b.disciplineCode,
       materialId: b.materialId,
       title: b.title,
       short: b.title.split(' — ')[0] ?? b.title,
       minutes: b.minutes,
+      order: i + 1,
       method: methodForKind(b.kind),
       why: b.why,
       open: (b.kind === 'pratica' || b.kind === 'revisao'

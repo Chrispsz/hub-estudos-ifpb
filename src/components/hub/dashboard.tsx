@@ -1,17 +1,16 @@
 'use client';
 
-// t180 — A CASA LIMPA (o pedido do dono: "eu só quero conseguir estudar").
+// t240 — A CASA AUTOMÁTICA (o pedido do dono: "deixe o site o mais automático
+// possível… escolher horas e etc apenas na home… sem esses sistemas de turnos
+// pois o site já vai saber se estudei de manhã, tarde ou noite").
 //
 // A home tem UMA função: colocar a pessoa para estudar no método único —
 // LER com o tutor ao lado → RESOLVER as questões do professor no papel →
-// ENSAIAR no simulado. Sem placares, sem prontidão, sem caixinhas para
-// marcar, sem avisos empilhados: qualquer pessoa entende em 5 segundos.
-//
-// O que existia aqui (t195) e saiu de vez: ExamPrepCard (prontidão, plano
-// completo, seguro de progresso), RecoveryCard (fila P0–P5), ExamTutorCard,
-// TodayStudyCard (unidades com checkbox), KPIs de pomodoro/streak.
-// As provas viram CONTEÚDO (a folha de questões é um material como outro
-// qualquer) — não viram mais abas, cards ou modos especiais.
+// ENSAIAR no simulado. O único gesto de configuração que existe é responder
+// "quanto tempo você tem agora?" — 1 toque. Tudo o mais o site sabe sozinho:
+// o ritmo (manhã/tarde/noite) nasce dos focos registrados; a semana se refaz
+// com o que foi estudado de verdade; a repetição é só do material concluído
+// sem dificuldade (consolidação) ou da questão difícil pontual (ciclo do erro).
 
 import * as React from 'react';
 import {
@@ -46,12 +45,13 @@ import {
 import { MATH_EXAM } from '@/lib/math-exam-prep';
 import { WeeklyReport } from './weekly-report';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { buildTodaySnapshot, buildTrackingDetail, todayDateKey, type TodaySnapshot } from '@/lib/today-focus';
 import { buildDayPlan } from '@/lib/study-plan';
 import {
   adaptTodayBlocksToNow,
   generateSmartSchedule,
+  learnedRhythmFromHistory,
+  todayMinutesByPeriod,
   todayStudiedMinutesByDiscipline,
   weekStudiedMinutesByDiscipline,
   type ScheduleDisciplineState,
@@ -177,22 +177,15 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   // FRENTE 13 — O PLANO DE HOJE (fila de materiais): hoje ela alimenta o
   // CRONOGRAMA DE HOJE (abaixo) — cada bloco ganha o material sugerido da
   // fila. Recomputado pós-mount (mesmo `agora` do retrato), a cada write do
-  // progresso e a cada write do Code Review.
+  // progresso e a cada write do Code Review. Sem seletor de foco: a fila
+  // inteira é automática — o radar de provas e os sinais reais mandam.
   const errorReviews = useErrorReviewTasks();
-  // TASK 224 — O FOCO DO DIA: a matéria que o dono escolheu concentrar hoje
-  // (por dateKey — amanhã a casa volta à fila normal). Os dois motores da
-  // fila (plano cru e harmonia) recebem o MESMO comando — um foco, uma fila.
-  const dayFocusCode =
-    agora ? sp.progress.dailyFocusDiscipline?.[todayDateKey(agora)] ?? null : null;
-  const dayFocusShort = dayFocusCode
-    ? disciplines.find((d) => d.code === dayFocusCode)?.shortName ?? null
-    : null;
   const plan = React.useMemo(
     () =>
       agora
-        ? buildDayPlan(sp.progress, agora, { pageOf: resumePageOf, errorReviews, focusDiscipline: dayFocusCode ?? undefined })
+        ? buildDayPlan(sp.progress, agora, { pageOf: resumePageOf, errorReviews })
         : null,
-    [sp.progress, agora, errorReviews, dayFocusCode],
+    [sp.progress, agora, errorReviews],
   );
 
   // TASK 221 — UM CRONOGRAMA SÓ: o "Plano de hoje" da home AGORA É o
@@ -308,12 +301,11 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       const harmony = buildSessionHarmony(sp.progress, agora, {
         pageOf: resumePageOf,
         errorReviews,
-        focusDiscipline: dayFocusCode ?? undefined,
       });
       return launchStepsFromSession(harmony.blocks);
     }
     return launchStepsFromSchedule(dayBlocks, sp.progress.scheduleBlocksDone ?? [], materialOfDiscipline);
-  }, [agora, sessionActive, sp.progress, errorReviews, dayBlocks, materialOfDiscipline, dayFocusCode]);
+  }, [agora, sessionActive, sp.progress, errorReviews, dayBlocks, materialOfDiscipline]);
 
   const launchPlan = React.useMemo(
     () =>
@@ -423,8 +415,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
     [dateKey, sp, snap, plannedHours],
   );
 
-  /** Os lances de hoje (check-ins com horário) — a história das sessões partidas. */
-  const checkinsToday = dateKey ? sp.progress.dailyCheckins?.[dateKey] ?? [] : [];
+  // (o log dos lances mora no acompanhamento — a home não repete história)
 
   // As horas lançadas viram doses por passo (40/35/25, arredondadas a 5min).
   const doseLine = React.useMemo(() => {
@@ -438,15 +429,25 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
   }, [plannedHours]);
 
   // A linha do retrato — números que contam a história, sem placar.
+  // O RITMO REAL DO DIA (dono: "o site já vai saber se estudei de manhã,
+  // tarde ou noite e quantas horas foi a cada parte"): lido dos focos
+  // registrados — nada para marcar, nada para configurar.
   const retrato = React.useMemo(() => {
-    if (!snap) return [] as string[];
+    if (!snap || !agora) return [] as string[];
     const p: string[] = [];
     if (snap.plannedHours) p.push(`${fmtH(snap.plannedHours)} disponíveis hoje`);
+    const per = todayMinutesByPeriod(sp.progress.pomodoroSessions ?? [], agora);
+    const periodBits = [
+      per.manha >= 5 ? `manhã ${fmtH(per.manha / 60)}` : null,
+      per.tarde >= 5 ? `tarde ${fmtH(per.tarde / 60)}` : null,
+      per.noite >= 5 ? `noite ${fmtH(per.noite / 60)}` : null,
+    ].filter(Boolean);
+    if (periodBits.length > 0) p.push(`hoje: ${periodBits.join(' · ')}`);
     if (snap.activeDays30 > 0)
       p.push(
         `${snap.activeDays30} ${snap.activeDays30 === 1 ? 'dia' : 'dias'} de estudo nos últimos 30`,
       );
-    if (snap.minutesToday > 0) p.push(`${snap.minutesToday} min de foco hoje`);
+    if (snap.minutesToday > 0 && periodBits.length === 0) p.push(`${snap.minutesToday} min de foco hoje`);
     if (snap.accuracyPct !== null) p.push(`acerto em ${snap.accuracyPct}%`);
     if (snap.cardsDue > 0) p.push(`${snap.cardsDue} cartões a revisar`);
     if (snap.openMistakes > 0)
@@ -467,7 +468,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
       );
     if (p.length === 0) p.push('seu progresso aparece aqui conforme você estuda');
     return p;
-  }, [snap]);
+  }, [snap, agora, sp.progress.pomodoroSessions]);
 
   // O ÚLTIMO material aberto — a home não pode viver em modo prova: no dia a
   // dia, o passo 1 devolve a pessoa exatamente ao ponto onde ela parou.
@@ -808,81 +809,33 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             </div>
           </div>
         )}
-        {/* A SESSÃO — o gesto orgânico do dia (pedido do dono: "estudar as duas
-            horas, finalizando poder colocar 2h de novo a qualquer momento do
-            dia e isso somar"). Nada de relógio na home: a sessão nasce quando
-            você senta, acumula a cada lance e a semana se refaz com o que foi
-            estudado de verdade — os horários aprendidos vivem na aba Cronograma. */}
-        {agora && (plannedHours === null || editingHours) && (
+        {/* A SESSÃO — O ÚNICO GESTO DE CONFIGURAÇÃO DA CASA (dono, 20/10/2026:
+            "escolher horas e etc apenas na home"). Uma pergunta, uma fileira de
+            chips, um toque: 2h é o padrão, a sugestão aprende o seu ritmo.
+            Terminou e quer continuar? +2h na linha da sessão — o dia acumula. */}
+        {agora && (plannedHours === null || plannedHours === 0 || editingHours) && (
           <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.05] p-3.5" data-t="checkin-horas">
-            <p className="text-sm text-muted-foreground">
-              {plannedHours !== null && plannedHours > 0
-                ? 'Mais tempo agora? Adiciona à sessão — o foco já registrado não se perde.'
-                : 'Uma sessão agora. Terminou e quer continuar? Some outra a qualquer momento — o dia acumula e a semana se refaz sozinha com o que você estudou de verdade.'}
-              {budgetSuggestion && (
-                <>
-                  {' '}
-                  Sugestão: <span className="font-medium text-foreground">{fmtH(budgetSuggestion.hours)}</span>{' '}
-                  — {budgetSuggestion.why}.
-                </>
-              )}
+            <p className="text-sm font-medium">
+              {plannedHours !== null && plannedHours > 0 && !editingHours
+                ? 'Sessão de hoje zerada — quanto tempo tem agora?'
+                : plannedHours !== null && plannedHours > 0
+                  ? 'Recomeçar o dia com outro tamanho:'
+                  : 'Quanto tempo você tem agora?'}
             </p>
-            {plannedHours !== null && plannedHours > 0 && (
-              <div
-                className="mt-2 rounded-xl border border-primary/25 bg-primary/[0.04] p-2.5"
-                data-t="checkin-adicionar"
-              >
-                <p className="text-xs font-medium text-foreground/80">
-                  Mais tempo agora? Adiciona à sessão — hoje já tem {fmtH(plannedHours)} lançadas e o foco de
-                  {' '}{snap?.minutesToday ?? 0}min registrado não se perde.
-                </p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  {[0.5, 1, 1.5, 2, 3].map((h) => (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => addHours(h)}
-                      title={`Adicionar ${fmtH(h)} ao dia (vira ${fmtH(plannedHours + h)} no total)`}
-                      aria-label={`Adicionar ${fmtH(h)} ao orçamento de hoje`}
-                      data-t={`checkin-add-${String(h).replace('.', '_')}`}
-                      className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      +{fmtH(h)}
-                    </button>
-                  ))}
-                </div>
-                {checkinsToday.length >= 2 && (
-                  <p className="mt-1.5 text-xs text-muted-foreground" data-t="checkin-log">
-                    Lances de hoje:{' '}
-                    {checkinsToday
-                      .map(
-                        (c) =>
-                          `+${fmtH(c.hours)} às ${new Date(c.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
-                      )
-                      .join(' · ')}
-                  </p>
-                )}
-              </div>
-            )}
-            {plannedHours !== null && plannedHours > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">Ou recomeçar o dia com outro tamanho:</p>
-            )}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {/* A SESSÃO PADRÃO — 2h (o dono: "estudar as duas horas… colocar
-                  2h de novo a qualquer momento"): o gesto de entrar no estudo
-                  em 1 toque, em qualquer hora do dia. O relógio é o AGORA —
-                  os blocos nascem a partir do momento do acesso. */}
-              <button
-                type="button"
-                onClick={() => applyHours(2)}
-                title="Sessão de 2h — os blocos nascem a partir de agora e a fila segue o algoritmo"
-                aria-label="Estudar 2h agora — sessão padrão da casa"
-                data-t="checkin-sessao-2h"
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Play className="size-4" aria-hidden />
-                {plannedHours !== null && plannedHours > 0 ? 'Sessão de 2h' : 'Estudar 2h agora'}
-              </button>
+              {!editingHours && (
+                <button
+                  type="button"
+                  onClick={() => applyHours(2)}
+                  title="Sessão de 2h — os blocos nascem a partir de agora e a fila segue o algoritmo"
+                  aria-label="Estudar 2h agora — sessão padrão da casa"
+                  data-t="checkin-sessao-2h"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Play className="size-4" aria-hidden />
+                  Estudar 2h agora
+                </button>
+              )}
               {budgetSuggestion && (
                 <button
                   type="button"
@@ -895,12 +848,12 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                   {fmtH(budgetSuggestion.hours)} · seu ritmo
                 </button>
               )}
-              {[1, 1.5, 2.5, 3, 4].map((h) => (
+              {(editingHours ? [1, 1.5, 2, 2.5, 3, 4] : [1, 1.5, 2.5, 3, 4]).map((h) => (
                 <button
                   key={h}
                   type="button"
                   onClick={() => applyHours(h)}
-                  title={`Substituir o dia por ${fmtH(h)}`}
+                  title={editingHours ? `Recomeçar o dia com ${fmtH(h)}` : `Sessão de ${fmtH(h)}`}
                   className="rounded-full border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {fmtH(h)}
@@ -916,6 +869,10 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
                 </button>
               )}
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Senta quando quiser — os blocos nascem a partir de agora e a fila segue o algoritmo. A casa registra
+              manhã, tarde e noite sozinha.
+            </p>
           </div>
         )}
         {/* O retrato — o acompanhamento automático: números que o uso diário já gerou */}
@@ -960,38 +917,8 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
             </button>
           </p>
         )}
-        {/* TASK 224 — O FOCO DO DIA: escolher a matéria que concentra a fila.
-            Por dia — amanhã a casa volta à fila normal por conta própria. */}
-        {agora && (
-          <div className="mt-2 flex flex-wrap items-center gap-2" data-t="foco-dia">
-            <span className="text-xs font-medium text-muted-foreground">Foco de hoje:</span>
-            <Select
-              value={dayFocusCode ?? 'none'}
-              onValueChange={(v) => sp.setDayFocus(todayDateKey(agora), v === 'none' ? null : v)}
-            >
-              <SelectTrigger
-                className="h-8 w-[230px] rounded-lg text-xs"
-                aria-label="Escolher a matéria foco de hoje"
-                data-t="foco-dia-select"
-              >
-                <SelectValue placeholder="Sem foco específico" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem foco — a fila manda</SelectItem>
-                {disciplines.map((d) => (
-                  <SelectItem key={d.code} value={d.code}>
-                    {d.shortName} — no comando do dia
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {dayFocusShort && (
-              <span className="text-xs text-muted-foreground">
-                a fila concentra em {dayFocusShort} — véspera de prova continua na frente
-              </span>
-            )}
-          </div>
-        )}
+        {/* A fila é automática — o radar de provas e os sinais reais mandam;
+            nenhum seletor de "foco do dia" (dono: "menos coisa para mexer"). */}
         {/* Onde parou — um clique devolve ao ponto exato (só se o foco do dia não for ele) */}
         {resumeChip && (
           <p className="mt-1 text-sm">
@@ -1103,7 +1030,6 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
           steps={launchSteps}
           sessionActive={sessionActive}
           minutesToday={snap?.minutesToday ?? 0}
-          focusLabel={dayFocusShort}
           onStartStep={launchStep}
           onCompleteStep={completeLaunchStep}
           // O DIA NÃO MORRE NO "CUMPRIDO" (o dono: "finalizando poder colocar

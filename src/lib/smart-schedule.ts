@@ -99,7 +99,90 @@ export interface SmartScheduleInput {
    *  turno ancora as janelas dos dias futuros; HOJE continua re-ancorado no
    *  momento do acesso (adaptTodayBlocksToNow). O dono nunca configura relógio. */
   sessionStarts?: SessionStart[];
+  /**
+   * RITMO APRENDIDO (dono, 20/10/2026 — "sem esses sistemas de turnos… o site
+   * já vai saber se estudei de manhã, tarde ou noite e quantas horas"): quando
+   * presente, a capacidade da semana vem SÓ do uso real (mediana de minutos
+   * por dia dos últimos 21 dias) — as janelas configuradas são ignoradas e a
+   * casa assume estudo todos os dias, no tamanho que a vida do dono permite.
+   * Ausente = legado (janelas configuradas).
+   */
+  learnedCapacity?: LearnedRhythm;
   now?: Date;
+}
+
+/** O ritmo que a casa mediu — nenhum campo configurável. */
+export interface LearnedRhythm {
+  /** Mediana de minutos de estudo real por dia (clamp 50–240). */
+  minutesPerDay: number;
+  /** Quantos dias com registro sustentam a mediana (transparência). */
+  daysCounted: number;
+}
+
+/**
+ * A CAPACIDADE QUE A VIDA ENSINA: mediana dos minutos reais por dia
+ * (foco do Pomodoro; dia sem foco usa o check-in de horas como testemunha)
+ * nos últimos 21 dias. Sem dados suficientes (< 3 dias), a casa assume
+ * 2h — o tamanho da sessão padrão — e aprende por cima.
+ */
+export function learnedRhythmFromHistory(
+  sessions: { completedAt: string; focusMinutes: number }[],
+  dailyHours: { [dateKey: string]: number } | undefined,
+  now: Date,
+): LearnedRhythm {
+  const dayKeyOf = (ms: number): string => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const perDay = new Map<string, number>();
+  const cutoff = now.getTime() - 21 * 86_400_000;
+  for (const s of sessions) {
+    const t = new Date(s.completedAt).getTime();
+    if (Number.isNaN(t) || t < cutoff || t > now.getTime() + 60_000) continue;
+    const k = dayKeyOf(t);
+    perDay.set(k, (perDay.get(k) ?? 0) + (s.focusMinutes || 0));
+  }
+  // Check-in como testemunha: dia sem foco registrado mas com horas lançadas
+  // conta a intenção (o dono sentou — o site não finge que o dia não existiu).
+  if (dailyHours) {
+    for (const [k, h] of Object.entries(dailyHours)) {
+      if (!perDay.has(k) && h > 0) perDay.set(k, Math.round(h * 60));
+    }
+  }
+  const values = [...perDay.entries()]
+    .filter(([, min]) => min >= 15) // esbarrão de 10min não desenha ritmo
+    .map(([, min]) => Math.min(min, 300));
+  if (values.length < 3) return { minutesPerDay: 120, daysCounted: values.length };
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return {
+    minutesPerDay: Math.max(50, Math.min(240, Math.round(median / 5) * 5)),
+    daysCounted: values.length,
+  };
+}
+
+/**
+ * O SITE SABE (dono: "o site já vai saber se estudei de manhã, tarde ou noite
+ * e quantas horas foi a cada parte do dia"): minutos de foco REAL de hoje por
+ * período, lidos do `completedAt` local — manhã <12, tarde 12–17, noite ≥18.
+ * Somente leitura: nunca pergunta, nunca pede para marcar.
+ */
+export function todayMinutesByPeriod(
+  sessions: { completedAt: string; focusMinutes: number }[],
+  now: Date,
+): { manha: number; tarde: number; noite: number } {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const end = start + 86_400_000;
+  const out = { manha: 0, tarde: 0, noite: 0 };
+  for (const s of sessions) {
+    const t = new Date(s.completedAt).getTime();
+    if (Number.isNaN(t) || t < start || t >= end) continue;
+    const h = new Date(t).getHours();
+    const key = h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite';
+    out[key] += s.focusMinutes || 0;
+  }
+  return out;
 }
 
 const STALE_DAYS = 5; // disciplina sem estudo há ≥5 dias entra no próximo dia
@@ -263,12 +346,13 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   const weights = computeWeights(mode, topicProgress, disciplineProgress, input.customEvaluations, triage, now);
 
   // Capacidade planejada da semana (para calcular metas proporcionais).
-  // RITMO SEMANAL (Mensagem 10 do dono): o dia vira JANELAS por turno
-  // (manhã 08:00 · tarde 14:00 · noite 19:00) — cada janela cabe
-  // ⌊duração/60⌋ blocos de 50+10. As janelas são vontade explícita do dono
-  // (ritmo aplicado em 1 toque), então maxBlocksPerDay/maxMinutesPerDay não
-  // as engarrafam; no modo legado (sem `windows`) os tetos continuam valendo.
+  // RITMO APRENDIDO (dono, 20/10/2026): com `learnedCapacity` presente, a
+  // capacidade de TODOS os dias vem da mediana do uso real — fim dos turnos
+  // configurados (manhã/tarde/noite), fim de "dias habilitados". O bloco
+  // interno nasce 08:00+sequencial: é só a ordem do motor; a superfície não
+  // mostra relógio — a fila começa quando o dono senta (re-ancoragem do dia).
   const weekStudiedMinutes = input.weekStudiedMinutes;
+  const learned = input.learnedCapacity;
   const dayCapacity = new Map<
     number,
     {
@@ -279,6 +363,16 @@ export function generateSmartSchedule(input: SmartScheduleInput): SmartBlock[] {
   >();
   let plannedTotal = 0;
   for (let day = 0; day <= 6; day++) {
+    if (learned) {
+      const minutes = learned.minutesPerDay;
+      const budget = Math.max(1, Math.min(5, Math.round(minutes / 60)));
+      const windows = [
+        { startMin: 8 * 60, durationMin: Math.min(minutes, budget * 60), budget, placed: 0 },
+      ];
+      dayCapacity.set(day, { blocks: budget, minutes: windows[0].durationMin, windows });
+      plannedTotal += windows[0].durationMin;
+      continue;
+    }
     const pref = preferences.days[day];
     // HORÁRIOS APRENDIDOS (Task 231): a mediana dos inícios reais do dono
     // substitui o relógio-padrão — "tarde" nasce na hora que ELE costuma

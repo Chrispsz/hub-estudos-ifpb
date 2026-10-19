@@ -60,8 +60,6 @@ interface DayLauncherProps {
   sessionActive: boolean;
   /** Foco real registrado hoje (minutos) — a barra do piloto vive disso. */
   minutesToday: number;
-  /** FOCO DO DIA (Task 224) — o nome curto da matéria escolhida, se houver. */
-  focusLabel?: string | null;
   /** O DIA NÃO MORRE NO "CUMPRIDO" (pedido do dono: "finalizando poder colocar
    *  2h de novo a qualquer momento do dia e isso somar") — o gesto de somar
    *  +2h à sessão, refazendo a fila na hora. Ausente = sem botão. */
@@ -80,7 +78,6 @@ export function DayLauncherCard({
   steps,
   sessionActive,
   minutesToday,
-  focusLabel,
   onExtend,
   onStartStep,
   onCompleteStep,
@@ -176,15 +173,6 @@ export function DayLauncherCard({
               <p className="text-[15px] font-medium leading-snug">
                 <Rocket className="mr-1.5 inline size-4.5 text-primary" aria-hidden />
                 {isActive ? 'Seu dia está em andamento.' : 'Seu dia está pronto.'}
-                {focusLabel && (
-                  <Badge
-                    variant="outline"
-                    className="ml-2 border-primary/40 bg-primary/10 align-middle text-[10px] font-semibold text-primary"
-                    data-t="day-launch-focus"
-                  >
-                    foco: {focusLabel}
-                  </Badge>
-                )}
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {plan.readiness}
@@ -241,7 +229,7 @@ export function DayLauncherCard({
                           onClick={() => start(s)}
                           disabled={s.done}
                           data-t={`day-block-${s.id}`}
-                          aria-label={`${s.done ? 'Concluído' : 'Iniciar'}: ${s.title}${s.time ? ` às ${s.time}` : ''}`}
+                          aria-label={`${s.done ? 'Concluído' : `Iniciar ${s.order}º bloco`}: ${s.title}`}
                           className={cn(
                             'group flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2 text-left text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                             s.done
@@ -250,15 +238,12 @@ export function DayLauncherCard({
                             isCurrent && 'bg-primary/[0.07] ring-1 ring-primary/25',
                           )}
                         >
-                          {s.time ? (
-                            <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
-                              {s.time}
-                            </span>
-                          ) : (
-                            <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground" aria-hidden>
-                              ·····
-                            </span>
-                          )}
+                          {/* SEM RELÓGIO (dono, 20/10/2026: "menos coisa para
+                              mexer"): a fila é uma SEQUÊNCIA — 1º, 2º, 3º —
+                              e começa quando o dono senta. */}
+                          <span className="w-6 shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+                            {s.order}º
+                          </span>
                           <span className={cn('min-w-0 flex-1 truncate', s.done && 'line-through')}>
                             {s.title}
                           </span>
@@ -321,8 +306,7 @@ export function DayLauncherCard({
                   {plan.doneCount > 0 ? 'Próximo bloco pronto' : 'Seu dia está pronto.'}
                 </DialogTitle>
                 <DialogDescription>
-                  {plan.readiness} — do cronograma inteligente, com o método de cada bloco.
-                  {focusLabel ? ` Foco de hoje: ${focusLabel} — a fila concentra nela.` : ''}
+                  {plan.readiness} — a fila automática, com o método de cada bloco.
                   {fit && !fit.single
                     ? ` Encaixe de hoje: pausas ~${Math.max(0, Math.round(fit.breakTotal / Math.max(1, fit.cycles)))}min · fecho ${fit.wrapMin}min — o Pomodoro se ajusta ao 1º bloco (o de sempre volta no Restaurar).`
                     : fit?.single
@@ -337,11 +321,9 @@ export function DayLauncherCard({
                 data-t="day-launch-current"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  {current.time && (
-                    <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
-                      {current.time}
-                    </span>
-                  )}
+                  <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {current.order}º da fila
+                  </span>
                   <span className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {current.short}
                   </span>
@@ -433,11 +415,9 @@ export function DayLauncherCard({
                             isCurrent && 'bg-primary/[0.07] ring-1 ring-primary/30',
                           )}
                         >
-                          {s.time && (
-                            <span className="shrink-0 font-mono text-[10.5px] font-semibold tabular-nums text-muted-foreground">
-                              {s.time}
-                            </span>
-                          )}
+                          <span className="w-5 shrink-0 text-right font-mono text-[10.5px] font-semibold tabular-nums text-muted-foreground">
+                            {s.order}º
+                          </span>
                           <span className={cn('w-0 min-w-0 flex-1 truncate', s.done && 'line-through')}>
                             {s.title}
                           </span>

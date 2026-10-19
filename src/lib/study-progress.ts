@@ -1127,9 +1127,29 @@ export function useStudyProgress() {
         // TASK 220 — a prova que chega mais cedo comprime: se a 1ª volta
         // natural cairia depois da avaliação oficial da disciplina, ela nasce
         // em D-2 (a prova puxa a revisão — ninguém é avaliado sem revisitar).
+        // REPETIÇÃO COM CRITÉRIO (dono, 20/10/2026): "a repetição não é nem de
+        // matéria, é do mesmo material já concluído recentemente CASO tenha
+        // sido completamente feito e registrado SEM MUITAS DIFICULDADES nas
+        // questões; em casos excepcionais de muita dificuldade em alguma
+        // questão, repetir ELAS no máximo". Então: facilidade medida nas
+        // questões ligadas ao material (acerto de cabeça ≥ 60%) semeia o
+        // ciclo de consolidação; material puxado NÃO volta inteiro — o que
+        // repete são as questões difíceis (ciclo do erro, teto 2/dia) e o
+        // reforço do degrau (fila do dia). Material sem questões ligadas =
+        // consolidação segue (reler de propósito vale para leitura também).
         const matMeta = materials.find((m) => m.id === materialId);
         const reviews = { ...(prev.materialReviews ?? {}) };
-        if (matMeta?.pdfPath && matMeta.type !== 'web_page' && !reviews[materialId]) {
+        const linkedExs = exercises.filter((e) => e.linkedMaterials?.includes(materialId));
+        const triedExs = linkedExs.filter((e) => {
+          const p = prev.exerciseProgress?.[e.id];
+          return !!p && (p.tried || p.solved);
+        });
+        const noHelpExs = triedExs.filter(
+          (e) => prev.exerciseProgress[e.id].solved && !prev.exerciseProgress[e.id].neededHelp,
+        );
+        const cleanCompletion =
+          triedExs.length < 2 || noHelpExs.length / triedExs.length >= 0.6;
+        if (matMeta?.pdfPath && matMeta.type !== 'web_page' && !reviews[materialId] && cleanCompletion) {
           const evalP = examPressureFor(disciplineCode, new Date(nowIso));
           const sched = scheduleReviewDue(
             new Date(nowIso).getTime(),
