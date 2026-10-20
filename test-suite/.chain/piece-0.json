@@ -1,0 +1,66 @@
+{
+  "piece": 0,
+  "name": "Ambiente",
+  "ok": true,
+  "ms": 378,
+  "checks": [
+    {
+      "name": "bun runtime presente",
+      "ms": 6,
+      "ok": true,
+      "severity": "error",
+      "detail": "bun 1.3.14"
+    },
+    {
+      "name": "node_modules instalado",
+      "ms": 0,
+      "ok": true,
+      "severity": "error",
+      "detail": "next presente"
+    },
+    {
+      "name": "prisma schema + cliente gerado",
+      "ms": 0,
+      "ok": true,
+      "severity": "warning",
+      "detail": "schema=true client=true"
+    },
+    {
+      "name": "db local existe",
+      "ms": 0,
+      "ok": true,
+      "severity": "warning",
+      "detail": "pasta db presente"
+    },
+    {
+      "name": "next.config.ts presente",
+      "ms": 0,
+      "ok": true,
+      "severity": "error"
+    },
+    {
+      "name": "dev server responde 200 em /",
+      "ms": 268,
+      "ok": true,
+      "severity": "error",
+      "detail": "GET / → 200"
+    },
+    {
+      "name": "página serve HTML com root do React",
+      "ms": 104,
+      "ok": true,
+      "severity": "error",
+      "detail": "html 97574 bytes"
+    },
+    {
+      "name": "fonts/tema: globals.css com tokens da casa (AMOLED + teal)",
+      "ms": 0,
+      "ok": true,
+      "severity": "warning",
+      "detail": "tokens=true text-wrap=true"
+    }
+  ],
+  "data": {
+    "baseUrl": "http://localhost:3000"
+  }
+}

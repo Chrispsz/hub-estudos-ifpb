@@ -1,0 +1,22 @@
+{
+  "piece": 2,
+  "name": "Núcleo puro (unitários)",
+  "ok": true,
+  "ms": 684,
+  "checks": [
+    {
+      "name": "bun test — suíte unitária completa",
+      "ms": 491,
+      "ok": true,
+      "severity": "error",
+      "detail": "132 testes passaram · 0 falhas · 490ms"
+    },
+    {
+      "name": "compilador clab: cadeia lexer→parser→VM→fluxograma sem furos",
+      "ms": 193,
+      "ok": true,
+      "severity": "error",
+      "detail": "compilador + acervo oficial íntegros"
+    }
+  ]
+}

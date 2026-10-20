@@ -1,0 +1,57 @@
+{
+  "piece": 5,
+  "name": "Visual & responsivo",
+  "ok": true,
+  "ms": 9110,
+  "checks": [
+    {
+      "name": "visual · desktop 1440×900 sem overflow horizontal",
+      "ms": 670,
+      "ok": true,
+      "severity": "error",
+      "detail": "scrollWidth=1440 vs innerWidth=1440"
+    },
+    {
+      "name": "visual · tema escuro AMOLED ativo (fundo quase preto)",
+      "ms": 2673,
+      "ok": false,
+      "severity": "warning",
+      "detail": "body bg=lab(0 0 0) (esperado ~rgb(0,0,0) do AMOLED; claro não é erro fatal se o sistema do usuário for claro)"
+    },
+    {
+      "name": "visual · rodapé colado no fim (sem flutuar)",
+      "ms": 540,
+      "ok": true,
+      "severity": "warning",
+      "detail": "BOTTOM=904 INNER=900"
+    },
+    {
+      "name": "visual · screenshot desktop salvo",
+      "ms": 126,
+      "ok": true,
+      "severity": "warning",
+      "detail": "/home/z/my-project/test-suite/.chain/shots/desktop-1440.png"
+    },
+    {
+      "name": "visual · mobile 390×844 sem overflow horizontal",
+      "ms": 890,
+      "ok": true,
+      "severity": "error",
+      "detail": "scrollWidth=390 vs innerWidth=390"
+    },
+    {
+      "name": "visual · mobile tem navegação alcançável (menu hambúrguer)",
+      "ms": 36,
+      "ok": true,
+      "severity": "warning",
+      "detail": "hambúrguer presente"
+    },
+    {
+      "name": "visual · screenshot mobile salvo",
+      "ms": 57,
+      "ok": true,
+      "severity": "warning",
+      "detail": "/home/z/my-project/test-suite/.chain/shots/mobile-390.png"
+    }
+  ]
+}

@@ -441,8 +441,12 @@ export class ClabEngine {
             }
             // update
             if (top.n.update) this.evalExpr(top.n.update, top.fr);
-            this.snap(silent, top.n.line, `for: passo (${top.n.update ? stmtTextOf(top.n.update) : '—'}) → volta a testar a condição`);
+            // A fase muda ANTES do snapshot: o estado congelado já é "incremento
+            // feito, pronto para testar a condição". Se o snap viesse antes da
+            // troca de fase, um fork deste passo re-aplicaria o incremento e o
+            // replay do "E se...?" divergia da linha do tempo original.
             top.phase = 'cond';
+            this.snap(silent, top.n.line, `for: passo (${top.n.update ? stmtTextOf(top.n.update) : '—'}) → volta a testar a condição`);
             return true;
           }
           case 'call': {

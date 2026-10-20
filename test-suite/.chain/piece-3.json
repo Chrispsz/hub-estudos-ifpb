@@ -1,0 +1,64 @@
+{
+  "piece": 3,
+  "name": "API HTTP",
+  "ok": true,
+  "ms": 109,
+  "checks": [
+    {
+      "name": "GET /api → 200 com mensagem",
+      "ms": 8,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200 · {\"message\":\"Hello, world!\"}"
+    },
+    {
+      "name": "GET /api/audit → 200 JSON válido",
+      "ms": 6,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200 · json=true"
+    },
+    {
+      "name": "GET /api/tutor/signals → 200 JSON válido (sinais do tutor)",
+      "ms": 8,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200 · bytes 24"
+    },
+    {
+      "name": "GET /api/settings/ai → 200 JSON válido",
+      "ms": 6,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200"
+    },
+    {
+      "name": "GET /api/tutor/history?discipline → 200 com { messages }",
+      "ms": 6,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200 · messages=0"
+    },
+    {
+      "name": "GET /api/tutor/history sem discipline → 400 (validação vive)",
+      "ms": 5,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 400 (contrato: parâmetro obrigatório rejeitado com 400)"
+    },
+    {
+      "name": "POST /api/settings/ai com lixo → NUNCA 5xx (validação destrói)",
+      "ms": 7,
+      "ok": true,
+      "severity": "error",
+      "detail": "POST inválido → 400 (esperado 4xx/2xx tolerante)"
+    },
+    {
+      "name": "rota inexistente em /api → 404/405 (não 500)",
+      "ms": 63,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 404"
+    }
+  ]
+}
