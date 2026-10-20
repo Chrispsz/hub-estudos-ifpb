@@ -2,21 +2,21 @@
   "piece": 1,
   "name": "Qualidade do código",
   "ok": true,
-  "ms": 23986,
+  "ms": 23329,
   "checks": [
     {
       "name": "ESLint passa (bun run lint)",
-      "ms": 18287,
+      "ms": 17877,
       "ok": true,
       "severity": "error",
-      "detail": "18286ms sem warnings"
+      "detail": "17877ms sem warnings"
     },
     {
       "name": "TypeScript compila sem erro (tsc --noEmit: app + suíte)",
-      "ms": 5653,
+      "ms": 5405,
       "ok": true,
       "severity": "error",
-      "detail": "app 2862ms + suíte 2791ms — ambos limpos"
+      "detail": "app 2627ms + suíte 2778ms — ambos limpos"
     },
     {
       "name": "LEI DA CASA: fetch sempre relativo (sem http://localhost/porta em src/)",
@@ -27,14 +27,14 @@
     },
     {
       "name": "LEI DA CASA: z-ai-web-dev-sdk só no backend (src/app/api)",
-      "ms": 8,
+      "ms": 9,
       "ok": true,
       "severity": "error",
       "detail": "SDK confinado ao backend"
     },
     {
       "name": "higiene: console.log em produção (informativo)",
-      "ms": 10,
+      "ms": 9,
       "ok": false,
       "severity": "warning",
       "detail": "11 ocorrências — src/app/api/tutor/route.ts:9, src/components/hub/code-lab.tsx:2"
@@ -48,7 +48,7 @@
     },
     {
       "name": "integridade: pontos de entrada essenciais existem",
-      "ms": 8,
+      "ms": 9,
       "ok": true,
       "severity": "error",
       "detail": "6 arquivos presentes"

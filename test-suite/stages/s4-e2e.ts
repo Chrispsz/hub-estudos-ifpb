@@ -196,6 +196,49 @@ export async function run(): Promise<StageResult> {
     };
   });
 
+  // ---------- E7: A paleta de comandos abre com Ctrl+K ----------
+  await timedCheck(checks, 'jornada · paleta de comandos abre com Ctrl+K e fecha com Esc', async () => {
+    await ab('press', 'Control+k');
+    await ab('wait', '500');
+    const abriu = await evalStr(
+      `!!(document.querySelector('[cmdk-root]') || document.querySelector('[role="dialog"]'))`,
+    );
+    await ab('press', 'Escape');
+    await ab('wait', '300');
+    return {
+      ok: abriu === 'true',
+      severity: 'warning' as const,
+      detail: abriu === 'true' ? 'paleta abriu e fechou limpa' : 'Ctrl+K não abriu a paleta (atalho mudou?)',
+    };
+  });
+
+  // ---------- E8: O tema alterna e sobrevive ao reload (next-themes) ----------
+  await timedCheck(checks, 'jornada · alternar tema persiste no localStorage e no reload', async () => {
+    const antes = await evalStr(`localStorage.getItem('theme') ?? 'NULL'`);
+    const click = await ab('find', 'label', 'Alternar tema', 'click');
+    if (!click.ok) {
+      return { ok: false, severity: 'warning' as const, detail: `botão "Alternar tema" não encontrado: ${click.err}` };
+    }
+    await ab('wait', '500');
+    const depois = await evalStr(`localStorage.getItem('theme') ?? 'NULL'`);
+    if (antes === depois) {
+      return { ok: false, severity: 'warning' as const, detail: `tema não mudou (antes=${antes}, depois=${depois})` };
+    }
+    await ab('reload');
+    await ab('wait', '1800');
+    const posReload = await evalStr(`localStorage.getItem('theme') ?? 'NULL'`);
+
+    // devolve o tema original (o teste não deixa rastro)
+    if (antes === 'NULL') await evalStr(`localStorage.removeItem('theme')`);
+    else await ab('eval', `localStorage.setItem('theme', ${JSON.stringify(antes)})`);
+
+    return {
+      ok: posReload === depois,
+      severity: 'error' as const,
+      detail: `tema ${antes} → ${depois} · pós-reload=${posReload} — escolha sobrevive ao F5`,
+    };
+  });
+
   // ---------- E7: Foto do fim da jornada ----------
   await timedCheck(checks, 'jornada · screenshot final salvo', async () => {
     const path = join(SHOTS_DIR, 'e2e-final.png');

@@ -2,39 +2,39 @@
   "piece": 3,
   "name": "API HTTP",
   "ok": true,
-  "ms": 109,
+  "ms": 113,
   "checks": [
     {
       "name": "GET /api → 200 com mensagem",
-      "ms": 8,
+      "ms": 9,
       "ok": true,
       "severity": "error",
       "detail": "status 200 · {\"message\":\"Hello, world!\"}"
     },
     {
       "name": "GET /api/audit → 200 JSON válido",
-      "ms": 6,
+      "ms": 8,
       "ok": true,
       "severity": "error",
       "detail": "status 200 · json=true"
     },
     {
       "name": "GET /api/tutor/signals → 200 JSON válido (sinais do tutor)",
-      "ms": 8,
+      "ms": 11,
       "ok": true,
       "severity": "error",
       "detail": "status 200 · bytes 24"
     },
     {
       "name": "GET /api/settings/ai → 200 JSON válido",
-      "ms": 6,
+      "ms": 4,
       "ok": true,
       "severity": "error",
       "detail": "status 200"
     },
     {
       "name": "GET /api/tutor/history?discipline → 200 com { messages }",
-      "ms": 6,
+      "ms": 5,
       "ok": true,
       "severity": "error",
       "detail": "status 200 · messages=0"
@@ -48,14 +48,14 @@
     },
     {
       "name": "POST /api/settings/ai com lixo → NUNCA 5xx (validação destrói)",
-      "ms": 7,
+      "ms": 6,
       "ok": true,
       "severity": "error",
       "detail": "POST inválido → 400 (esperado 4xx/2xx tolerante)"
     },
     {
       "name": "rota inexistente em /api → 404/405 (não 500)",
-      "ms": 63,
+      "ms": 64,
       "ok": true,
       "severity": "error",
       "detail": "status 404"

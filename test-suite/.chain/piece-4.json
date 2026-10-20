@@ -2,88 +2,102 @@
   "piece": 4,
   "name": "Jornada E2E (o quebra-cabeça vivo)",
   "ok": true,
-  "ms": 19569,
+  "ms": 24605,
   "checks": [
     {
       "name": "jornada · abre a home e a página renderiza",
-      "ms": 4293,
+      "ms": 4100,
       "ok": true,
       "severity": "error",
       "detail": "título=\"Hub de Estudos • IFPB ADS — Turma 2026.2\" · corpo com 3109 caracteres"
     },
     {
       "name": "jornada · zero erros de página (uncaught)",
-      "ms": 37,
+      "ms": 32,
       "ok": true,
       "severity": "error",
       "detail": "nenhum erro de execução"
     },
     {
       "name": "jornada · aba \"Conteúdos\" abre e ativa",
-      "ms": 686,
+      "ms": 680,
       "ok": true,
       "severity": "error",
       "detail": "aria-current=\"Conteúdos68\" · conteúdo reconhecido=true"
     },
     {
       "name": "jornada · aba \"Tutor IA\" abre e ativa",
-      "ms": 752,
+      "ms": 730,
       "ok": true,
       "severity": "error",
       "detail": "aria-current=\"Tutor IA\" · conteúdo reconhecido=true"
     },
     {
       "name": "jornada · aba \"Praticar\" abre e ativa",
-      "ms": 1248,
+      "ms": 1086,
       "ok": true,
       "severity": "error",
       "detail": "aria-current=\"Praticar\" · conteúdo reconhecido=true"
     },
     {
       "name": "jornada · aba \"Cronograma\" abre e ativa (via menu Mais do Modo Foco)",
-      "ms": 1225,
+      "ms": 1165,
       "ok": true,
       "severity": "error",
       "detail": "aria-current=\"Cronograma\" · conteúdo reconhecido=true"
     },
     {
       "name": "jornada · aba \"Lab de Código\" abre e ativa",
-      "ms": 774,
+      "ms": 751,
       "ok": true,
       "severity": "error",
       "detail": "aria-current=\"Lab de Código\" · conteúdo reconhecido=true"
     },
     {
       "name": "jornada · aba \"Configurações\" abre e ativa",
-      "ms": 742,
+      "ms": 717,
       "ok": true,
       "severity": "error",
       "detail": "aria-current=\"Configurações\" · conteúdo reconhecido=true"
     },
     {
       "name": "jornada · Lab de Código: Rodar executa e mostra saída",
-      "ms": 37,
+      "ms": 35,
       "ok": false,
       "severity": "warning",
       "detail": "botão Rodar não encontrado na aba do Lab"
     },
     {
       "name": "jornada · check-in de horas persiste no localStorage e no reload",
-      "ms": 9398,
+      "ms": 9494,
       "ok": true,
       "severity": "error",
       "detail": "pós-reload: H=2 (esperado H=2) — check-in sobrevive ao F5"
     },
     {
       "name": "jornada · rodapé presente e renderizado",
-      "ms": 65,
+      "ms": 75,
       "ok": true,
       "severity": "error",
       "detail": "footer existe=true · visível=YES"
     },
     {
+      "name": "jornada · paleta de comandos abre com Ctrl+K e fecha com Esc",
+      "ms": 1783,
+      "ok": true,
+      "severity": "warning",
+      "detail": "paleta abriu e fechou limpa"
+    },
+    {
+      "name": "jornada · alternar tema persiste no localStorage e no reload",
+      "ms": 3650,
+      "ok": true,
+      "severity": "error",
+      "detail": "tema NULL → light · pós-reload=light — escolha sobrevive ao F5"
+    },
+    {
       "name": "jornada · screenshot final salvo",
-      "ms": 81,
+      "ms": 82,
       "ok": true,
       "severity": "warning",
       "detail": "/home/z/my-project/test-suite/.chain/shots/e2e-final.png"

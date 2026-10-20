@@ -2,21 +2,28 @@
   "piece": 2,
   "name": "Núcleo puro (unitários)",
   "ok": true,
-  "ms": 684,
+  "ms": 801,
   "checks": [
     {
       "name": "bun test — suíte unitária completa",
-      "ms": 491,
+      "ms": 458,
       "ok": true,
       "severity": "error",
-      "detail": "132 testes passaram · 0 falhas · 490ms"
+      "detail": "198 testes passaram · 0 falhas · 458ms"
     },
     {
       "name": "compilador clab: cadeia lexer→parser→VM→fluxograma sem furos",
-      "ms": 193,
+      "ms": 197,
       "ok": true,
       "severity": "error",
       "detail": "compilador + acervo oficial íntegros"
+    },
+    {
+      "name": "acervo: integridade de dados (matérias, exercícios, avaliações, calendário)",
+      "ms": 146,
+      "ok": true,
+      "severity": "error",
+      "detail": "fonte única da verdade íntegra"
     }
   ]
 }

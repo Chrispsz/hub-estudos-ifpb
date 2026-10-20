@@ -21,6 +21,7 @@ import * as s2 from './stages/s2-unit';
 import * as s3 from './stages/s3-api';
 import * as s4 from './stages/s4-e2e';
 import * as s5 from './stages/s5-visual';
+import * as s6 from './stages/s6-prod';
 import { writeFileSync } from 'node:fs';
 
 const args = process.argv.slice(2);
@@ -34,10 +35,11 @@ const ONLY: number[] | null = onlyIdx >= 0
 const PIECES: Piece[] = [
   { piece: 0, name: 'Ambiente', description: 'Runtime, deps, banco e dev server de pé', run: s0.run },
   { piece: 1, name: 'Qualidade do código', description: 'ESLint + tsc + leis da casa (fetch relativo, SDK só no backend)', run: s1.run },
-  { piece: 2, name: 'Núcleo puro', description: '132 testes bun:test do compilador e dos algoritmos', run: s2.run },
+  { piece: 2, name: 'Núcleo puro', description: '198 testes bun:test do compilador, algoritmos, acervo e ciclo do erro', run: s2.run },
   { piece: 3, name: 'API HTTP', description: 'Contratos dos endpoints, validação e ausência de 5xx', run: s3.run },
-  { piece: 4, name: 'Jornada E2E', description: 'A pessoa abre, navega as 6 abas, roda o Lab e o check-in sobrevive ao reload', run: s4.run },
+  { piece: 4, name: 'Jornada E2E', description: 'A pessoa abre, navega as 6 abas, roda o Lab, a paleta e o tema — e o check-in sobrevive ao reload', run: s4.run },
   { piece: 5, name: 'Visual & responsivo', description: 'AMOLED, zero overflow, rodapé colado, mobile 390px + screenshots', run: s5.run },
+  { piece: 6, name: 'Produção (Vercel)', description: 'O link original no ar: home, /api, PWA e estáticos em produção', run: s6.run },
 ];
 
 function fmtMs(ms: number): string {
@@ -56,7 +58,7 @@ function buildReport(results: StageResult[], totalMs: number, abortedAt: number 
   lines.push('');
   lines.push(`- **Quando**: ${now.toLocaleString('pt-BR')}`);
   lines.push(`- **Duração total**: ${fmtMs(totalMs)}`);
-  lines.push(`- **Peças montadas**: ${results.length}/6${abortedAt !== null ? ` (cadeia interrompida na peça ${abortedAt})` : ''}`);
+  lines.push(`- **Peças montadas**: ${results.length}/${PIECES.length}${abortedAt !== null ? ` (cadeia interrompida na peça ${abortedAt})` : ''}`);
   lines.push(`- **Checks executados**: ${totalChecks} · **Erros**: ${totalErrors} · **Avisos**: ${totalWarns}`);
   lines.push(`- **Veredito**: ${allOk ? '✅ O QUEBRA-CABEÇA COMPLETOU O QUADRO' : '❌ HÁ PEÇA QUE NÃO ENCAIXA'}`);
   lines.push('');
@@ -111,7 +113,7 @@ async function main() {
 
   console.log('\n🧩 QUEBRA-CABEÇA DO HUB — cadeia completa iniciando\n');
   for (const piece of PIECES) {
-    if (SKIP_E2E && piece.piece >= 4) {
+    if (SKIP_E2E && (piece.piece === 4 || piece.piece === 5)) {
       console.log(`⏭️  PEÇA ${piece.piece} (${piece.name}) pulada (--skip-e2e)`);
       continue;
     }

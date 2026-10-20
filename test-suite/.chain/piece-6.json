@@ -1,0 +1,53 @@
+{
+  "piece": 6,
+  "name": "Produção (Vercel — o link original)",
+  "ok": true,
+  "ms": 1873,
+  "checks": [
+    {
+      "name": "produção · home responde 200 com o título da casa (server: Vercel)",
+      "ms": 48,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200 · server=Vercel · título=ok"
+    },
+    {
+      "name": "produção · /api responde 200 (tutor vivo no link original)",
+      "ms": 1462,
+      "ok": true,
+      "severity": "error",
+      "detail": "status 200"
+    },
+    {
+      "name": "produção · PWA no ar: manifest + service worker",
+      "ms": 21,
+      "ok": true,
+      "severity": "warning",
+      "detail": "manifest=200 · sw=200"
+    },
+    {
+      "name": "produção · páginas de apoio (folha de revisão, caderno de papel)",
+      "ms": 35,
+      "ok": true,
+      "severity": "warning",
+      "detail": "folha=200 · caderno=200"
+    },
+    {
+      "name": "produção · estáticos servidos (ícone, logo, robots)",
+      "ms": 28,
+      "ok": true,
+      "severity": "warning",
+      "detail": "ícone=200 · logo=200"
+    },
+    {
+      "name": "produção · conteúdo do acervo cacheado (headers do vercel.json vivos)",
+      "ms": 279,
+      "ok": true,
+      "severity": "warning",
+      "detail": "cache-control de /data/: \"public, max-age=0, must-revalidate\""
+    }
+  ],
+  "data": {
+    "prod": "https://hub-estudos-ifpb.vercel.app"
+  }
+}
