@@ -442,6 +442,17 @@ export function StudyView({
     dismissSummary,
   } = focus;
 
+  // FOCO RODANDO É TEMPO VIVO (teste como estudante, 20/10/2026): com o timer
+  // correndo, "Hoje: 0 min" parece que nada está sendo registrado. O chip
+  // extra mostra o foco em andamento — os minutos fechados contam quando a
+  // sessão completa (o motor registra), o andar aparece aqui de graça.
+  // durations.focus é em SEGUNDOS (o PilotTimer compara direto com
+  // secondsLeft) — a conta vive em segundos e desce para minutos.
+  const liveFocusMin =
+    live.phase === 'focus' && live.running
+      ? Math.max(0, Math.floor((focus.durations.focus - live.secondsLeft) / 60))
+      : 0;
+
   // ----- Seleção (lazy init: intenção da porta vence; senão, o par do motor —
   // o material que o dono amarrou no leitor da Biblioteca VEM selecionado;
   // sem nenhuma das duas, o ÚLTIMO material aberto entra — a aba nunca cai no
@@ -1730,6 +1741,12 @@ export function StudyView({
                   <Clock className="size-3.5 text-emerald-400" />
                   Hoje: <span className="font-medium text-foreground">{sp.minutesToday} min</span>
                 </span>
+                {liveFocusMin >= 1 && (
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+                    foco em andamento · {liveFocusMin}min
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <Timer className="size-3.5 text-amber-400" />
                   <span className="font-medium text-foreground">{sp.sessionsToday.length}</span>{' '}
@@ -3052,6 +3069,12 @@ export function StudyView({
                   <Clock className="size-4 text-emerald-400" />
                   Hoje: <span className="font-medium text-foreground">{sp.minutesToday} min</span>
                 </span>
+                {liveFocusMin >= 1 && (
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+                    foco em andamento · {liveFocusMin}min
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <Timer className="size-4 text-amber-400" />
                   <span className="font-medium text-foreground">{sp.sessionsToday.length}</span>{' '}

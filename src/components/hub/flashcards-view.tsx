@@ -510,17 +510,49 @@ export function FlashcardsView() {
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 rounded-xl bg-muted/30 p-8 text-center">
-          <Layers className="size-8 text-muted-foreground/40" aria-hidden />
-          <div>
-            <p className="text-sm font-medium">Nenhum cartão por aqui ainda</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Use os botões <span className="font-medium">＋ Novo cartão</span> ou{' '}
-              <span className="font-medium">✨ Gerar com IA</span> no topo da página para criar o
-              primeiro.
-            </p>
-          </div>
-        </Card>
+        stats.total === 0 ? (
+          // DIA 1 (leigo chegando do "Começar o dia"): sem cartão nenhum, o
+          // recall ainda não existe — a casa explica e dá a porta de saída em
+          // vez de deixar a pessoa parada num beco com o foco rodando.
+          <Card className="flex flex-col items-center gap-4 rounded-xl bg-muted/30 p-8 text-center">
+            <Layers className="size-8 text-muted-foreground/40" aria-hidden />
+            <div className="max-w-md">
+              <p className="text-sm font-medium">Os cartões nascem do seu estudo</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                O recall ativo revisa o que você já estudou — e você ainda não tem
+                material estudado aqui. Comece por um bloco na home ou pelo tutor:
+                o que você aprender vira cartão (à mão, com{' '}
+                <span className="font-medium">＋ Novo cartão</span>, ou com IA no{' '}
+                <span className="font-medium">✨ Gerar com IA</span>).
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button size="sm" onClick={() => openTutor({})} aria-label="Abrir o tutor para começar a estudar">
+                <GraduationCap className="size-3.5" /> Estudar com o tutor
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setGenerateOpen(true)}
+                className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300"
+                aria-label="Gerar flashcards com IA a partir de um material"
+              >
+                <Sparkles className="size-3.5" /> Gerar com IA
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card className="flex flex-col items-center gap-3 rounded-xl bg-muted/30 p-8 text-center">
+            <Layers className="size-8 text-muted-foreground/40" aria-hidden />
+            <div>
+              <p className="text-sm font-medium">Nenhum cartão neste filtro</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Você tem {stats.total} cartão{stats.total === 1 ? '' : 'es'} no baralho —
+                mude a disciplina acima para vê-los.
+              </p>
+            </div>
+          </Card>
+        )
       ) : (
         <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
           {filtered.map((card) => {

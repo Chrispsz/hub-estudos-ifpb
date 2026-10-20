@@ -32,7 +32,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
-import { disciplines, materials, type Material } from '@/data/course-data';
+import { disciplines, getDisciplineByCode, materials, type Material } from '@/data/course-data';
 import { cn } from '@/lib/utils';
 import { openPractice, openProgress, openSimulado } from '@/lib/hub-events';
 import {
@@ -763,7 +763,17 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               {focusEval.daysLeft === 0
                 ? `A ${focusEval.kindLabel.toLowerCase()} é hoje`
                 : `${focusEval.kindLabel} amanhã`}
-              . {sessionLine ?? dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'}
+              {/* LEIGO NO DOMÍCIO (teste como estudante, 20/10/2026): a sigla
+                  curta ("RHT") não diz nada para quem chega — a 1ª menção no
+                  subtítulo abre o nome completo e ensina a sigla de graça. */}
+              {(() => {
+                const full = getDisciplineByCode(focusEval.disciplineCode);
+                return full && full.shortName !== full.name
+                  ? ` — ${full.name} (${full.shortName})`
+                  : '';
+              })()}
+              .{' '}
+              {sessionLine ?? dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'}
             </>
           ) : (
             sessionLine ?? dayLine ?? 'Um método, três passos: leia com o tutor, resolva no papel, ensaie.'

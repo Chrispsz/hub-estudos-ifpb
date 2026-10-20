@@ -179,6 +179,13 @@ export function DayLauncherCard({
                 {current ? ` — começa por ${current.short}` : ''}
                 {current?.method ? ` · ${current.method.name.toLowerCase()}` : ''}
               </p>
+              {!sessionActive && (
+                // A RELAÇÃO ENTRE OS DOIS GESTOS (leigo na home: "qual dos
+                // dois uso?"): a caixa de cima é o tamanho, este card é a fila.
+                <p className="mt-1 text-xs text-muted-foreground/80">
+                  Escolha o tempo na caixa acima e estes blocos se re-encaixam na hora.
+                </p>
+              )}
             </div>
             <Button
               type="button"
@@ -308,9 +315,9 @@ export function DayLauncherCard({
                 <DialogDescription>
                   {plan.readiness} — a fila automática, com o método de cada bloco.
                   {fit && !fit.single
-                    ? ` Encaixe de hoje: pausas ~${Math.max(0, Math.round(fit.breakTotal / Math.max(1, fit.cycles)))}min · fecho ${fit.wrapMin}min — o Pomodoro se ajusta ao 1º bloco (o de sempre volta no Restaurar).`
+                    ? ` Pausas de ~${Math.max(0, Math.round(fit.breakTotal / Math.max(1, fit.cycles)))}min entre os blocos e um fecho de ${fit.wrapMin}min no fim — o timer se ajusta sozinho ao tamanho de hoje (seu padrão da casa continua guardado).`
                     : fit?.single
-                      ? ' Foco único — o Pomodoro nasce do tamanho do bloco.'
+                      ? ' Foco único — o timer nasce do tamanho do bloco.'
                       : ''}
                 </DialogDescription>
               </DialogHeader>

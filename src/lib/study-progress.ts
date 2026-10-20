@@ -733,6 +733,9 @@ export interface StudyProgress {
   pomodoroState: PomodoroState | null;
   studyBlocks: CustomStudyBlock[];
   scheduleBlocksDone: string[];
+  /** Semana (seg→dom, chave "yyyy-mm-dd da segunda") em que os ✓ acima foram
+   *  marcados — a expiração semanal do merge limpa ✓ de semanas passadas. */
+  scheduleBlocksDoneWeek: string;
   gradeNotes: GradeNotes;
   autoavaliacaoChecks: AutoavaliacaoChecks;
   preferences: Preferences;
@@ -846,6 +849,7 @@ export const defaultProgress: StudyProgress = {
   simuladoRuns: [],
   studyBlocks: [],
   scheduleBlocksDone: [],
+  scheduleBlocksDoneWeek: '',
   gradeNotes: {},
   autoavaliacaoChecks: {},
   preferences: {
@@ -888,13 +892,33 @@ export const defaultProgress: StudyProgress = {
 };
 
 /**
+ * A CHAVE DA SEMANA (seg→dom) — a segunda-feira da data, como "yyyy-mm-dd".
+ * É o relógio da expiração dos ✓ do cronograma (ver mergeWithDefaults).
+ */
+export function scheduleWeekKey(d: Date): string {
+  const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); // recua para segunda
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
+/**
  * Mescla um progresso importado/parcial com os defaults — tolerante a versões antigas.
  */
 export function mergeWithDefaults(partial: Partial<StudyProgress> | null | unknown): StudyProgress {
   const p = (partial ?? {}) as Partial<StudyProgress>;
+  // EXPIRAÇÃO SEMANAL DOS ✓ DO CRONOGRAMA (bug real, 20/10/2026): os ids dos
+  // blocos são determinísticos por dia da semana ("auto-2-alg-0-…"), então um
+  // ✓ marcado semana passada "pré-concluía" o MESMO bloco nesta semana — a
+  // grade nascia com dias futuros riscados para sempre. O done agora vive 1
+  // semana: a grade rolando nunca repete a mesma data, então ao virar da
+  // semana (segunda) todo ✓ vira pó e o cronograma volta limpo.
+  const thisWeek = scheduleWeekKey(new Date());
+  const doneThisWeek = (p.scheduleBlocksDoneWeek ?? '') === thisWeek;
   return {
     ...defaultProgress,
     ...p,
+    scheduleBlocksDone: doneThisWeek ? (p.scheduleBlocksDone ?? []) : [],
+    scheduleBlocksDoneWeek: thisWeek,
     preferences: {
       ...defaultProgress.preferences,
       ...(p.preferences ?? {}),
@@ -1658,6 +1682,9 @@ export function useStudyProgress() {
           scheduleBlocksDone: done
             ? prev.scheduleBlocksDone.filter((id) => id !== blockId)
             : [...prev.scheduleBlocksDone, blockId],
+          // Carimba a semana no gesto — o merge no próximo load confere e
+          // expira o que for de semana passada (a chave vem carimbada).
+          scheduleBlocksDoneWeek: scheduleWeekKey(new Date()),
         };
       });
     },

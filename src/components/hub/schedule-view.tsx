@@ -321,6 +321,17 @@ export function ScheduleView() {
 
   const today = now ? now.getDay() : -1;
 
+  // A GRADE É OS PRÓXIMOS 7 DIAS COMEÇANDO EM HOJE (bug da ordem, 20/10/2026:
+  // antes ela seguia o índice do dia da semana — Dom primeiro — e a data de
+  // cada card é a PRÓXIMA ocorrência, então Dom/Seg da semana que vem nasiam
+  // ANTES de hoje, com Ter 20 depois de Seg 26). Agora a janela roda com o
+  // dono: Ter (Hoje) → Qua → … → Seg, sempre em ordem cronológica real.
+  const rollingDays = React.useMemo(() => {
+    if (now === null) return DAYS_OF_WEEK;
+    const t = now.getDay();
+    return [...DAYS_OF_WEEK.slice(t), ...DAYS_OF_WEEK.slice(0, t)];
+  }, [now]);
+
   // O RITMO QUE A CASA MEDIU (somente leitura — nada de config): foco real
   // por período nos últimos 14 dias. É o que a grade semanal assume como
   // capacidade e o que o dono vê quando quiser conferir.
@@ -429,7 +440,7 @@ export function ScheduleView() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:grid-cols-7">
-          {DAYS_OF_WEEK.map((d, idx) => (
+          {rollingDays.map((d, idx) => (
             <DayCard
               key={d.num}
               day={d}

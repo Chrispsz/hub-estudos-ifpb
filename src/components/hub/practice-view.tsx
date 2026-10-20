@@ -527,9 +527,9 @@ function ExercisesPanel({
               </Badge>
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              O acervo se alinha automaticamente aos materiais reais enviados:
-              exercícios de tópicos ainda não dados em aula ficam de fora até a
-              aula acontecer (padrão material-first).
+              Só aparece aqui o que você já viu em aula — exercícios de tópicos
+              futuros ficam guardados até a aula acontecer. O botão{' '}
+              <span className="font-medium">Mostrar futuros</span> libera o resto.
             </p>
           </div>
           <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
@@ -1014,6 +1014,10 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
   // openTutor({image}) — a MESMA porta do print do PDF (139) e dos assuntos
   // (140). Nada toca o disco: o anexo morre com o envio.
   const [capturing, setCapturing] = React.useState(false);
+  // ANTI-SPOILER (teste como estudante, 20/10/2026): a dica revela a fórmula
+  // ("hipotenusa² = cateto1² + ...") — visível de cara, ela mata a tentativa
+  // antes de existir. Agora nasce fechada: um toque em "Ver dica" abre.
+  const [hintOpen, setHintOpen] = React.useState(false);
   const questionRef = React.useRef<HTMLDivElement>(null);
   const captureQuestion = async () => {
     const el = questionRef.current;
@@ -1123,7 +1127,17 @@ function ExerciseCard({ exercise, index }: { exercise: Exercise; index: number }
           <p className="mt-2 text-sm leading-relaxed text-foreground/90">
             <MathText text={exercise.statement} />
           </p>
-          {exercise.hint && (
+          {exercise.hint && !hintOpen && (
+            <button
+              type="button"
+              onClick={() => setHintOpen(true)}
+              aria-expanded={false}
+              className="mt-2 flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/[0.06] px-2 py-1.5 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/15 dark:text-amber-400"
+            >
+              <Lightbulb className="size-3 shrink-0" /> Ver dica — tente antes para o efeito valer
+            </button>
+          )}
+          {exercise.hint && hintOpen && (
             <p className="mt-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
               <Lightbulb className="mt-0.5 size-3 shrink-0" /> <MathText text={exercise.hint ?? ''} className="min-w-0 flex-1" />
             </p>
