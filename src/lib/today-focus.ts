@@ -30,6 +30,8 @@ export interface TodayFocus {
   materialId?: string;
   /** Só no foco 'exam': prova >7d abre PRÁTICA dirigida; na reta final, ensaio. */
   open?: 'simulado' | 'pratica';
+  /** t241 — preset do ensaio (ex.: trio 1F/1M/1D de Algoritmos na reta final). */
+  simuladoPreset?: 'math_exam' | 'math_exam_prof' | 'alg_prova1';
 }
 
 export interface TodaySnapshot {
@@ -247,6 +249,11 @@ export function buildTodaySnapshot(
         cta: 'Começar o ensaio',
         disciplineCode: heroEval.disciplineCode,
         open: 'simulado',
+        // t241 — na reta final da prova de Algoritmos, o ensaio é o trio real:
+        // 1 fácil + 1 média + 1 difícil do pool das Semanas 1–7 (refaz semanal).
+        ...(heroEval.disciplineCode === 'TEC.1687' && heroEval.kind === 'prova'
+          ? { simuladoPreset: 'alg_prova1' as const }
+          : {}),
       };
     }
   } else if (cardsDue >= 5) {

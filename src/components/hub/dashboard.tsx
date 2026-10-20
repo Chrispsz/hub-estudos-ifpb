@@ -625,7 +625,7 @@ export function Dashboard({ onStartStudy }: DashboardProps) {
               onClick: () =>
                 f.open === 'pratica'
                   ? openPractice({ disciplineCode: f.disciplineCode })
-                  : openSimulado({ disciplineCode: f.disciplineCode }),
+                  : openSimulado({ disciplineCode: f.disciplineCode, preset: f.simuladoPreset }),
             };
           case 'review':
             return {

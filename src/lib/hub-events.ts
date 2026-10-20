@@ -29,8 +29,10 @@ export interface OpenSimuladoDetail {
    * Presets especiais (ex.: 'math_exam' = prova de Matemática 01/10).
    * t194 — 'math_exam_prof' = ESTRUTURA REAL ditada pelo professor no áudio
    * de 30/09 (t172): as 6 questões fixas, na ordem e no tipo que ele descreveu.
+   * t241 — 'alg_prova1' = trio semanal 1 fácil/1 média/1 difícil de Algoritmos,
+   * no formato REAL confirmado da prova (sai das Semanas 1–7).
    */
-  preset?: 'math_exam' | 'math_exam_prof';
+  preset?: 'math_exam' | 'math_exam_prof' | 'alg_prova1';
   /**
    * Escopo de UM tópico (ex.: replay do pior tópico da tendência no Histórico).
    * Abre o Simulado Pro com só esse tópico ativo — prova curta (5 questões,

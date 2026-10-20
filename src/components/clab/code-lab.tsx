@@ -24,7 +24,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import {
-  ChevronLeft, ChevronRight, CircleHelp, Eraser, Eye, FileCode2, FlaskConical, Lightbulb,
+  ChevronLeft, ChevronRight, CircleHelp, Eraser, Eye, FileCode2, FlaskConical, GitBranch, Lightbulb,
   Pause, Pencil, Play, SkipBack, SkipForward, SquareTerminal, TerminalSquare,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,10 +38,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CodeEditor } from '@/components/clab/code-editor';
 import { DiagnosticCard } from '@/components/clab/diagnostic-card';
 import { ErrorStatsPanel } from '@/components/clab/error-stats-panel';
+import { FlowChartView } from '@/components/clab/flow-chart';
 import { CodeLab as HubCodeLab } from '@/components/hub/code-lab';
 import { openTutor } from '@/lib/hub-events';
 import { cn } from '@/lib/utils';
-import { ClabEngine, CLAB_EXAMPLES, type ClabSnapshot, type ViewVar } from '@/lib/clab';
+import { ClabEngine, CLAB_EXAMPLES, parseC, type ClabSnapshot, type ViewVar } from '@/lib/clab';
+import { flowchartsFor } from '@/lib/clab/flowchart';
 import {
   readClabErrorStats, recordClabError, recordClabSuccess, resetClabErrorStats,
   totalClabErrors, type ClabErrorStats,
@@ -82,6 +84,7 @@ export function CodeLab() {
   const [status, setStatus] = React.useState<LabStatus>('idle');
   const [parseErr, setParseErr] = React.useState<{ message: string; line: number } | null>(null);
   const [editing, setEditing] = React.useState<EditTarget | null>(null);
+  const [flowFnIdx, setFlowFnIdx] = React.useState(0);
   const roteiroRef = React.useRef<HTMLDivElement>(null);
 
   // 228-b — telemetria local "onde você erra mais": lida do localStorage
@@ -256,6 +259,17 @@ export function CodeLab() {
   }, [setKBoth]);
 
   const cur = snaps[k];
+
+  // Fluxograma — nasce direto da AST, sempre que o código compila (t241).
+  // Enquanto o código não compila, o fluxo espera: é o mesmo gate do Rodar.
+  const flow = React.useMemo(() => {
+    if (modo !== 'c') return null;
+    const r = parseC(code);
+    if (!r.ok) return { ok: false as const, message: r.message, line: r.line };
+    return { ok: true as const, charts: flowchartsFor(r.program) };
+  }, [code, modo]);
+  const flowChart =
+    flow?.ok && flow.charts.length > 0 ? flow.charts[Math.min(flowFnIdx, flow.charts.length - 1)] : undefined;
 
   // roteiro acompanha o passo atual
   React.useEffect(() => {
@@ -578,9 +592,10 @@ export function CodeLab() {
 
                 {/* painéis */}
                 <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
-                  <TabsList className="grid h-8 w-full grid-cols-3">
+                  <TabsList className="grid h-8 w-full grid-cols-4">
                     <TabsTrigger value="vars" className="gap-1 text-xs"><FlaskConical className="size-3.5" aria-hidden />Variáveis</TabsTrigger>
                     <TabsTrigger value="out" className="gap-1 text-xs"><TerminalSquare className="size-3.5" aria-hidden />Saída</TabsTrigger>
+                    <TabsTrigger value="fluxo" className="gap-1 text-xs"><GitBranch className="size-3.5" aria-hidden />Fluxo</TabsTrigger>
                     <TabsTrigger value="roteiro" className="gap-1 text-xs"><Eye className="size-3.5" aria-hidden />Roteiro</TabsTrigger>
                   </TabsList>
 
@@ -635,6 +650,47 @@ export function CodeLab() {
                         <p className="text-zinc-500">{cur ? '(o printf ainda não escreveu nada até este passo)' : '(rode o programa para ver a saída aqui)'}</p>
                       )}
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="fluxo" className="mt-2 min-h-0 flex-1">
+                    {flow && !flow.ok ? (
+                      <div className="flex max-h-[340px] items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground 2xl:max-h-[460px]">
+                        O fluxograma nasce do código compilando.
+                        {flow.line ? (
+                          <> Corrija o erro da <span className="mx-1 rounded bg-amber-200/80 px-1 font-mono text-[10px] font-bold text-amber-900 dark:bg-amber-900/60 dark:text-amber-200">L{flow.line}</span> primeiro — o desenho espera.</>
+                        ) : (
+                          ' Corrija o erro primeiro — o desenho espera.'
+                        )}
+                      </div>
+                    ) : flowChart ? (
+                      <div className="max-h-[340px] overflow-y-auto pr-1 2xl:max-h-[460px] clab-scroll">
+                        {flow?.ok && flow.charts.length > 1 && (
+                          <div className="mb-2 flex items-center gap-2">
+                            <Select value={String(flowFnIdx)} onValueChange={(v) => setFlowFnIdx(Number(v))}>
+                              <SelectTrigger className="h-7 w-[200px] text-xs" aria-label="Função do fluxograma">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {flow.charts.map((c, i) => (
+                                  <SelectItem key={c.fn + i} value={String(i)} className="text-xs">
+                                    {c.signature}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-[11px] text-muted-foreground">função por função</span>
+                          </div>
+                        )}
+                        <FlowChartView chart={flowChart} activeLine={cur?.line ?? null} />
+                        <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
+                          O nó aceso é a linha que está rodando agora — acompanhe a execução no desenho.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex max-h-[340px] items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground 2xl:max-h-[460px]">
+                        Escreva um programa (main + funções) para ver o fluxo desenhado aqui.
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="roteiro" className="mt-2 min-h-0 flex-1">

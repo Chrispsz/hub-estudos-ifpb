@@ -248,9 +248,9 @@ export const disciplines: Discipline[] = [
     criteriosAprovacao: 'Aprovação por média ≥ 70. Reprovação < 40. AF para média entre 40 e 70.',
     evaluationMethod: 'aritmetica_simples',
     gradeComponents: [
-      { name: 'Prova 1', weight: 33.33, scale: 100, description: 'Unidades 1 e 2 - entrada/saída, if/switch. Formato (confirmado 24/09): 3 questões — 1 fácil, 1 média, 1 difícil — programas podem vir da Lista de Exercícios (289)' },
-      { name: 'Prova 2', weight: 33.33, scale: 100, description: 'Unidade 3 - repetição (for/while/do-while)' },
-      { name: 'Prova 3', weight: 33.34, scale: 100, description: 'Unidades 4 e 5 - vetores, funções, recursividade' },
+      { name: 'Prova 1', weight: 33.33, scale: 100, description: 'Unidades 1–3 - entrada/saída, if/switch, repetição. Formato (confirmado): 3 questões — 1 fácil, 1 média, 1 difícil — baseadas nas Questões da Semana 1–7' },
+      { name: 'Prova 2', weight: 33.33, scale: 100, description: 'Unidades 4 - vetores e matrizes (padrão das provas 2020–2022: análise de matriz, preenchimento, diferença de vetores)' },
+      { name: 'Prova 3', weight: 33.34, scale: 100, description: 'Unidades 5 - funções e recursividade (padrão das provas: dígitos recursivos, MMC recursivo, subprogramas obrigatórios)' },
     ],
     approvalThreshold: 70,
     finalExamThreshold: 40,
@@ -273,7 +273,7 @@ export const disciplines: Discipline[] = [
       + ' — suas próprias soluções da Semana 1 estão no Hub como gabarito autoral (material "Programas C do autor")',
       'Resolva as "Questões da Semana" do Classroom toda semana — elas são o treino oficial do prof. Fábio',
       'Monitoria da disciplina (monitor Everton): Tira-Dúvidas toda SEGUNDA, 19h–21h, e Resolução de Questões toda QUARTA, 19h–21h — tudo no servidor da monitoria no Discord (link na Biblioteca)',
-      'Prova 1 (30/10) = 3 questões — 1 fácil, 1 média, 1 difícil — e os programas PODEM VIR DA LISTA de Exercícios (289 questões): treine as seções 1 e 2 (Q1–97 = entrada/saída + if/else) antes da prova',
+      'Prova 1 (30/10) = 3 questões — 1 fácil, 1 média, 1 difícil — baseadas nas Questões da Semana 1–7: a S7 (strings sem strlen, Fibonacci, caixa eletrônico, MMC) é o espelho do que caiu nas provas de 2020–2022',
       'Compile e execute cada exemplo no computador',
       'Use o depurador (debugger) para entender o fluxo do programa',
       'Quando travar, escreva o algoritmo em português antes de codar',
@@ -867,6 +867,16 @@ export const materials: Material[] = [
     // Fibonacci, votação, palíndromos, figuras) — S5 + laço dentro do laço.
     topicosCobertos: ['Unidade 3: Comandos de repetição'],
   },
+  { id: 'alg-questoes-semana7', disciplineCode: 'TEC.1687', title: 'Questões da Semana 7 (Classroom)',
+    type: 'lista_exercicios', pdfPath: '/pdfs/alg-questoes-semana7.pdf',
+    summaryFile: 'alg-questoes-semana7.summary.json', pages: 4, source: 'user_upload',
+    // t241 — a última lista antes da Prova 1: 20 questões (19 inéditas — a 14
+    // repete a 11) de strings sem strlen/strcpy, primos, Fibonacci (3 variantes),
+    // dígitos, palíndromo, PA, simulação com sentinela (compras, caixa
+    // eletrônico), MMC, Newton, Pi e fatoração em primos. É o espelho do pool
+    // das provas antigas (mineração t241): quase tudo já caiu em 2020–2022.
+    topicosCobertos: ['Unidade 3: Comandos de repetição'],
+  },
   { id: 'alg-programas-c-autorais', disciplineCode: 'TEC.1687', title: 'Programas C do autor — aula + Questões da Semana 1 (19 resolvidos)',
     type: 'exemplo', summaryFile: 'alg-programas-c-autorais.summary.json', source: 'user_upload',
     // Material-first: as soluções autorais comprovam DOMÍNIO da Unidade 1 (lidas/compiladas/rodadas)
@@ -1262,7 +1272,7 @@ export interface EvaluationPeriod {
 // "A definir" nos detalhes da disciplina e NUNCA com prazo contado.
 export const evaluationPeriods: EvaluationPeriod[] = [
   // Algoritmos — datas REAIS do PDF do professor (30/10, 04/12 e 29/01)
-  { disciplineCode: 'TEC.1687', evaluationName: 'Prova 1', description: '1ª avaliação — entrada/saída e desvios condicionais. 3 questões (1 fácil, 1 média, 1 difícil); programas podem vir da Lista de Exercícios (289)', estimatedWeek: 10, date: '2026-10-30' },
+  { disciplineCode: 'TEC.1687', evaluationName: 'Prova 1', description: '1ª avaliação — entrada/saída, condicionais e repetição. 3 questões (1 fácil, 1 média, 1 difícil) baseadas nas Questões da Semana 1–7', estimatedWeek: 10, date: '2026-10-30' },
   { disciplineCode: 'TEC.1687', evaluationName: 'Prova 2', description: '2ª avaliação — vetores e matrizes', estimatedWeek: 15, date: '2026-12-04' },
   { disciplineCode: 'TEC.1687', evaluationName: 'Prova 3', description: '3ª avaliação — subprogramas e recursividade', estimatedWeek: 19, date: '2027-01-29' },
   { disciplineCode: 'TEC.1687', evaluationName: 'Reposição', description: 'Reposição mediante processo no SUAP', estimatedWeek: 19, date: '2027-02-01', conditional: true },

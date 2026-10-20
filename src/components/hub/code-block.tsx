@@ -8,8 +8,12 @@
 // as cores do destaque são iguais nos temas claro e escuro.
 
 import * as React from 'react';
-import { Check, Copy, FileCode2 } from 'lucide-react';
+import { Check, Copy, FileCode2, GitBranch } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { FlowChartView } from '@/components/clab/flow-chart';
+import { parseC } from '@/lib/clab';
+import { flowchartsFor } from '@/lib/clab/flowchart';
 import {
   langLabel,
   normalizeLang,
@@ -48,6 +52,7 @@ function TokenSpan({ token }: { token: CodeToken }) {
 
 function CodeBlockImpl({ code, language, className }: CodeBlockProps) {
   const [copied, setCopied] = React.useState(false);
+  const [flowOpen, setFlowOpen] = React.useState(false);
   const lang = normalizeLang(language);
 
   // Tokenização memoizada: re-render do chat não re-parseia o código antigo.
@@ -69,6 +74,19 @@ function CodeBlockImpl({ code, language, className }: CodeBlockProps) {
 
   const label = lang ? langLabel(lang) : 'código';
 
+  // t241 — FLUXOGRAMA NO CHAT: qualquer código C que o tutor escrever (ou o
+  // dono colar) vira desenho. O parse roda só com o dialog aberto — zero
+  // custo enquanto a conversa rola. Falha de parse = mensagem honesta.
+  const flow = React.useMemo(() => {
+    if (!flowOpen || lang !== 'c') return null;
+    const r = parseC(code);
+    if (!r.ok) return { ok: false as const, message: r.message, line: r.line };
+    return { ok: true as const, charts: flowchartsFor(r.program) };
+  }, [flowOpen, lang, code]);
+  const flowChart = flow?.ok
+    ? (flow.charts.find((c) => c.fn === 'main') ?? flow.charts[0])
+    : undefined;
+
   return (
     <div
       className={cn(
@@ -81,20 +99,66 @@ function CodeBlockImpl({ code, language, className }: CodeBlockProps) {
           <FileCode2 className="h-3 w-3 shrink-0" aria-hidden="true" />
           {label}
         </span>
-        <button
-          type="button"
-          onClick={copy}
-          aria-label={copied ? 'Código copiado' : 'Copiar código'}
-          className={cn(
-            'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors',
-            'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400',
-            'hover:bg-white/10 active:bg-white/15 sm:h-7 sm:w-7',
-            copied ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-100',
+        <div className="flex items-center gap-0.5">
+          {lang === 'c' && (
+            <button
+              type="button"
+              onClick={() => setFlowOpen(true)}
+              aria-label="Ver fluxograma deste código"
+              title="Ver fluxograma"
+              className={cn(
+                'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors',
+                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400',
+                'hover:bg-white/10 active:bg-white/15 sm:h-7 sm:w-7',
+                'text-zinc-400 hover:text-teal-300',
+              )}
+            >
+              <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
           )}
-        >
-          {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
-        </button>
+          <button
+            type="button"
+            onClick={copy}
+            aria-label={copied ? 'Código copiado' : 'Copiar código'}
+            className={cn(
+              'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors',
+              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400',
+              'hover:bg-white/10 active:bg-white/15 sm:h-7 sm:w-7',
+              copied ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-100',
+            )}
+          >
+            {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
+        </div>
       </div>
+
+      {/* t241 — o desenho do raciocínio, em cima do código do tutor */}
+      <Dialog open={flowOpen} onOpenChange={setFlowOpen}>
+        <DialogContent className="max-h-[86vh] w-[min(880px,94vw)] overflow-hidden sm:max-w-[880px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <GitBranch className="size-4 text-teal-500" aria-hidden="true" />
+              Fluxograma do código
+            </DialogTitle>
+            <DialogDescription>
+              Gerado da AST pelo mesmo compilador do Lab — o desenho que você faria no papel, agora automático.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[64vh] overflow-y-auto pr-1 [scrollbar-width:thin]">
+            {flow && !flow.ok ? (
+              <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Não consegui desenhar este código: ele precisa compilar no C didático do Lab
+                {flow.line ? ` (L${flow.line}: ${flow.message})` : ` (${flow.message})`}.
+                Peça o código em C padrão do curso que o fluxo sai.
+              </p>
+            ) : flowChart ? (
+              <FlowChartView chart={flowChart} />
+            ) : (
+              <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Desenhando…</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="max-h-96 overflow-y-auto [scrollbar-width:thin]">
         <div className="flex">

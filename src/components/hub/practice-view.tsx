@@ -48,6 +48,7 @@ import {
 } from '@/data/course-data';
 import { getColorClasses } from '@/lib/discipline-colors';
 import { cn } from '@/lib/utils';
+import { algProva1Trio, algTrioWeekSeed } from '@/lib/alg-exam-intel';
 import { MathText } from './math-text';
 import { flashcardsDueFor, useStudyProgress } from '@/lib/study-progress';
 import { formatQuestionTime } from '@/lib/learning-signals';
@@ -387,6 +388,21 @@ function ExercisesPanel({
       // t194 — a estrutura REAL ditada pelo professor: 6 questões fixas, 50 min.
       setSimuladoInitialMode('prova');
       setSimuladoInitialConfig(MATH_EXAM_PROF_PRESET);
+    } else if (d.preset === 'alg_prova1') {
+      // t241 — o formato REAL da prova de Algoritmos: 3 questões (1 fácil,
+      // 1 média, 1 difícil) do pool das Semanas 1–7. O trio se refaz toda
+      // semana (seed semanal), priorizando famílias que mais caem — o ensaio
+      // muda junto com o cronograma, nada fixo.
+      const trio = algProva1Trio(algTrioWeekSeed());
+      setSimuladoInitialMode('prova');
+      setSimuladoInitialConfig({
+        discipline: 'TEC.1687',
+        difficulty: 'all' as const,
+        quantity: 3,
+        durationMin: 60,
+        aligned: false,
+        ...(trio ? { fixedIds: [trio.facil.id, trio.medio.id, trio.dificil.id] } : {}),
+      });
     } else if (d.topicScope) {
       // Drill de 1 tópico (ex.: replay do pior tópico da tendência no Histórico):
       // prova curta, no ritmo da turma, cronômetro leve — ajustável no setup.
